@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Logo } from "@/components/brand/logo";
+import { BrandPanel } from "@/components/auth/brand-panel";
 import { RegisterWizard } from "@/components/auth/register-wizard";
 
 export const metadata: Metadata = {
@@ -11,19 +11,18 @@ export const metadata: Metadata = {
 
 export default function RegistroPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-surface-light px-6 py-10">
-      <Link href="/" className="mb-9" title="Voltar para a landing page">
-        <Logo />
-      </Link>
+    <div className="flex min-h-screen flex-col md:flex-row">
+      <BrandPanel />
+      <div className="flex flex-1 flex-col items-center justify-center bg-surface-light px-6 py-10">
+        <RegisterWizard />
 
-      <RegisterWizard />
-
-      <p className="mt-5 text-[13px] text-[#94A3B8]">
-        Já tem conta?{" "}
-        <Link href="/login" className="text-primary hover:underline">
-          Entrar
-        </Link>
-      </p>
+        <p className="mt-5 text-[13px] text-[#94A3B8]">
+          Já tem conta?{" "}
+          <Link href="/login" className="text-primary hover:underline">
+            Entrar
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
