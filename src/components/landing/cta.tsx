@@ -13,7 +13,7 @@ export function CallToAction() {
           minutos.
         </p>
         <Link
-          href="/registro"
+          href="/register"
           className="inline-flex items-center gap-2.5 rounded-xl bg-white px-8 py-4 text-base font-bold text-primary transition-opacity hover:opacity-90"
         >
           Criar minha conta grátis

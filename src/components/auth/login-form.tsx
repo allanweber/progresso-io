@@ -21,7 +21,7 @@ export function LoginForm() {
         </h1>
         <p className="text-sm text-muted-foreground">
           Não tem conta?{" "}
-          <Link href="/registro" className="font-medium text-primary hover:underline">
+          <Link href="/register" className="font-medium text-primary hover:underline">
             Criar conta grátis
           </Link>
         </p>
@@ -52,7 +52,7 @@ export function LoginForm() {
           />
           <div className="text-right">
             <Link
-              href="/esqueci-a-senha"
+              href="/forgot-password"
               className="text-[13px] text-primary hover:underline"
             >
               Esqueci a senha

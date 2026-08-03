@@ -100,7 +100,7 @@ export const plans: Plan[] = [
       { label: "WhatsApp integrado", included: false },
       { label: "Calendário", included: false },
     ],
-    cta: { label: "Começar grátis", href: "/registro" },
+    cta: { label: "Começar grátis", href: "/register" },
   },
   {
     name: "Solo",
@@ -113,7 +113,7 @@ export const plans: Plan[] = [
       { label: "Substituições", included: true },
       { label: "Calendário completo", included: true },
     ],
-    cta: { label: "Começar grátis", href: "/registro" },
+    cta: { label: "Começar grátis", href: "/register" },
     popular: true,
   },
   {
@@ -127,7 +127,7 @@ export const plans: Plan[] = [
       { label: "Relatórios avançados", included: true },
       { label: "Suporte prioritário", included: true },
     ],
-    cta: { label: "Começar grátis", href: "/registro" },
+    cta: { label: "Começar grátis", href: "/register" },
   },
   {
     name: "Enterprise",

@@ -30,7 +30,7 @@ export function Hero() {
 
           <div className="flex flex-col items-start gap-3.5 sm:flex-row sm:items-center">
             <Button asChild size="lg">
-              <Link href="/registro">
+              <Link href="/register">
                 Começar 14 dias grátis
                 <ArrowRight className="size-4" strokeWidth={2.5} />
               </Link>
