@@ -1,0 +1,33 @@
+# Dokploy "Compose" deployment: the Next.js app + a Cloudflare Tunnel.
+# The app is never exposed to the host — Cloudflare reaches it over the
+# private compose network, so no inbound ports need to be opened.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      # Uncomment once the app needs the database (set the value in Dokploy):
+      # - DATABASE_URL=${DATABASE_URL}
+    expose:
+      - "3000"
+    networks:
+      - progresso
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      # Token of the named tunnel created in the Cloudflare Zero Trust dashboard.
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - app
+    networks:
+      - progresso
+
+networks:
+  progresso:
+    driver: bridge
