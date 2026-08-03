@@ -35,7 +35,7 @@ export function SiteHeader() {
             </Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/registro">Começar grátis</Link>
+            <Link href="/register">Começar grátis</Link>
           </Button>
         </div>
       </div>
