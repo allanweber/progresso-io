@@ -1,38 +1,42 @@
-# ---- Base ----
-FROM node:22-alpine AS base
-# libc6-compat is needed by some native deps on Alpine.
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
+# Follows the official Next.js Docker example:
+# https://github.com/vercel/next.js/tree/canary/examples/with-docker
+# Pin to an exact patch (e.g. 22.13.1-slim) for fully reproducible builds.
+ARG NODE_VERSION=22-slim
 
 # ---- Dependencies ----
-FROM base AS deps
+FROM node:${NODE_VERSION} AS dependencies
+WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci --no-audit --no-fund
 
 # ---- Builder ----
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+FROM node:${NODE_VERSION} AS builder
+WORKDIR /app
+COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ---- Runner ----
-FROM base AS runner
+FROM node:${NODE_VERSION} AS runner
+WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+ENV HOSTNAME="0.0.0.0"
 
-RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
-
-# Standalone output ships a minimal server + only the deps it needs.
 # public/ and .next/static are not bundled into standalone, so copy them in.
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
 
-USER nextjs
+# Give the non-root user a writable .next for the runtime cache (e.g. ISR).
+RUN mkdir .next && chown node:node .next
+
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+
+USER node
 EXPOSE 3000
 
 CMD ["node", "server.js"]
