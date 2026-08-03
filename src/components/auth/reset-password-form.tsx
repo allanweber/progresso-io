@@ -1,49 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { resetPassword } from "@/app/actions/auth";
 import { Field } from "@/components/auth/field";
+import { FormError } from "@/components/auth/form-error";
 import { OtpInput } from "@/components/auth/otp-input";
 import { ResendOtp } from "@/components/auth/resend-otp";
+import { SubmitButton } from "@/components/auth/submit-button";
 
 export function ResetPasswordForm({ email }: { email: string }) {
+  const [state, formAction] = useActionState(resetPassword, undefined);
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [done, setDone] = useState(false);
 
   const mismatch = confirm.length > 0 && password !== confirm;
-  const canSubmit = otp.length === 6 && password.length >= 8 && password === confirm;
-
-  if (done) {
-    return (
-      <div className="py-2 text-center">
-        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[#DCFCE7]">
-          <Check className="size-7 text-primary" strokeWidth={2.5} />
-        </div>
-        <h1 className="mb-2 font-heading text-xl font-bold text-foreground">
-          Senha redefinida!
-        </h1>
-        <p className="mb-7 text-sm leading-[1.6] text-muted-foreground">
-          Sua senha foi alterada com sucesso. Já pode entrar com a nova senha.
-        </p>
-        <Button asChild size="lg" className="w-full">
-          <Link href="/login">Voltar ao login</Link>
-        </Button>
-      </div>
-    );
-  }
+  const canSubmit =
+    otp.length === 6 && password.length >= 8 && password === confirm;
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (canSubmit) setDone(true);
-      }}
-    >
+    <form action={formAction}>
+      <input type="hidden" name="email" value={email} />
+      <input type="hidden" name="otp" value={otp} />
+
       <div className="mb-7">
         <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary-light">
           <KeyRound className="size-[22px] text-primary" strokeWidth={2} />
@@ -65,16 +47,19 @@ export function ResetPasswordForm({ email }: { email: string }) {
         <OtpInput value={otp} onChange={setOtp} autoFocus />
       </div>
       <div className="mb-5">
-        <ResendOtp />
+        <ResendOtp email={email} type="forget-password" />
       </div>
 
       <div className="mb-5 space-y-4">
+        <FormError message={state?.error} />
         <Field
           id="password"
+          name="password"
           label="Nova senha"
           type="password"
           placeholder="mínimo 8 caracteres"
           autoComplete="new-password"
+          required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -96,14 +81,14 @@ export function ResetPasswordForm({ email }: { email: string }) {
         </div>
       </div>
 
-      <Button
-        type="submit"
+      <SubmitButton
         size="lg"
         className="mb-4 w-full"
         disabled={!canSubmit}
+        pendingLabel="Redefinindo…"
       >
         Redefinir senha
-      </Button>
+      </SubmitButton>
 
       <div className="text-center">
         <Link

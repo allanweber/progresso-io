@@ -1,17 +1,26 @@
 "use client";
 
+import { useActionState } from "react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { signIn, signInWithGoogle } from "@/app/actions/auth";
 import { AuthDivider } from "@/components/auth/auth-divider";
 import { Field } from "@/components/auth/field";
+import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
+import { SubmitButton } from "@/components/auth/submit-button";
 
-export function LoginForm() {
-  // UI only — not wired to any backend yet.
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-  }
+export function LoginForm({
+  justReset,
+  oauthError,
+}: {
+  justReset?: boolean;
+  oauthError?: boolean;
+}) {
+  const [state, formAction] = useActionState(signIn, undefined);
+  const error =
+    state?.error ??
+    (oauthError ? "Não foi possível entrar com o Google. Tente novamente." : undefined);
 
   return (
     <div className="w-full max-w-[380px]">
@@ -27,28 +36,42 @@ export function LoginForm() {
         </p>
       </div>
 
-      <GoogleButton label="Entrar com Google" className="mb-4" />
+      {justReset && (
+        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-[13px] font-medium text-primary">
+          Senha redefinida! Entre com a nova senha.
+        </div>
+      )}
+
+      <form action={signInWithGoogle}>
+        <GoogleButton type="submit" label="Entrar com Google" className="mb-4" />
+      </form>
 
       <div className="mb-5">
         <AuthDivider label="ou entre com e-mail" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form action={formAction} className="space-y-4">
+        <FormError message={error} />
+
         <Field
           id="email"
+          name="email"
           label="E-mail"
           type="email"
           placeholder="seu@email.com"
           autoComplete="email"
+          required
         />
 
         <div className="space-y-2">
           <Field
             id="password"
+            name="password"
             label="Senha"
             type="password"
             placeholder="••••••••"
             autoComplete="current-password"
+            required
           />
           <div className="text-right">
             <Link
@@ -60,9 +83,9 @@ export function LoginForm() {
           </div>
         </div>
 
-        <Button type="submit" size="lg" className="w-full">
+        <SubmitButton size="lg" className="w-full">
           Entrar
-        </Button>
+        </SubmitButton>
       </form>
 
       <p className="mt-8 text-center text-xs text-[#94A3B8]">
