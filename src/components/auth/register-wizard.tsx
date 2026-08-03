@@ -15,9 +15,9 @@ type PlanOption = {
   desc: string;
   price: string;
   popular?: boolean;
-  custom?: boolean;
 };
 
+// Enterprise is a "contact us" plan, so it is not self-selectable at signup.
 const planOptions: PlanOption[] = [
   { id: "free", name: "Free", desc: "Até 3 alunos", price: "R$ 0" },
   {
@@ -32,13 +32,6 @@ const planOptions: PlanOption[] = [
     name: "Clínica",
     desc: "Tudo do Solo + até 3 coaches",
     price: "R$ 399",
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    desc: "Sob medida — entre em contato",
-    price: "Customizado",
-    custom: true,
   },
 ];
 
@@ -218,9 +211,7 @@ function PlanStep({
                   <div className="font-heading text-lg font-bold text-foreground">
                     {option.price}
                   </div>
-                  {!option.custom && (
-                    <div className="text-[11px] text-[#94A3B8]">/mês</div>
-                  )}
+                  <div className="text-[11px] text-[#94A3B8]">/mês</div>
                 </div>
               </div>
             </button>
