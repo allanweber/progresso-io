@@ -12,6 +12,10 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
 
   if (sent) {
+    const resetHref = email
+      ? `/reset-password?email=${encodeURIComponent(email)}`
+      : "/reset-password";
+
     return (
       <div className="py-2 text-center">
         <div className="mx-auto mb-[18px] flex size-14 items-center justify-center rounded-full bg-[#DCFCE7]">
@@ -21,12 +25,12 @@ export function ForgotPasswordForm() {
           Verifique seu e-mail
         </h1>
         <p className="mb-7 text-sm leading-[1.6] text-muted-foreground">
-          Enviamos um link de recuperação para{" "}
+          Enviamos um código de recuperação para{" "}
           <strong className="text-foreground">{email || "seu e-mail"}</strong>.
           Verifique sua caixa de entrada e spam.
         </p>
         <Button asChild size="lg" className="w-full">
-          <Link href="/login">Voltar ao login</Link>
+          <Link href={resetHref}>Inserir código</Link>
         </Button>
         <button
           type="button"
@@ -54,7 +58,7 @@ export function ForgotPasswordForm() {
           Esqueceu a senha?
         </h1>
         <p className="text-sm text-muted-foreground">
-          Digite seu e-mail e enviaremos um link de recuperação.
+          Digite seu e-mail e enviaremos um código de recuperação.
         </p>
       </div>
 
@@ -71,7 +75,7 @@ export function ForgotPasswordForm() {
       </div>
 
       <Button type="submit" size="lg" className="mb-4 w-full">
-        Enviar link de recuperação
+        Enviar código
       </Button>
       <Link
         href="/login"
