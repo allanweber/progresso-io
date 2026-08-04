@@ -10,6 +10,7 @@ services:
     # Values are set in Dokploy's Environment tab and interpolated here (same
     # pattern as TUNNEL_TOKEN below). Required for auth to work:
     environment:
+      - NODE_ENV=production
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - DATABASE_URL=${DATABASE_URL}
