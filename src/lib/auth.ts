@@ -9,8 +9,8 @@ import { sendOtpEmail, type SendOtp } from "@/lib/email";
 import {
   ADMIN_ROLES,
   DEFAULT_ROLE,
+  bootstrapAdminEmail,
   isAdminEmail,
-  parseAdminEmails,
 } from "@/lib/roles";
 
 /** OTP validity window, in seconds. */
@@ -42,9 +42,9 @@ export function createAuth({
   const googleConfigured =
     !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
-  // Admins aren't self-selectable: a sign-up whose e-mail is in ADMIN_EMAILS is
-  // promoted to the admin role; everyone else defaults to coach.
-  const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+  // Admins aren't self-selectable: the single sign-up whose e-mail matches
+  // ADMIN_EMAIL is promoted to admin; everyone else defaults to coach.
+  const adminEmail = bootstrapAdminEmail(process.env.ADMIN_EMAIL);
 
   const options = {
     appName: "Progresso IO",
@@ -76,10 +76,10 @@ export function createAuth({
     databaseHooks: {
       user: {
         create: {
-          // Grant the admin role at sign-up based on the ADMIN_EMAILS
-          // allowlist. Ordinary sign-ups keep the default (coach).
+          // Grant the admin role at sign-up when the e-mail matches the single
+          // ADMIN_EMAIL. Ordinary sign-ups keep the default (coach).
           before: async (user) => {
-            if (isAdminEmail(user.email, adminEmails)) {
+            if (isAdminEmail(user.email, adminEmail)) {
               return { data: { ...user, role: "admin" } };
             }
           },

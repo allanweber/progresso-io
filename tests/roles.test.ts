@@ -4,12 +4,12 @@ import {
   ADMIN_ROLES,
   DEFAULT_ROLE,
   ROLE_LABELS,
+  bootstrapAdminEmail,
   homePathForRole,
   isAdmin,
   isAdminEmail,
   isCoach,
   isRole,
-  parseAdminEmails,
 } from "@/lib/roles";
 
 describe("roles", () => {
@@ -44,21 +44,20 @@ describe("roles", () => {
     expect(ROLE_LABELS.admin).toBe("Administrador");
   });
 
-  it("parses the admin allowlist regardless of separators/case", () => {
-    expect(parseAdminEmails(undefined)).toEqual([]);
-    expect(parseAdminEmails("")).toEqual([]);
-    expect(parseAdminEmails("A@x.com, b@x.com ; c@x.com")).toEqual([
-      "a@x.com",
-      "b@x.com",
-      "c@x.com",
-    ]);
+  it("normalizes the single bootstrap admin e-mail", () => {
+    expect(bootstrapAdminEmail(undefined)).toBeNull();
+    expect(bootstrapAdminEmail("")).toBeNull();
+    expect(bootstrapAdminEmail("  Boss@Progresso.io ")).toBe(
+      "boss@progresso.io",
+    );
   });
 
-  it("matches admin e-mails case-insensitively", () => {
-    const list = parseAdminEmails("boss@progresso.io");
-    expect(isAdminEmail("Boss@Progresso.io", list)).toBe(true);
-    expect(isAdminEmail("someone@progresso.io", list)).toBe(false);
-    expect(isAdminEmail("boss@progresso.io", [])).toBe(false);
+  it("matches the bootstrap admin e-mail case-insensitively", () => {
+    const adminEmail = bootstrapAdminEmail("boss@progresso.io");
+    expect(isAdminEmail("Boss@Progresso.io", adminEmail)).toBe(true);
+    expect(isAdminEmail("someone@progresso.io", adminEmail)).toBe(false);
+    // Not configured → nobody is admin by e-mail.
+    expect(isAdminEmail("boss@progresso.io", null)).toBe(false);
   });
 
   it("routes each role to its own siloed area", () => {

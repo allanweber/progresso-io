@@ -28,21 +28,21 @@ export function isCoach(role: string | null | undefined): boolean {
 }
 
 /**
- * Parses the admin allowlist (the `ADMIN_EMAILS` env var) — a list of e-mails
- * separated by commas, semicolons or whitespace, normalized to lowercase.
- * Admins aren't self-selectable; membership here is the only thing that grants
- * the admin role at sign-up.
+ * Normalizes the single bootstrap admin e-mail (the `ADMIN_EMAIL` env var).
+ * Exactly one admin is seeded this way; any further admins will be added via
+ * the application in the future. Admins are never self-selectable.
  */
-export function parseAdminEmails(raw: string | null | undefined): string[] {
-  return (raw ?? "")
-    .split(/[,;\s]+/)
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+export function bootstrapAdminEmail(raw: string | null | undefined): string | null {
+  const email = raw?.trim().toLowerCase();
+  return email ? email : null;
 }
 
-/** Whether an e-mail is in the configured admin allowlist. */
-export function isAdminEmail(email: string, allowlist: string[]): boolean {
-  return allowlist.includes(email.trim().toLowerCase());
+/** Whether an e-mail is the configured bootstrap admin. */
+export function isAdminEmail(
+  email: string,
+  adminEmail: string | null,
+): boolean {
+  return adminEmail !== null && email.trim().toLowerCase() === adminEmail;
 }
 
 /**

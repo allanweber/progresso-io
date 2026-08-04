@@ -11,8 +11,8 @@ import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
-// Admin allowlist consumed by createAuth's create-user hook.
-process.env.ADMIN_EMAILS = "boss@example.com";
+// Bootstrap admin e-mail consumed by createAuth's create-user hook.
+process.env.ADMIN_EMAIL = "boss@example.com";
 
 type Captured = { email: string; otp: string; type: string };
 
@@ -131,7 +131,7 @@ describe("password reset via OTP", () => {
 });
 
 describe("role scenario (coach / aluno / admin)", () => {
-  it("auto-assigns the admin role to e-mails in ADMIN_EMAILS at sign-up", async () => {
+  it("auto-assigns the admin role to the ADMIN_EMAIL sign-up", async () => {
     await auth.api.signUpEmail({
       body: { name: "Super Admin", email: "boss@example.com", password },
     });
@@ -139,7 +139,7 @@ describe("role scenario (coach / aluno / admin)", () => {
       .select()
       .from(schema.user)
       .where(eq(schema.user.email, "boss@example.com"));
-    // No manual promotion — the role comes from the allowlist alone.
+    // No manual promotion — the role comes from ADMIN_EMAIL alone.
     expect(row.role).toBe("admin");
   });
 
