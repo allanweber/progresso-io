@@ -1,0 +1,9 @@
+/**
+ * Data Access Layer. All database access for tenant data goes through here,
+ * scoped by clinicId (see the rule in AGENTS.md).
+ *
+ *   import { students } from "@/server/dal";
+ *   const list = await students.listStudents(ctx);
+ */
+export * as clinics from "./clinics";
+export * as students from "./students";

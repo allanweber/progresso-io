@@ -5,7 +5,7 @@ import Link from "next/link";
 import { KeyRound } from "lucide-react";
 
 import { resetPassword } from "@/app/actions/auth";
-import { Field } from "@/components/auth/field";
+import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { OtpInput } from "@/components/auth/otp-input";
 import { ResendOtp } from "@/components/auth/resend-otp";
@@ -45,13 +45,16 @@ export function ResetPasswordForm({ email }: { email: string }) {
           Código de verificação
         </span>
         <OtpInput value={otp} onChange={setOtp} autoFocus />
+        {state?.fieldErrors?.otp && (
+          <p className="text-[13px] text-destructive">{state.fieldErrors.otp}</p>
+        )}
       </div>
       <div className="mb-5">
         <ResendOtp email={email} type="forget-password" />
       </div>
 
       <div className="mb-5 space-y-4">
-        <FormError message={state?.error} />
+        <FormError message={state?.formError} />
         <Field
           id="password"
           name="password"
@@ -62,6 +65,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          error={state?.fieldErrors?.password}
         />
         <div className="space-y-1.5">
           <Field

@@ -4,7 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins/admin";
 import { emailOTP } from "better-auth/plugins/email-otp";
 
-import { db as defaultDb, schema } from "@/db";
+import { db as defaultDb, schema, type DB } from "@/db";
 import { sendOtpEmail, type SendOtp } from "@/lib/email";
 import {
   ADMIN_ROLES,
@@ -12,6 +12,7 @@ import {
   bootstrapAdminEmail,
   isAdminEmail,
 } from "@/lib/roles";
+import { attachUserToClinic, createClinicForOwner } from "@/server/dal/clinics";
 
 /** OTP validity window, in seconds. */
 const OTP_EXPIRES_IN = 60 * 10;
@@ -46,6 +47,10 @@ export function createAuth({
   // ADMIN_EMAIL is promoted to admin; everyone else defaults to coach.
   const adminEmail = bootstrapAdminEmail(process.env.ADMIN_EMAIL);
 
+  // The injected adapter db, typed for the Data Access Layer (used by the
+  // clinic-bootstrap hook below).
+  const database = db as unknown as DB;
+
   const options = {
     appName: "Progresso IO",
     secret: process.env.BETTER_AUTH_SECRET,
@@ -73,6 +78,14 @@ export function createAuth({
       autoSignInAfterVerification: true,
     },
 
+    user: {
+      additionalFields: {
+        // The tenant the user belongs to. Managed by the app (the clinic
+        // bootstrap below), never set from client input.
+        clinicId: { type: "string", required: false, input: false },
+      },
+    },
+
     databaseHooks: {
       user: {
         create: {
@@ -82,6 +95,24 @@ export function createAuth({
             if (isAdminEmail(user.email, adminEmail)) {
               return { data: { ...user, role: "admin" } };
             }
+          },
+          // Every coach sign-up (email or Google) gets its own clinic — a solo
+          // coach still owns a one-member clinic. Admins have no clinic; an
+          // already-attached user (e.g. an invited aluno) is left alone.
+          after: async (createdUser) => {
+            const u = createdUser as {
+              id: string;
+              name?: string;
+              role?: string;
+              clinicId?: string | null;
+            };
+            if (u.role === "admin" || u.clinicId) return;
+            const firstName = u.name?.trim().split(" ")[0] || "Minha";
+            const clinic = await createClinicForOwner(database, {
+              ownerUserId: u.id,
+              name: `Clínica de ${firstName}`,
+            });
+            await attachUserToClinic(database, u.id, clinic.id);
           },
         },
       },

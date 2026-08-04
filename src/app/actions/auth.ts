@@ -6,38 +6,83 @@ import { APIError } from "better-auth/api";
 
 import { auth } from "@/lib/auth";
 import { homePathForRole } from "@/lib/roles";
+import { type FieldErrors, parseForm, z } from "@/lib/validation";
 
 /**
  * Result returned to client forms. Actions that finish the flow `redirect()`
- * (so they never return); actions that stay on the page return `{ ok: true }`
- * on success or `{ error }` on failure.
+ * (so they never return). Otherwise:
+ * - `fieldErrors` — messages shown under specific inputs.
+ * - `formError` — a banner message for errors not tied to a single field.
+ * - `ok` — success while staying on the page.
  */
-export type ActionState = { error?: string; ok?: boolean } | undefined;
+export type ActionState =
+  | { formError?: string; fieldErrors?: FieldErrors; ok?: boolean }
+  | undefined;
 
-/** Maps a Better Auth error to a friendly PT-BR message. */
-function messageFor(error: unknown): string {
+/* --------------------------- validation schemas --------------------------- */
+
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email("Informe um e-mail válido."));
+
+const otpSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "Digite o código de 6 dígitos.");
+
+const newPasswordSchema = z
+  .string()
+  .min(8, "A senha deve ter no mínimo 8 caracteres.");
+
+const signUpSchema = z.object({
+  name: z.string().trim().min(2, "Informe seu nome completo."),
+  email: emailSchema,
+  password: newPasswordSchema,
+});
+
+const signInSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Informe sua senha."),
+});
+
+const verifySchema = z.object({ email: emailSchema, otp: otpSchema });
+
+const forgotSchema = z.object({ email: emailSchema });
+
+const resetSchema = z.object({
+  email: emailSchema,
+  otp: otpSchema,
+  password: newPasswordSchema,
+});
+
+/**
+ * Maps a Better Auth error to an {@link ActionState}, routing field-specific
+ * failures to the relevant input and everything else to the banner.
+ */
+function authError(error: unknown): ActionState {
   if (error instanceof APIError) {
     const code = (error.body?.code as string | undefined) ?? "";
     switch (code) {
-      case "INVALID_EMAIL_OR_PASSWORD":
-        return "E-mail ou senha incorretos.";
       case "USER_ALREADY_EXISTS":
-        return "Já existe uma conta com este e-mail.";
+        return { fieldErrors: { email: "Já existe uma conta com este e-mail." } };
       case "INVALID_OTP":
-        return "Código inválido. Verifique e tente novamente.";
+        return { fieldErrors: { otp: "Código inválido. Verifique e tente novamente." } };
       case "OTP_EXPIRED":
-        return "O código expirou. Solicite um novo.";
+        return { fieldErrors: { otp: "O código expirou. Solicite um novo." } };
+      case "INVALID_EMAIL_OR_PASSWORD":
+        return { formError: "E-mail ou senha incorretos." };
       case "TOO_MANY_ATTEMPTS":
-        return "Muitas tentativas. Aguarde um instante e tente de novo.";
+        return { formError: "Muitas tentativas. Aguarde um instante e tente de novo." };
       default:
-        return error.body?.message ?? "Não foi possível concluir. Tente novamente.";
+        return {
+          formError:
+            error.body?.message ?? "Não foi possível concluir. Tente novamente.",
+        };
     }
   }
-  return "Algo deu errado. Tente novamente.";
-}
-
-function asString(value: FormDataEntryValue | null): string {
-  return typeof value === "string" ? value.trim() : "";
+  return { formError: "Algo deu errado. Tente novamente." };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -48,16 +93,9 @@ export async function signUpCoach(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const name = asString(formData.get("name"));
-  const email = asString(formData.get("email")).toLowerCase();
-  const password = asString(formData.get("password"));
-
-  if (!name || !email || !password) {
-    return { error: "Preencha nome, e-mail e senha." };
-  }
-  if (password.length < 8) {
-    return { error: "A senha deve ter no mínimo 8 caracteres." };
-  }
+  const parsed = parseForm(signUpSchema, formData);
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
+  const { name, email, password } = parsed.data;
 
   try {
     await auth.api.signUpEmail({
@@ -65,7 +103,7 @@ export async function signUpCoach(
       headers: await headers(),
     });
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   // A verification OTP was e-mailed on sign-up; confirm it next.
@@ -80,12 +118,9 @@ export async function signIn(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const email = asString(formData.get("email")).toLowerCase();
-  const password = asString(formData.get("password"));
-
-  if (!email || !password) {
-    return { error: "Informe e-mail e senha." };
-  }
+  const parsed = parseForm(signInSchema, formData);
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
+  const { email, password } = parsed.data;
 
   let role: string | null | undefined;
   try {
@@ -102,7 +137,7 @@ export async function signIn(
     ) {
       redirect(`/verify-account?email=${encodeURIComponent(email)}`);
     }
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   redirect(homePathForRole(role));
@@ -116,12 +151,9 @@ export async function verifyAccount(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const email = asString(formData.get("email")).toLowerCase();
-  const otp = asString(formData.get("otp"));
-
-  if (otp.length !== 6) {
-    return { error: "Digite o código de 6 dígitos." };
-  }
+  const parsed = parseForm(verifySchema, formData);
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
+  const { email, otp } = parsed.data;
 
   let role: string | null | undefined;
   try {
@@ -131,7 +163,7 @@ export async function verifyAccount(
     });
     role = result.user?.role;
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   redirect(homePathForRole(role));
@@ -141,23 +173,28 @@ export async function verifyAccount(
 /*  Resend an OTP (verification or password reset).                           */
 /* -------------------------------------------------------------------------- */
 
+const resendSchema = z.object({
+  email: emailSchema,
+  type: z.enum(["email-verification", "forget-password"]),
+});
+
 export async function resendOtp(
   email: string,
   type: "email-verification" | "forget-password",
 ): Promise<ActionState> {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized) return { error: "E-mail inválido." };
+  const parsed = resendSchema.safeParse({ email, type });
+  if (!parsed.success) return { formError: "E-mail inválido." };
 
   try {
-    if (type === "forget-password") {
-      await auth.api.forgetPasswordEmailOTP({ body: { email: normalized } });
+    if (parsed.data.type === "forget-password") {
+      await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
     } else {
       await auth.api.sendVerificationOTP({
-        body: { email: normalized, type: "email-verification" },
+        body: { email: parsed.data.email, type: "email-verification" },
       });
     }
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
   return undefined;
 }
@@ -170,13 +207,13 @@ export async function requestPasswordReset(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const email = asString(formData.get("email")).toLowerCase();
-  if (!email) return { error: "Informe seu e-mail." };
+  const parsed = parseForm(forgotSchema, formData);
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
   try {
-    await auth.api.forgetPasswordEmailOTP({ body: { email } });
+    await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
   return { ok: true };
 }
@@ -189,21 +226,14 @@ export async function resetPassword(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const email = asString(formData.get("email")).toLowerCase();
-  const otp = asString(formData.get("otp"));
-  const password = asString(formData.get("password"));
-
-  if (otp.length !== 6) return { error: "Digite o código de 6 dígitos." };
-  if (password.length < 8) {
-    return { error: "A senha deve ter no mínimo 8 caracteres." };
-  }
+  const parsed = parseForm(resetSchema, formData);
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
+  const { email, otp, password } = parsed.data;
 
   try {
-    await auth.api.resetPasswordEmailOTP({
-      body: { email, otp, password },
-    });
+    await auth.api.resetPasswordEmailOTP({ body: { email, otp, password } });
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   redirect("/login?reset=1");

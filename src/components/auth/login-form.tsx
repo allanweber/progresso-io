@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { signIn, signInWithGoogle } from "@/app/actions/auth";
 import { AuthDivider } from "@/components/auth/auth-divider";
-import { Field } from "@/components/auth/field";
+import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -18,8 +18,8 @@ export function LoginForm({
   oauthError?: boolean;
 }) {
   const [state, formAction] = useActionState(signIn, undefined);
-  const error =
-    state?.error ??
+  const banner =
+    state?.formError ??
     (oauthError ? "Não foi possível entrar com o Google. Tente novamente." : undefined);
 
   return (
@@ -51,7 +51,7 @@ export function LoginForm({
       </div>
 
       <form action={formAction} className="space-y-4">
-        <FormError message={error} />
+        <FormError message={banner} />
 
         <Field
           id="email"
@@ -61,6 +61,7 @@ export function LoginForm({
           placeholder="seu@email.com"
           autoComplete="email"
           required
+          error={state?.fieldErrors?.email}
         />
 
         <div className="space-y-2">
@@ -72,6 +73,7 @@ export function LoginForm({
             placeholder="••••••••"
             autoComplete="current-password"
             required
+            error={state?.fieldErrors?.password}
           />
           <div className="text-right">
             <Link

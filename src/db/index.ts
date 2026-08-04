@@ -31,4 +31,7 @@ export const db = client
   ? drizzle(client, { schema, casing: "snake_case" })
   : (undefined as unknown as ReturnType<typeof drizzle>);
 
+/** The Drizzle client type — accepted by the Data Access Layer. */
+export type DB = typeof db;
+
 export { schema };

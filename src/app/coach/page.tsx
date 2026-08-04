@@ -1,31 +1,36 @@
 import type { Metadata } from "next";
 import { Dumbbell, TrendingUp, Users, Utensils } from "lucide-react";
 
-import { requireRole } from "@/lib/session";
+import { clinics, students } from "@/server/dal";
+import { requireClinic } from "@/server/tenant";
 
 export const metadata: Metadata = {
   title: "Dashboard — Progresso IO",
 };
 
-const stats = [
-  { label: "Alunos ativos", value: "—", icon: Users },
-  { label: "Treinos criados", value: "—", icon: Dumbbell },
-  { label: "Dietas ativas", value: "—", icon: Utensils },
-  { label: "Check-ins na semana", value: "—", icon: TrendingUp },
-];
-
 export default async function CoachDashboardPage() {
-  const session = await requireRole(["coach"]);
-  const firstName = session.user.name.split(" ")[0];
+  // Tenant-scoped: everything here reads through the DAL for this clinic only.
+  const ctx = await requireClinic();
+  const [clinic, studentCount] = await Promise.all([
+    clinics.getClinic(ctx),
+    students.countStudents(ctx),
+  ]);
+
+  const stats = [
+    { label: "Alunos ativos", value: String(studentCount), icon: Users },
+    { label: "Treinos criados", value: "—", icon: Dumbbell },
+    { label: "Dietas ativas", value: "—", icon: Utensils },
+    { label: "Check-ins na semana", value: "—", icon: TrendingUp },
+  ];
 
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="font-heading text-2xl font-bold text-foreground">
-        Olá, {firstName} 👋
+        {clinic?.name ?? "Seu painel"}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Este é o seu painel. As funcionalidades chegam em breve — por enquanto,
-        um espaço reservado.
+        Este é o painel da sua clínica. As funcionalidades chegam em breve — por
+        enquanto, um espaço reservado.
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -7,7 +7,7 @@ import { signUpCoach, signInWithGoogle } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthDivider } from "@/components/auth/auth-divider";
-import { Field } from "@/components/auth/field";
+import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -300,6 +300,11 @@ function ConfirmStep({
 }) {
   const [state, formAction] = useActionState(signUpCoach, undefined);
   const planName = planOptions.find((p) => p.id === plan)?.name ?? "Solo";
+  // The account fields live on step 1, so any server error (e.g. e-mail already
+  // in use) is shown here as a banner rather than under an off-screen input.
+  const banner =
+    state?.formError ??
+    (state?.fieldErrors ? Object.values(state.fieldErrors)[0] : undefined);
 
   return (
     <form action={formAction} className="px-2 py-2 text-center">
@@ -320,7 +325,7 @@ function ConfirmStep({
       </p>
 
       <div className="mb-4 text-left">
-        <FormError message={state?.error} />
+        <FormError message={banner} />
       </div>
 
       <SubmitButton size="lg" className="w-full" pendingLabel="Criando conta…">
