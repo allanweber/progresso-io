@@ -6,4 +6,6 @@
  *   const list = await students.listStudents(ctx);
  */
 export * as clinics from "./clinics";
+export * as invitations from "./invitations";
+export * as plans from "./plans";
 export * as students from "./students";

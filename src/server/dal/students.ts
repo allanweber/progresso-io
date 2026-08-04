@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
 
-import { schema } from "@/db";
-import type { Student } from "@/db/schema";
+import { type DB, schema } from "@/db";
+import type { Modality, Student, StudentStatus } from "@/db/schema";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -10,12 +10,58 @@ import type { TenantContext } from "@/server/tenant";
  * follow this shape (see the DAL rule in AGENTS.md).
  */
 
-export async function listStudents(ctx: TenantContext): Promise<Student[]> {
-  return ctx.db
+/** Values accepted when creating/updating a student (never includes clinicId). */
+export type StudentInput = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  goal?: string | null;
+  modality?: Modality;
+  status?: StudentStatus;
+  coachId?: string | null;
+};
+
+/**
+ * A student enriched with derived access flags for the roster:
+ * - `hasAccount`   — the aluno has activated a login (portal access).
+ * - `pendingInvite` — an unaccepted, unexpired invite is outstanding.
+ */
+export type StudentRoster = Student & {
+  hasAccount: boolean;
+  pendingInvite: boolean;
+};
+
+/**
+ * Lists every student in the clinic (newest first), each enriched with access
+ * flags. Archived students are included; the UI filters them — keeping them
+ * here means "arquivados" stays a reachable filter.
+ */
+export async function listStudents(ctx: TenantContext): Promise<StudentRoster[]> {
+  const rows = await ctx.db
     .select()
     .from(schema.students)
     .where(eq(schema.students.clinicId, ctx.clinicId))
     .orderBy(desc(schema.students.createdAt));
+
+  // Student ids with a still-valid, unaccepted invite (one round-trip).
+  const pending = await ctx.db
+    .select({ studentId: schema.invitation.studentId })
+    .from(schema.invitation)
+    .where(
+      and(
+        eq(schema.invitation.clinicId, ctx.clinicId),
+        isNull(schema.invitation.acceptedAt),
+        gt(schema.invitation.expiresAt, new Date()),
+      ),
+    );
+  const pendingIds = new Set(pending.map((p) => p.studentId));
+
+  return rows.map((s) => ({
+    ...s,
+    hasAccount: s.userId !== null,
+    pendingInvite: pendingIds.has(s.id),
+  }));
 }
 
 export async function getStudent(
@@ -34,27 +80,157 @@ export async function getStudent(
   return student ?? null;
 }
 
+/** A single student enriched with the same access flags as the roster. */
+export async function getStudentRoster(
+  ctx: TenantContext,
+  id: string,
+): Promise<StudentRoster | null> {
+  const student = await getStudent(ctx, id);
+  if (!student) return null;
+
+  const [pending] = await ctx.db
+    .select({ id: schema.invitation.id })
+    .from(schema.invitation)
+    .where(
+      and(
+        eq(schema.invitation.clinicId, ctx.clinicId),
+        eq(schema.invitation.studentId, id),
+        isNull(schema.invitation.acceptedAt),
+        gt(schema.invitation.expiresAt, new Date()),
+      ),
+    );
+
+  return {
+    ...student,
+    hasAccount: student.userId !== null,
+    pendingInvite: Boolean(pending),
+  };
+}
+
+export async function findStudentByEmail(
+  ctx: TenantContext,
+  email: string,
+): Promise<Student | null> {
+  const [student] = await ctx.db
+    .select()
+    .from(schema.students)
+    .where(
+      and(
+        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.students.email, email),
+      ),
+    );
+  return student ?? null;
+}
+
+/**
+ * Number of student "seats" used by the clinic. Archived students don't count —
+ * archiving frees a slot — so this is what the plan limit is measured against.
+ */
 export async function countStudents(ctx: TenantContext): Promise<number> {
   const rows = await ctx.db
     .select({ id: schema.students.id })
     .from(schema.students)
-    .where(eq(schema.students.clinicId, ctx.clinicId));
+    .where(
+      and(
+        eq(schema.students.clinicId, ctx.clinicId),
+        ne(schema.students.status, "archived"),
+      ),
+    );
   return rows.length;
 }
 
 export async function createStudent(
   ctx: TenantContext,
-  input: { name: string; email: string; coachId?: string | null },
+  input: StudentInput,
 ): Promise<Student> {
   const [student] = await ctx.db
     .insert(schema.students)
     .values({
       // clinicId always comes from the tenant context, never from the caller.
       clinicId: ctx.clinicId,
-      name: input.name,
+      firstName: input.firstName,
+      lastName: input.lastName,
       email: input.email,
+      phone: input.phone ?? null,
+      goal: input.goal ?? null,
+      modality: input.modality ?? "online",
+      status: input.status ?? "active",
       coachId: input.coachId ?? null,
     })
     .returning();
   return student;
+}
+
+/**
+ * Updates a student's editable fields. Scoped to the clinic; returns the
+ * updated row, or null when the id isn't in this clinic.
+ */
+export async function updateStudent(
+  ctx: TenantContext,
+  id: string,
+  input: Partial<StudentInput>,
+): Promise<Student | null> {
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (input.firstName !== undefined) patch.firstName = input.firstName;
+  if (input.lastName !== undefined) patch.lastName = input.lastName;
+  if (input.email !== undefined) patch.email = input.email;
+  if (input.phone !== undefined) patch.phone = input.phone;
+  if (input.goal !== undefined) patch.goal = input.goal;
+  if (input.modality !== undefined) patch.modality = input.modality;
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.coachId !== undefined) patch.coachId = input.coachId;
+
+  const [student] = await ctx.db
+    .update(schema.students)
+    .set(patch)
+    .where(
+      and(
+        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.students.id, id),
+      ),
+    )
+    .returning();
+  return student ?? null;
+}
+
+/** Sets a student's lifecycle status (active / inactive / archived). */
+export async function setStudentStatus(
+  ctx: TenantContext,
+  id: string,
+  status: StudentStatus,
+): Promise<Student | null> {
+  return updateStudent(ctx, id, { status });
+}
+
+/**
+ * Soft-removes a student. Deletion is never destructive — the row (and its
+ * history) is kept, just hidden from the default roster.
+ */
+export async function archiveStudent(
+  ctx: TenantContext,
+  id: string,
+): Promise<Student | null> {
+  return setStudentStatus(ctx, id, "archived");
+}
+
+/**
+ * Links a student row to the aluno's newly-created login and marks them active.
+ * Part of the invite-accept bootstrap (no session exists yet), so it takes a
+ * raw db handle and an explicit `clinicId` — which comes from the invitation,
+ * never from client input — and still scopes the write by it.
+ */
+export async function linkStudentAccount(
+  db: DB,
+  args: { clinicId: string; studentId: string; userId: string },
+): Promise<void> {
+  await db
+    .update(schema.students)
+    .set({ userId: args.userId, status: "active", updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.students.clinicId, args.clinicId),
+        eq(schema.students.id, args.studentId),
+      ),
+    );
 }

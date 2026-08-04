@@ -26,6 +26,25 @@ async function seed() {
 
   // Seed-local auth: no OTP e-mails, no Next.js cookies.
   const auth = createAuth({ nextCookiesPlugin: false, sendOtp: async () => {} });
+
+  // Per-plan student caps (reference data). `null` = unlimited. Free blocks the
+  // 4th student. Idempotent upsert so re-running keeps them in sync.
+  const planLimits: { plan: (typeof schema.PLANS)[number]; maxStudents: number | null }[] = [
+    { plan: "free", maxStudents: 3 },
+    { plan: "solo", maxStudents: 50 },
+    { plan: "clinica", maxStudents: 300 },
+    { plan: "enterprise", maxStudents: null },
+  ];
+  for (const limit of planLimits) {
+    await db
+      .insert(schema.planLimit)
+      .values(limit)
+      .onConflictDoUpdate({
+        target: schema.planLimit.plan,
+        set: { maxStudents: limit.maxStudents },
+      });
+  }
+  console.info("✓ plan limits seeded");
   const password = process.env.SEED_PASSWORD ?? "progresso123";
   const coachEmail = process.env.SEED_COACH_EMAIL ?? "coach@progresso.io";
   const alunoEmail = process.env.SEED_ALUNO_EMAIL ?? "aluno@progresso.io";
@@ -64,6 +83,11 @@ async function seed() {
     .update(schema.user)
     .set({ emailVerified: true, role: "coach", clinicId: coachClinic.id })
     .where(eq(schema.user.id, coach.id));
+  // Give the demo coach a roomy plan so the seeded scenario isn't at the cap.
+  await db
+    .update(schema.clinic)
+    .set({ plan: "clinica" })
+    .where(eq(schema.clinic.id, coachClinic.id));
 
   // Aluno — belongs to the coach's clinic; drop the clinic auto-created for them.
   const aluno = await ensureUser("Ana Aluna", alunoEmail);
@@ -96,8 +120,12 @@ async function seed() {
       clinicId: coachClinic.id,
       coachId: coach.id,
       userId: aluno.id,
-      name: "Ana Aluna",
+      firstName: "Ana",
+      lastName: "Aluna",
       email: alunoEmail,
+      goal: "Hipertrofia",
+      status: "active",
+      modality: "online",
     });
     console.info("✓ linked aluno to coach");
   }

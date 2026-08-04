@@ -13,8 +13,10 @@ concurrency:
 
 env:
   # CI-only values. Real secrets live in the deployment environment.
-  # The unit/integration tests use PGlite (in-memory) and never touch this DB;
-  # the e2e suite exercises DB-free flows (route guard + auth UI).
+  # The unit/integration tests use PGlite (in-memory) and never touch this DB.
+  # The e2e suite runs against the Postgres service in the e2e job (scripts/e2e.mjs
+  # detects this preset DATABASE_URL and migrates/seeds it instead of booting its
+  # own local cluster).
   BETTER_AUTH_SECRET: ci-only-secret-0123456789abcdefghijklmnop
   BETTER_AUTH_URL: http://localhost:3000
   DATABASE_URL: postgresql://user:password@localhost:5432/progresso_io
@@ -49,6 +51,20 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: progresso_io
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 

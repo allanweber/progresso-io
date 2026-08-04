@@ -10,11 +10,22 @@ const baseURL = `http://localhost:${PORT}`;
 // back to Playwright's managed browser.
 const SYSTEM_CHROMIUM = "/opt/pw-browsers/chromium";
 const executablePath = existsSync(SYSTEM_CHROMIUM) ? SYSTEM_CHROMIUM : undefined;
+const launchOptions = { executablePath };
+
+/** Saved coach session, produced by the setup project, reused by `coach`. */
+const COACH_STORAGE = "e2e/.auth/coach.json";
 
 /**
- * E2E tests exercise the auth UI (route guard, screen rendering, the sign-up
- * wizard and the OTP input) against a running dev server. They intentionally
- * avoid submitting real credentials so the suite needs no database.
+ * E2E is split in three projects:
+ * - `public`  — auth UI + marketing pages, unauthenticated (no DB writes).
+ * - `setup`   — logs the seeded coach in once and saves the session.
+ * - `coach`   — authenticated student-management flows, reusing that session.
+ *
+ * The suite runs against a REAL Postgres via `node scripts/e2e.mjs`
+ * (`npm run test:e2e`), which boots + migrates + seeds the DB and starts the
+ * dev server with `ENABLE_TEST_OUTBOX=true` so the invite→accept loop is
+ * drivable. Running `playwright test` directly (no DB) only fits the `public`
+ * project.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -28,8 +39,24 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"], launchOptions: { executablePath } },
+      name: "public",
+      testMatch: /(auth|content)\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], launchOptions },
+    },
+    {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices["Desktop Chrome"], launchOptions },
+    },
+    {
+      name: "coach",
+      testMatch: /students\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: COACH_STORAGE,
+      },
     },
   ],
   webServer: {

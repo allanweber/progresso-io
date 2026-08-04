@@ -2,10 +2,15 @@ import { render } from "@react-email/render";
 import { Resend } from "resend";
 
 import {
+  INVITE_EMAIL_SUBJECT,
+  InviteEmail,
+} from "@/components/emails/invite-email";
+import {
   OTP_EMAIL_COPY,
   OtpEmail,
   type OtpEmailType,
 } from "@/components/emails/otp-email";
+import { captureOutbox } from "@/lib/test-outbox";
 
 export type { OtpEmailType };
 
@@ -50,6 +55,62 @@ export async function sendOtpEmail({ email, otp, type }: SendOtpArgs): Promise<v
 }
 
 export type SendOtp = typeof sendOtpEmail;
+
+type SendInviteArgs = {
+  email: string;
+  clinicName: string;
+  firstName: string;
+  acceptUrl: string;
+  expiresInDays: number;
+};
+
+/**
+ * Sends a student their invite e-mail (a link to set a password and activate
+ * their aluno login). Falls back to a console log when Resend isn't configured
+ * (local dev). Always records the accept URL in the test outbox when enabled,
+ * so e2e can drive the accept flow without a real inbox.
+ */
+export async function sendInviteEmail({
+  email,
+  clinicName,
+  firstName,
+  acceptUrl,
+  expiresInDays,
+}: SendInviteArgs): Promise<void> {
+  captureOutbox({
+    to: email,
+    subject: INVITE_EMAIL_SUBJECT,
+    kind: "invite",
+    url: acceptUrl,
+  });
+
+  if (!resend) {
+    console.info(`[email:dev] invite for ${email}: ${acceptUrl}`);
+    return;
+  }
+
+  const element = (
+    <InviteEmail
+      clinicName={clinicName}
+      firstName={firstName}
+      acceptUrl={acceptUrl}
+      expiresInDays={expiresInDays}
+    />
+  );
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: INVITE_EMAIL_SUBJECT,
+    html,
+    text,
+  });
+}
+
+export type SendInvite = typeof sendInviteEmail;
 
 /** Where contact-form messages are delivered. Kept server-side (not exposed). */
 const CONTACT_TO = process.env.CONTACT_EMAIL;

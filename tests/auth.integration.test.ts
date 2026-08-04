@@ -214,8 +214,16 @@ describe("DAL tenant isolation", () => {
       role: "coach" as const,
     };
 
-    await studentsDal.createStudent(ctxA, { name: "Aluno A", email: "a@example.com" });
-    await studentsDal.createStudent(ctxB, { name: "Aluno B", email: "b@example.com" });
+    await studentsDal.createStudent(ctxA, {
+      firstName: "Aluno",
+      lastName: "A",
+      email: "a@example.com",
+    });
+    await studentsDal.createStudent(ctxB, {
+      firstName: "Aluno",
+      lastName: "B",
+      email: "b@example.com",
+    });
 
     const listA = await studentsDal.listStudents(ctxA);
     const listB = await studentsDal.listStudents(ctxB);
