@@ -7,7 +7,7 @@ import { signUpCoach, signInWithGoogle } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthDivider } from "@/components/auth/auth-divider";
-import { Field } from "@/components/auth/field";
+import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
 import { SubmitButton } from "@/components/ui/submit-button";

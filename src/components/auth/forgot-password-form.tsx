@@ -6,7 +6,7 @@ import { ArrowLeft, Lock, MailCheck } from "lucide-react";
 
 import { requestPasswordReset } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/auth/field";
+import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { SubmitButton } from "@/components/ui/submit-button";
 

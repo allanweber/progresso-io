@@ -5,7 +5,7 @@ import Link from "next/link";
 import { KeyRound } from "lucide-react";
 
 import { resetPassword } from "@/app/actions/auth";
-import { Field } from "@/components/auth/field";
+import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { OtpInput } from "@/components/auth/otp-input";
 import { ResendOtp } from "@/components/auth/resend-otp";
