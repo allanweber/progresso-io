@@ -50,3 +50,38 @@ export async function sendOtpEmail({ email, otp, type }: SendOtpArgs): Promise<v
 }
 
 export type SendOtp = typeof sendOtpEmail;
+
+/** Where contact-form messages are delivered. Kept server-side (not exposed). */
+const CONTACT_TO = process.env.CONTACT_EMAIL;
+
+/**
+ * Sends a contact-form message to the internal contact address. The recipient
+ * is never exposed to the client; the sender's e-mail is set as reply-to so
+ * replies go straight back to them. Logs to the console when Resend or the
+ * contact address isn't configured (local dev).
+ */
+export async function sendContactEmail({
+  name,
+  email,
+  message,
+}: {
+  name: string;
+  email: string;
+  message: string;
+}): Promise<void> {
+  const subject = `Contato via site — ${name}`;
+  const text = `Nome: ${name}\nE-mail: ${email}\n\nMensagem:\n${message}`;
+
+  if (!resend || !CONTACT_TO) {
+    console.info(`[email:dev] contact from ${name} <${email}>: ${message}`);
+    return;
+  }
+
+  await resend.emails.send({
+    from: FROM,
+    to: CONTACT_TO,
+    replyTo: email,
+    subject,
+    text,
+  });
+}
