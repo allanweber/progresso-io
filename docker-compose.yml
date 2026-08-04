@@ -2,6 +2,18 @@
 # The app is never exposed to the host — Cloudflare reaches it over the
 # private compose network, so no inbound ports need to be opened.
 services:
+  # Applies the Drizzle migrations, then exits. The app waits for it to finish.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    restart: "no"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - progresso
+
   app:
     build:
       context: .
@@ -22,6 +34,9 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     expose:
       - "3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     networks:
       - progresso
 

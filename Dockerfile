@@ -19,6 +19,19 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# ---- Migrator ----
+# One-shot image that applies the Drizzle SQL migrations and exits. Run as its
+# own compose service before the app starts. Uses drizzle-orm's programmatic
+# migrator (drizzle-orm + postgres are prod deps), so it needs only node_modules,
+# the migration SQL in drizzle/, and the script. Idempotent.
+FROM node:${NODE_VERSION} AS migrator
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/scripts ./scripts
+CMD ["node", "scripts/migrate.mjs"]
+
 # ---- Runner ----
 FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
