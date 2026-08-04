@@ -28,10 +28,10 @@ type GoogleButtonProps = React.ComponentProps<"button"> & {
   label: string;
 };
 
-export function GoogleButton({ label, className, ...props }: GoogleButtonProps) {
+export function GoogleButton({ label, className, type = "button", ...props }: GoogleButtonProps) {
   return (
     <button
-      type="button"
+      type={type}
       className={cn(
         "flex w-full items-center justify-center gap-2.5 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-sm font-medium text-[#334155] transition-colors hover:bg-secondary",
         className,

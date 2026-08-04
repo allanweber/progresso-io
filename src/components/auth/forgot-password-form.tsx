@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Lock, MailCheck } from "lucide-react";
 
+import { requestPasswordReset } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/auth/field";
+import { FormError } from "@/components/auth/form-error";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function ForgotPasswordForm() {
-  const [sent, setSent] = useState(false);
+  const [state, formAction] = useActionState(requestPasswordReset, undefined);
   const [email, setEmail] = useState("");
 
-  if (sent) {
+  if (state?.ok) {
     const resetHref = email
       ? `/reset-password?email=${encodeURIComponent(email)}`
       : "/reset-password";
@@ -32,24 +35,18 @@ export function ForgotPasswordForm() {
         <Button asChild size="lg" className="w-full">
           <Link href={resetHref}>Inserir código</Link>
         </Button>
-        <button
-          type="button"
-          onClick={() => setSent(false)}
-          className="mt-3 w-full text-[13px] text-[#94A3B8] hover:text-muted-foreground"
+        <Link
+          href="/login"
+          className="mt-3 block w-full text-[13px] text-[#94A3B8] hover:text-muted-foreground"
         >
-          Não recebeu? Reenviar
-        </button>
+          Voltar ao login
+        </Link>
       </div>
     );
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setSent(true);
-      }}
-    >
+    <form action={formAction}>
       <div className="mb-7">
         <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary-light">
           <Lock className="size-[22px] text-primary" strokeWidth={2} />
@@ -62,21 +59,24 @@ export function ForgotPasswordForm() {
         </p>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-5 space-y-4">
+        <FormError message={state?.error} />
         <Field
           id="email"
+          name="email"
           label="E-mail"
           type="email"
           placeholder="seu@email.com"
           autoComplete="email"
+          required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
 
-      <Button type="submit" size="lg" className="mb-4 w-full">
+      <SubmitButton size="lg" className="mb-4 w-full" pendingLabel="Enviando…">
         Enviar código
-      </Button>
+      </SubmitButton>
       <Link
         href="/login"
         className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"

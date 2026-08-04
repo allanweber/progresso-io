@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Check } from "lucide-react";
 
+import { signUpCoach, signInWithGoogle } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthDivider } from "@/components/auth/auth-divider";
 import { Field } from "@/components/auth/field";
+import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 type PlanOption = {
   id: string;
@@ -16,6 +19,8 @@ type PlanOption = {
   price: string;
   popular?: boolean;
 };
+
+type Account = { name: string; email: string; password: string };
 
 // Enterprise is a "contact us" plan, so it is not self-selectable at signup.
 const planOptions: PlanOption[] = [
@@ -40,6 +45,11 @@ const steps = ["Conta", "Plano", "Confirmar"] as const;
 export function RegisterWizard() {
   const [step, setStep] = useState(1);
   const [plan, setPlan] = useState("solo");
+  const [account, setAccount] = useState<Account>({
+    name: "",
+    email: "",
+    password: "",
+  });
 
   const next = () => setStep((s) => Math.min(s + 1, 3));
   const prev = () => setStep((s) => Math.max(s - 1, 1));
@@ -49,7 +59,13 @@ export function RegisterWizard() {
       <StepIndicator current={step} />
 
       <div className="w-full max-w-[460px] rounded-2xl bg-white px-10 py-9 shadow-[0_4px_24px_rgba(15,23,42,0.08)]">
-        {step === 1 && <AccountStep onContinue={next} />}
+        {step === 1 && (
+          <AccountStep
+            account={account}
+            onChange={setAccount}
+            onContinue={next}
+          />
+        )}
         {step === 2 && (
           <PlanStep
             selected={plan}
@@ -58,7 +74,9 @@ export function RegisterWizard() {
             onContinue={next}
           />
         )}
-        {step === 3 && <ConfirmStep />}
+        {step === 3 && (
+          <ConfirmStep account={account} plan={plan} onBack={prev} />
+        )}
       </div>
     </>
   );
@@ -108,12 +126,38 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-function AccountStep({ onContinue }: { onContinue: () => void }) {
+function AccountStep({
+  account,
+  onChange,
+  onContinue,
+}: {
+  account: Account;
+  onChange: (account: Account) => void;
+  onContinue: () => void;
+}) {
+  const [error, setError] = useState<string>();
+
+  function submit() {
+    const valid =
+      account.name.trim().length > 1 &&
+      /.+@.+\..+/.test(account.email) &&
+      account.password.length >= 8;
+    if (!valid) {
+      setError("Preencha nome, e-mail e uma senha de ao menos 8 caracteres.");
+      return;
+    }
+    setError(undefined);
+    onContinue();
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onContinue();
+    // Not a <form> element: it contains the Google <form>, and forms can't nest.
+    <div
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submit();
+        }
       }}
     >
       <div className="mb-6">
@@ -126,13 +170,23 @@ function AccountStep({ onContinue }: { onContinue: () => void }) {
       </div>
 
       <div className="mb-6 space-y-3.5">
-        <Field id="name" label="Nome completo" placeholder="Thiago Corrêa" autoComplete="name" />
+        <FormError message={error} />
+        <Field
+          id="name"
+          label="Nome completo"
+          placeholder="Thiago Corrêa"
+          autoComplete="name"
+          value={account.name}
+          onChange={(e) => onChange({ ...account, name: e.target.value })}
+        />
         <Field
           id="email"
           label="E-mail profissional"
           type="email"
           placeholder="coach@seudominio.com"
           autoComplete="email"
+          value={account.email}
+          onChange={(e) => onChange({ ...account, email: e.target.value })}
         />
         <Field
           id="password"
@@ -140,18 +194,22 @@ function AccountStep({ onContinue }: { onContinue: () => void }) {
           type="password"
           placeholder="mínimo 8 caracteres"
           autoComplete="new-password"
+          value={account.password}
+          onChange={(e) => onChange({ ...account, password: e.target.value })}
         />
       </div>
 
-      <GoogleButton label="Registrar com Google" className="mb-4" />
+      <form action={signInWithGoogle}>
+        <GoogleButton type="submit" label="Registrar com Google" className="mb-4" />
+      </form>
       <div className="mb-5">
         <AuthDivider label="ou registre com e-mail" />
       </div>
 
-      <Button type="submit" size="lg" className="w-full">
+      <Button type="button" size="lg" className="w-full" onClick={submit}>
         Continuar
       </Button>
-    </form>
+    </div>
   );
 }
 
@@ -231,22 +289,50 @@ function PlanStep({
   );
 }
 
-function ConfirmStep() {
+function ConfirmStep({
+  account,
+  plan,
+  onBack,
+}: {
+  account: Account;
+  plan: string;
+  onBack: () => void;
+}) {
+  const [state, formAction] = useActionState(signUpCoach, undefined);
+  const planName = planOptions.find((p) => p.id === plan)?.name ?? "Solo";
+
   return (
-    <div className="px-2 py-2 text-center">
+    <form action={formAction} className="px-2 py-2 text-center">
+      <input type="hidden" name="name" value={account.name} />
+      <input type="hidden" name="email" value={account.email} />
+      <input type="hidden" name="password" value={account.password} />
+
       <div className="mx-auto mb-4 flex size-[60px] items-center justify-center rounded-full bg-[#DCFCE7]">
         <Check className="size-7 text-primary" strokeWidth={2.5} />
       </div>
       <h1 className="mb-1.5 font-heading text-[22px] font-bold text-foreground">
-        Tudo certo!
+        Tudo pronto para começar
       </h1>
-      <p className="mb-7 text-sm text-muted-foreground">
-        Sua conta está criada. Trial de 14 dias ativo. Sem cobranças agora.
+      <p className="mb-6 text-sm text-muted-foreground">
+        Plano <strong className="text-foreground">{planName}</strong> · trial de
+        14 dias. Vamos criar sua conta e enviar um código para{" "}
+        <strong className="text-foreground">{account.email || "seu e-mail"}</strong>.
       </p>
-      {/* UI only — no dashboard/backend wired yet. */}
-      <Button size="lg" className="w-full">
-        Entrar na plataforma →
-      </Button>
-    </div>
+
+      <div className="mb-4 text-left">
+        <FormError message={state?.error} />
+      </div>
+
+      <SubmitButton size="lg" className="w-full" pendingLabel="Criando conta…">
+        Criar conta →
+      </SubmitButton>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-3 w-full text-[13px] text-muted-foreground hover:text-foreground"
+      >
+        Voltar
+      </button>
+    </form>
   );
 }
