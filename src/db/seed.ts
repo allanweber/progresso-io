@@ -51,8 +51,8 @@ async function seed() {
   const coach = await ensureUser("Thiago Coach", coachEmail);
   let [coachClinic] = await db
     .select()
-    .from(schema.clinics)
-    .where(eq(schema.clinics.ownerUserId, coach.id));
+    .from(schema.clinic)
+    .where(eq(schema.clinic.ownerUserId, coach.id));
   if (!coachClinic) {
     coachClinic = await createClinicForOwner(db, {
       ownerUserId: coach.id,
@@ -71,7 +71,7 @@ async function seed() {
     .update(schema.user)
     .set({ emailVerified: true, role: "aluno", clinicId: coachClinic.id })
     .where(eq(schema.user.id, aluno.id));
-  await db.delete(schema.clinics).where(eq(schema.clinics.ownerUserId, aluno.id));
+  await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, aluno.id));
 
   // Admin — platform admin, no clinic.
   const admin = await ensureUser("Super Admin", adminEmail);
@@ -79,7 +79,7 @@ async function seed() {
     .update(schema.user)
     .set({ emailVerified: true, role: "admin", clinicId: null })
     .where(eq(schema.user.id, admin.id));
-  await db.delete(schema.clinics).where(eq(schema.clinics.ownerUserId, admin.id));
+  await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, admin.id));
 
   // Link the aluno to the coach inside the clinic.
   const link = await db

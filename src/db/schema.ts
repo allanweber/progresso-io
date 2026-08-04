@@ -47,8 +47,8 @@ export const user = pgTable("user", {
   banExpires: timestamp("ban_expires"),
   // Tenant the user belongs to. Null only for platform admins (no clinic).
   // Set right after sign-up (see the clinic bootstrap in lib/auth).
-  // `AnyPgColumn` breaks the user<->clinics circular-reference type inference.
-  clinicId: uuid("clinic_id").references((): AnyPgColumn => clinics.id, {
+  // `AnyPgColumn` breaks the user<->clinic circular-reference type inference.
+  clinicId: uuid("clinic_id").references((): AnyPgColumn => clinic.id, {
     onDelete: "set null",
   }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -108,7 +108,7 @@ export const verification = pgTable("verification", {
  * multiple coaches to share one clinic. `clinicId` is THE tenant key: every
  * domain query is scoped by it (enforced through the Data Access Layer).
  */
-export const clinics = pgTable("clinics", {
+export const clinic = pgTable("clinic", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   plan: text("plan").$type<Plan>().default("free").notNull(),
@@ -137,7 +137,7 @@ export const students = pgTable(
     // Tenant key — every query MUST filter by this.
     clinicId: uuid("clinic_id")
       .notNull()
-      .references(() => clinics.id, { onDelete: "cascade" }),
+      .references(() => clinic.id, { onDelete: "cascade" }),
     // Coach assigned to this student (within the same clinic). Optional.
     coachId: text("coach_id").references(() => user.id, {
       onDelete: "set null",
@@ -159,19 +159,19 @@ export const students = pgTable(
 export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
-  clinic: one(clinics, {
+  clinic: one(clinic, {
     fields: [user.clinicId],
-    references: [clinics.id],
+    references: [clinic.id],
     relationName: "clinicMembers",
   }),
-  ownedClinics: many(clinics, { relationName: "clinicOwner" }),
+  ownedClinics: many(clinic, { relationName: "clinicOwner" }),
   // Students this user coaches.
   coachedStudents: many(students, { relationName: "studentCoach" }),
 }));
 
-export const clinicsRelations = relations(clinics, ({ one, many }) => ({
+export const clinicRelations = relations(clinic, ({ one, many }) => ({
   owner: one(user, {
-    fields: [clinics.ownerUserId],
+    fields: [clinic.ownerUserId],
     references: [user.id],
     relationName: "clinicOwner",
   }),
@@ -188,9 +188,9 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 export const studentsRelations = relations(students, ({ one }) => ({
-  clinic: one(clinics, {
+  clinic: one(clinic, {
     fields: [students.clinicId],
-    references: [clinics.id],
+    references: [clinic.id],
   }),
   coach: one(user, {
     fields: [students.coachId],
@@ -211,7 +211,7 @@ export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Session = typeof session.$inferSelect;
 export type Account = typeof account.$inferSelect;
-export type Clinic = typeof clinics.$inferSelect;
-export type NewClinic = typeof clinics.$inferInsert;
+export type Clinic = typeof clinic.$inferSelect;
+export type NewClinic = typeof clinic.$inferInsert;
 export type Student = typeof students.$inferSelect;
 export type NewStudent = typeof students.$inferInsert;

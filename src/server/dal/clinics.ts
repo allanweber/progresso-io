@@ -18,7 +18,7 @@ export async function createClinicForOwner(
   input: { ownerUserId: string; name: string; plan?: Plan },
 ): Promise<Clinic> {
   const [clinic] = await db
-    .insert(schema.clinics)
+    .insert(schema.clinic)
     .values({
       ownerUserId: input.ownerUserId,
       name: input.name,
@@ -48,7 +48,7 @@ export async function attachUserToClinic(
 export async function getClinic(ctx: TenantContext): Promise<Clinic | null> {
   const [clinic] = await ctx.db
     .select()
-    .from(schema.clinics)
-    .where(eq(schema.clinics.id, ctx.clinicId));
+    .from(schema.clinic)
+    .where(eq(schema.clinic.id, ctx.clinicId));
   return clinic ?? null;
 }

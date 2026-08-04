@@ -1,5 +1,5 @@
 {
-  "id": "9e1c1d83-8678-49ab-9091-61367ab5924f",
+  "id": "684ac7b4-01e8-4361-9fbf-48dd6b577383",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -111,8 +111,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.clinics": {
-      "name": "clinics",
+    "public.clinic": {
+      "name": "clinic",
       "schema": "",
       "columns": {
         "id": {
@@ -158,9 +158,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "clinics_owner_user_id_user_id_fk": {
-          "name": "clinics_owner_user_id_user_id_fk",
-          "tableFrom": "clinics",
+        "clinic_owner_user_id_user_id_fk": {
+          "name": "clinic_owner_user_id_user_id_fk",
+          "tableFrom": "clinic",
           "tableTo": "user",
           "columnsFrom": [
             "owner_user_id"
@@ -327,10 +327,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "students_clinic_id_clinics_id_fk": {
-          "name": "students_clinic_id_clinics_id_fk",
+        "students_clinic_id_clinic_id_fk": {
+          "name": "students_clinic_id_clinic_id_fk",
           "tableFrom": "students",
-          "tableTo": "clinics",
+          "tableTo": "clinic",
           "columnsFrom": [
             "clinic_id"
           ],
@@ -466,10 +466,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_clinic_id_clinics_id_fk": {
-          "name": "user_clinic_id_clinics_id_fk",
+        "user_clinic_id_clinic_id_fk": {
+          "name": "user_clinic_id_clinic_id_fk",
           "tableFrom": "user",
-          "tableTo": "clinics",
+          "tableTo": "clinic",
           "columnsFrom": [
             "clinic_id"
           ],

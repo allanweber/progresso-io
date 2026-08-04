@@ -142,8 +142,8 @@ describe("clinic tenant bootstrap", () => {
 
     const [clinic] = await db
       .select()
-      .from(schema.clinics)
-      .where(eq(schema.clinics.id, coach.clinicId!));
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, coach.clinicId!));
     expect(clinic.ownerUserId).toBe(coach.id);
     expect(clinic.name).toContain("Thiago");
   });
