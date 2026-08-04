@@ -92,11 +92,11 @@ export function LoginForm({
 
       <p className="mt-8 text-center text-xs text-[#94A3B8]">
         Ao entrar você concorda com os{" "}
-        <Link href="#" className="text-primary hover:underline">
+        <Link href="/terms" className="text-primary hover:underline">
           Termos de Uso
         </Link>{" "}
         e{" "}
-        <Link href="#" className="text-primary hover:underline">
+        <Link href="/privacy" className="text-primary hover:underline">
           Privacidade
         </Link>
       </p>

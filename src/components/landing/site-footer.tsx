@@ -1,9 +1,11 @@
+import Link from "next/link";
+
 import { Logo } from "@/components/brand/logo";
 
 const footerLinks = [
-  { label: "Termos de Uso", href: "#" },
-  { label: "Privacidade", href: "#" },
-  { label: "Contato", href: "#" },
+  { label: "Termos de Uso", href: "/terms" },
+  { label: "Privacidade", href: "/privacy" },
+  { label: "Contato", href: "/contact" },
 ];
 
 export function SiteFooter() {
@@ -14,13 +16,13 @@ export function SiteFooter() {
 
         <div className="flex flex-wrap gap-6">
           {footerLinks.map((link) => (
-            <a
+            <Link
               key={link.label}
               href={link.href}
               className="text-[13px] text-muted-foreground transition-colors hover:text-white"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
