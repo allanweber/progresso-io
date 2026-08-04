@@ -1,6 +1,10 @@
 # Dokploy "Compose" deployment: the Next.js app + a Cloudflare Tunnel.
 # The app is never exposed to the host — Cloudflare reaches it over the
 # private compose network, so no inbound ports need to be opened.
+#
+# `dokploy-network` is Dokploy's shared external network; the app and the
+# migrate job join it so they can resolve the Dokploy Postgres service by name
+# (e.g. progresso-io-db-...). The DATABASE_URL host must be that service name.
 services:
   # Applies the Drizzle migrations, then exits. The app waits for it to finish.
   migrate:
@@ -12,7 +16,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
     networks:
-      - progresso
+      - dokploy-network
 
   app:
     build:
@@ -38,7 +42,9 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
+      # progresso: reach the Cloudflare tunnel. dokploy-network: reach the DB.
       - progresso
+      - dokploy-network
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -55,3 +61,5 @@ services:
 networks:
   progresso:
     driver: bridge
+  dokploy-network:
+    external: true
