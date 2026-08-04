@@ -9,8 +9,17 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      # Uncomment once the app needs the database (set the value in Dokploy):
-      # - DATABASE_URL=${DATABASE_URL}
+      # Values come from Dokploy's Environment tab (compose interpolates them,
+      # same as TUNNEL_TOKEN below). Required:
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      # Optional (default to empty when unset in Dokploy):
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     expose:
       - "3000"
     networks:
