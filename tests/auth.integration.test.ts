@@ -11,6 +11,8 @@ import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
+// Admin allowlist consumed by createAuth's create-user hook.
+process.env.ADMIN_EMAILS = "boss@example.com";
 
 type Captured = { email: string; otp: string; type: string };
 
@@ -129,22 +131,37 @@ describe("password reset via OTP", () => {
 });
 
 describe("role scenario (coach / aluno / admin)", () => {
-  it("supports promoting users to the aluno and admin roles", async () => {
-    for (const [email, role] of [
-      ["aluno@example.com", "aluno"],
-      ["admin@example.com", "admin"],
-    ] as const) {
-      await auth.api.signUpEmail({ body: { name: role, email, password } });
-      await db
-        .update(schema.user)
-        .set({ role })
-        .where(eq(schema.user.email, email));
-      const [row] = await db
-        .select()
-        .from(schema.user)
-        .where(eq(schema.user.email, email));
-      expect(row.role).toBe(role);
-    }
+  it("auto-assigns the admin role to e-mails in ADMIN_EMAILS at sign-up", async () => {
+    await auth.api.signUpEmail({
+      body: { name: "Super Admin", email: "boss@example.com", password },
+    });
+    const [row] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, "boss@example.com"));
+    // No manual promotion — the role comes from the allowlist alone.
+    expect(row.role).toBe("admin");
+  });
+
+  it("keeps ordinary sign-ups as coach and supports promoting to aluno", async () => {
+    await auth.api.signUpEmail({
+      body: { name: "Ana", email: "aluno@example.com", password },
+    });
+    const [before] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, "aluno@example.com"));
+    expect(before.role).toBe("coach");
+
+    await db
+      .update(schema.user)
+      .set({ role: "aluno" })
+      .where(eq(schema.user.email, "aluno@example.com"));
+    const [after] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, "aluno@example.com"));
+    expect(after.role).toBe("aluno");
   });
 
   it("links alunos to their coach", async () => {

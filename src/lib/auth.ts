@@ -6,7 +6,12 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 
 import { db as defaultDb, schema } from "@/db";
 import { sendOtpEmail, type SendOtp } from "@/lib/email";
-import { ADMIN_ROLES, DEFAULT_ROLE } from "@/lib/roles";
+import {
+  ADMIN_ROLES,
+  DEFAULT_ROLE,
+  isAdminEmail,
+  parseAdminEmails,
+} from "@/lib/roles";
 
 /** OTP validity window, in seconds. */
 const OTP_EXPIRES_IN = 60 * 10;
@@ -37,6 +42,10 @@ export function createAuth({
   const googleConfigured =
     !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
+  // Admins aren't self-selectable: a sign-up whose e-mail is in ADMIN_EMAILS is
+  // promoted to the admin role; everyone else defaults to coach.
+  const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+
   const options = {
     appName: "Progresso IO",
     secret: process.env.BETTER_AUTH_SECRET,
@@ -62,6 +71,20 @@ export function createAuth({
     emailVerification: {
       // Confirming the account (OTP) signs the user in immediately.
       autoSignInAfterVerification: true,
+    },
+
+    databaseHooks: {
+      user: {
+        create: {
+          // Grant the admin role at sign-up based on the ADMIN_EMAILS
+          // allowlist. Ordinary sign-ups keep the default (coach).
+          before: async (user) => {
+            if (isAdminEmail(user.email, adminEmails)) {
+              return { data: { ...user, role: "admin" } };
+            }
+          },
+        },
+      },
     },
 
     // Enforce at most one OTP *generation* per minute, per the product rule.

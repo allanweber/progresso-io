@@ -6,8 +6,10 @@ import {
   ROLE_LABELS,
   homePathForRole,
   isAdmin,
+  isAdminEmail,
   isCoach,
   isRole,
+  parseAdminEmails,
 } from "@/lib/roles";
 
 describe("roles", () => {
@@ -40,6 +42,23 @@ describe("roles", () => {
     expect(ROLE_LABELS.coach).toBe("Coach");
     expect(ROLE_LABELS.aluno).toBe("Aluno");
     expect(ROLE_LABELS.admin).toBe("Administrador");
+  });
+
+  it("parses the admin allowlist regardless of separators/case", () => {
+    expect(parseAdminEmails(undefined)).toEqual([]);
+    expect(parseAdminEmails("")).toEqual([]);
+    expect(parseAdminEmails("A@x.com, b@x.com ; c@x.com")).toEqual([
+      "a@x.com",
+      "b@x.com",
+      "c@x.com",
+    ]);
+  });
+
+  it("matches admin e-mails case-insensitively", () => {
+    const list = parseAdminEmails("boss@progresso.io");
+    expect(isAdminEmail("Boss@Progresso.io", list)).toBe(true);
+    expect(isAdminEmail("someone@progresso.io", list)).toBe(false);
+    expect(isAdminEmail("boss@progresso.io", [])).toBe(false);
   });
 
   it("routes each role to its own siloed area", () => {
