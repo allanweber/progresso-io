@@ -7,10 +7,6 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      # Uncomment once the app needs the database (set the value in Dokploy):
-      # - DATABASE_URL=${DATABASE_URL}
     expose:
       - "3000"
     networks:
