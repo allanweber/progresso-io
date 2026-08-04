@@ -44,8 +44,8 @@ export function ResendOtp({
     if (remaining > 0 || pending) return;
     startTransition(async () => {
       const result = await resendOtp(email, type);
-      if (result?.error) {
-        setError(result.error);
+      if (result?.formError) {
+        setError(result.formError);
         return;
       }
       setError(null);

@@ -6,14 +6,18 @@ import { APIError } from "better-auth/api";
 
 import { auth } from "@/lib/auth";
 import { homePathForRole } from "@/lib/roles";
-import { parseForm, z } from "@/lib/validation";
+import { type FieldErrors, parseForm, z } from "@/lib/validation";
 
 /**
  * Result returned to client forms. Actions that finish the flow `redirect()`
- * (so they never return); actions that stay on the page return `{ ok: true }`
- * on success or `{ error }` on failure.
+ * (so they never return). Otherwise:
+ * - `fieldErrors` — messages shown under specific inputs.
+ * - `formError` — a banner message for errors not tied to a single field.
+ * - `ok` — success while staying on the page.
  */
-export type ActionState = { error?: string; ok?: boolean } | undefined;
+export type ActionState =
+  | { formError?: string; fieldErrors?: FieldErrors; ok?: boolean }
+  | undefined;
 
 /* --------------------------- validation schemas --------------------------- */
 
@@ -53,26 +57,32 @@ const resetSchema = z.object({
   password: newPasswordSchema,
 });
 
-/** Maps a Better Auth error to a friendly PT-BR message. */
-function messageFor(error: unknown): string {
+/**
+ * Maps a Better Auth error to an {@link ActionState}, routing field-specific
+ * failures to the relevant input and everything else to the banner.
+ */
+function authError(error: unknown): ActionState {
   if (error instanceof APIError) {
     const code = (error.body?.code as string | undefined) ?? "";
     switch (code) {
-      case "INVALID_EMAIL_OR_PASSWORD":
-        return "E-mail ou senha incorretos.";
       case "USER_ALREADY_EXISTS":
-        return "Já existe uma conta com este e-mail.";
+        return { fieldErrors: { email: "Já existe uma conta com este e-mail." } };
       case "INVALID_OTP":
-        return "Código inválido. Verifique e tente novamente.";
+        return { fieldErrors: { otp: "Código inválido. Verifique e tente novamente." } };
       case "OTP_EXPIRED":
-        return "O código expirou. Solicite um novo.";
+        return { fieldErrors: { otp: "O código expirou. Solicite um novo." } };
+      case "INVALID_EMAIL_OR_PASSWORD":
+        return { formError: "E-mail ou senha incorretos." };
       case "TOO_MANY_ATTEMPTS":
-        return "Muitas tentativas. Aguarde um instante e tente de novo.";
+        return { formError: "Muitas tentativas. Aguarde um instante e tente de novo." };
       default:
-        return error.body?.message ?? "Não foi possível concluir. Tente novamente.";
+        return {
+          formError:
+            error.body?.message ?? "Não foi possível concluir. Tente novamente.",
+        };
     }
   }
-  return "Algo deu errado. Tente novamente.";
+  return { formError: "Algo deu errado. Tente novamente." };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -84,7 +94,7 @@ export async function signUpCoach(
   formData: FormData,
 ): Promise<ActionState> {
   const parsed = parseForm(signUpSchema, formData);
-  if (!parsed.success) return { error: parsed.error };
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
   const { name, email, password } = parsed.data;
 
   try {
@@ -93,7 +103,7 @@ export async function signUpCoach(
       headers: await headers(),
     });
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   // A verification OTP was e-mailed on sign-up; confirm it next.
@@ -109,7 +119,7 @@ export async function signIn(
   formData: FormData,
 ): Promise<ActionState> {
   const parsed = parseForm(signInSchema, formData);
-  if (!parsed.success) return { error: parsed.error };
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
   const { email, password } = parsed.data;
 
   let role: string | null | undefined;
@@ -127,7 +137,7 @@ export async function signIn(
     ) {
       redirect(`/verify-account?email=${encodeURIComponent(email)}`);
     }
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   redirect(homePathForRole(role));
@@ -142,7 +152,7 @@ export async function verifyAccount(
   formData: FormData,
 ): Promise<ActionState> {
   const parsed = parseForm(verifySchema, formData);
-  if (!parsed.success) return { error: parsed.error };
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
   const { email, otp } = parsed.data;
 
   let role: string | null | undefined;
@@ -153,7 +163,7 @@ export async function verifyAccount(
     });
     role = result.user?.role;
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   redirect(homePathForRole(role));
@@ -173,7 +183,7 @@ export async function resendOtp(
   type: "email-verification" | "forget-password",
 ): Promise<ActionState> {
   const parsed = resendSchema.safeParse({ email, type });
-  if (!parsed.success) return { error: "E-mail inválido." };
+  if (!parsed.success) return { formError: "E-mail inválido." };
 
   try {
     if (parsed.data.type === "forget-password") {
@@ -184,7 +194,7 @@ export async function resendOtp(
       });
     }
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
   return undefined;
 }
@@ -198,12 +208,12 @@ export async function requestPasswordReset(
   formData: FormData,
 ): Promise<ActionState> {
   const parsed = parseForm(forgotSchema, formData);
-  if (!parsed.success) return { error: parsed.error };
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
   try {
     await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
   return { ok: true };
 }
@@ -217,13 +227,13 @@ export async function resetPassword(
   formData: FormData,
 ): Promise<ActionState> {
   const parsed = parseForm(resetSchema, formData);
-  if (!parsed.success) return { error: parsed.error };
+  if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
   const { email, otp, password } = parsed.data;
 
   try {
     await auth.api.resetPasswordEmailOTP({ body: { email, otp, password } });
   } catch (error) {
-    return { error: messageFor(error) };
+    return authError(error);
   }
 
   redirect("/login?reset=1");

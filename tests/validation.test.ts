@@ -19,15 +19,20 @@ describe("parseForm", () => {
     expect(result).toEqual({ success: true, data: { email: "me@x.com", age: 30 } });
   });
 
-  it("returns the first validation message on failure", () => {
-    const result = parseForm(schema, form({ email: "nope", age: "30" }));
+  it("returns per-field messages on failure", () => {
+    const result = parseForm(schema, form({ email: "nope", age: "15" }));
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.error).toBe("E-mail inválido.");
+    if (!result.success) {
+      expect(result.fieldErrors).toEqual({
+        email: "E-mail inválido.",
+        age: "Mínimo 18.",
+      });
+    }
   });
 
-  it("catches out-of-range values", () => {
+  it("keys the message by the failing field", () => {
     const result = parseForm(schema, form({ email: "a@b.com", age: "15" }));
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.error).toBe("Mínimo 18.");
+    if (!result.success) expect(result.fieldErrors).toEqual({ age: "Mínimo 18." });
   });
 });

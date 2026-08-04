@@ -60,7 +60,7 @@ export function ForgotPasswordForm() {
       </div>
 
       <div className="mb-5 space-y-4">
-        <FormError message={state?.error} />
+        <FormError message={state?.formError} />
         <Field
           id="email"
           name="email"
@@ -71,6 +71,7 @@ export function ForgotPasswordForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          error={state?.fieldErrors?.email}
         />
       </div>
 
