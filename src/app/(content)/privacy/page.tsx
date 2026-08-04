@@ -24,7 +24,7 @@ const sections = [
   },
   {
     title: "5. Cookies",
-    body: "Utilizamos cookies estritamente necessários para manter sua sessão autenticada. Não utilizamos cookies de rastreamento publicitário.",
+    body: "Utilizamos cookies estritamente necessários para manter sua sessão autenticada. Com o seu consentimento, também utilizamos cookies de análise (Google Analytics) para entender o uso e melhorar o produto — você pode recusá-los no aviso de cookies, sem prejuízo do funcionamento essencial. Não utilizamos cookies de publicidade.",
   },
   {
     title: "6. Segurança",

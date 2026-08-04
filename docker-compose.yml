@@ -22,6 +22,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* must be present at build time (inlined into the bundle).
+      args:
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
     restart: unless-stopped
     # Values are set in Dokploy's Environment tab and interpolated here (same
     # pattern as TUNNEL_TOKEN below). Required for auth to work:

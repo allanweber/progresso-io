@@ -17,6 +17,10 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Public env vars are inlined at build time, so they must be present here.
+# Provide the Google Analytics id as a build arg (empty = analytics disabled).
+ARG NEXT_PUBLIC_GA_ID=""
+ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 RUN npm run build
 
 # ---- Migrator ----
