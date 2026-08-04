@@ -7,8 +7,10 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
+import { students as studentsDal } from "@/server/dal";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 // Bootstrap admin e-mail consumed by createAuth's create-user hook.
@@ -130,20 +132,37 @@ describe("password reset via OTP", () => {
   });
 });
 
-describe("role scenario (coach / aluno / admin)", () => {
-  it("auto-assigns the admin role to the ADMIN_EMAIL sign-up", async () => {
+describe("clinic tenant bootstrap", () => {
+  it("creates a clinic for the coach and sets clinicId at sign-up", async () => {
+    const [coach] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, coachEmail));
+    expect(coach.clinicId).toBeTruthy();
+
+    const [clinic] = await db
+      .select()
+      .from(schema.clinics)
+      .where(eq(schema.clinics.id, coach.clinicId!));
+    expect(clinic.ownerUserId).toBe(coach.id);
+    expect(clinic.name).toContain("Thiago");
+  });
+
+  it("gives the ADMIN_EMAIL sign-up the admin role and no clinic", async () => {
     await auth.api.signUpEmail({
       body: { name: "Super Admin", email: "boss@example.com", password },
     });
-    const [row] = await db
+    const [admin] = await db
       .select()
       .from(schema.user)
       .where(eq(schema.user.email, "boss@example.com"));
-    // No manual promotion — the role comes from ADMIN_EMAIL alone.
-    expect(row.role).toBe("admin");
+    expect(admin.role).toBe("admin"); // from ADMIN_EMAIL
+    expect(admin.clinicId).toBeNull(); // admins live outside any clinic
   });
+});
 
-  it("keeps ordinary sign-ups as coach and supports promoting to aluno", async () => {
+describe("role scenario (coach / aluno / admin)", () => {
+  it("keeps ordinary sign-ups as coach (with a clinic) and supports promoting to aluno", async () => {
     await auth.api.signUpEmail({
       body: { name: "Ana", email: "aluno@example.com", password },
     });
@@ -152,6 +171,7 @@ describe("role scenario (coach / aluno / admin)", () => {
       .from(schema.user)
       .where(eq(schema.user.email, "aluno@example.com"));
     expect(before.role).toBe("coach");
+    expect(before.clinicId).toBeTruthy();
 
     await db
       .update(schema.user)
@@ -163,24 +183,48 @@ describe("role scenario (coach / aluno / admin)", () => {
       .where(eq(schema.user.email, "aluno@example.com"));
     expect(after.role).toBe("aluno");
   });
+});
 
-  it("links alunos to their coach", async () => {
-    const [coach] = await db
+describe("DAL tenant isolation", () => {
+  it("scopes students to their clinic — no cross-tenant reads", async () => {
+    // Clinic A = the coach's clinic.
+    const [coachA] = await db
       .select()
       .from(schema.user)
       .where(eq(schema.user.email, coachEmail));
+    const ctxA = {
+      db: db as unknown as DB,
+      clinicId: coachA.clinicId!,
+      userId: coachA.id,
+      role: "coach" as const,
+    };
 
-    await db.insert(schema.students).values({
-      coachId: coach.id,
-      name: "Aluno de Teste",
-      email: "aluno.vinculado@example.com",
+    // Clinic B = a second coach's clinic.
+    await auth.api.signUpEmail({
+      body: { name: "Bruno Coach", email: "coachb@example.com", password },
     });
-
-    const students = await db
+    const [coachB] = await db
       .select()
-      .from(schema.students)
-      .where(eq(schema.students.coachId, coach.id));
-    expect(students).toHaveLength(1);
-    expect(students[0].coachId).toBe(coach.id);
+      .from(schema.user)
+      .where(eq(schema.user.email, "coachb@example.com"));
+    const ctxB = {
+      db: db as unknown as DB,
+      clinicId: coachB.clinicId!,
+      userId: coachB.id,
+      role: "coach" as const,
+    };
+
+    await studentsDal.createStudent(ctxA, { name: "Aluno A", email: "a@example.com" });
+    await studentsDal.createStudent(ctxB, { name: "Aluno B", email: "b@example.com" });
+
+    const listA = await studentsDal.listStudents(ctxA);
+    const listB = await studentsDal.listStudents(ctxB);
+
+    // A sees only its own; B sees only its own.
+    expect(listA.every((s) => s.clinicId === coachA.clinicId)).toBe(true);
+    expect(listA.some((s) => s.email === "a@example.com")).toBe(true);
+    expect(listA.some((s) => s.email === "b@example.com")).toBe(false);
+    expect(listB.some((s) => s.email === "b@example.com")).toBe(true);
+    expect(listB.some((s) => s.email === "a@example.com")).toBe(false);
   });
 });
