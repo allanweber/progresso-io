@@ -8,7 +8,7 @@ import { AuthDivider } from "@/components/auth/auth-divider";
 import { Field } from "@/components/auth/field";
 import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
-import { SubmitButton } from "@/components/auth/submit-button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function LoginForm({
   justReset,

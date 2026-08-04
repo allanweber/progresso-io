@@ -8,7 +8,7 @@ import { requestPasswordReset } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/auth/field";
 import { FormError } from "@/components/auth/form-error";
-import { SubmitButton } from "@/components/auth/submit-button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function ForgotPasswordForm() {
   const [state, formAction] = useActionState(requestPasswordReset, undefined);

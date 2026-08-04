@@ -9,7 +9,7 @@ import { Field } from "@/components/auth/field";
 import { FormError } from "@/components/auth/form-error";
 import { OtpInput } from "@/components/auth/otp-input";
 import { ResendOtp } from "@/components/auth/resend-otp";
-import { SubmitButton } from "@/components/auth/submit-button";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function ResetPasswordForm({ email }: { email: string }) {
   const [state, formAction] = useActionState(resetPassword, undefined);

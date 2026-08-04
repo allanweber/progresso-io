@@ -3,20 +3,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderOtpEmail, sendOtpEmail } from "@/lib/email";
 
 describe("renderOtpEmail", () => {
-  it("embeds the OTP in both HTML and text bodies", () => {
-    const { html, text } = renderOtpEmail("123456", "email-verification");
+  it("embeds the OTP in both HTML and text bodies", async () => {
+    const { html, text } = await renderOtpEmail("123456", "email-verification");
     expect(html).toContain("123456");
     expect(text).toContain("123456");
   });
 
-  it("uses a type-specific subject", () => {
-    expect(renderOtpEmail("000000", "email-verification").subject).toMatch(
+  it("uses a type-specific subject", async () => {
+    expect((await renderOtpEmail("000000", "email-verification")).subject).toMatch(
       /Confirme sua conta/,
     );
-    expect(renderOtpEmail("000000", "forget-password").subject).toMatch(
+    expect((await renderOtpEmail("000000", "forget-password")).subject).toMatch(
       /Redefina sua senha/,
     );
-    expect(renderOtpEmail("000000", "sign-in").subject).toMatch(
+    expect((await renderOtpEmail("000000", "sign-in")).subject).toMatch(
       /código de acesso/i,
     );
   });
