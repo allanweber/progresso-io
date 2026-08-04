@@ -2,63 +2,84 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "progresso-cookie-consent";
+// Public GA measurement id (inlined at build). Analytics only loads with it set.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
+type Consent = "accepted" | "rejected" | null; // null = decided-not-yet (show banner)
 
 /**
- * Cookie consent banner. Progresso IO uses only strictly-necessary cookies
- * (the session), so this is an informative notice with a single accept action.
- * The choice is remembered in localStorage so it isn't shown again.
+ * Cookie consent + analytics gate. Strictly-necessary cookies (the session)
+ * are always used; Google Analytics is loaded only after the visitor accepts,
+ * keeping analytics opt-in (LGPD-friendly). The choice is remembered in
+ * localStorage. Rendered app-wide from the root layout.
  */
 export function CookieConsent() {
-  // `null` until we've checked storage, to avoid a hydration flash.
-  const [visible, setVisible] = useState<boolean | null>(null);
+  // `undefined` until we've read storage, to avoid a hydration flash.
+  const [consent, setConsent] = useState<Consent | undefined>(undefined);
 
   useEffect(() => {
-    let accepted = false;
+    let stored: Consent = null;
     try {
-      accepted = localStorage.getItem(STORAGE_KEY) === "accepted";
+      const value = localStorage.getItem(STORAGE_KEY);
+      stored = value === "accepted" || value === "rejected" ? value : null;
     } catch {
-      accepted = false;
+      stored = null;
     }
     // Reading persisted consent is only possible after mount (no localStorage
     // during SSR), so this initial sync is intentional.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisible(!accepted);
+    setConsent(stored);
   }, []);
 
-  function accept() {
+  function decide(value: "accepted" | "rejected") {
     try {
-      localStorage.setItem(STORAGE_KEY, "accepted");
+      localStorage.setItem(STORAGE_KEY, value);
     } catch {
-      // Ignore storage failures (e.g. private mode) — just dismiss for now.
+      // Ignore storage failures (e.g. private mode) — just apply for this view.
     }
-    setVisible(false);
+    setConsent(value);
   }
 
-  if (!visible) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-label="Aviso de cookies"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-6 py-4 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur-md"
-    >
-      <div className="mx-auto flex max-w-[1120px] flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[13px] leading-[1.6] text-muted-foreground">
-          Usamos apenas cookies essenciais para manter você conectado e proteger
-          sua conta. Saiba mais na{" "}
-          <Link href="/privacy" className="font-medium text-primary hover:underline">
-            Política de Privacidade
-          </Link>
-          .
-        </p>
-        <Button size="sm" onClick={accept} className="shrink-0">
-          Aceitar
-        </Button>
-      </div>
-    </div>
+    <>
+      {GA_ID && consent === "accepted" && <GoogleAnalytics gaId={GA_ID} />}
+
+      {consent === null && (
+        <div
+          role="dialog"
+          aria-label="Aviso de cookies"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-6 py-4 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur-md"
+        >
+          <div className="mx-auto flex max-w-[1120px] flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[13px] leading-[1.6] text-muted-foreground">
+              Usamos cookies essenciais para manter você conectado e, com sua
+              permissão, cookies de análise (Google Analytics) para melhorar o
+              produto. Saiba mais na{" "}
+              <Link href="/privacy" className="font-medium text-primary hover:underline">
+                Política de Privacidade
+              </Link>
+              .
+            </p>
+            <div className="flex shrink-0 gap-2.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => decide("rejected")}
+              >
+                Recusar
+              </Button>
+              <Button size="sm" onClick={() => decide("accepted")}>
+                Aceitar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
