@@ -1,11 +1,18 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("auth routes", () => {
-  test("redirects unauthenticated users away from the dashboard", async ({
+  test("redirects unauthenticated users away from every role area", async ({
     page,
   }) => {
-    await page.goto("/dashboard");
-    await expect(page).toHaveURL(/\/login\?redirect=%2Fdashboard/);
+    for (const [path, encoded] of [
+      ["/coach", "%2Fcoach"],
+      ["/student", "%2Fstudent"],
+      ["/admin", "%2Fadmin"],
+      ["/dashboard", "%2Fdashboard"],
+    ]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(`/login\\?redirect=${encoded}`));
+    }
     await expect(
       page.getByRole("heading", { name: "Bem-vindo de volta" }),
     ).toBeVisible();

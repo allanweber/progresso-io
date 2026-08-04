@@ -3,34 +3,46 @@ import { LayoutDashboard, LogOut } from "lucide-react";
 
 import { signOut } from "@/app/actions/auth";
 import { Logo } from "@/components/brand/logo";
-import { requireSession } from "@/lib/session";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { homePathForRole, ROLE_LABELS, type Role } from "@/lib/roles";
 
-export default async function DashboardLayout({
+type ShellUser = {
+  name: string;
+  email: string;
+  role?: string | null;
+};
+
+/**
+ * Chrome shared by every role's dashboard (sidebar + header + sign out).
+ * The role's own area is derived from its role, so links never point a user
+ * at another role's pages.
+ */
+export function DashboardShell({
+  user,
   children,
 }: {
+  user: ShellUser;
   children: React.ReactNode;
 }) {
-  const session = await requireSession();
-  const { name, email, role } = session.user;
-  const roleLabel = ROLE_LABELS[role as Role] ?? "Coach";
+  const roleLabel = ROLE_LABELS[user.role as Role] ?? user.role;
+  const home = homePathForRole(user.role);
 
   return (
     <div className="flex min-h-screen bg-surface-light">
-      {/* Sidebar */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white px-5 py-6 md:flex">
-        <Link href="/dashboard" className="mb-8">
+        <Link href={home} className="mb-8">
           <Logo />
         </Link>
         <nav className="flex flex-col gap-1 text-sm">
-          <span className="flex items-center gap-2.5 rounded-[10px] bg-primary-light px-3 py-2 font-medium text-primary">
+          <Link
+            href={home}
+            className="flex items-center gap-2.5 rounded-[10px] bg-primary-light px-3 py-2 font-medium text-primary"
+          >
             <LayoutDashboard className="size-4" />
             Visão geral
-          </span>
+          </Link>
         </nav>
       </aside>
 
-      {/* Main column */}
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3.5">
           <div className="flex items-center gap-3 md:hidden">
@@ -38,9 +50,11 @@ export default async function DashboardLayout({
           </div>
           <div className="ml-auto flex items-center gap-4">
             <div className="text-right">
-              <div className="text-sm font-semibold text-foreground">{name}</div>
+              <div className="text-sm font-semibold text-foreground">
+                {user.name}
+              </div>
               <div className="text-xs text-muted-foreground">
-                {roleLabel} · {email}
+                {roleLabel} · {user.email}
               </div>
             </div>
             <form action={signOut}>

@@ -42,11 +42,11 @@ describe("roles", () => {
     expect(ROLE_LABELS.admin).toBe("Administrador");
   });
 
-  it("routes each role to its home area", () => {
-    expect(homePathForRole("coach")).toBe("/dashboard");
-    expect(homePathForRole("aluno")).toBe("/dashboard/aluno");
-    expect(homePathForRole("admin")).toBe("/dashboard/admin");
-    // Unknown / missing role falls back to the coach dashboard.
+  it("routes each role to its own siloed area", () => {
+    expect(homePathForRole("coach")).toBe("/coach");
+    expect(homePathForRole("aluno")).toBe("/student");
+    expect(homePathForRole("admin")).toBe("/admin");
+    // Unknown / missing role falls back to the neutral dispatcher.
     expect(homePathForRole(undefined)).toBe("/dashboard");
     expect(homePathForRole(null)).toBe("/dashboard");
   });

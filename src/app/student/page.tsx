@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Meu treino — Progresso IO",
 };
 
-export default async function AlunoDashboardPage() {
-  const session = await requireRole(["aluno", "admin"]);
+export default async function StudentDashboardPage() {
+  const session = await requireRole(["aluno"]);
   const firstName = session.user.name.split(" ")[0];
 
   return (

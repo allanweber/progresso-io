@@ -27,9 +27,15 @@ export function isCoach(role: string | null | undefined): boolean {
   return role === "coach";
 }
 
-/** Landing route for a user based on their role after signing in. */
+/**
+ * The single area a role is allowed into. Roles are fully siloed: each maps to
+ * its own route subtree and no role may enter another's. Unknown roles fall
+ * back to the neutral `/dashboard` dispatcher, which re-routes or bounces to
+ * login.
+ */
 export function homePathForRole(role: string | null | undefined): string {
-  if (isAdmin(role)) return "/dashboard/admin";
-  if (role === "aluno") return "/dashboard/aluno";
+  if (role === "coach") return "/coach";
+  if (role === "aluno") return "/student";
+  if (isAdmin(role)) return "/admin";
   return "/dashboard";
 }
