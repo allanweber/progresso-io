@@ -20,6 +20,17 @@ function isControlFlow(error: unknown): boolean {
 
 type RouteHandler<Ctx> = (request: Request, ctx: Ctx) => Promise<Response> | Response;
 
+type RouteOptions = {
+  /**
+   * Silence the routine `request.start`/`request.finish` lines for a
+   * high-frequency probe (e.g. the healthcheck an orchestrator hits every few
+   * seconds), which would otherwise bury real events. Nothing abnormal is lost:
+   * a thrown error is still logged at `error`, and any 4xx/5xx response is
+   * bumped to `warn`, so a healthy 200 is the only thing that stays quiet.
+   */
+  quiet?: boolean;
+};
+
 /**
  * Wraps a route handler: opens a request context (request id from the incoming
  * `x-request-id` or a fresh one), logs start/finish/error with timing, echoes
@@ -31,6 +42,7 @@ type RouteHandler<Ctx> = (request: Request, ctx: Ctx) => Promise<Response> | Res
 export function withRoute<Ctx = unknown>(
   name: string,
   handler: RouteHandler<Ctx>,
+  options: RouteOptions = {},
 ): RouteHandler<Ctx> {
   return async (request, ctx) => {
     const requestId = request.headers.get("x-request-id") ?? newRequestId();
@@ -43,10 +55,14 @@ export function withRoute<Ctx = unknown>(
         logger.debug("request.start");
         try {
           const res = await handler(request, ctx);
-          logger.info("request.finish", {
-            status: res.status,
-            durationMs: Math.round(performance.now() - start),
-          });
+          const durationMs = Math.round(performance.now() - start);
+          // A quiet route only speaks up when the response is not a success;
+          // otherwise the routine finish line is dropped to keep probes silent.
+          if (!options.quiet) {
+            logger.info("request.finish", { status: res.status, durationMs });
+          } else if (res.status >= 400) {
+            logger.warn("request.finish", { status: res.status, durationMs });
+          }
           res.headers.set("x-request-id", requestId);
           return res;
         } catch (error) {

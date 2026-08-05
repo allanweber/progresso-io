@@ -62,6 +62,12 @@ raw codes are printed is the **dev-only** e-mail fallback, active solely when
   `db.latencyMs`; returns **503** when the DB is unreachable, so an orchestrator
   or uptime monitor can react.
 
+The route is wrapped with `withRoute("health", …, { quiet: true })`: a healthy
+`200` emits **no** `request.finish` line, so the every-few-seconds liveness probe
+doesn't bury real traffic. Anything abnormal still surfaces — a `4xx`/`5xx`
+response logs `request.finish` at `warn`, an uncaught throw logs `request.error`,
+and a failed deep check logs `health.db_unreachable`.
+
 ## Metrics from logs
 
 Latency, throughput and error rate all live on the `request.finish` /
