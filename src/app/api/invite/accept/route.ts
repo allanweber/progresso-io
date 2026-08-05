@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { acceptInviteSchema } from "@/lib/students";
 import { invitations, students } from "@/server/dal";
 import { apiError, readJson, validationError } from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 
 /**
  * Public invite endpoints (no session yet — the token is the credential).
@@ -21,7 +22,7 @@ import { apiError, readJson, validationError } from "@/server/api";
  *   activating an account never logs a user in).
  */
 
-export async function GET(request: Request) {
+export const GET = withRoute("invite.check", async (request) => {
   const token = new URL(request.url).searchParams.get("token");
   if (!token) return NextResponse.json({ valid: false });
 
@@ -33,9 +34,9 @@ export async function GET(request: Request) {
     email: pending.student.email,
     firstName: pending.student.firstName,
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withRoute("invite.accept", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 
@@ -87,7 +88,13 @@ export async function POST(request: Request) {
   });
   await invitations.markAccepted(db, invitation.id);
 
+  logger.info("invite.accepted", {
+    studentId: student.id,
+    clinicId: invitation.clinicId,
+    userId: newUser.id,
+  });
+
   // The account is ready and verified, but intentionally NOT signed in — the
   // accept page redirects the aluno to /login to sign in themselves.
   return NextResponse.json({ ok: true });
-}
+});

@@ -1,6 +1,7 @@
 import type { Session } from "@/lib/auth";
 import { isAdmin } from "@/lib/roles";
 import { getSession } from "@/lib/session";
+import { enrichRequestContext } from "@/server/observability";
 
 /**
  * Returns the current session only when it belongs to a platform admin
@@ -12,5 +13,9 @@ import { getSession } from "@/lib/session";
 export async function getAdminSession(): Promise<Session | null> {
   const session = await getSession();
   if (!session || !isAdmin(session.user.role)) return null;
+  enrichRequestContext({
+    userId: session.user.id,
+    role: session.user.role ?? undefined,
+  });
   return session;
 }

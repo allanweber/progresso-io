@@ -33,6 +33,9 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - DATABASE_URL=${DATABASE_URL}
+      # Observability: structured JSON logs to stdout. debug|info|warn|error
+      # (defaults to info in production). Docker/Dokploy captures the stream.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       # Optional (default to empty when unset):
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
@@ -42,6 +45,17 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     expose:
       - "3000"
+    # Container health via the app's own liveness endpoint (node has global fetch).
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     depends_on:
       migrate:
         condition: service_completed_successfully

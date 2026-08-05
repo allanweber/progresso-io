@@ -11,6 +11,7 @@ import {
   type OtpEmailType,
 } from "@/components/emails/otp-email";
 import { captureOutbox } from "@/lib/test-outbox";
+import { logger } from "@/server/observability";
 
 export type { OtpEmailType };
 
@@ -51,7 +52,13 @@ export async function sendOtpEmail({ email, otp, type }: SendOtpArgs): Promise<v
   }
 
   const { subject, html, text } = await renderOtpEmail(otp, type);
-  await resend.emails.send({ from: FROM, to: email, subject, html, text });
+  try {
+    await resend.emails.send({ from: FROM, to: email, subject, html, text });
+    logger.info("email.sent", { template: "otp", type });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "otp", type });
+    throw error;
+  }
 }
 
 export type SendOtp = typeof sendOtpEmail;
@@ -101,13 +108,19 @@ export async function sendInviteEmail({
     render(element),
     render(element, { plainText: true }),
   ]);
-  await resend.emails.send({
-    from: FROM,
-    to: email,
-    subject: INVITE_EMAIL_SUBJECT,
-    html,
-    text,
-  });
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: INVITE_EMAIL_SUBJECT,
+      html,
+      text,
+    });
+    logger.info("email.sent", { template: "invite" });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "invite" });
+    throw error;
+  }
 }
 
 export type SendInvite = typeof sendInviteEmail;
@@ -138,11 +151,17 @@ export async function sendContactEmail({
     return;
   }
 
-  await resend.emails.send({
-    from: FROM,
-    to: CONTACT_TO,
-    replyTo: email,
-    subject,
-    text,
-  });
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: CONTACT_TO,
+      replyTo: email,
+      subject,
+      text,
+    });
+    logger.info("email.sent", { template: "contact" });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "contact" });
+    throw error;
+  }
 }
