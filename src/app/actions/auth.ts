@@ -144,7 +144,7 @@ export async function signIn(
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Account confirmation (OTP) — verifies and, via autoSignIn, logs in.       */
+/*  Account confirmation (OTP) — verifies the e-mail, then sends to login.     */
 /* -------------------------------------------------------------------------- */
 
 export async function verifyAccount(
@@ -155,18 +155,15 @@ export async function verifyAccount(
   if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
   const { email, otp } = parsed.data;
 
-  let role: string | null | undefined;
   try {
-    const result = await auth.api.verifyEmailOTP({
-      body: { email, otp },
-      headers: await headers(),
-    });
-    role = result.user?.role;
+    await auth.api.verifyEmailOTP({ body: { email, otp } });
   } catch (error) {
     return authError(error);
   }
 
-  redirect(homePathForRole(role));
+  // Verifying the OTP never signs the user in (autoSignInAfterVerification is
+  // off and no cookie is forged). Send them to /login to sign in themselves.
+  redirect("/login?verified=1");
 }
 
 /* -------------------------------------------------------------------------- */

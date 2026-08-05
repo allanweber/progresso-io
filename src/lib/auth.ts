@@ -74,8 +74,10 @@ export function createAuth({
     },
 
     emailVerification: {
-      // Confirming the account (OTP) signs the user in immediately.
-      autoSignInAfterVerification: true,
+      // Confirming the account (OTP) verifies the e-mail ONLY — it never signs
+      // the user in and never establishes a session cookie. After verifying,
+      // the user is sent to /login to sign in themselves.
+      autoSignInAfterVerification: false,
     },
 
     user: {
