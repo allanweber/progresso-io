@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { authClient } from "@/lib/auth-client";
@@ -22,6 +22,7 @@ function navItems(role: string | null | undefined) {
   const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
+    items.push({ href: "/coach/library", label: "Bibliotecas", icon: BookOpen });
   }
   if (isAdmin(role)) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });
