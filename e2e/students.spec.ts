@@ -95,6 +95,36 @@ test.describe("student management", () => {
   });
 });
 
+test("activating an invite from a signed-in coach browser lands as the aluno", async ({
+  page,
+  request,
+}) => {
+  const email = uniqueEmail("selfaccept");
+  await page.goto("/coach/students/new");
+  await page.getByLabel("Nome", { exact: true }).fill("Self");
+  await page.getByLabel("Sobrenome").fill("Accept");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByRole("button", { name: "Adicionar aluno" }).click();
+  await page.waitForURL(/\/coach\/students\/[0-9a-f-]{36}$/);
+
+  await request.delete("/api/test/outbox");
+  await page.getByRole("button", { name: "Convidar" }).click();
+  await expect(page.getByText(`Convite enviado para ${email}`)).toBeVisible();
+  const { messages } = (await (await request.get("/api/test/outbox")).json()) as {
+    messages: { to: string; kind: string; url?: string }[];
+  };
+  const invite = messages.find((m) => m.to === email && m.kind === "invite");
+
+  // Accept in the SAME browser that's still signed in as the coach.
+  await page.goto(invite!.url!);
+  await page.getByLabel("Senha", { exact: true }).fill("alunosenha123");
+  await page.getByLabel("Confirmar senha").fill("alunosenha123");
+  await page.getByRole("button", { name: "Ativar acesso" }).click();
+
+  await page.waitForURL("**/student");
+  await expect(page).toHaveURL(/\/student/);
+});
+
 test.describe("mobile navigation", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
