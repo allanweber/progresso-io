@@ -169,6 +169,13 @@ function AccountStep({
         </p>
       </div>
 
+      <form action={signInWithGoogle}>
+        <GoogleButton type="submit" label="Registrar com Google" className="mb-4" />
+      </form>
+      <div className="mb-5">
+        <AuthDivider label="ou registre com e-mail" />
+      </div>
+
       <div className="mb-6 space-y-3.5">
         <FormError message={error} />
         <Field
@@ -183,7 +190,7 @@ function AccountStep({
           id="email"
           label="E-mail profissional"
           type="email"
-          placeholder="coach@seudominio.com"
+          placeholder="seu@email.com"
           autoComplete="email"
           value={account.email}
           onChange={(e) => onChange({ ...account, email: e.target.value })}
@@ -197,13 +204,6 @@ function AccountStep({
           value={account.password}
           onChange={(e) => onChange({ ...account, password: e.target.value })}
         />
-      </div>
-
-      <form action={signInWithGoogle}>
-        <GoogleButton type="submit" label="Registrar com Google" className="mb-4" />
-      </form>
-      <div className="mb-5">
-        <AuthDivider label="ou registre com e-mail" />
       </div>
 
       <Button type="button" size="lg" className="w-full" onClick={submit}>
