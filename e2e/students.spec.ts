@@ -83,8 +83,12 @@ test.describe("student management", () => {
       await alunoPage.getByLabel("Confirmar senha").fill("alunosenha123");
       await alunoPage.getByRole("button", { name: "Ativar acesso" }).click();
 
-      await alunoPage.waitForURL("**/student");
-      await expect(alunoPage).toHaveURL(/\/student/);
+      // Activation must NOT sign the aluno in — it lands on /login with a
+      // confirmation message, where they sign in themselves.
+      await alunoPage.waitForURL(/\/login\?activated=1/);
+      await expect(
+        alunoPage.getByText("Acesso ativado! Entre para continuar."),
+      ).toBeVisible();
     } finally {
       await alunoContext.close();
     }
@@ -95,7 +99,7 @@ test.describe("student management", () => {
   });
 });
 
-test("activating an invite from a signed-in coach browser lands as the aluno", async ({
+test("activating an invite never signs the aluno in (even in a coach browser)", async ({
   page,
   request,
 }) => {
@@ -121,8 +125,12 @@ test("activating an invite from a signed-in coach browser lands as the aluno", a
   await page.getByLabel("Confirmar senha").fill("alunosenha123");
   await page.getByRole("button", { name: "Ativar acesso" }).click();
 
-  await page.waitForURL("**/student");
-  await expect(page).toHaveURL(/\/student/);
+  // Activation establishes no session — it lands on /login, never on a
+  // dashboard, so it can't silently sign anyone in (coach or aluno).
+  await page.waitForURL(/\/login\?activated=1/);
+  await expect(
+    page.getByText("Acesso ativado! Entre para continuar."),
+  ).toBeVisible();
 });
 
 test.describe("mobile navigation", () => {

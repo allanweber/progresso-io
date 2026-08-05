@@ -11,9 +11,14 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string; error?: string; verified?: string }>;
+  searchParams: Promise<{
+    reset?: string;
+    error?: string;
+    verified?: string;
+    activated?: string;
+  }>;
 }) {
-  const { reset, error, verified } = await searchParams;
+  const { reset, error, verified, activated } = await searchParams;
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -22,6 +27,7 @@ export default async function LoginPage({
         <LoginForm
           justReset={reset === "1"}
           justVerified={verified === "1"}
+          justActivated={activated === "1"}
           oauthError={error === "google"}
         />
       </div>

@@ -10,7 +10,6 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { ApiError, apiFetch } from "@/lib/api-client";
-import { authClient } from "@/lib/auth-client";
 import { fieldError } from "@/lib/form";
 import { z } from "@/lib/validation";
 
@@ -40,26 +39,17 @@ function AcceptInner() {
   });
 
   const accept = useMutation({
-    mutationFn: async (password: string) => {
-      // 1) Provision the aluno account (no session established server-side).
-      const { email } = await apiFetch<{ ok: boolean; email: string }>(
-        "/api/invite/accept",
-        { method: "POST", body: JSON.stringify({ token, password }) },
-      );
-      // 2) Sign in from the browser via Better Auth's standard flow, so the
-      //    session cookie is set correctly (HTTPS attributes) and replaces any
-      //    session already present (e.g. a coach testing the link).
-      const { error } = await authClient.signIn.email({ email, password });
-      if (error) {
-        throw new ApiError(
-          "Sua conta foi ativada. Faça login para continuar.",
-          error.status ?? 500,
-        );
-      }
-    },
+    // Provision the aluno account only — no session is ever established.
+    mutationFn: (password: string) =>
+      apiFetch<{ ok: boolean }>("/api/invite/accept", {
+        method: "POST",
+        body: JSON.stringify({ token, password }),
+      }),
     onSuccess: () => {
-      // Hard navigation so the server renders with the fresh aluno session.
-      window.location.assign("/student");
+      // Activating the account never signs the aluno in (no session, no forged
+      // cookie) — send them to /login to sign in themselves, mirroring the
+      // e-mail OTP flow.
+      window.location.assign("/login?activated=1");
     },
   });
 
