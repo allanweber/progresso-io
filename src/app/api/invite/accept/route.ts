@@ -15,7 +15,12 @@ import { apiError, readJson, validationError } from "@/server/api";
  *                  accept page can greet the student or show an expired state.
  * POST { token, password } → activates the aluno login: creates the user with a
  *   password, moves them into the inviting clinic as an `aluno`, links the
- *   student row, marks the invite accepted, and signs them in.
+ *   student row and marks the invite accepted. It does NOT establish the
+ *   session — the browser signs in right after via Better Auth's standard
+ *   client flow, so the session cookie is set with the correct attributes over
+ *   HTTPS and cleanly replaces any session already in the browser (e.g. a coach
+ *   testing the link). Forging/forwarding the cookie here was unreliable over
+ *   HTTPS and could leave the previous session in place.
  */
 
 export async function GET(request: Request) {
@@ -84,14 +89,7 @@ export async function POST(request: Request) {
   });
   await invitations.markAccepted(db, invitation.id);
 
-  // Sign them in and forward the session cookies onto our JSON response.
-  const signInRes = await auth.api.signInEmail({
-    body: { email: student.email, password },
-    asResponse: true,
-  });
-  const out = NextResponse.json({ ok: true, redirect: "/student" });
-  for (const cookie of signInRes.headers.getSetCookie()) {
-    out.headers.append("set-cookie", cookie);
-  }
-  return out;
+  // The account is ready and verified; the browser signs in next (see the
+  // accept page) so the session cookie is set the standard way.
+  return NextResponse.json({ ok: true, email: student.email });
 }

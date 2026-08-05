@@ -30,8 +30,14 @@ const COACH_STORAGE = "e2e/.auth/coach.json";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  // The suite runs against `next dev`. globalSetup pre-compiles routes so tests
+  // don't race a cold Turbopack compile; the raised timeout covers the invite
+  // flow's several navigations, and one retry absorbs any residual cold-start
+  // abort.
+  globalSetup: "./e2e/global-setup.ts",
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: 1,
   reporter: process.env.CI ? "list" : [["list"]],
   use: {
     baseURL,

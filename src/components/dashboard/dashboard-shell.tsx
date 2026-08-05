@@ -8,7 +8,7 @@ import { LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { authClient } from "@/lib/auth-client";
-import { homePathForRole, ROLE_LABELS, type Role } from "@/lib/roles";
+import { homePathForRole, isAdmin, ROLE_LABELS, type Role } from "@/lib/roles";
 
 type ShellUser = {
   name: string;
@@ -22,6 +22,9 @@ function navItems(role: string | null | undefined) {
   const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
+  }
+  if (isAdmin(role)) {
+    items.push({ href: "/admin/students", label: "Alunos", icon: Users });
   }
   return items;
 }

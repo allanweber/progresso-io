@@ -5,6 +5,7 @@
  *   import { students } from "@/server/dal";
  *   const list = await students.listStudents(ctx);
  */
+export * as admin from "./admin";
 export * as clinics from "./clinics";
 export * as invitations from "./invitations";
 export * as plans from "./plans";
