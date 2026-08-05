@@ -67,8 +67,11 @@ export function InviteAcceptForm({ token }: { token: string }) {
     },
   });
 
-  const invalid =
-    token.length === 0 || check.isError || (check.data && !check.data.valid);
+  // A genuinely bad invite (missing/unknown/expired token) vs. a failure to
+  // reach the server are different situations: the first is terminal, the
+  // second is worth retrying.
+  const invalidInvite =
+    token.length === 0 || (check.data && !check.data.valid);
 
   return (
     <div className="w-full max-w-[400px]">
@@ -80,7 +83,25 @@ export function InviteAcceptForm({ token }: { token: string }) {
         <p className="text-center text-sm text-muted-foreground">
           Verificando convite…
         </p>
-      ) : invalid ? (
+      ) : check.isError ? (
+        <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <h1 className="font-heading text-xl font-bold text-foreground">
+            Não foi possível verificar o convite
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Verifique sua conexão e tente novamente.
+          </p>
+          <Button
+            type="button"
+            size="lg"
+            className="mt-5 w-full"
+            onClick={() => check.refetch()}
+            disabled={check.isFetching}
+          >
+            {check.isFetching ? "Verificando…" : "Tentar novamente"}
+          </Button>
+        </div>
+      ) : invalidInvite ? (
         <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           <h1 className="font-heading text-xl font-bold text-foreground">
             Convite inválido ou expirado
