@@ -8,6 +8,15 @@ import {
   newRequestId,
   runWithRequestContext,
 } from "@/server/observability/context";
+import { withRoute } from "@/server/observability/route";
+
+function req(): Request {
+  return new Request("http://localhost/api/health");
+}
+
+function finishLines(): Record<string, unknown>[] {
+  return captured.map((c) => c.record).filter((r) => r.msg === "request.finish");
+}
 
 /**
  * The logger writes one JSON line per event via `console`. These tests capture
@@ -133,5 +142,48 @@ describe("request context", () => {
       }),
     ]);
     expect(seen.sort()).toEqual(["A", "B"]);
+  });
+});
+
+describe("withRoute", () => {
+  it("logs a finish line for a normal route", async () => {
+    const GET = withRoute("demo", async () => new Response("ok"));
+    await GET(req(), undefined);
+    expect(finishLines()).toHaveLength(1);
+    expect(finishLines()[0].level).toBe("info");
+  });
+
+  it("stays silent on a quiet route's successful response", async () => {
+    const GET = withRoute("health", async () => new Response("ok"), {
+      quiet: true,
+    });
+    await GET(req(), undefined);
+    expect(finishLines()).toHaveLength(0);
+  });
+
+  it("still warns when a quiet route returns an error status", async () => {
+    const GET = withRoute(
+      "health",
+      async () => new Response("nope", { status: 503 }),
+      { quiet: true },
+    );
+    await GET(req(), undefined);
+    const lines = finishLines();
+    expect(lines).toHaveLength(1);
+    expect(lines[0].level).toBe("warn");
+    expect(lines[0].status).toBe(503);
+  });
+
+  it("logs an error and returns 500 when a quiet route throws", async () => {
+    const GET = withRoute(
+      "health",
+      async () => {
+        throw new Error("boom");
+      },
+      { quiet: true },
+    );
+    const res = await GET(req(), undefined);
+    expect(res.status).toBe(500);
+    expect(captured.some((c) => c.record.msg === "request.error")).toBe(true);
   });
 });
