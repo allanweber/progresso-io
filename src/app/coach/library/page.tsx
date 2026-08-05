@@ -252,7 +252,7 @@ export default function LibraryPage() {
 
       {/* Search + filters */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+        <div className="relative w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
           <input
             type="search"
@@ -265,7 +265,7 @@ export default function LibraryPage() {
         <select
           value={group}
           onChange={(e) => setGroup(e.target.value)}
-          className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary"
+          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
           <option value="">Todos os grupos</option>
           {(groups ?? []).map((g) => (
@@ -277,7 +277,7 @@ export default function LibraryPage() {
         <select
           value={type}
           onChange={(e) => setType(e.target.value as FoodType | "")}
-          className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary"
+          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
           <option value="">Ingredientes e preparações</option>
           <option value="ingrediente">Ingredientes</option>
@@ -351,9 +351,21 @@ export default function LibraryPage() {
             ))}
           </ul>
 
-          {/* Desktop: the full TanStack table. */}
-          <div className="mt-3 hidden overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
-            <table className="w-full text-sm">
+          {/* Desktop: the full TanStack table. table-fixed + a colgroup keep
+              the numeric columns compact and let the description truncate, so
+              the eight columns fit the container instead of overflowing. */}
+          <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col />
+                <col className="w-36" />
+                <col className="w-28" />
+                <col className="w-16" />
+                <col className="w-16" />
+                <col className="w-16" />
+                <col className="w-16" />
+                <col className="w-20" />
+              </colgroup>
               <thead>
                 {table.getHeaderGroups().map((hg) => (
                   <tr key={hg.id} className="border-b border-border">

@@ -133,7 +133,10 @@ export function DashboardShell({
         </div>
       )}
 
-      <div className="flex flex-1 flex-col">
+      {/* min-w-0 lets this column shrink below its content's intrinsic width,
+          so a wide child (e.g. the food table) scrolls inside its own
+          container instead of forcing horizontal page overflow on mobile. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3.5">
           <div className="flex items-center gap-2.5 md:hidden">
             <button
