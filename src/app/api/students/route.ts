@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { isAtStudentLimit, studentFormSchema } from "@/lib/students";
 import { plans, students } from "@/server/dal";
 import { apiError, readJson, unauthorized, validationError } from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -11,14 +12,14 @@ import { getTenantContext } from "@/server/tenant";
  * zod; the plan cap and duplicate-email rules are enforced here.
  */
 
-export async function GET() {
+export const GET = withRoute("students.list", async () => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const roster = await students.listStudents(ctx);
   return NextResponse.json({ students: roster });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withRoute("students.create", async (request) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     plans.getStudentLimit(ctx),
   ]);
   if (isAtStudentLimit(count, limit)) {
+    logger.info("student.create_blocked", { reason: "plan_limit", count, limit });
     return apiError(
       `Seu plano permite até ${limit} alunos ativos. Faça upgrade para adicionar mais.`,
       403,
@@ -50,5 +52,6 @@ export async function POST(request: Request) {
     // Assign the student to the coach creating them.
     coachId: ctx.role === "coach" ? ctx.userId : null,
   });
+  logger.info("student.created", { studentId: created.id });
   return NextResponse.json({ student: created }, { status: 201 });
-}
+});

@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { logger } from "@/server/observability";
 import * as schema from "./schema";
 
 /**
@@ -35,7 +36,7 @@ if (process.env.NODE_ENV !== "production" && client) {
 if (!client) {
   // Fail loudly only when the DB is actually used, not at import time,
   // so the marketing pages can build/run without a database.
-  console.warn("DATABASE_URL is not set — database features are disabled.");
+  logger.warn("db.disabled", { reason: "DATABASE_URL not set" });
 }
 
 export const db = client

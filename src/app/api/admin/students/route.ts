@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { adminStudentFilterSchema } from "@/lib/admin";
 import { admin } from "@/server/dal";
 import { forbidden, validationError } from "@/server/api";
+import { withRoute } from "@/server/observability";
 import { getAdminSession } from "@/server/admin";
 
 /**
@@ -11,7 +12,7 @@ import { getAdminSession } from "@/server/admin";
  * e-mail. Admin-only (gated by {@link getAdminSession}); filters validated with
  * zod; the query is cross-tenant by design and runs through the admin DAL.
  */
-export async function GET(request: Request) {
+export const GET = withRoute("admin.students.list", async (request) => {
   const session = await getAdminSession();
   if (!session) return forbidden();
 
@@ -24,4 +25,4 @@ export async function GET(request: Request) {
 
   const students = await admin.listAllStudents(db, parsed.data);
   return NextResponse.json({ students });
-}
+});

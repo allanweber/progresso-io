@@ -4,6 +4,7 @@ import { sendInviteEmail } from "@/lib/email";
 import { clinics, invitations, students } from "@/server/dal";
 import { INVITE_TTL_DAYS } from "@/server/dal/invitations";
 import { apiError, isUuid, notFound, unauthorized } from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -14,7 +15,7 @@ import { getTenantContext } from "@/server/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(request: Request, { params }: Params) {
+export const POST = withRoute<Params>("invite.send", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
@@ -45,5 +46,6 @@ export async function POST(request: Request, { params }: Params) {
     expiresInDays: INVITE_TTL_DAYS,
   });
 
+  logger.info("invite.sent", { studentId: id, expiresInDays: INVITE_TTL_DAYS });
   return NextResponse.json({ ok: true });
-}
+});

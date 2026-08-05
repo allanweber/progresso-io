@@ -10,6 +10,7 @@ import {
   unauthorized,
   validationError,
 } from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -19,7 +20,7 @@ import { getTenantContext } from "@/server/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
+export const GET = withRoute<Params>("students.get", async (_request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
@@ -28,9 +29,9 @@ export async function GET(_request: Request, { params }: Params) {
   const student = await students.getStudentRoster(ctx, id);
   if (!student) return notFound("Aluno não encontrado.");
   return NextResponse.json({ student });
-}
+});
 
-export async function PUT(request: Request, { params }: Params) {
+export const PUT = withRoute<Params>("students.update", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
@@ -51,10 +52,11 @@ export async function PUT(request: Request, { params }: Params) {
 
   const updated = await students.updateStudent(ctx, id, data);
   if (!updated) return notFound("Aluno não encontrado.");
+  logger.info("student.updated", { studentId: id });
   return NextResponse.json({ student: updated });
-}
+});
 
-export async function PATCH(request: Request, { params }: Params) {
+export const PATCH = withRoute<Params>("students.setStatus", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
@@ -68,10 +70,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const updated = await students.setStudentStatus(ctx, id, parsed.data.status);
   if (!updated) return notFound("Aluno não encontrado.");
+  logger.info("student.status_changed", { studentId: id, status: parsed.data.status });
   return NextResponse.json({ student: updated });
-}
+});
 
-export async function DELETE(_request: Request, { params }: Params) {
+export const DELETE = withRoute<Params>("students.archive", async (_request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
@@ -80,5 +83,6 @@ export async function DELETE(_request: Request, { params }: Params) {
   // Soft-remove: the row and its history are kept, just archived.
   const archived = await students.archiveStudent(ctx, id);
   if (!archived) return notFound("Aluno não encontrado.");
+  logger.info("student.archived", { studentId: id });
   return NextResponse.json({ student: archived });
-}
+});

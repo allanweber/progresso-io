@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db, type DB } from "@/db";
 import type { Role } from "@/db/schema";
 import { getSession, requireSession } from "@/lib/session";
+import { enrichRequestContext } from "@/server/observability";
 
 /**
  * Everything the Data Access Layer needs to run a tenant-scoped query. The
@@ -25,12 +26,14 @@ export async function requireClinic(): Promise<TenantContext> {
   const session = await requireSession();
   const clinicId = session.user.clinicId;
   if (!clinicId) redirect("/login");
-  return {
+  const ctx = {
     db,
     clinicId,
     userId: session.user.id,
     role: session.user.role as Role,
   };
+  enrichRequestContext({ userId: ctx.userId, clinicId, role: ctx.role });
+  return ctx;
 }
 
 /**
@@ -42,10 +45,12 @@ export async function getTenantContext(): Promise<TenantContext | null> {
   const session = await getSession();
   const clinicId = session?.user.clinicId;
   if (!session || !clinicId) return null;
-  return {
+  const ctx = {
     db,
     clinicId,
     userId: session.user.id,
     role: session.user.role as Role,
   };
+  enrichRequestContext({ userId: ctx.userId, clinicId, role: ctx.role });
+  return ctx;
 }

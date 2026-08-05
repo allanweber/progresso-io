@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { admin } from "@/server/dal";
 import { forbidden, isUuid, notFound } from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 import { getAdminSession } from "@/server/admin";
 
 /**
@@ -13,15 +14,23 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export async function DELETE(_request: Request, { params }: Params) {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
+export const DELETE = withRoute<Params>(
+  "admin.students.hardDelete",
+  async (_request, { params }) => {
+    const session = await getAdminSession();
+    if (!session) return forbidden();
 
-  const { id } = await params;
-  if (!isUuid(id)) return notFound();
+    const { id } = await params;
+    if (!isUuid(id)) return notFound();
 
-  const result = await admin.hardDeleteStudent(db, id);
-  if (!result.deleted) return notFound("Aluno não encontrado.");
+    const result = await admin.hardDeleteStudent(db, id);
+    if (!result.deleted) return notFound("Aluno não encontrado.");
 
-  return NextResponse.json({ ok: true, deletedUser: result.deletedUser });
-}
+    // Irreversible + cross-tenant: worth an explicit audit line at warn level.
+    logger.warn("student.hard_deleted", {
+      studentId: id,
+      deletedUser: result.deletedUser,
+    });
+    return NextResponse.json({ ok: true, deletedUser: result.deletedUser });
+  },
+);
