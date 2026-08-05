@@ -19,5 +19,11 @@ export default defineConfig({
     include: ["tests/**/*.test.{ts,tsx}"],
     // Keep the pglite integration test isolated from jsdom component tests.
     isolate: true,
+    // Run test files one at a time. Several integration files each spin up an
+    // in-memory PGlite (WASM) database; running them concurrently occasionally
+    // exhausts WASM memory and crashes a worker at `new PGlite()`. Serializing
+    // files removes that contention deterministically — the suite is small, so
+    // the wall-clock cost is negligible.
+    fileParallelism: false,
   },
 });

@@ -15,7 +15,18 @@ const connectionString = process.env.DATABASE_URL;
 
 const client =
   globalForDb.client ??
-  (connectionString ? postgres(connectionString) : undefined);
+  (connectionString
+    ? postgres(connectionString, {
+        // Resilience for a long-lived pool. Without these, a query that lands
+        // on a dead socket — e.g. after the database is restarted or recreated
+        // under a running server — hangs indefinitely instead of failing. With
+        // them the pool self-heals: connections fail fast, idle ones are
+        // dropped, and every connection is recycled periodically.
+        connect_timeout: 10, // seconds to establish a connection, then error
+        idle_timeout: 20, // close a connection left idle this long
+        max_lifetime: 60 * 30, // recycle any connection after 30 minutes
+      })
+    : undefined);
 
 if (process.env.NODE_ENV !== "production" && client) {
   globalForDb.client = client;
