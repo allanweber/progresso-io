@@ -176,60 +176,129 @@ export default function StudentsPage() {
         ))}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
-        {isLoading ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">
-            Carregando alunos…
+      {isLoading ? (
+        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          Carregando alunos…
+        </div>
+      ) : isError ? (
+        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          {(error as Error).message}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          {students.length === 0
+            ? "Nenhum aluno ainda. Adicione o primeiro para começar."
+            : "Nenhum aluno neste filtro."}
+        </div>
+      ) : (
+        <>
+          {/* Mobile: a card per aluno — the table's five columns don't fit a
+              phone, so small screens get a stacked, tappable card list. */}
+          <ul className="mt-4 space-y-3 md:hidden">
+            {filtered.map((s) => {
+              const state = deriveStudentState(s);
+              const style = STUDENT_STATE_STYLES[state.key];
+              return (
+                <li key={s.id}>
+                  <Link
+                    href={`/coach/students/${s.id}`}
+                    className="block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+                        style={{ background: avatarColor(s.id) }}
+                      >
+                        {studentInitials(s.firstName, s.lastName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-semibold text-foreground">
+                            {s.firstName} {s.lastName}
+                          </span>
+                          <span
+                            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
+                            style={{ color: style.color, background: style.bg }}
+                          >
+                            {state.label}
+                          </span>
+                        </div>
+                        <div className="truncate text-xs text-[#94A3B8]">
+                          {s.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    <dl className="mt-3 flex items-start justify-between gap-3 border-t border-[#F1F5F9] pt-3 text-[13px]">
+                      <div className="min-w-0">
+                        <dt className="text-[11px] text-[#94A3B8]">Objetivo</dt>
+                        <dd className="truncate text-[#475569]">
+                          {s.goal ?? "—"}
+                        </dd>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <dt className="text-[11px] text-[#94A3B8]">Acesso</dt>
+                        <dd className="text-[#475569]">
+                          {ACCESS_LABELS[deriveAccess(s)]}
+                        </dd>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <dt className="text-[11px] text-[#94A3B8]">Atividade</dt>
+                        <dd className="text-[#94A3B8]">
+                          {dateFmt.format(new Date(s.updatedAt))}
+                        </dd>
+                      </div>
+                    </dl>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop: the full TanStack table. */}
+          <div className="mt-4 hidden overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+            <table className="w-full text-sm">
+              <thead>
+                {table.getHeaderGroups().map((hg) => (
+                  <tr key={hg.id} className="border-b border-border">
+                    {hg.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="px-4 py-3 text-left text-xs font-semibold text-[#94A3B8]"
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() =>
+                      router.push(`/coach/students/${row.original.id}`)
+                    }
+                    className="cursor-pointer border-b border-[#F1F5F9] last:border-0 transition-colors hover:bg-surface-light"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3 align-middle">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : isError ? (
-          <div className="p-10 text-center text-sm text-destructive">
-            {(error as Error).message}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">
-            {students.length === 0
-              ? "Nenhum aluno ainda. Adicione o primeiro para começar."
-              : "Nenhum aluno neste filtro."}
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-border">
-                  {hg.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left text-xs font-semibold text-[#94A3B8]"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  onClick={() =>
-                    router.push(`/coach/students/${row.original.id}`)
-                  }
-                  className="cursor-pointer border-b border-[#F1F5F9] last:border-0 transition-colors hover:bg-surface-light"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 align-middle">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

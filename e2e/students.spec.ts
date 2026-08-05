@@ -14,7 +14,15 @@ test.describe("student management", () => {
   test("shows the roster with the seeded student", async ({ page }) => {
     await page.goto("/coach/students");
     await expect(page.getByRole("heading", { name: "Alunos" })).toBeVisible();
-    await expect(page.getByText("Ana Aluna")).toBeVisible();
+    // Desktop (default viewport): the aluno appears in the table. The name also
+    // exists in the mobile card list (hidden here), so scope to the table.
+    await expect(page.getByRole("table").getByText("Ana Aluna")).toBeVisible();
+
+    // Mobile: the table is replaced by a tappable card per aluno.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+      page.getByRole("listitem").getByText("Ana Aluna"),
+    ).toBeVisible();
   });
 
   test("blocks an invalid create and stays on the form", async ({ page }) => {
