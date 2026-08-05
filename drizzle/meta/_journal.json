@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1785850281314,
-      "tag": "0000_salty_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1785882317074,
-      "tag": "0001_students_invite",
+      "when": 1785919946335,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

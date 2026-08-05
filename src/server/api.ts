@@ -18,6 +18,13 @@ export function unauthorized(): NextResponse {
   return apiError("Não autenticado.", 401);
 }
 
+/** 403 for an authenticated user who lacks the required role (e.g. non-admin). */
+export function forbidden(
+  message = "Acesso restrito ao administrador.",
+): NextResponse {
+  return apiError(message, 403);
+}
+
 /** 404 for a resource missing in this clinic (or a hidden test route). */
 export function notFound(message = "Não encontrado."): NextResponse {
   return apiError(message, 404);
