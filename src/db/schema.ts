@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -27,6 +28,27 @@ export type Role = (typeof ROLES)[number];
  */
 export const PLANS = ["free", "solo", "clinica", "enterprise"] as const;
 export type Plan = (typeof PLANS)[number];
+
+/**
+ * Lifecycle of a student within a clinic.
+ *
+ * - `active`   — a current student (the default on creation).
+ * - `inactive` — paused/dormant, but kept for history.
+ * - `archived` — soft-removed; hidden from the default roster, never deleted so
+ *   past treinos/dietas stay intact. Deletion is never destructive here.
+ */
+export const STUDENT_STATUSES = ["active", "inactive", "archived"] as const;
+export type StudentStatus = (typeof STUDENT_STATUSES)[number];
+
+/**
+ * How the coach works with a student.
+ *
+ * - `online`    — trains through the portal (treinos/dietas in the app).
+ * - `in_person` — presencial; the coach still keeps a record and can message
+ *   them, but the student may never log in.
+ */
+export const MODALITIES = ["online", "in_person"] as const;
+export type Modality = (typeof MODALITIES)[number];
 
 /* -------------------------------------------------------------------------- */
 /*  Better Auth core tables                                                   */
@@ -128,7 +150,8 @@ export const clinic = pgTable("clinic", {
 /**
  * A student (aluno) within a clinic. Belongs to the clinic (the tenant) and is
  * optionally assigned to a specific coach. `userId` links to the aluno's own
- * login once they accept an invite; null while only provisioned.
+ * login once they accept an invite; null while only provisioned. An e-mail is
+ * always required (for communication) even when the student never logs in.
  */
 export const students = pgTable(
   "students",
@@ -142,15 +165,50 @@ export const students = pgTable(
     coachId: text("coach_id").references(() => user.id, {
       onDelete: "set null",
     }),
-    // The aluno's own login, once invited.
+    // The aluno's own login, once they accept an invite and set a password.
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
-    name: text("name").notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
     email: text("email").notNull(),
+    phone: text("phone"),
+    goal: text("goal"),
+    status: text("status").$type<StudentStatus>().default("active").notNull(),
+    modality: text("modality").$type<Modality>().default("online").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [unique().on(table.clinicId, table.email)],
 );
+
+/**
+ * Per-plan cap on the number of students a clinic may hold. Reference data
+ * (not tenant-scoped), keyed by the lowercase plan name so limits are edited in
+ * the database rather than hardcoded. `maxStudents = null` means unlimited.
+ */
+export const planLimit = pgTable("plan_limit", {
+  plan: text("plan").$type<Plan>().primaryKey(),
+  maxStudents: integer("max_students"),
+});
+
+/**
+ * A pending invite for a student to activate their aluno login. The raw token
+ * lives only in the e-mailed link; we store its SHA-256 hash. Single active
+ * invite per student is enforced in the DAL (previous ones are superseded).
+ */
+export const invitation = pgTable("invitation", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clinicId: uuid("clinic_id")
+    .notNull()
+    .references(() => clinic.id, { onDelete: "cascade" }),
+  studentId: uuid("student_id")
+    .notNull()
+    .references(() => students.id, { onDelete: "cascade" }),
+  // SHA-256 of the raw token. The raw token is never persisted.
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 /* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
@@ -187,7 +245,7 @@ export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, { fields: [account.userId], references: [user.id] }),
 }));
 
-export const studentsRelations = relations(students, ({ one }) => ({
+export const studentsRelations = relations(students, ({ one, many }) => ({
   clinic: one(clinic, {
     fields: [students.clinicId],
     references: [clinic.id],
@@ -200,6 +258,18 @@ export const studentsRelations = relations(students, ({ one }) => ({
   account: one(user, {
     fields: [students.userId],
     references: [user.id],
+  }),
+  invitations: many(invitation),
+}));
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+  clinic: one(clinic, {
+    fields: [invitation.clinicId],
+    references: [clinic.id],
+  }),
+  student: one(students, {
+    fields: [invitation.studentId],
+    references: [students.id],
   }),
 }));
 
@@ -215,3 +285,6 @@ export type Clinic = typeof clinic.$inferSelect;
 export type NewClinic = typeof clinic.$inferInsert;
 export type Student = typeof students.$inferSelect;
 export type NewStudent = typeof students.$inferInsert;
+export type PlanLimit = typeof planLimit.$inferSelect;
+export type Invitation = typeof invitation.$inferSelect;
+export type NewInvitation = typeof invitation.$inferInsert;

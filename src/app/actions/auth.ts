@@ -257,12 +257,3 @@ export async function signInWithGoogle(): Promise<void> {
 
   redirect(url ?? "/login?error=google");
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Sign out                                                                  */
-/* -------------------------------------------------------------------------- */
-
-export async function signOut(): Promise<void> {
-  await auth.api.signOut({ headers: await headers() });
-  redirect("/login");
-}

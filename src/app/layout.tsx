@@ -3,6 +3,7 @@ import { Space_Grotesk, DM_Sans } from "next/font/google";
 import "./globals.css";
 
 import { CookieConsent } from "@/components/cookie-consent";
+import { Providers } from "@/components/providers";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -33,7 +34,7 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${dmSans.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        {children}
+        <Providers>{children}</Providers>
         <CookieConsent />
       </body>
     </html>

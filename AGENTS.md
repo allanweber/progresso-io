@@ -36,3 +36,13 @@ All database access for tenant data **MUST** go through the DAL in `src/server/d
 - Get the context with `requireClinic()` from `@/server/tenant`.
 - The only exceptions are bootstrap operations that create the tenant itself (e.g. clinic creation at sign-up) and Better Auth's own tables, which Better Auth manages.
 - When you add a feature table, add a matching DAL module in the same shape — never inline tenant queries.
+
+# Frontend architecture (written in stone)
+
+These apply to every feature, this one and the next. Existing auth pages predate the rules and are left as-is; new work follows them.
+
+- **Pages are client components.** Page bodies are `"use client"`. Route protection still lives in the server-component **layout** (`requireRole` / `requireClinic`) — defense in depth — but the page itself is a client component.
+- **All page↔backend traffic goes through API route handlers + TanStack Query.** No server actions for feature data. Pages read/write via `fetch` to `/api/*` inside `useQuery`/`useMutation`. Each route handler still validates every input with **zod** and derives the tenant via `requireClinic()` + the **DAL** — the API layer sits in front of those rules, it never bypasses them.
+- **Sign-out clears all caches.** The logout control calls `queryClient.clear()` so no tenant data survives into the next account (see `dashboard-shell.tsx`).
+- **All forms use TanStack Form** (`@tanstack/react-form`).
+- **All tables use TanStack Table** (`@tanstack/react-table`).
