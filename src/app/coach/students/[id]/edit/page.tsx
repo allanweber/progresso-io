@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { StudentForm } from "@/components/students/student-form";
-import { apiFetch, type StudentRosterDto } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api-client";
+import type { StudentRosterDto } from "@/lib/students";
 
 export default function EditStudentPage() {
   const { id } = useParams<{ id: string }>();

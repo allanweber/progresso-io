@@ -3,17 +3,18 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import type { AnyFieldApi } from "@tanstack/react-form";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
-import { ApiError, apiFetch, type StudentDto } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
 import type { Modality } from "@/db/schema";
+import { fieldError } from "@/lib/form";
 import {
   MODALITY_LABELS,
   MODALITY_VALUES,
   studentFormSchema,
+  type StudentDto,
 } from "@/lib/students";
 
 /**
@@ -50,15 +51,6 @@ function toValues(student: StudentDto): StudentFormValues {
     goal: student.goal ?? "",
     modality: student.modality,
   };
-}
-
-/** First client-side (touched) error for a field, else the server's message. */
-function fieldError(field: AnyFieldApi, serverError?: string): string | undefined {
-  if (field.state.meta.isTouched && field.state.meta.errors.length > 0) {
-    const first = field.state.meta.errors[0];
-    return typeof first === "string" ? first : first?.message;
-  }
-  return serverError;
 }
 
 export function StudentForm({

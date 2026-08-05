@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { sendInviteEmail } from "@/lib/email";
-import { z } from "@/lib/validation";
 import { clinics, invitations, students } from "@/server/dal";
 import { INVITE_TTL_DAYS } from "@/server/dal/invitations";
-import { apiError, notFound, unauthorized } from "@/server/api";
+import { apiError, isUuid, notFound, unauthorized } from "@/server/api";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -13,15 +12,13 @@ import { getTenantContext } from "@/server/tenant";
  * and e-mails a fresh set-password link.
  */
 
-const idSchema = z.string().uuid();
-
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
-  if (!idSchema.safeParse(id).success) return notFound();
+  if (!isUuid(id)) return notFound();
 
   const student = await students.getStudent(ctx, id);
   if (!student) return notFound("Aluno não encontrado.");

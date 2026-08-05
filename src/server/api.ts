@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fieldErrors, type z } from "@/lib/validation";
+import { fieldErrors, z } from "@/lib/validation";
 
 /**
  * Small helpers for JSON API route handlers so responses stay consistent:
@@ -29,4 +29,26 @@ export function validationError(error: z.ZodError): NextResponse {
     { error: "Verifique os campos informados.", fieldErrors: fieldErrors(error) },
     { status: 422 },
   );
+}
+
+/**
+ * Reads a JSON body, returning either the parsed value or a ready-made 400 —
+ * so handlers stay `const body = await readJson(request); if (!body.ok) return
+ * body.response;`.
+ */
+export async function readJson(
+  request: Request,
+): Promise<{ ok: true; data: unknown } | { ok: false; response: NextResponse }> {
+  try {
+    return { ok: true, data: await request.json() };
+  } catch {
+    return { ok: false, response: apiError("Corpo da requisição inválido.", 400) };
+  }
+}
+
+const uuidSchema = z.string().uuid();
+
+/** Whether a route param is a well-formed UUID (guards DB lookups). */
+export function isUuid(value: string): boolean {
+  return uuidSchema.safeParse(value).success;
 }

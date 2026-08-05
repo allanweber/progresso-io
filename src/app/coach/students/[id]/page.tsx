@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Mail, Pencil, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { apiFetch, type StudentRosterDto } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api-client";
 import {
   ACCESS_LABELS,
   avatarColor,
@@ -14,15 +14,9 @@ import {
   deriveStudentState,
   MODALITY_LABELS,
   studentInitials,
-  type StudentStateKey,
+  STUDENT_STATE_STYLES,
+  type StudentRosterDto,
 } from "@/lib/students";
-
-const STATE_STYLES: Record<StudentStateKey, { color: string; bg: string }> = {
-  active: { color: "#047857", bg: "#DCFCE7" },
-  inactive: { color: "#B45309", bg: "#FEF3C7" },
-  invited: { color: "#1D4ED8", bg: "#DBEAFE" },
-  archived: { color: "#64748B", bg: "#F1F5F9" },
-};
 
 export default function StudentProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -85,7 +79,7 @@ export default function StudentProfilePage() {
   }
 
   const state = deriveStudentState(student);
-  const style = STATE_STYLES[state.key];
+  const style = STUDENT_STATE_STYLES[state.key];
   const details = [
     { label: "E-mail", value: student.email },
     { label: "Telefone", value: student.phone ?? "—" },

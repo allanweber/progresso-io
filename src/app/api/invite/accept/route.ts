@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 import { auth } from "@/lib/auth";
 import { acceptInviteSchema } from "@/lib/students";
 import { invitations, students } from "@/server/dal";
-import { apiError, validationError } from "@/server/api";
+import { apiError, readJson, validationError } from "@/server/api";
 
 /**
  * Public invite endpoints (no session yet — the token is the credential).
@@ -33,14 +33,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError("Corpo da requisição inválido.", 400);
-  }
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
 
-  const parsed = acceptInviteSchema.safeParse(body);
+  const parsed = acceptInviteSchema.safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
   const { token, password } = parsed.data;
 

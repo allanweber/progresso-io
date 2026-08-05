@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { AnyFieldApi } from "@tanstack/react-form";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { fieldError } from "@/lib/form";
 import { z } from "@/lib/validation";
 
 type InviteCheck = { valid: boolean; email?: string; firstName?: string };
@@ -24,14 +24,6 @@ const passwordSchema = z
     path: ["confirm"],
     message: "As senhas não coincidem.",
   });
-
-function fieldError(field: AnyFieldApi): string | undefined {
-  if (field.state.meta.isTouched && field.state.meta.errors.length > 0) {
-    const first = field.state.meta.errors[0];
-    return typeof first === "string" ? first : first?.message;
-  }
-  return undefined;
-}
 
 function AcceptInner() {
   const token = useSearchParams().get("token") ?? "";

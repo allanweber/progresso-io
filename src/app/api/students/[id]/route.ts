@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { studentFormSchema, studentStatusSchema } from "@/lib/students";
-import { z } from "@/lib/validation";
 import { students } from "@/server/dal";
-import { apiError, notFound, unauthorized, validationError } from "@/server/api";
+import {
+  apiError,
+  isUuid,
+  notFound,
+  readJson,
+  unauthorized,
+  validationError,
+} from "@/server/api";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -11,15 +17,13 @@ import { getTenantContext } from "@/server/tenant";
  * lifecycle change (PATCH status) and soft-archive (DELETE). All tenant-scoped.
  */
 
-const idSchema = z.string().uuid();
-
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
-  if (!idSchema.safeParse(id).success) return notFound();
+  if (!isUuid(id)) return notFound();
 
   const student = await students.getStudentRoster(ctx, id);
   if (!student) return notFound("Aluno não encontrado.");
@@ -30,16 +34,12 @@ export async function PUT(request: Request, { params }: Params) {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
-  if (!idSchema.safeParse(id).success) return notFound();
+  if (!isUuid(id)) return notFound();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError("Corpo da requisição inválido.", 400);
-  }
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
 
-  const parsed = studentFormSchema.safeParse(body);
+  const parsed = studentFormSchema.safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 
@@ -58,16 +58,12 @@ export async function PATCH(request: Request, { params }: Params) {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
-  if (!idSchema.safeParse(id).success) return notFound();
+  if (!isUuid(id)) return notFound();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError("Corpo da requisição inválido.", 400);
-  }
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
 
-  const parsed = studentStatusSchema.safeParse(body);
+  const parsed = studentStatusSchema.safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
 
   const updated = await students.setStudentStatus(ctx, id, parsed.data.status);
@@ -79,7 +75,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
   const { id } = await params;
-  if (!idSchema.safeParse(id).success) return notFound();
+  if (!isUuid(id)) return notFound();
 
   // Soft-remove: the row and its history are kept, just archived.
   const archived = await students.archiveStudent(ctx, id);

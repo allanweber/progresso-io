@@ -32,6 +32,17 @@ export const ACCESS_LABELS = {
 /** The state shown in the roster's "Estado" column and the profile badge. */
 export type StudentStateKey = "active" | "inactive" | "invited" | "archived";
 
+/** Badge colours per state, shared by the roster and the profile. */
+export const STUDENT_STATE_STYLES: Record<
+  StudentStateKey,
+  { color: string; bg: string }
+> = {
+  active: { color: "#047857", bg: "#DCFCE7" },
+  inactive: { color: "#B45309", bg: "#FEF3C7" },
+  invited: { color: "#1D4ED8", bg: "#DBEAFE" },
+  archived: { color: "#64748B", bg: "#F1F5F9" },
+};
+
 type StudentStateInput = {
   status: StudentStatus;
   hasAccount: boolean;
@@ -92,6 +103,29 @@ export function avatarColor(seed: string): string {
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
+
+/** A student as serialized by the API (timestamps are ISO strings over JSON). */
+export type StudentDto = {
+  id: string;
+  clinicId: string;
+  coachId: string | null;
+  userId: string | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  goal: string | null;
+  status: StudentStatus;
+  modality: Modality;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** A student plus the roster's derived access flags. */
+export type StudentRosterDto = StudentDto & {
+  hasAccount: boolean;
+  pendingInvite: boolean;
+};
 
 /**
  * The e-mail rule: always required (for communication) even when the student

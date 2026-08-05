@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isAtStudentLimit, studentFormSchema } from "@/lib/students";
 import { plans, students } from "@/server/dal";
-import { apiError, unauthorized, validationError } from "@/server/api";
+import { apiError, readJson, unauthorized, validationError } from "@/server/api";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -22,14 +22,10 @@ export async function POST(request: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError("Corpo da requisição inválido.", 400);
-  }
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
 
-  const parsed = studentFormSchema.safeParse(body);
+  const parsed = studentFormSchema.safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 

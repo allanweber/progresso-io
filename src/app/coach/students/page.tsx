@@ -13,22 +13,17 @@ import {
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { apiFetch, type StudentRosterDto } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api-client";
 import {
   ACCESS_LABELS,
   avatarColor,
   deriveAccess,
   deriveStudentState,
   studentInitials,
+  STUDENT_STATE_STYLES,
+  type StudentRosterDto,
   type StudentStateKey,
 } from "@/lib/students";
-
-const STATE_STYLES: Record<StudentStateKey, { color: string; bg: string }> = {
-  active: { color: "#047857", bg: "#DCFCE7" },
-  inactive: { color: "#B45309", bg: "#FEF3C7" },
-  invited: { color: "#1D4ED8", bg: "#DBEAFE" },
-  archived: { color: "#64748B", bg: "#F1F5F9" },
-};
 
 const FILTERS: { key: StudentStateKey | "all"; label: string }[] = [
   { key: "all", label: "Todos" },
@@ -75,7 +70,7 @@ const columns = [
     header: "Estado",
     cell: (ctx) => {
       const state = deriveStudentState(ctx.row.original);
-      const style = STATE_STYLES[state.key];
+      const style = STUDENT_STATE_STYLES[state.key];
       return (
         <span
           className="inline-block rounded-full px-2.5 py-1 text-xs font-semibold"
