@@ -94,3 +94,22 @@ test.describe("student management", () => {
     await expect(page.getByText("Portal")).toBeVisible();
   });
 });
+
+test.describe("mobile navigation", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("opens the side nav from the header drawer", async ({ page }) => {
+    await page.goto("/coach");
+    // The desktop rail is hidden on mobile — no visible nav yet.
+    await expect(page.getByRole("link", { name: "Alunos" })).toBeHidden();
+
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+
+    const drawer = page.getByRole("dialog", { name: "Menu de navegação" });
+    const alunos = drawer.getByRole("link", { name: "Alunos" });
+    await expect(alunos).toBeVisible();
+
+    await alunos.click();
+    await expect(page).toHaveURL(/\/coach\/students/);
+  });
+});
