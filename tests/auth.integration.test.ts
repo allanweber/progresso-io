@@ -76,7 +76,7 @@ describe("sign-up + account confirmation (coach)", () => {
     ).rejects.toThrow();
   });
 
-  it("confirms the OTP, verifies the user and issues a session", async () => {
+  it("confirms the OTP and verifies the user WITHOUT issuing a session", async () => {
     const otp = latestOtp(coachEmail, "email-verification")!;
     const res = await auth.api.verifyEmailOTP({
       body: { email: coachEmail, otp },
@@ -84,15 +84,17 @@ describe("sign-up + account confirmation (coach)", () => {
     });
     expect(res.status).toBe(200);
 
+    // autoSignInAfterVerification is off: verifying must NOT set a session
+    // cookie — the user is sent to /login to sign in themselves.
     const cookie = cookieHeader(res);
-    expect(cookie).toContain("session");
+    expect(cookie).not.toContain("session");
 
-    const session = await auth.api.getSession({
-      headers: new Headers({ cookie }),
-    });
-    expect(session?.user.email).toBe(coachEmail);
-    expect(session?.user.role).toBe("coach");
-    expect(session?.user.emailVerified).toBe(true);
+    // The e-mail is now verified in the database, even though no session exists.
+    const [row] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, coachEmail));
+    expect(row.emailVerified).toBe(true);
   });
 
   it("rejects a wrong OTP", async () => {

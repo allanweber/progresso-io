@@ -12,9 +12,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 
 export function LoginForm({
   justReset,
+  justVerified,
   oauthError,
 }: {
   justReset?: boolean;
+  justVerified?: boolean;
   oauthError?: boolean;
 }) {
   const [state, formAction] = useActionState(signIn, undefined);
@@ -35,6 +37,12 @@ export function LoginForm({
           </Link>
         </p>
       </div>
+
+      {justVerified && (
+        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-[13px] font-medium text-primary">
+          Conta confirmada! Entre para continuar.
+        </div>
+      )}
 
       {justReset && (
         <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-[13px] font-medium text-primary">
