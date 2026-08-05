@@ -1,9 +1,13 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  check,
+  doublePrecision,
+  index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -49,6 +53,27 @@ export type StudentStatus = (typeof STUDENT_STATUSES)[number];
  */
 export const MODALITIES = ["online", "in_person"] as const;
 export type Modality = (typeof MODALITIES)[number];
+
+/**
+ * Whether a catalog entry is a single food/ingredient or a composite dish.
+ * Derived at seed time from the TBCA description (see the catalog transformer).
+ */
+export const FOOD_TYPES = ["ingrediente", "preparacao"] as const;
+export type FoodType = (typeof FOOD_TYPES)[number];
+
+/**
+ * Coarse grouping of a nutrient, used only to order/section the nutrient list
+ * in the food detail view.
+ */
+export const NUTRIENT_KINDS = [
+  "energy",
+  "macro",
+  "mineral",
+  "vitamin",
+  "fatty_acid",
+  "other",
+] as const;
+export type NutrientKind = (typeof NUTRIENT_KINDS)[number];
 
 /* -------------------------------------------------------------------------- */
 /*  Better Auth core tables                                                   */
@@ -211,6 +236,137 @@ export const invitation = pgTable("invitation", {
 });
 
 /* -------------------------------------------------------------------------- */
+/*  Food catalog (reference data — mostly NOT tenant-scoped, like plan_limit)  */
+/*                                                                            */
+/*  The base catalog is the Brazilian food composition table (TBCA), shared   */
+/*  by every clinic. A `food`/`food_substitution` row with `clinic_id = NULL`  */
+/*  is that shared base; a row with `clinic_id` set is a single clinic's own   */
+/*  custom entry. The DAL reads `clinic_id IS NULL OR clinic_id = ctx.clinicId`*/
+/*  and only writes custom rows with `ctx.clinicId`, so the tenancy rule still */
+/*  holds even though the base rows are global.                               */
+/* -------------------------------------------------------------------------- */
+
+/** Canonical food groups — the normalized TBCA "classe" values. */
+export const foodGroup = pgTable("food_group", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+});
+
+/**
+ * Canonical nutrient dimension (~40 rows). The unit is fixed per nutrient
+ * (e.g. energy is split into `energy_kcal`/`energy_kj`), so `food_nutrient`
+ * only stores the value.
+ */
+export const nutrient = pgTable("nutrient", {
+  id: text("id").primaryKey(), // slug, e.g. "protein", "energy_kcal", "calcium"
+  label: text("label").notNull(), // PT-BR label, e.g. "Proteína"
+  unit: text("unit").notNull(), // "g" | "mg" | "mcg" | "kcal" | "kJ"
+  kind: text("kind").$type<NutrientKind>().notNull(),
+  sortOrder: integer("sort_order").notNull(),
+});
+
+/**
+ * One row per food, values per 100 g. The six "hot" macros are denormalized
+ * from {@link foodNutrient} so the listing can sort/filter without a join; the
+ * full nutrient profile lives in {@link foodNutrient}. `clinic_id = NULL` is the
+ * shared TBCA base; a set `clinic_id` is a clinic's own custom food.
+ */
+export const food = pgTable(
+  "food",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // TBCA code ("C0018A"). NULL for clinic-custom foods; unique when present.
+    code: text("code").unique(),
+    description: text("description").notNull(),
+    // unaccent(lower(description)); the trigram search index is built on this.
+    searchText: text("search_text").notNull(),
+    groupId: uuid("group_id")
+      .notNull()
+      .references(() => foodGroup.id),
+    type: text("type").$type<FoodType>().notNull(),
+    source: text("source").notNull().default("TBCA"),
+    // NULL = shared TBCA base; set = this clinic's private custom food.
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    // Denormalized macros per 100 g (nullable: TBCA has unmeasured cells).
+    energyKcal: doublePrecision("energy_kcal"),
+    protein: doublePrecision("protein"),
+    carbohydrate: doublePrecision("carbohydrate"),
+    fat: doublePrecision("fat"),
+    fiber: doublePrecision("fiber"),
+    sodium: doublePrecision("sodium"),
+    // Soft-delete: archived foods drop out of listings but keep references.
+    archived: boolean("archived").default(false).notNull(),
+    // Flags the ~24 base entries with a duplicate description, for later review.
+    needsReview: boolean("needs_review").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("food_group_idx").on(t.groupId),
+    index("food_type_idx").on(t.type),
+    index("food_clinic_idx").on(t.clinicId),
+    // The GIN trigram index on `search_text` is added by hand in the migration
+    // (it needs the pg_trgm operator class / the extension created first).
+  ],
+);
+
+/**
+ * Full nutrient profile of a food (per 100 g). An absent nutrient has no row
+ * (read as null). `value = NULL` means the TBCA cell was unmeasured (`NA`/`-`)
+ * or a trace; `is_trace` distinguishes a measured trace (`tr`) from unmeasured.
+ */
+export const foodNutrient = pgTable(
+  "food_nutrient",
+  {
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "cascade" }),
+    nutrientId: text("nutrient_id")
+      .notNull()
+      .references(() => nutrient.id),
+    value: doublePrecision("value"),
+    isTrace: boolean("is_trace").default(false).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.foodId, t.nutrientId] }),
+    index("food_nutrient_nutrient_idx").on(t.nutrientId),
+  ],
+);
+
+/**
+ * A directed substitution edge: `grams` of `substitute_food` replace 100 g of
+ * `food`. `clinic_id = NULL` is a base substitution (seed / super admin);
+ * a set `clinic_id` is a clinic's own rule (created by a coach).
+ */
+export const foodSubstitution = pgTable(
+  "food_substitution",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "cascade" }),
+    substituteFoodId: uuid("substitute_food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "cascade" }),
+    // Grams of the substitute equivalent to 100 g of the main food.
+    grams: doublePrecision("grams").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("food_sub_lookup_idx").on(t.clinicId, t.foodId),
+    check("food_sub_grams_positive", sql`${t.grams} > 0`),
+    check("food_sub_not_self", sql`${t.foodId} <> ${t.substituteFoodId}`),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -273,6 +429,63 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
   }),
 }));
 
+export const foodGroupRelations = relations(foodGroup, ({ many }) => ({
+  foods: many(food),
+}));
+
+export const nutrientRelations = relations(nutrient, ({ many }) => ({
+  values: many(foodNutrient),
+}));
+
+export const foodRelations = relations(food, ({ one, many }) => ({
+  group: one(foodGroup, {
+    fields: [food.groupId],
+    references: [foodGroup.id],
+  }),
+  clinic: one(clinic, {
+    fields: [food.clinicId],
+    references: [clinic.id],
+  }),
+  nutrients: many(foodNutrient),
+  // Substitutions where this food is the main food.
+  substitutions: many(foodSubstitution, { relationName: "substitutionMain" }),
+  // Substitutions where this food is offered as the substitute.
+  substituteFor: many(foodSubstitution, {
+    relationName: "substitutionSubstitute",
+  }),
+}));
+
+export const foodNutrientRelations = relations(foodNutrient, ({ one }) => ({
+  food: one(food, {
+    fields: [foodNutrient.foodId],
+    references: [food.id],
+  }),
+  nutrient: one(nutrient, {
+    fields: [foodNutrient.nutrientId],
+    references: [nutrient.id],
+  }),
+}));
+
+export const foodSubstitutionRelations = relations(
+  foodSubstitution,
+  ({ one }) => ({
+    clinic: one(clinic, {
+      fields: [foodSubstitution.clinicId],
+      references: [clinic.id],
+    }),
+    food: one(food, {
+      fields: [foodSubstitution.foodId],
+      references: [food.id],
+      relationName: "substitutionMain",
+    }),
+    substitute: one(food, {
+      fields: [foodSubstitution.substituteFoodId],
+      references: [food.id],
+      relationName: "substitutionSubstitute",
+    }),
+  }),
+);
+
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
@@ -288,3 +501,13 @@ export type NewStudent = typeof students.$inferInsert;
 export type PlanLimit = typeof planLimit.$inferSelect;
 export type Invitation = typeof invitation.$inferSelect;
 export type NewInvitation = typeof invitation.$inferInsert;
+export type FoodGroup = typeof foodGroup.$inferSelect;
+export type NewFoodGroup = typeof foodGroup.$inferInsert;
+export type Nutrient = typeof nutrient.$inferSelect;
+export type NewNutrient = typeof nutrient.$inferInsert;
+export type Food = typeof food.$inferSelect;
+export type NewFood = typeof food.$inferInsert;
+export type FoodNutrient = typeof foodNutrient.$inferSelect;
+export type NewFoodNutrient = typeof foodNutrient.$inferInsert;
+export type FoodSubstitution = typeof foodSubstitution.$inferSelect;
+export type NewFoodSubstitution = typeof foodSubstitution.$inferInsert;

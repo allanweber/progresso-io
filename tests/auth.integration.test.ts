@@ -1,16 +1,13 @@
 // @vitest-environment node
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-
-import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import { students as studentsDal } from "@/server/dal";
+
+import { createTestDb, type TestDb } from "./pglite";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 // Bootstrap admin e-mail consumed by createAuth's create-user hook.
@@ -20,7 +17,7 @@ type Captured = { email: string; otp: string; type: string };
 
 const captured: Captured[] = [];
 let auth: ReturnType<typeof createAuth>;
-let db: ReturnType<typeof drizzle>;
+let db: TestDb;
 
 /** Most recent OTP sent to an address for a given flow. */
 function latestOtp(email: string, type: string): string | undefined {
@@ -36,12 +33,7 @@ function cookieHeader(res: Response): string {
 }
 
 beforeAll(async () => {
-  const client = new PGlite();
-  const dir = join(process.cwd(), "drizzle");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
-    await client.exec(readFileSync(join(dir, file), "utf8"));
-  }
-  db = drizzle(client, { schema, casing: "snake_case" });
+  db = await createTestDb();
   auth = createAuth({
     db,
     nextCookiesPlugin: false,

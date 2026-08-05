@@ -1,10 +1,5 @@
 // @vitest-environment node
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-
-import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
@@ -13,11 +8,13 @@ import { createAuth } from "@/lib/auth";
 import type { TenantContext } from "@/server/tenant";
 import { admin, invitations, students as studentsDal } from "@/server/dal";
 
+import { createTestDb, type TestDb } from "./pglite";
+
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 process.env.ADMIN_EMAIL = "boss@example.com";
 
 let auth: ReturnType<typeof createAuth>;
-let db: ReturnType<typeof drizzle>;
+let db: TestDb;
 let ctxA: TenantContext;
 let ctxB: TenantContext;
 
@@ -59,12 +56,7 @@ async function activateLogin(
 }
 
 beforeAll(async () => {
-  const client = new PGlite();
-  const dir = join(process.cwd(), "drizzle");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
-    await client.exec(readFileSync(join(dir, file), "utf8"));
-  }
-  db = drizzle(client, { schema, casing: "snake_case" });
+  db = await createTestDb();
   auth = createAuth({ db, nextCookiesPlugin: false, sendOtp: async () => {} });
 
   ctxA = await coachContext("coach-a@example.com", "Coach A");
