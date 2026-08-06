@@ -12,7 +12,17 @@ import {
 } from "drizzle-orm";
 
 import { type DB, schema } from "@/db";
-import type { Food, FoodType, Student } from "@/db/schema";
+import type {
+  Exercise,
+  ExerciseCategory,
+  ExerciseEquipment,
+  ExerciseLevel,
+  Food,
+  FoodType,
+  Muscle,
+  Student,
+} from "@/db/schema";
+import type { ExerciseSubstituteRow } from "@/server/dal/exercises";
 import type { FoodNutrientRow, FoodSubstituteRow } from "@/server/dal/foods";
 
 /**
@@ -562,4 +572,196 @@ export async function listFoodGroups(
     .select({ name: schema.foodGroup.name, slug: schema.foodGroup.slug })
     .from(schema.foodGroup)
     .orderBy(asc(schema.foodGroup.name));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Exercise catalog (cross-tenant browse — admin only)                        */
+/* -------------------------------------------------------------------------- */
+
+export type AdminExerciseOrigin = "base" | "clinic";
+
+/** A row in the admin's cross-clinic exercise listing. */
+export type AdminExerciseListItem = {
+  id: string;
+  code: string | null;
+  name: string;
+  category: ExerciseCategory;
+  level: ExerciseLevel;
+  equipment: ExerciseEquipment | null;
+  primaryMuscles: Muscle[];
+  origin: AdminExerciseOrigin;
+  clinicName: string | null;
+  archived: boolean;
+  thumbnail: string | null;
+};
+
+export type AdminExerciseListParams = {
+  search?: string;
+  category?: ExerciseCategory;
+  level?: ExerciseLevel;
+  equipment?: ExerciseEquipment;
+  muscle?: Muscle;
+  origin?: AdminExerciseOrigin;
+  clinicId?: string;
+  includeArchived?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminExerciseListResult = {
+  items: AdminExerciseListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** Shared WHERE for the admin exercise listing (no tenant scope — admin sees all). */
+function adminExerciseWhere(params: AdminExerciseListParams) {
+  const conds: SQL[] = [];
+  if (!params.includeArchived) conds.push(eq(schema.exercise.archived, false));
+  if (params.category) conds.push(eq(schema.exercise.category, params.category));
+  if (params.level) conds.push(eq(schema.exercise.level, params.level));
+  if (params.equipment) {
+    conds.push(eq(schema.exercise.equipment, params.equipment));
+  }
+  if (params.muscle) {
+    conds.push(
+      sql`(${params.muscle} = any(${schema.exercise.primaryMuscles})
+        or ${params.muscle} = any(${schema.exercise.secondaryMuscles}))`,
+    );
+  }
+  if (params.origin === "base") conds.push(isNull(schema.exercise.clinicId));
+  if (params.origin === "clinic") conds.push(isNotNull(schema.exercise.clinicId));
+  if (params.clinicId) conds.push(eq(schema.exercise.clinicId, params.clinicId));
+  const term = params.search?.trim();
+  if (term) {
+    for (const token of term.split(/\s+/)) {
+      conds.push(
+        sql`${schema.exercise.searchText} like '%' || unaccent(lower(${token})) || '%'`,
+      );
+    }
+  }
+  return conds.length ? and(...conds) : undefined;
+}
+
+/**
+ * Every exercise on the platform (base + all clinics), filtered and paginated.
+ * Cross-tenant by design — admin only. Each clinic exercise carries its clinic
+ * name.
+ */
+export async function listAllExercises(
+  db: DB,
+  params: AdminExerciseListParams = {},
+): Promise<AdminExerciseListResult> {
+  const page = Math.max(1, Math.trunc(params.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.trunc(params.pageSize ?? 24)));
+  const where = adminExerciseWhere(params);
+  const term = params.search?.trim();
+
+  const orderBy = term
+    ? [
+        desc(sql`similarity(${schema.exercise.searchText}, unaccent(lower(${term})))`),
+        asc(schema.exercise.name),
+      ]
+    : [asc(schema.exercise.name), asc(schema.exercise.id)];
+
+  const rows = await db
+    .select({
+      id: schema.exercise.id,
+      code: schema.exercise.code,
+      name: schema.exercise.name,
+      category: schema.exercise.category,
+      level: schema.exercise.level,
+      equipment: schema.exercise.equipment,
+      primaryMuscles: schema.exercise.primaryMuscles,
+      images: schema.exercise.images,
+      archived: schema.exercise.archived,
+      clinicId: schema.exercise.clinicId,
+      clinicName: schema.clinic.name,
+    })
+    .from(schema.exercise)
+    .leftJoin(schema.clinic, eq(schema.exercise.clinicId, schema.clinic.id))
+    .where(where)
+    .orderBy(...orderBy)
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(schema.exercise)
+    .where(where);
+
+  const items: AdminExerciseListItem[] = rows.map(
+    ({ clinicId, clinicName, images, ...r }) => ({
+      ...r,
+      origin: clinicId === null ? "base" : "clinic",
+      clinicName: clinicId === null ? null : clinicName,
+      thumbnail: images[0] ?? null,
+    }),
+  );
+
+  return { items, total, page, pageSize };
+}
+
+export type AdminExerciseDetail = Exercise & {
+  origin: AdminExerciseOrigin;
+  clinicName: string | null;
+  substitutes: ExerciseSubstituteRow[];
+};
+
+/**
+ * Any single exercise (base or any clinic's), with its clinic name and its
+ * **base** substitutions (the ones the admin manages). Cross-tenant — admin
+ * only. Returns null when the id doesn't exist.
+ */
+export async function getAnyExercise(
+  db: DB,
+  id: string,
+): Promise<AdminExerciseDetail | null> {
+  const [row] = await db
+    .select({
+      exercise: schema.exercise,
+      clinicName: schema.clinic.name,
+    })
+    .from(schema.exercise)
+    .leftJoin(schema.clinic, eq(schema.exercise.clinicId, schema.clinic.id))
+    .where(eq(schema.exercise.id, id));
+  if (!row) return null;
+
+  const substitute = schema.exercise;
+  const subs = await db
+    .select({
+      id: schema.exerciseSubstitution.id,
+      exerciseId: substitute.id,
+      name: substitute.name,
+      code: substitute.code,
+      category: substitute.category,
+      equipment: substitute.equipment,
+      images: substitute.images,
+      clinicId: substitute.clinicId,
+    })
+    .from(schema.exerciseSubstitution)
+    .innerJoin(
+      substitute,
+      eq(schema.exerciseSubstitution.substituteExerciseId, substitute.id),
+    )
+    .where(
+      and(
+        eq(schema.exerciseSubstitution.exerciseId, id),
+        isNull(schema.exerciseSubstitution.clinicId),
+        eq(substitute.archived, false),
+      ),
+    )
+    .orderBy(asc(substitute.name));
+
+  return {
+    ...row.exercise,
+    origin: row.exercise.clinicId === null ? "base" : "clinic",
+    clinicName: row.exercise.clinicId === null ? null : row.clinicName,
+    substitutes: subs.map(({ clinicId, images, ...s }) => ({
+      ...s,
+      thumbnail: images[0] ?? null,
+      origin: clinicId === null ? "base" : "clinic",
+    })),
+  };
 }
