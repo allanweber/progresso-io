@@ -118,6 +118,17 @@ beforeAll(async () => {
     primaryMuscles: ["abdominals"],
     clinicId: ctxB.clinicId,
   });
+
+  // Base substitution: Corrida can replace Agachamento (a base rule, clinic null).
+  const [corrida] = await db
+    .select({ id: schema.exercise.id })
+    .from(schema.exercise)
+    .where(sql`${schema.exercise.code} = 'Running'`);
+  await db.insert(schema.exerciseSubstitution).values({
+    clinicId: null,
+    exerciseId: agachamentoId,
+    substituteExerciseId: corrida.id,
+  });
 });
 
 describe("exercises DAL", () => {
@@ -197,7 +208,7 @@ describe("exercises DAL", () => {
     expect(firstPage.total).toBe(3);
   });
 
-  it("returns a full detail for a visible exercise", async () => {
+  it("returns a full detail for a visible exercise, with substitutes", async () => {
     const detail = await exercises.getExercise(ctxA, agachamentoId);
     expect(detail).not.toBeNull();
     expect(detail!.origin).toBe("base");
@@ -208,6 +219,18 @@ describe("exercises DAL", () => {
       "Barbell_Squat/0.jpg",
       "Barbell_Squat/1.jpg",
     ]);
+    // The seeded base substitution surfaces on the detail.
+    expect(detail!.substitutes).toHaveLength(1);
+    expect(detail!.substitutes[0]).toMatchObject({
+      name: "Corrida",
+      origin: "base",
+    });
+  });
+
+  it("shows base substitutions to every clinic", async () => {
+    // The açaí→arroz-style base rule (clinic null) is visible to clinic B too.
+    const detailB = await exercises.getExercise(ctxB, agachamentoId);
+    expect(detailB!.substitutes.map((s) => s.name)).toEqual(["Corrida"]);
   });
 
   it("does not leak another clinic's custom exercise from getExercise", async () => {

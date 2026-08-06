@@ -4,6 +4,7 @@ import type {
   ExerciseForce,
   ExerciseLevel,
   ExerciseMechanic,
+  ExerciseSubstituteDto,
   Muscle,
 } from "@/lib/exercises";
 import {
@@ -224,4 +225,5 @@ export type AdminExerciseDetailDto = {
   origin: AdminExerciseOrigin;
   clinicName: string | null;
   archived: boolean;
+  substitutes: ExerciseSubstituteDto[];
 };

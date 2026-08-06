@@ -243,6 +243,20 @@ export type ExerciseListResponse = {
   pageSize: number;
 };
 
+/** A substitute exercise shown on the detail page. */
+export type ExerciseSubstituteDto = {
+  /** The substitution rule id. */
+  id: string;
+  /** The substitute exercise's id (to link to its detail). */
+  exerciseId: string;
+  name: string;
+  code: string | null;
+  category: ExerciseCategory;
+  equipment: ExerciseEquipment | null;
+  thumbnail: string | null;
+  origin: ExerciseOrigin;
+};
+
 /** An exercise's detail page. */
 export type ExerciseDetailDto = {
   id: string;
@@ -259,4 +273,5 @@ export type ExerciseDetailDto = {
   images: string[];
   origin: ExerciseOrigin;
   archived: boolean;
+  substitutes: ExerciseSubstituteDto[];
 };

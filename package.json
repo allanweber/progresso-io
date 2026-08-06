@@ -20,6 +20,7 @@
     "db:transform-taco": "node scripts/transform-taco.mjs",
     "db:build-substitutions": "node scripts/build-substitutions.mjs",
     "db:transform-exercises": "node scripts/transform-exercises.mjs",
+    "db:build-exercise-substitutions": "node scripts/build-exercise-substitutions.mjs",
     "db:fetch-exercise-images": "node scripts/fetch-exercise-images.mjs",
     "db:upload-exercise-images": "node scripts/upload-exercise-images.mjs"
   },

@@ -152,6 +152,55 @@ export function ExerciseDetail({
             </div>
           </div>
 
+          {/* Substitutions — swap this exercise for one that trains the same
+              muscle the same way (seeded to favor common gym equipment). */}
+          {data.substitutes.length > 0 && (
+            <div className="mt-6">
+              <h2 className="font-heading text-lg font-bold text-foreground">
+                Substituições
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Exercícios que treinam o mesmo músculo e podem entrar no lugar
+                deste.
+              </p>
+              <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {data.substitutes.map((s) => {
+                  const src = exerciseImageUrl(s.thumbnail);
+                  return (
+                    <li key={s.id}>
+                      <Link
+                        href={`${backHref}/${s.exerciseId}`}
+                        className="group flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                      >
+                        <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
+                          {src ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={src}
+                              alt={s.name}
+                              loading="lazy"
+                              className="size-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="break-words text-sm font-medium text-foreground">
+                            {s.name}
+                          </div>
+                          {s.equipment && (
+                            <div className="mt-0.5 text-xs text-[#94A3B8]">
+                              {EQUIPMENT_LABELS[s.equipment]}
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           {/* Instructions */}
           {data.instructions.length > 0 && (
             <div className="mt-6">

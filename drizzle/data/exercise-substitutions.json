@@ -1,0 +1,6315 @@
+{
+  "generatedBy": "scripts/build-exercise-substitutions.mjs",
+  "groupedBy": "category + primaryMuscles + force + mechanic",
+  "perExercise": 3,
+  "substitutions": [
+    {
+      "exercise": "3_4_Sit-Up",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "90_90_Hamstring",
+      "substitutes": [
+        "Split_Squats"
+      ]
+    },
+    {
+      "exercise": "Ab_Crunch_Machine",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Ab_Roller",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Adductor",
+      "substitutes": [
+        "Side_Lying_Groin_Stretch"
+      ]
+    },
+    {
+      "exercise": "Adductor_Groin",
+      "substitutes": [
+        "Lying_Bent_Leg_Groin"
+      ]
+    },
+    {
+      "exercise": "Air_Bike",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "All_Fours_Quad_Stretch",
+      "substitutes": [
+        "Standing_Elevated_Quad_Stretch",
+        "One_Half_Locust",
+        "Quad_Stretch"
+      ]
+    },
+    {
+      "exercise": "Alternate_Hammer_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Alternate_Heel_Touchers",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Alternate_Incline_Dumbbell_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Alternate_Leg_Diagonal_Bound",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Alternating_Cable_Shoulder_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Alternating_Deltoid_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Dumbbell_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Alternating_Floor_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Alternating_Hang_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Alternating_Kettlebell_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Alternating_Kettlebell_Row",
+      "substitutes": [
+        "Middle_Back_Shrug",
+        "Incline_Bench_Pull",
+        "Lying_Cambered_Barbell_Row"
+      ]
+    },
+    {
+      "exercise": "Alternating_Renegade_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Ankle_On_The_Knee",
+      "substitutes": [
+        "Lying_Glute",
+        "Knee_Across_The_Body",
+        "Seated_Glute"
+      ]
+    },
+    {
+      "exercise": "Anterior_Tibialis-SMR",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Calves-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Anti-Gravity_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Arnold_Dumbbell_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Around_The_Worlds",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Atlas_Stone_Trainer",
+      "substitutes": [
+        "Keg_Load",
+        "Axle_Deadlift",
+        "Atlas_Stones"
+      ]
+    },
+    {
+      "exercise": "Atlas_Stones",
+      "substitutes": [
+        "Keg_Load",
+        "Axle_Deadlift",
+        "Atlas_Stone_Trainer"
+      ]
+    },
+    {
+      "exercise": "Axle_Deadlift",
+      "substitutes": [
+        "Keg_Load",
+        "Atlas_Stone_Trainer",
+        "Atlas_Stones"
+      ]
+    },
+    {
+      "exercise": "Back_Flyes_-_With_Bands",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Backward_Drag",
+      "substitutes": [
+        "Sandbag_Load",
+        "Rickshaw_Deadlift",
+        "Car_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Backward_Medicine_Ball_Throw",
+      "substitutes": [
+        "Medicine_Ball_Scoop_Throw",
+        "Return_Push_from_Stance"
+      ]
+    },
+    {
+      "exercise": "Ball_Leg_Curl",
+      "substitutes": [
+        "Lying_Leg_Curls",
+        "Platform_Hamstring_Slides",
+        "Floor_Glute-Ham_Raise"
+      ]
+    },
+    {
+      "exercise": "Band_Good_Morning",
+      "substitutes": [
+        "Sumo_Deadlift",
+        "Glute_Ham_Raise",
+        "Band_Good_Morning_Pull_Through"
+      ]
+    },
+    {
+      "exercise": "Band_Good_Morning_Pull_Through",
+      "substitutes": [
+        "Sumo_Deadlift",
+        "Glute_Ham_Raise",
+        "Band_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Band_Hip_Adductions",
+      "substitutes": [
+        "Thigh_Adductor"
+      ]
+    },
+    {
+      "exercise": "Band_Pull_Apart",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Band_Skull_Crusher",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Barbell_Ab_Rollout",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Barbell_Ab_Rollout_-_On_Knees",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Barbell_Bench_Press_-_Medium_Grip",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Barbell_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Barbell_Curls_Lying_Against_An_Incline",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Barbell_Deadlift",
+      "substitutes": [
+        "Hyperextensions_With_No_Hyperextension_Bench",
+        "Weighted_Ball_Hyperextension"
+      ]
+    },
+    {
+      "exercise": "Barbell_Full_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Glute_Bridge",
+      "substitutes": [
+        "Kneeling_Squat",
+        "Hip_Lift_with_Band",
+        "Barbell_Hip_Thrust"
+      ]
+    },
+    {
+      "exercise": "Barbell_Guillotine_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Barbell_Hack_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Hip_Thrust",
+      "substitutes": [
+        "Kneeling_Squat",
+        "Hip_Lift_with_Band",
+        "Barbell_Glute_Bridge"
+      ]
+    },
+    {
+      "exercise": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Barbell_Incline_Shoulder_Raise",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Barbell_Lunge",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Rear_Delt_Row",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Barbell_Rollout_from_Bench",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Barbell_Seated_Calf_Raise",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Barbell_Shoulder_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Barbell_Shrug",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug_Behind_The_Back",
+        "Leverage_Shrug"
+      ]
+    },
+    {
+      "exercise": "Barbell_Shrug_Behind_The_Back",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug",
+        "Leverage_Shrug"
+      ]
+    },
+    {
+      "exercise": "Barbell_Side_Bend",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Seated_Barbell_Twist",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Barbell_Side_Split_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Squat_To_A_Bench",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Step_Ups",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Barbell_Walking_Lunge",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Squat",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Battling_Ropes",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Bear_Crawl_Sled_Drags",
+      "substitutes": [
+        "Sled_Drag_-_Harness",
+        "Sled_Push"
+      ]
+    },
+    {
+      "exercise": "Behind_Head_Chest_Stretch",
+      "substitutes": [
+        "Chest_Stretch_on_Stability_Ball",
+        "Chest_And_Front_Of_Shoulder_Stretch",
+        "Elbows_Back"
+      ]
+    },
+    {
+      "exercise": "Bench_Dips",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Bench_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Bench_Press_-_Powerlifting",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Pin_Presses",
+        "Reverse_Band_Bench_Press"
+      ]
+    },
+    {
+      "exercise": "Bench_Press_-_With_Bands",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Bench_Press_with_Chains",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Pin_Presses",
+        "Bench_Press_-_Powerlifting"
+      ]
+    },
+    {
+      "exercise": "Bench_Sprint",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Single_Leg_Push-off"
+      ]
+    },
+    {
+      "exercise": "Bent-Arm_Barbell_Pullover",
+      "substitutes": [
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown",
+        "Pullups"
+      ]
+    },
+    {
+      "exercise": "Bent-Arm_Dumbbell_Pullover",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Bent-Knee_Hip_Raise",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_Barbell_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_Low-Pulley_Side_Lateral",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_One-Arm_Long_Bar_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_Two-Arm_Long_Bar_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_Two-Dumbbell_Row",
+      "substitutes": [
+        "One-Arm_Long_Bar_Row",
+        "Bent_Over_Two-Dumbbell_Row_With_Palms_In",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Bent_Over_Two-Dumbbell_Row_With_Palms_In",
+      "substitutes": [
+        "One-Arm_Long_Bar_Row",
+        "Bent_Over_Two-Dumbbell_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Bent_Press",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Bicycling",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Skating",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Bicycling_Stationary",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Board_Press",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Pin_Presses",
+        "Bench_Press_-_Powerlifting"
+      ]
+    },
+    {
+      "exercise": "Body-Up",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Body_Tricep_Press",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Bodyweight_Flyes",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "One-Arm_Flat_Bench_Dumbbell_Flye"
+      ]
+    },
+    {
+      "exercise": "Bodyweight_Mid_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Bodyweight_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Bodyweight_Walking_Lunge",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Bosu_Ball_Cable_Crunch_With_Side_Bends",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Bottoms_Up",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Box_Jump_Multiple_Response",
+      "substitutes": [
+        "Knee_Tuck_Jump",
+        "Box_Skip",
+        "Linear_3-Part_Start_Technique"
+      ]
+    },
+    {
+      "exercise": "Box_Skip",
+      "substitutes": [
+        "Knee_Tuck_Jump",
+        "Box_Jump_Multiple_Response",
+        "Linear_3-Part_Start_Technique"
+      ]
+    },
+    {
+      "exercise": "Box_Squat",
+      "substitutes": [
+        "Squat_with_Chains",
+        "Squat_with_Bands",
+        "Speed_Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Box_Squat_with_Bands",
+      "substitutes": [
+        "Squat_with_Chains",
+        "Squat_with_Bands",
+        "Speed_Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Box_Squat_with_Chains",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Bradford_Rocky_Presses",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Butt-Ups",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Butt_Lift_Bridge",
+      "substitutes": [
+        "One-Legged_Cable_Kickback",
+        "Leg_Lift",
+        "Single_Leg_Glute_Bridge"
+      ]
+    },
+    {
+      "exercise": "Cable_Chest_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Cable_Crossover",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Cable_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Cable_Deadlifts",
+      "substitutes": [
+        "One-Arm_Side_Deadlift",
+        "Leverage_Deadlift",
+        "Hip_Flexion_with_Band"
+      ]
+    },
+    {
+      "exercise": "Cable_Hammer_Curls_-_Rope_Attachment",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Cable_Incline_Pushdown",
+      "substitutes": [
+        "Straight-Arm_Pulldown",
+        "Rope_Straight-Arm_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Cable_Incline_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Cable_Internal_Rotation",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Cable_Iron_Cross",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Cable_Judo_Flip",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Cable_Lying_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Cable_One_Arm_Tricep_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Cable_Preacher_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Cable_Rear_Delt_Fly",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Bent_Over_Low-Pulley_Side_Lateral"
+      ]
+    },
+    {
+      "exercise": "Cable_Reverse_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Cable_Rope_Overhead_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Cable_Rope_Rear-Delt_Rows",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Cable_Russian_Twists",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Cable_Seated_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Cable_Seated_Lateral_Raise",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Cable_Shoulder_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Cable_Shrugs",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug_Behind_The_Back",
+        "Leverage_Shrug"
+      ]
+    },
+    {
+      "exercise": "Cable_Wrist_Curl",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Calf-Machine_Shoulder_Shrug",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug_Behind_The_Back",
+        "Leverage_Shrug"
+      ]
+    },
+    {
+      "exercise": "Calf_Press",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Calf_Press_On_The_Leg_Press_Machine",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Calf_Raise_On_A_Dumbbell",
+      "substitutes": [
+        "Standing_Barbell_Calf_Raise",
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Calf_Raises_-_With_Bands",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Calf_Stretch_Elbows_Against_Wall",
+      "substitutes": [
+        "Calf_Stretch_Hands_Against_Wall",
+        "Standing_Soleus_And_Achilles_Stretch"
+      ]
+    },
+    {
+      "exercise": "Calf_Stretch_Hands_Against_Wall",
+      "substitutes": [
+        "Calf_Stretch_Elbows_Against_Wall",
+        "Standing_Soleus_And_Achilles_Stretch"
+      ]
+    },
+    {
+      "exercise": "Calves-SMR",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Peroneals-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Car_Deadlift",
+      "substitutes": [
+        "Backward_Drag",
+        "Sandbag_Load",
+        "Rickshaw_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Car_Drivers",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Cat_Stretch",
+      "substitutes": [
+        "Pyramid",
+        "Lower_Back-SMR",
+        "Hug_Knees_To_Chest"
+      ]
+    },
+    {
+      "exercise": "Chair_Leg_Extended_Stretch",
+      "substitutes": [
+        "Intermediate_Groin_Stretch",
+        "Hamstring-SMR",
+        "Hamstring_Stretch"
+      ]
+    },
+    {
+      "exercise": "Chair_Lower_Back_Stretch",
+      "substitutes": [
+        "Latissimus_Dorsi-SMR",
+        "One_Arm_Against_Wall"
+      ]
+    },
+    {
+      "exercise": "Chair_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Chair_Upper_Body_Stretch",
+      "substitutes": [
+        "Seated_Front_Deltoid",
+        "Round_The_World_Shoulder_Stretch",
+        "Upward_Stretch"
+      ]
+    },
+    {
+      "exercise": "Chest_And_Front_Of_Shoulder_Stretch",
+      "substitutes": [
+        "Chest_Stretch_on_Stability_Ball",
+        "Behind_Head_Chest_Stretch",
+        "Elbows_Back"
+      ]
+    },
+    {
+      "exercise": "Chest_Push_from_3_point_stance",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Chest_Push_multiple_response",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Chest_Push_single_response",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Chest_Push_with_Run_Release",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Chest_Stretch_on_Stability_Ball",
+      "substitutes": [
+        "Chest_And_Front_Of_Shoulder_Stretch",
+        "Elbows_Back",
+        "Behind_Head_Chest_Stretch"
+      ]
+    },
+    {
+      "exercise": "Childs_Pose",
+      "substitutes": [
+        "Pyramid",
+        "Lower_Back-SMR",
+        "Hug_Knees_To_Chest"
+      ]
+    },
+    {
+      "exercise": "Chin-Up",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Chin_To_Chest_Stretch",
+      "substitutes": [
+        "Neck-SMR"
+      ]
+    },
+    {
+      "exercise": "Circus_Bell",
+      "substitutes": [
+        "Log_Lift"
+      ]
+    },
+    {
+      "exercise": "Clean",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Clean_Deadlift",
+      "substitutes": [
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch",
+        "Clean"
+      ]
+    },
+    {
+      "exercise": "Clean_Pull",
+      "substitutes": [
+        "Snatch",
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean_-_Below_the_Knees"
+      ]
+    },
+    {
+      "exercise": "Clean_Shrug",
+      "substitutes": [
+        "Snatch_Shrug"
+      ]
+    },
+    {
+      "exercise": "Clean_and_Jerk",
+      "substitutes": [
+        "Jerk_Balance",
+        "Push_Press_-_Behind_the_Neck",
+        "Push_Press"
+      ]
+    },
+    {
+      "exercise": "Clean_and_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Clean_from_Blocks",
+      "substitutes": [
+        "Snatch",
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean_-_Below_the_Knees"
+      ]
+    },
+    {
+      "exercise": "Clock_Push-Up",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_Barbell_Bench_Press",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_Dumbbell_Press",
+      "substitutes": [
+        "JM_Press",
+        "Dip_Machine",
+        "Incline_Push-Up_Close-Grip"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_EZ-Bar_Curl_with_Band",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_EZ-Bar_Press",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_EZ_Bar_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_Front_Lat_Pulldown",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_Push-Up_off_of_a_Dumbbell",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Close-Grip_Standing_Barbell_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Barbell_Curls_Lying_Against_An_Incline",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Cocoons",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Conans_Wheel",
+      "substitutes": [
+        "Yoke_Walk"
+      ]
+    },
+    {
+      "exercise": "Concentration_Curls",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Cross-Body_Crunch",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Cross_Body_Hammer_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Cross_Over_-_With_Bands",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Crunch_-_Hands_Overhead",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Crunch_-_Legs_On_Exercise_Ball",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Crunches",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Cuban_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Dancers_Stretch",
+      "substitutes": [
+        "Pyramid",
+        "Lower_Back-SMR",
+        "Hug_Knees_To_Chest"
+      ]
+    },
+    {
+      "exercise": "Dead_Bug",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Deadlift_with_Bands",
+      "substitutes": [
+        "Seated_Good_Mornings",
+        "Deficit_Deadlift",
+        "Rack_Pull_with_Bands"
+      ]
+    },
+    {
+      "exercise": "Deadlift_with_Chains",
+      "substitutes": [
+        "Seated_Good_Mornings",
+        "Deficit_Deadlift",
+        "Rack_Pull_with_Bands"
+      ]
+    },
+    {
+      "exercise": "Decline_Barbell_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Barbell_Incline_Bench_Press_-_Medium_Grip",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Decline_Close-Grip_Bench_To_Skull_Crusher",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Decline_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Decline_Dumbbell_Bench_Press",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Decline_Dumbbell_Flyes",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Incline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Decline_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Decline_EZ_Bar_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Decline_Oblique_Crunch",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Decline_Push-Up",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Decline_Reverse_Crunch",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Decline_Smith_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Deficit_Deadlift",
+      "substitutes": [
+        "Seated_Good_Mornings",
+        "Rack_Pull_with_Bands",
+        "Rack_Pulls"
+      ]
+    },
+    {
+      "exercise": "Depth_Jump_Leap",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Dip_Machine",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Smith_Machine_Close-Grip_Bench_Press"
+      ]
+    },
+    {
+      "exercise": "Dips_-_Chest_Version",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Dips_-_Triceps_Version",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Donkey_Calf_Raises",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Double_Kettlebell_Alternating_Hang_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Double_Kettlebell_Jerk",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Double_Kettlebell_Push_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Double_Kettlebell_Snatch",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Double_Kettlebell_Windmill",
+      "substitutes": [
+        "Kettlebell_Figure_8"
+      ]
+    },
+    {
+      "exercise": "Double_Leg_Butt_Kick",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Single_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Drag_Curl",
+      "substitutes": [
+        "High_Cable_Curls"
+      ]
+    },
+    {
+      "exercise": "Drop_Push",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Alternate_Bicep_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Alternate_Incline_Dumbbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Bench_Press",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Bench_Press_with_Neutral_Grip",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Bicep_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Clean",
+      "substitutes": [
+        "Power_Clean",
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Floor_Press",
+      "substitutes": [
+        "Pin_Presses",
+        "Bench_Press_-_Powerlifting",
+        "Reverse_Band_Bench_Press"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Flyes",
+      "substitutes": [
+        "One-Arm_Flat_Bench_Dumbbell_Flye",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Incline_Row",
+      "substitutes": [
+        "One-Arm_Long_Bar_Row",
+        "Bent_Over_Two-Dumbbell_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Incline_Shoulder_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Lunges",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Split_Squat_with_Dumbbells",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Lying_One-Arm_Rear_Lateral_Raise",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Lying_Pronation",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Lying_Rear_Lateral_Raise",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Lying_Supination",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_One-Arm_Shoulder_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_One-Arm_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_One-Arm_Upright_Row",
+      "substitutes": [
+        "Upright_Barbell_Row",
+        "Dumbbell_Raise",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Prone_Incline_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Raise",
+      "substitutes": [
+        "Upright_Barbell_Row",
+        "Dumbbell_One-Arm_Upright_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Rear_Lunge",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Dumbbell_Lunges",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Scaption",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Seated_Box_Jump",
+      "substitutes": [
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint",
+        "Alternate_Leg_Diagonal_Bound"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Seated_One-Leg_Calf_Raise",
+      "substitutes": [
+        "Standing_Barbell_Calf_Raise",
+        "Calf_Raise_On_A_Dumbbell",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Shoulder_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Shrug",
+      "substitutes": [
+        "Barbell_Shrug_Behind_The_Back",
+        "Leverage_Shrug",
+        "Cable_Shrugs"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Side_Bend",
+      "substitutes": [
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise",
+        "Rope_Crunch"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Squat",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Dumbbell_Lunges",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Squat_To_A_Bench",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Dumbbell_Lunges",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Step_Ups",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Dumbbell_Lunges",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Dumbbell_Tricep_Extension_-Pronated_Grip",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "EZ-Bar_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "EZ-Bar_Skullcrusher",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Elbow_to_Knee",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Elbows_Back",
+      "substitutes": [
+        "Chest_Stretch_on_Stability_Ball",
+        "Chest_And_Front_Of_Shoulder_Stretch",
+        "Behind_Head_Chest_Stretch"
+      ]
+    },
+    {
+      "exercise": "Elevated_Back_Lunge",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Elevated_Cable_Rows",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Elliptical_Trainer",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Exercise_Ball_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Exercise_Ball_Pull-In",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Extended_Range_One-Arm_Kettlebell_Floor_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "External_Rotation",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "External_Rotation_with_Band",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "External_Rotation_with_Cable",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Face_Pull",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Farmers_Walk",
+      "substitutes": [
+        "Rickshaw_Carry"
+      ]
+    },
+    {
+      "exercise": "Fast_Skipping",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Finger_Curls",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Flat_Bench_Cable_Flyes",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Flat_Bench_Leg_Pull-In",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Flat_Bench_Lying_Leg_Raise",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Flexor_Incline_Dumbbell_Curls",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Floor_Glute-Ham_Raise",
+      "substitutes": [
+        "Lying_Leg_Curls",
+        "Ball_Leg_Curl",
+        "Platform_Hamstring_Slides"
+      ]
+    },
+    {
+      "exercise": "Floor_Press",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Pin_Presses",
+        "Bench_Press_-_Powerlifting"
+      ]
+    },
+    {
+      "exercise": "Floor_Press_with_Chains",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Pin_Presses",
+        "Bench_Press_-_Powerlifting"
+      ]
+    },
+    {
+      "exercise": "Flutter_Kicks",
+      "substitutes": [
+        "Pull_Through"
+      ]
+    },
+    {
+      "exercise": "Foot-SMR",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Calves-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Frankenstein_Squat",
+      "substitutes": [
+        "Jerk_Dip_Squat",
+        "Olympic_Squat",
+        "Split_Jerk"
+      ]
+    },
+    {
+      "exercise": "Freehand_Jump_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Frog_Sit-Ups",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Front_Barbell_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Front_Barbell_Squat_To_A_Bench",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Front_Box_Jump",
+      "substitutes": [
+        "Knee_Tuck_Jump",
+        "Box_Skip",
+        "Linear_3-Part_Start_Technique"
+      ]
+    },
+    {
+      "exercise": "Front_Cable_Raise",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Standing_Low-Pulley_Deltoid_Raise"
+      ]
+    },
+    {
+      "exercise": "Front_Cone_Hops_or_hurdle_hops",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Front_Dumbbell_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Front_Incline_Dumbbell_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Front_Plate_Raise",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Front_Raise_And_Pullover",
+      "substitutes": [
+        "Straight-Arm_Dumbbell_Pullover",
+        "Wide-Grip_Decline_Barbell_Pullover"
+      ]
+    },
+    {
+      "exercise": "Front_Squat_Clean_Grip",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Front_Squats_With_Two_Kettlebells",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Front_Two-Dumbbell_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Full_Range-Of-Motion_Lat_Pulldown",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Gironda_Sternum_Chins",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Glute_Ham_Raise",
+      "substitutes": [
+        "Sumo_Deadlift",
+        "Band_Good_Morning",
+        "Sumo_Deadlift_with_Chains"
+      ]
+    },
+    {
+      "exercise": "Glute_Kickback",
+      "substitutes": [
+        "Step-up_with_Knee_Raise",
+        "Hip_Extension_with_Bands",
+        "Physioball_Hip_Bridge"
+      ]
+    },
+    {
+      "exercise": "Goblet_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Good_Morning",
+      "substitutes": [
+        "Good_Morning_off_Pins",
+        "Hanging_Bar_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Good_Morning_off_Pins",
+      "substitutes": [
+        "Good_Morning",
+        "Hanging_Bar_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Gorilla_Chin_Crunch",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Hack_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Hammer_Curls",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Hammer_Grip_Incline_DB_Bench_Press",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Hamstring-SMR",
+      "substitutes": [
+        "Chair_Leg_Extended_Stretch",
+        "Hamstring_Stretch",
+        "Intermediate_Groin_Stretch"
+      ]
+    },
+    {
+      "exercise": "Hamstring_Stretch",
+      "substitutes": [
+        "Chair_Leg_Extended_Stretch",
+        "Hamstring-SMR",
+        "Intermediate_Groin_Stretch"
+      ]
+    },
+    {
+      "exercise": "Handstand_Push-Ups",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Hang_Clean",
+      "substitutes": [
+        "Snatch",
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean_-_Below_the_Knees"
+      ]
+    },
+    {
+      "exercise": "Hang_Clean_-_Below_the_Knees",
+      "substitutes": [
+        "Snatch",
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean"
+      ]
+    },
+    {
+      "exercise": "Hang_Snatch",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Hang_Snatch_-_Below_Knees",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Hanging_Bar_Good_Morning",
+      "substitutes": [
+        "Good_Morning",
+        "Good_Morning_off_Pins"
+      ]
+    },
+    {
+      "exercise": "Hanging_Leg_Raise",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Hanging_Pike",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Heaving_Snatch_Balance",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Jerk_Dip_Squat",
+        "Olympic_Squat"
+      ]
+    },
+    {
+      "exercise": "Heavy_Bag_Thrust",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Incline_Push-Up_Depth_Jump"
+      ]
+    },
+    {
+      "exercise": "High_Cable_Curls",
+      "substitutes": [
+        "Drag_Curl"
+      ]
+    },
+    {
+      "exercise": "Hip_Circles_prone",
+      "substitutes": [
+        "Standing_Hip_Circles"
+      ]
+    },
+    {
+      "exercise": "Hip_Extension_with_Bands",
+      "substitutes": [
+        "Glute_Kickback",
+        "Physioball_Hip_Bridge",
+        "Step-up_with_Knee_Raise"
+      ]
+    },
+    {
+      "exercise": "Hip_Flexion_with_Band",
+      "substitutes": [
+        "One-Arm_Side_Deadlift",
+        "Leverage_Deadlift",
+        "Cable_Deadlifts"
+      ]
+    },
+    {
+      "exercise": "Hip_Lift_with_Band",
+      "substitutes": [
+        "Kneeling_Squat",
+        "Barbell_Glute_Bridge",
+        "Barbell_Hip_Thrust"
+      ]
+    },
+    {
+      "exercise": "Hug_A_Ball",
+      "substitutes": [
+        "Standing_Pelvic_Tilt"
+      ]
+    },
+    {
+      "exercise": "Hug_Knees_To_Chest",
+      "substitutes": [
+        "Pyramid",
+        "Lower_Back-SMR",
+        "Dancers_Stretch"
+      ]
+    },
+    {
+      "exercise": "Hurdle_Hops",
+      "substitutes": [
+        "Knee_Tuck_Jump",
+        "Box_Skip",
+        "Linear_3-Part_Start_Technique"
+      ]
+    },
+    {
+      "exercise": "Hyperextensions_With_No_Hyperextension_Bench",
+      "substitutes": [
+        "Barbell_Deadlift",
+        "Weighted_Ball_Hyperextension"
+      ]
+    },
+    {
+      "exercise": "IT_Band_and_Glute_Stretch",
+      "substitutes": [
+        "Lying_Crossover"
+      ]
+    },
+    {
+      "exercise": "Incline_Barbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Incline_Bench_Pull",
+      "substitutes": [
+        "Middle_Back_Shrug",
+        "Lying_Cambered_Barbell_Row",
+        "Alternating_Kettlebell_Row"
+      ]
+    },
+    {
+      "exercise": "Incline_Cable_Chest_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Cable_Flye",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Incline_Dumbbell_Bench_With_Palms_Facing_In",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Dumbbell_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Incline_Dumbbell_Flyes",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Dumbbell_Flyes_-_With_A_Twist",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Dumbbell_Press",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Hammer_Curls",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Incline_Push-Up",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Push-Up_Close-Grip",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Incline_Push-Up_Depth_Jump",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Incline_Push-Up_Medium",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Push-Up_Reverse_Grip",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Incline_Push-Up_Wide",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Intermediate_Groin_Stretch",
+      "substitutes": [
+        "Chair_Leg_Extended_Stretch",
+        "Hamstring-SMR",
+        "Hamstring_Stretch"
+      ]
+    },
+    {
+      "exercise": "Internal_Rotation_with_Band",
+      "substitutes": [
+        "Single_Dumbbell_Raise"
+      ]
+    },
+    {
+      "exercise": "Inverted_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Inverted_Row_with_Straps",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Iron_Cross",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Isometric_Neck_Exercise_-_Front_And_Back",
+      "substitutes": [
+        "Isometric_Neck_Exercise_-_Sides"
+      ]
+    },
+    {
+      "exercise": "Isometric_Neck_Exercise_-_Sides",
+      "substitutes": [
+        "Isometric_Neck_Exercise_-_Front_And_Back"
+      ]
+    },
+    {
+      "exercise": "Isometric_Wipers",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "JM_Press",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "Close-Grip_Barbell_Bench_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Jackknife_Sit-Up",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Janda_Sit-Up",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Jefferson_Squats",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Jerk_Balance",
+      "substitutes": [
+        "Push_Press_-_Behind_the_Neck",
+        "Clean_and_Jerk",
+        "Push_Press"
+      ]
+    },
+    {
+      "exercise": "Jerk_Dip_Squat",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Olympic_Squat",
+        "Split_Jerk"
+      ]
+    },
+    {
+      "exercise": "Jogging_Treadmill",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Keg_Load",
+      "substitutes": [
+        "Axle_Deadlift",
+        "Atlas_Stone_Trainer",
+        "Atlas_Stones"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Arnold_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Dead_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Figure_8",
+      "substitutes": [
+        "Double_Kettlebell_Windmill"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Hang_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_One-Legged_Deadlift",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Pass_Between_The_Legs",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Pirate_Ships",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Pistol_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Seated_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Seesaw_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Sumo_High_Pull",
+      "substitutes": [
+        "Standing_Dumbbell_Upright_Row",
+        "Smith_Machine_Upright_Row",
+        "Upright_Cable_Row"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Thruster",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Turkish_Get-Up_Lunge_style",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Turkish_Get-Up_Squat_style",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Kettlebell_Windmill",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Kipping_Muscle_Up",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Knee_Across_The_Body",
+      "substitutes": [
+        "Lying_Glute",
+        "Ankle_On_The_Knee",
+        "Seated_Glute"
+      ]
+    },
+    {
+      "exercise": "Knee_Hip_Raise_On_Parallel_Bars",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Knee_Tuck_Jump",
+      "substitutes": [
+        "Box_Skip",
+        "Linear_3-Part_Start_Technique",
+        "Box_Jump_Multiple_Response"
+      ]
+    },
+    {
+      "exercise": "Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Kneeling_Cable_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Kneeling_High_Pulley_Row",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Kneeling_Hip_Flexor",
+      "substitutes": [
+        "On-Your-Back_Quad_Stretch",
+        "Quadriceps-SMR",
+        "Standing_Hip_Flexors"
+      ]
+    },
+    {
+      "exercise": "Kneeling_Single-Arm_High_Pulley_Row",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Kneeling_Squat",
+      "substitutes": [
+        "Barbell_Glute_Bridge",
+        "Hip_Lift_with_Band",
+        "Barbell_Hip_Thrust"
+      ]
+    },
+    {
+      "exercise": "Landmine_180s",
+      "substitutes": [
+        "Spell_Caster",
+        "Barbell_Ab_Rollout",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Landmine_Linear_Jammer",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Lateral_Bound",
+      "substitutes": [
+        "Lateral_Box_Jump",
+        "Lateral_Cone_Hops"
+      ]
+    },
+    {
+      "exercise": "Lateral_Box_Jump",
+      "substitutes": [
+        "Lateral_Bound",
+        "Lateral_Cone_Hops"
+      ]
+    },
+    {
+      "exercise": "Lateral_Cone_Hops",
+      "substitutes": [
+        "Lateral_Bound",
+        "Lateral_Box_Jump"
+      ]
+    },
+    {
+      "exercise": "Lateral_Raise_-_With_Bands",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Latissimus_Dorsi-SMR",
+      "substitutes": [
+        "Chair_Lower_Back_Stretch",
+        "One_Arm_Against_Wall"
+      ]
+    },
+    {
+      "exercise": "Leg-Over_Floor_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Leg_Extensions",
+      "substitutes": [
+        "Single-Leg_Leg_Extension"
+      ]
+    },
+    {
+      "exercise": "Leg_Lift",
+      "substitutes": [
+        "One-Legged_Cable_Kickback",
+        "Butt_Lift_Bridge",
+        "Single_Leg_Glute_Bridge"
+      ]
+    },
+    {
+      "exercise": "Leg_Press",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Leg_Pull-In",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Leverage_Chest_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Leverage_Deadlift",
+      "substitutes": [
+        "One-Arm_Side_Deadlift",
+        "Cable_Deadlifts",
+        "Hip_Flexion_with_Band"
+      ]
+    },
+    {
+      "exercise": "Leverage_Decline_Chest_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Incline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Leverage_High_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Smith_Machine_Bent_Over_Row"
+      ]
+    },
+    {
+      "exercise": "Leverage_Incline_Chest_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Leverage_Iso_Row",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Wide-Grip_Lat_Pulldown",
+        "Pullups"
+      ]
+    },
+    {
+      "exercise": "Leverage_Shoulder_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Machine_Shoulder_Military_Press"
+      ]
+    },
+    {
+      "exercise": "Leverage_Shrug",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug_Behind_The_Back",
+        "Smith_Machine_Behind_the_Back_Shrug"
+      ]
+    },
+    {
+      "exercise": "Linear_3-Part_Start_Technique",
+      "substitutes": [
+        "Knee_Tuck_Jump",
+        "Box_Skip",
+        "Box_Jump_Multiple_Response"
+      ]
+    },
+    {
+      "exercise": "Linear_Acceleration_Wall_Drill",
+      "substitutes": [
+        "Moving_Claw_Series"
+      ]
+    },
+    {
+      "exercise": "Linear_Depth_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Log_Lift",
+      "substitutes": [
+        "Circus_Bell"
+      ]
+    },
+    {
+      "exercise": "London_Bridges",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Looking_At_Ceiling",
+      "substitutes": [
+        "On-Your-Back_Quad_Stretch",
+        "Quadriceps-SMR",
+        "Standing_Hip_Flexors"
+      ]
+    },
+    {
+      "exercise": "Low_Cable_Crossover",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Low_Cable_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Low_Pulley_Row_To_Neck",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Lower_Back-SMR",
+      "substitutes": [
+        "Pyramid",
+        "Hug_Knees_To_Chest",
+        "Dancers_Stretch"
+      ]
+    },
+    {
+      "exercise": "Lower_Back_Curl",
+      "substitutes": [
+        "Standing_Lateral_Stretch"
+      ]
+    },
+    {
+      "exercise": "Lunge_Sprint",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Lying_Bent_Leg_Groin",
+      "substitutes": [
+        "Adductor_Groin"
+      ]
+    },
+    {
+      "exercise": "Lying_Cable_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Lying_Cambered_Barbell_Row",
+      "substitutes": [
+        "Middle_Back_Shrug",
+        "Incline_Bench_Pull",
+        "Alternating_Kettlebell_Row"
+      ]
+    },
+    {
+      "exercise": "Lying_Close-Grip_Bar_Curl_On_High_Pulley",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Lying_Close-Grip_Barbell_Triceps_Press_To_Chin",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Lying_Crossover",
+      "substitutes": [
+        "IT_Band_and_Glute_Stretch"
+      ]
+    },
+    {
+      "exercise": "Lying_Dumbbell_Tricep_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Lying_Face_Down_Plate_Neck_Resistance",
+      "substitutes": [
+        "Lying_Face_Up_Plate_Neck_Resistance",
+        "Seated_Head_Harness_Neck_Resistance"
+      ]
+    },
+    {
+      "exercise": "Lying_Face_Up_Plate_Neck_Resistance",
+      "substitutes": [
+        "Lying_Face_Down_Plate_Neck_Resistance",
+        "Seated_Head_Harness_Neck_Resistance"
+      ]
+    },
+    {
+      "exercise": "Lying_Glute",
+      "substitutes": [
+        "Seated_Glute",
+        "Knee_Across_The_Body",
+        "Ankle_On_The_Knee"
+      ]
+    },
+    {
+      "exercise": "Lying_Hamstring",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Lying_High_Bench_Barbell_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Lying_Leg_Curls",
+      "substitutes": [
+        "Seated_Leg_Curl",
+        "Ball_Leg_Curl",
+        "Platform_Hamstring_Slides"
+      ]
+    },
+    {
+      "exercise": "Lying_Machine_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Lying_One-Arm_Lateral_Raise",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Lying_Rear_Delt_Raise",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Lying_Supine_Dumbbell_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Lying_T-Bar_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Lying_Triceps_Press",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Machine_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Machine_Bicep_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Preacher_Curls"
+      ]
+    },
+    {
+      "exercise": "Machine_Preacher_Curls",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Machine_Shoulder_Military_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Machine_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Triceps_Overhead_Extension_with_Rope"
+      ]
+    },
+    {
+      "exercise": "Medicine_Ball_Chest_Pass",
+      "substitutes": [
+        "Plyo_Push-up",
+        "Chest_Push_multiple_response",
+        "Heavy_Bag_Thrust"
+      ]
+    },
+    {
+      "exercise": "Medicine_Ball_Full_Twist",
+      "substitutes": [
+        "Supine_Two-Arm_Overhead_Throw",
+        "Sledgehammer_Swings",
+        "Supine_One-Arm_Overhead_Throw"
+      ]
+    },
+    {
+      "exercise": "Medicine_Ball_Scoop_Throw",
+      "substitutes": [
+        "Backward_Medicine_Ball_Throw",
+        "Return_Push_from_Stance"
+      ]
+    },
+    {
+      "exercise": "Middle_Back_Shrug",
+      "substitutes": [
+        "Incline_Bench_Pull",
+        "Alternating_Kettlebell_Row",
+        "Lying_Cambered_Barbell_Row"
+      ]
+    },
+    {
+      "exercise": "Middle_Back_Stretch",
+      "substitutes": [
+        "Spinal_Stretch"
+      ]
+    },
+    {
+      "exercise": "Mixed_Grip_Chin",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Moving_Claw_Series",
+      "substitutes": [
+        "Linear_Acceleration_Wall_Drill"
+      ]
+    },
+    {
+      "exercise": "Muscle_Snatch",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Clean"
+      ]
+    },
+    {
+      "exercise": "Muscle_Up",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Narrow_Stance_Hack_Squats",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Narrow_Stance_Leg_Press",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Narrow_Stance_Squats",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Natural_Glute_Ham_Raise",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Neck-SMR",
+      "substitutes": [
+        "Chin_To_Chest_Stretch"
+      ]
+    },
+    {
+      "exercise": "Neck_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Oblique_Crunches",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Oblique_Crunches_-_On_The_Floor",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Olympic_Squat",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Jerk_Dip_Squat",
+        "Split_Jerk"
+      ]
+    },
+    {
+      "exercise": "On-Your-Back_Quad_Stretch",
+      "substitutes": [
+        "Quadriceps-SMR",
+        "Standing_Hip_Flexors",
+        "On_Your_Side_Quad_Stretch"
+      ]
+    },
+    {
+      "exercise": "On_Your_Side_Quad_Stretch",
+      "substitutes": [
+        "On-Your-Back_Quad_Stretch",
+        "Quadriceps-SMR",
+        "Standing_Hip_Flexors"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Dumbbell_Row",
+      "substitutes": [
+        "One-Arm_Long_Bar_Row",
+        "Bent_Over_Two-Dumbbell_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Flat_Bench_Dumbbell_Flye",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Single-Arm_Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "One-Arm_High-Pulley_Cable_Side_Bends",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Incline_Lateral_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Clean_and_Jerk",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Floor_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Jerk",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Military_Press_To_The_Side",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Para_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Push_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Snatch",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Split_Jerk",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Split_Snatch",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Kettlebell_Swings",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Long_Bar_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "Bent_Over_Barbell_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Medicine_Ball_Slam",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Open_Palm_Kettlebell_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Overhead_Kettlebell_Squats",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Side_Deadlift",
+      "substitutes": [
+        "Leverage_Deadlift",
+        "Cable_Deadlifts",
+        "Hip_Flexion_with_Band"
+      ]
+    },
+    {
+      "exercise": "One-Arm_Side_Laterals",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "One-Legged_Cable_Kickback",
+      "substitutes": [
+        "Leg_Lift",
+        "Butt_Lift_Bridge",
+        "Single_Leg_Glute_Bridge"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Against_Wall",
+      "substitutes": [
+        "Latissimus_Dorsi-SMR",
+        "Chair_Lower_Back_Stretch"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Chin-Up",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Dumbbell_Bench_Press",
+      "substitutes": [
+        "Decline_Barbell_Bench_Press",
+        "Decline_Dumbbell_Flyes",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Dumbbell_Preacher_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Floor_Press",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Lat_Pulldown",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Pronated_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "One_Arm_Supinated_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "One_Half_Locust",
+      "substitutes": [
+        "All_Fours_Quad_Stretch",
+        "Standing_Elevated_Quad_Stretch",
+        "Quad_Stretch"
+      ]
+    },
+    {
+      "exercise": "One_Handed_Hang",
+      "substitutes": [
+        "Overhead_Lat",
+        "Side-Lying_Floor_Stretch"
+      ]
+    },
+    {
+      "exercise": "One_Leg_Barbell_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Open_Palm_Kettlebell_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Otis-Up",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Overhead_Cable_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Overhead_Lat",
+      "substitutes": [
+        "One_Handed_Hang",
+        "Side-Lying_Floor_Stretch"
+      ]
+    },
+    {
+      "exercise": "Overhead_Squat",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Jerk_Dip_Squat",
+        "Olympic_Squat"
+      ]
+    },
+    {
+      "exercise": "Overhead_Triceps",
+      "substitutes": [
+        "Tricep_Side_Stretch"
+      ]
+    },
+    {
+      "exercise": "Pallof_Press",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Pallof_Press_With_Rotation",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Palms-Down_Wrist_Curl_Over_A_Bench",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Parallel_Bar_Dip",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Pelvic_Tilt_Into_Bridge",
+      "substitutes": [
+        "Superman"
+      ]
+    },
+    {
+      "exercise": "Peroneals-SMR",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Calves-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Peroneals_Stretch",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Calves-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Physioball_Hip_Bridge",
+      "substitutes": [
+        "Glute_Kickback",
+        "Hip_Extension_with_Bands",
+        "Step-up_with_Knee_Raise"
+      ]
+    },
+    {
+      "exercise": "Pin_Presses",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Bench_Press_-_Powerlifting",
+        "Reverse_Band_Bench_Press"
+      ]
+    },
+    {
+      "exercise": "Plate_Pinch",
+      "substitutes": [
+        "Standing_Olympic_Plate_Hand_Squeeze"
+      ]
+    },
+    {
+      "exercise": "Plate_Twist",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Platform_Hamstring_Slides",
+      "substitutes": [
+        "Lying_Leg_Curls",
+        "Ball_Leg_Curl",
+        "Seated_Band_Hamstring_Curl"
+      ]
+    },
+    {
+      "exercise": "Plie_Dumbbell_Squat",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Dumbbell_Lunges",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Plyo_Kettlebell_Pushups",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Plyo_Push-up",
+      "substitutes": [
+        "Medicine_Ball_Chest_Pass",
+        "Heavy_Bag_Thrust",
+        "Chest_Push_multiple_response"
+      ]
+    },
+    {
+      "exercise": "Posterior_Tibialis_Stretch",
+      "substitutes": [
+        "Peroneals_Stretch",
+        "Calves-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Power_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Stiff-Legged_Barbell_Deadlift",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Power_Clean_from_Blocks",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Muscle_Snatch",
+        "Clean"
+      ]
+    },
+    {
+      "exercise": "Power_Jerk",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Jerk_Dip_Squat",
+        "Olympic_Squat"
+      ]
+    },
+    {
+      "exercise": "Power_Partials",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Power_Snatch",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Power_Snatch_from_Blocks",
+      "substitutes": [
+        "Snatch",
+        "Hang_Clean_-_Below_the_Knees",
+        "Hang_Clean"
+      ]
+    },
+    {
+      "exercise": "Preacher_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Preacher_Hammer_Dumbbell_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Pull_Through",
+      "substitutes": [
+        "Flutter_Kicks"
+      ]
+    },
+    {
+      "exercise": "Pullups",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Push-Up_Wide",
+      "substitutes": [
+        "Smith_Machine_Decline_Press"
+      ]
+    },
+    {
+      "exercise": "Push-Ups_-_Close_Triceps_Position",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Push-Ups_With_Feet_Elevated",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Push-Ups_With_Feet_On_An_Exercise_Ball",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Push_Press",
+      "substitutes": [
+        "Jerk_Balance",
+        "Push_Press_-_Behind_the_Neck",
+        "Clean_and_Jerk"
+      ]
+    },
+    {
+      "exercise": "Push_Press_-_Behind_the_Neck",
+      "substitutes": [
+        "Jerk_Balance",
+        "Clean_and_Jerk",
+        "Push_Press"
+      ]
+    },
+    {
+      "exercise": "Push_Up_to_Side_Plank",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Pushups",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Pushups_Close_and_Wide_Hand_Positions",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Pyramid",
+      "substitutes": [
+        "Lower_Back-SMR",
+        "Hug_Knees_To_Chest",
+        "Dancers_Stretch"
+      ]
+    },
+    {
+      "exercise": "Quad_Stretch",
+      "substitutes": [
+        "All_Fours_Quad_Stretch",
+        "Standing_Elevated_Quad_Stretch",
+        "One_Half_Locust"
+      ]
+    },
+    {
+      "exercise": "Quadriceps-SMR",
+      "substitutes": [
+        "On-Your-Back_Quad_Stretch",
+        "Standing_Hip_Flexors",
+        "On_Your_Side_Quad_Stretch"
+      ]
+    },
+    {
+      "exercise": "Quick_Leap",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Rack_Pull_with_Bands",
+      "substitutes": [
+        "Seated_Good_Mornings",
+        "Deficit_Deadlift",
+        "Rack_Pulls"
+      ]
+    },
+    {
+      "exercise": "Rack_Pulls",
+      "substitutes": [
+        "Seated_Good_Mornings",
+        "Deficit_Deadlift",
+        "Rack_Pull_with_Bands"
+      ]
+    },
+    {
+      "exercise": "Rear_Leg_Raises",
+      "substitutes": [
+        "Sit_Squats"
+      ]
+    },
+    {
+      "exercise": "Recumbent_Bike",
+      "substitutes": [
+        "Walking_Treadmill",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Return_Push_from_Stance",
+      "substitutes": [
+        "Medicine_Ball_Scoop_Throw",
+        "Backward_Medicine_Ball_Throw"
+      ]
+    },
+    {
+      "exercise": "Reverse_Band_Bench_Press",
+      "substitutes": [
+        "Dumbbell_Floor_Press",
+        "Pin_Presses",
+        "Bench_Press_-_Powerlifting"
+      ]
+    },
+    {
+      "exercise": "Reverse_Band_Box_Squat",
+      "substitutes": [
+        "Squat_with_Chains",
+        "Squat_with_Bands",
+        "Speed_Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Reverse_Band_Deadlift",
+      "substitutes": [
+        "Seated_Good_Mornings",
+        "Deficit_Deadlift",
+        "Rack_Pull_with_Bands"
+      ]
+    },
+    {
+      "exercise": "Reverse_Band_Power_Squat",
+      "substitutes": [
+        "Squat_with_Chains",
+        "Squat_with_Bands",
+        "Speed_Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Reverse_Band_Sumo_Deadlift",
+      "substitutes": [
+        "Sumo_Deadlift",
+        "Glute_Ham_Raise",
+        "Band_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Reverse_Barbell_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Reverse_Barbell_Preacher_Curls",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Reverse_Cable_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Reverse_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Reverse_Flyes",
+      "substitutes": [
+        "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Reverse_Flyes_With_External_Rotation",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Reverse_Grip_Bent-Over_Rows",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Reverse_Grip_Triceps_Pushdown",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Reverse_Machine_Flyes",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Cable_Rear_Delt_Fly",
+        "Band_Pull_Apart"
+      ]
+    },
+    {
+      "exercise": "Reverse_Plate_Curls",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Reverse_Triceps_Bench_Press",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Rhomboids-SMR",
+      "substitutes": [
+        "Upper_Back_Stretch"
+      ]
+    },
+    {
+      "exercise": "Rickshaw_Carry",
+      "substitutes": [
+        "Farmers_Walk"
+      ]
+    },
+    {
+      "exercise": "Rickshaw_Deadlift",
+      "substitutes": [
+        "Backward_Drag",
+        "Sandbag_Load",
+        "Car_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Ring_Dips",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Rocket_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Rocking_Standing_Calf_Raise",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Rocky_Pull-Ups_Pulldowns",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Romanian_Deadlift",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Romanian_Deadlift_from_Deficit",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Rope_Climb",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Rope_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Rope_Jumping",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Rope_Straight-Arm_Pulldown",
+      "substitutes": [
+        "Straight-Arm_Pulldown",
+        "Cable_Incline_Pushdown"
+      ]
+    },
+    {
+      "exercise": "Round_The_World_Shoulder_Stretch",
+      "substitutes": [
+        "Seated_Front_Deltoid",
+        "Chair_Upper_Body_Stretch",
+        "Upward_Stretch"
+      ]
+    },
+    {
+      "exercise": "Rowing_Stationary",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Runners_Stretch",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Upper_Back-Leg_Grab",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Running_Treadmill",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Russian_Twist",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Sandbag_Load",
+      "substitutes": [
+        "Backward_Drag",
+        "Rickshaw_Deadlift",
+        "Car_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Scapular_Pull-Up",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug_Behind_The_Back",
+        "Leverage_Shrug"
+      ]
+    },
+    {
+      "exercise": "Scissor_Kick",
+      "substitutes": [
+        "Toe_Touchers"
+      ]
+    },
+    {
+      "exercise": "Scissors_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Seated_Band_Hamstring_Curl",
+      "substitutes": [
+        "Lying_Leg_Curls",
+        "Ball_Leg_Curl",
+        "Platform_Hamstring_Slides"
+      ]
+    },
+    {
+      "exercise": "Seated_Barbell_Military_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Seated_Barbell_Twist",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Seated_Bent-Over_Rear_Delt_Raise",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Seated_Biceps",
+      "substitutes": [
+        "Standing_Biceps_Stretch"
+      ]
+    },
+    {
+      "exercise": "Seated_Cable_Rows",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Seated_Cable_Shoulder_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Seated_Calf_Raise",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Seated_Calf_Stretch",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Calves-SMR",
+        "Standing_Gastrocnemius_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Seated_Close-Grip_Concentration_Barbell_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Dumbbell_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Dumbbell_Inner_Biceps_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Up_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Dumbbell_Palms-Up_Wrist_Curl",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Dumbbell_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Seated_Flat_Bench_Leg_Pull-In",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Seated_Floor_Hamstring_Stretch",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Seated_Front_Deltoid",
+      "substitutes": [
+        "Chair_Upper_Body_Stretch",
+        "Upward_Stretch",
+        "Round_The_World_Shoulder_Stretch"
+      ]
+    },
+    {
+      "exercise": "Seated_Glute",
+      "substitutes": [
+        "Lying_Glute",
+        "Knee_Across_The_Body",
+        "Ankle_On_The_Knee"
+      ]
+    },
+    {
+      "exercise": "Seated_Good_Mornings",
+      "substitutes": [
+        "Deficit_Deadlift",
+        "Rack_Pull_with_Bands",
+        "Rack_Pulls"
+      ]
+    },
+    {
+      "exercise": "Seated_Hamstring",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Seated_Hamstring_and_Calf_Stretch",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Lying_Hamstring"
+      ]
+    },
+    {
+      "exercise": "Seated_Head_Harness_Neck_Resistance",
+      "substitutes": [
+        "Lying_Face_Down_Plate_Neck_Resistance",
+        "Lying_Face_Up_Plate_Neck_Resistance"
+      ]
+    },
+    {
+      "exercise": "Seated_Leg_Curl",
+      "substitutes": [
+        "Lying_Leg_Curls",
+        "Ball_Leg_Curl",
+        "Platform_Hamstring_Slides"
+      ]
+    },
+    {
+      "exercise": "Seated_Leg_Tucks",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl",
+      "substitutes": [
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_One-arm_Cable_Pulley_Rows",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Seated_Overhead_Stretch",
+      "substitutes": [
+        "Stomach_Vacuum"
+      ]
+    },
+    {
+      "exercise": "Seated_Palm-Up_Barbell_Wrist_Curl",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Palms-Down_Barbell_Wrist_Curl",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Seated_Side_Lateral_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Seated_Triceps_Press",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "See-Saw_Press_Alternating_Side_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Shotgun_Row",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Shoulder_Circles",
+      "substitutes": [
+        "Shoulder_Stretch",
+        "Shoulder_Raise"
+      ]
+    },
+    {
+      "exercise": "Shoulder_Press_-_With_Bands",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Shoulder_Raise",
+      "substitutes": [
+        "Shoulder_Stretch",
+        "Shoulder_Circles"
+      ]
+    },
+    {
+      "exercise": "Shoulder_Stretch",
+      "substitutes": [
+        "Shoulder_Circles",
+        "Shoulder_Raise"
+      ]
+    },
+    {
+      "exercise": "Side-Lying_Floor_Stretch",
+      "substitutes": [
+        "One_Handed_Hang",
+        "Overhead_Lat"
+      ]
+    },
+    {
+      "exercise": "Side_Hop-Sprint",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Side_Jackknife",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Side_Lateral_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Side_Laterals_to_Front_Raise",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Side_Lying_Groin_Stretch",
+      "substitutes": [
+        "Adductor"
+      ]
+    },
+    {
+      "exercise": "Side_Standing_Long_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Side_To_Side_Chins",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Side_to_Side_Box_Shuffle",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Single-Arm_Cable_Crossover",
+      "substitutes": [
+        "Dumbbell_Flyes",
+        "Cable_Crossover",
+        "Bodyweight_Flyes"
+      ]
+    },
+    {
+      "exercise": "Single-Arm_Linear_Jammer",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Single-Arm_Push-Up",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Single-Leg_High_Box_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Single-Leg_Hop_Progression",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Single-Leg_Lateral_Hop",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Single-Leg_Leg_Extension",
+      "substitutes": [
+        "Leg_Extensions"
+      ]
+    },
+    {
+      "exercise": "Single-Leg_Stride_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Single_Dumbbell_Raise",
+      "substitutes": [
+        "Internal_Rotation_with_Band"
+      ]
+    },
+    {
+      "exercise": "Single_Leg_Butt_Kick",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Single_Leg_Glute_Bridge",
+      "substitutes": [
+        "One-Legged_Cable_Kickback",
+        "Leg_Lift",
+        "Butt_Lift_Bridge"
+      ]
+    },
+    {
+      "exercise": "Single_Leg_Push-off",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Sit-Up",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Sit_Squats",
+      "substitutes": [
+        "Rear_Leg_Raises"
+      ]
+    },
+    {
+      "exercise": "Skating",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Sled_Drag_-_Harness",
+      "substitutes": [
+        "Bear_Crawl_Sled_Drags",
+        "Sled_Push"
+      ]
+    },
+    {
+      "exercise": "Sled_Overhead_Backward_Walk",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Sled_Overhead_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Sled_Push",
+      "substitutes": [
+        "Sled_Drag_-_Harness",
+        "Bear_Crawl_Sled_Drags"
+      ]
+    },
+    {
+      "exercise": "Sled_Reverse_Flye",
+      "substitutes": [
+        "Reverse_Flyes",
+        "Reverse_Machine_Flyes",
+        "Cable_Rear_Delt_Fly"
+      ]
+    },
+    {
+      "exercise": "Sled_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Sledgehammer_Swings",
+      "substitutes": [
+        "Supine_Two-Arm_Overhead_Throw",
+        "Supine_One-Arm_Overhead_Throw",
+        "Medicine_Ball_Full_Twist"
+      ]
+    },
+    {
+      "exercise": "Smith_Incline_Shoulder_Raise",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Straight_Raises_on_Incline_Bench",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Behind_the_Back_Shrug",
+      "substitutes": [
+        "Dumbbell_Shrug",
+        "Barbell_Shrug_Behind_The_Back",
+        "Leverage_Shrug"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Bent_Over_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Calf_Raise",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Close-Grip_Bench_Press",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Decline_Press",
+      "substitutes": [
+        "Push-Up_Wide"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Hang_Power_Clean",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Hip_Raise",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Ab_Crunch_Machine"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Incline_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Leg_Press",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_One-Arm_Upright_Row",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Cable_Rope_Rear-Delt_Rows"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Overhead_Shoulder_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Pistol_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Reverse_Calf_Raises",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Stiff-Legged_Deadlift",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Hang_Power_Clean"
+      ]
+    },
+    {
+      "exercise": "Smith_Machine_Upright_Row",
+      "substitutes": [
+        "Standing_Dumbbell_Upright_Row",
+        "Upright_Cable_Row",
+        "Kettlebell_Sumo_High_Pull"
+      ]
+    },
+    {
+      "exercise": "Smith_Single-Leg_Split_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Hack_Squat"
+      ]
+    },
+    {
+      "exercise": "Snatch",
+      "substitutes": [
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean_-_Below_the_Knees",
+        "Hang_Clean"
+      ]
+    },
+    {
+      "exercise": "Snatch_Balance",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Jerk_Dip_Squat",
+        "Olympic_Squat"
+      ]
+    },
+    {
+      "exercise": "Snatch_Deadlift",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Snatch_Pull",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Snatch_Shrug",
+      "substitutes": [
+        "Clean_Shrug"
+      ]
+    },
+    {
+      "exercise": "Snatch_from_Blocks",
+      "substitutes": [
+        "Snatch",
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean_-_Below_the_Knees"
+      ]
+    },
+    {
+      "exercise": "Speed_Band_Overhead_Triceps",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Speed_Box_Squat",
+      "substitutes": [
+        "Squat_with_Chains",
+        "Squat_with_Bands",
+        "Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Speed_Squats",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Spell_Caster",
+      "substitutes": [
+        "Landmine_180s",
+        "Standing_Cable_Lift",
+        "3_4_Sit-Up"
+      ]
+    },
+    {
+      "exercise": "Spider_Crawl",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Spider_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Spinal_Stretch",
+      "substitutes": [
+        "Middle_Back_Stretch"
+      ]
+    },
+    {
+      "exercise": "Split_Clean",
+      "substitutes": [
+        "Snatch",
+        "Power_Snatch_from_Blocks",
+        "Hang_Clean_-_Below_the_Knees"
+      ]
+    },
+    {
+      "exercise": "Split_Jerk",
+      "substitutes": [
+        "Frankenstein_Squat",
+        "Jerk_Dip_Squat",
+        "Olympic_Squat"
+      ]
+    },
+    {
+      "exercise": "Split_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Split_Snatch",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Split_Squat_with_Dumbbells",
+      "substitutes": [
+        "Barbell_Walking_Lunge",
+        "Dumbbell_Lunges",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Split_Squats",
+      "substitutes": [
+        "90_90_Hamstring"
+      ]
+    },
+    {
+      "exercise": "Squat_Jerk",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Squat_with_Bands",
+      "substitutes": [
+        "Squat_with_Chains",
+        "Speed_Box_Squat",
+        "Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Squat_with_Chains",
+      "substitutes": [
+        "Squat_with_Bands",
+        "Speed_Box_Squat",
+        "Box_Squat"
+      ]
+    },
+    {
+      "exercise": "Squat_with_Plate_Movers",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Squats_-_With_Bands",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Stairmaster",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Standing_Alternating_Dumbbell_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Seated_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Barbell_Calf_Raise",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Rocking_Standing_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Standing_Barbell_Press_Behind_Neck",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Standing_Biceps_Cable_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_Biceps_Stretch",
+      "substitutes": [
+        "Seated_Biceps"
+      ]
+    },
+    {
+      "exercise": "Standing_Bradford_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Cable_Chest_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Cable_Lift",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Cable_Judo_Flip"
+      ]
+    },
+    {
+      "exercise": "Standing_Cable_Wood_Chop",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Standing_Calf_Raises",
+      "substitutes": [
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Barbell_Calf_Raise",
+        "Smith_Machine_Reverse_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Standing_Concentration_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_Dumbbell_Calf_Raise",
+      "substitutes": [
+        "Standing_Barbell_Calf_Raise",
+        "Dumbbell_Seated_One-Leg_Calf_Raise",
+        "Standing_Calf_Raises"
+      ]
+    },
+    {
+      "exercise": "Standing_Dumbbell_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Dumbbell_Reverse_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head",
+      "substitutes": [
+        "Smith_Incline_Shoulder_Raise",
+        "Alternating_Deltoid_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Standing_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Standing_Dumbbell_Upright_Row",
+      "substitutes": [
+        "Smith_Machine_Upright_Row",
+        "Upright_Cable_Row",
+        "Kettlebell_Sumo_High_Pull"
+      ]
+    },
+    {
+      "exercise": "Standing_Elevated_Quad_Stretch",
+      "substitutes": [
+        "All_Fours_Quad_Stretch",
+        "Quad_Stretch",
+        "One_Half_Locust"
+      ]
+    },
+    {
+      "exercise": "Standing_Front_Barbell_Raise_Over_Head",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Standing_Gastrocnemius_Calf_Stretch",
+      "substitutes": [
+        "Posterior_Tibialis_Stretch",
+        "Calves-SMR",
+        "Seated_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Standing_Hamstring_and_Calf_Stretch",
+      "substitutes": [
+        "Seated_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Lying_Hamstring"
+      ]
+    },
+    {
+      "exercise": "Standing_Hip_Circles",
+      "substitutes": [
+        "Hip_Circles_prone"
+      ]
+    },
+    {
+      "exercise": "Standing_Hip_Flexors",
+      "substitutes": [
+        "On-Your-Back_Quad_Stretch",
+        "Quadriceps-SMR",
+        "On_Your_Side_Quad_Stretch"
+      ]
+    },
+    {
+      "exercise": "Standing_Inner-Biceps_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_Lateral_Stretch",
+      "substitutes": [
+        "Lower_Back_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_Leg_Curl",
+      "substitutes": [
+        "Lying_Leg_Curls",
+        "Ball_Leg_Curl",
+        "Platform_Hamstring_Slides"
+      ]
+    },
+    {
+      "exercise": "Standing_Long_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Standing_Low-Pulley_Deltoid_Raise",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Standing_Low-Pulley_One-Arm_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Standing_Military_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Barbell_Incline_Shoulder_Raise",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Olympic_Plate_Hand_Squeeze",
+      "substitutes": [
+        "Plate_Pinch"
+      ]
+    },
+    {
+      "exercise": "Standing_One-Arm_Cable_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_One-Arm_Dumbbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Standing_Overhead_Barbell_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Decline_EZ_Bar_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Standing_Palm-In_One-Arm_Dumbbell_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Palms-In_Dumbbell_Press",
+      "substitutes": [
+        "Standing_Military_Press",
+        "Standing_Alternating_Dumbbell_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Seated_Palm-Up_Barbell_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Standing_Pelvic_Tilt",
+      "substitutes": [
+        "Hug_A_Ball"
+      ]
+    },
+    {
+      "exercise": "Standing_Rope_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Standing_Soleus_And_Achilles_Stretch",
+      "substitutes": [
+        "Calf_Stretch_Elbows_Against_Wall",
+        "Calf_Stretch_Hands_Against_Wall"
+      ]
+    },
+    {
+      "exercise": "Standing_Toe_Touches",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Standing_Towel_Triceps_Extension",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Star_Jump",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Step-up_with_Knee_Raise",
+      "substitutes": [
+        "Glute_Kickback",
+        "Hip_Extension_with_Bands",
+        "Physioball_Hip_Bridge"
+      ]
+    },
+    {
+      "exercise": "Step_Mill",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Stiff-Legged_Barbell_Deadlift",
+      "substitutes": [
+        "Stiff-Legged_Dumbbell_Deadlift",
+        "Power_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Stiff-Legged_Dumbbell_Deadlift",
+      "substitutes": [
+        "Power_Clean",
+        "Dumbbell_Clean",
+        "Smith_Machine_Stiff-Legged_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Stomach_Vacuum",
+      "substitutes": [
+        "Seated_Overhead_Stretch"
+      ]
+    },
+    {
+      "exercise": "Straight-Arm_Dumbbell_Pullover",
+      "substitutes": [
+        "Front_Raise_And_Pullover",
+        "Wide-Grip_Decline_Barbell_Pullover"
+      ]
+    },
+    {
+      "exercise": "Straight-Arm_Pulldown",
+      "substitutes": [
+        "Rope_Straight-Arm_Pulldown",
+        "Cable_Incline_Pushdown"
+      ]
+    },
+    {
+      "exercise": "Straight_Bar_Bench_Mid_Rows",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Straight_Raises_on_Incline_Bench",
+      "substitutes": [
+        "Alternating_Deltoid_Raise",
+        "Smith_Incline_Shoulder_Raise",
+        "Front_Cable_Raise"
+      ]
+    },
+    {
+      "exercise": "Stride_Jump_Crossover",
+      "substitutes": [
+        "Dumbbell_Seated_Box_Jump",
+        "Double_Leg_Butt_Kick",
+        "Bench_Sprint"
+      ]
+    },
+    {
+      "exercise": "Sumo_Deadlift",
+      "substitutes": [
+        "Sumo_Deadlift_with_Chains",
+        "Glute_Ham_Raise",
+        "Band_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Sumo_Deadlift_with_Bands",
+      "substitutes": [
+        "Sumo_Deadlift",
+        "Glute_Ham_Raise",
+        "Band_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Sumo_Deadlift_with_Chains",
+      "substitutes": [
+        "Sumo_Deadlift",
+        "Glute_Ham_Raise",
+        "Band_Good_Morning"
+      ]
+    },
+    {
+      "exercise": "Superman",
+      "substitutes": [
+        "Pelvic_Tilt_Into_Bridge"
+      ]
+    },
+    {
+      "exercise": "Supine_One-Arm_Overhead_Throw",
+      "substitutes": [
+        "Supine_Two-Arm_Overhead_Throw",
+        "Sledgehammer_Swings",
+        "Medicine_Ball_Full_Twist"
+      ]
+    },
+    {
+      "exercise": "Supine_Two-Arm_Overhead_Throw",
+      "substitutes": [
+        "Supine_One-Arm_Overhead_Throw",
+        "Sledgehammer_Swings",
+        "Medicine_Ball_Full_Twist"
+      ]
+    },
+    {
+      "exercise": "Suspended_Fallout",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Suspended_Push-Up",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Suspended_Reverse_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Suspended_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Suspended_Split_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Svend_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "T-Bar_Row_with_Handle",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Tate_Press",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "The_Straddle",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Thigh_Adductor",
+      "substitutes": [
+        "Band_Hip_Adductions"
+      ]
+    },
+    {
+      "exercise": "Tire_Flip",
+      "substitutes": [
+        "Backward_Drag",
+        "Sandbag_Load",
+        "Rickshaw_Deadlift"
+      ]
+    },
+    {
+      "exercise": "Toe_Touchers",
+      "substitutes": [
+        "Scissor_Kick"
+      ]
+    },
+    {
+      "exercise": "Trail_Running_Walking",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Walking_Treadmill"
+      ]
+    },
+    {
+      "exercise": "Trap_Bar_Deadlift",
+      "substitutes": [
+        "One-Arm_Side_Deadlift",
+        "Leverage_Deadlift",
+        "Cable_Deadlifts"
+      ]
+    },
+    {
+      "exercise": "Tricep_Dumbbell_Kickback",
+      "substitutes": [
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Tricep_Side_Stretch",
+      "substitutes": [
+        "Overhead_Triceps"
+      ]
+    },
+    {
+      "exercise": "Triceps_Overhead_Extension_with_Rope",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Triceps_Pushdown",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Triceps_Pushdown_-_Rope_Attachment",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Triceps_Pushdown_-_V-Bar_Attachment",
+      "substitutes": [
+        "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+        "Standing_Overhead_Barbell_Triceps_Extension",
+        "Machine_Triceps_Extension"
+      ]
+    },
+    {
+      "exercise": "Tuck_Crunch",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Two-Arm_Dumbbell_Preacher_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Two-Arm_Kettlebell_Clean",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Upright_Barbell_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Two-Arm_Kettlebell_Jerk",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Two-Arm_Kettlebell_Military_Press",
+      "substitutes": [
+        "Standing_Alternating_Dumbbell_Press",
+        "Standing_Military_Press",
+        "Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "exercise": "Two-Arm_Kettlebell_Row",
+      "substitutes": [
+        "Bent_Over_Two-Dumbbell_Row",
+        "One-Arm_Long_Bar_Row",
+        "Leverage_High_Row"
+      ]
+    },
+    {
+      "exercise": "Underhand_Cable_Pulldowns",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Upper_Back-Leg_Grab",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Upper_Back_Stretch",
+      "substitutes": [
+        "Rhomboids-SMR"
+      ]
+    },
+    {
+      "exercise": "Upright_Barbell_Row",
+      "substitutes": [
+        "Dumbbell_Raise",
+        "Barbell_Rear_Delt_Row",
+        "Smith_Machine_One-Arm_Upright_Row"
+      ]
+    },
+    {
+      "exercise": "Upright_Cable_Row",
+      "substitutes": [
+        "Standing_Dumbbell_Upright_Row",
+        "Smith_Machine_Upright_Row",
+        "Kettlebell_Sumo_High_Pull"
+      ]
+    },
+    {
+      "exercise": "Upright_Row_-_With_Bands",
+      "substitutes": [
+        "Standing_Dumbbell_Upright_Row",
+        "Smith_Machine_Upright_Row",
+        "Upright_Cable_Row"
+      ]
+    },
+    {
+      "exercise": "Upward_Stretch",
+      "substitutes": [
+        "Seated_Front_Deltoid",
+        "Chair_Upper_Body_Stretch",
+        "Round_The_World_Shoulder_Stretch"
+      ]
+    },
+    {
+      "exercise": "V-Bar_Pulldown",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "V-Bar_Pullup",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Walking_Treadmill",
+      "substitutes": [
+        "Recumbent_Bike",
+        "Bicycling",
+        "Trail_Running_Walking"
+      ]
+    },
+    {
+      "exercise": "Weighted_Ball_Hyperextension",
+      "substitutes": [
+        "Barbell_Deadlift",
+        "Hyperextensions_With_No_Hyperextension_Bench"
+      ]
+    },
+    {
+      "exercise": "Weighted_Ball_Side_Bend",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Weighted_Bench_Dip",
+      "substitutes": [
+        "Close-Grip_Dumbbell_Press",
+        "JM_Press",
+        "Dip_Machine"
+      ]
+    },
+    {
+      "exercise": "Weighted_Crunches",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Weighted_Jump_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Weighted_Pull_Ups",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Weighted_Sissy_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Weighted_Sit-Ups_-_With_Bands",
+      "substitutes": [
+        "Dumbbell_Side_Bend",
+        "Barbell_Side_Bend",
+        "Smith_Machine_Hip_Raise"
+      ]
+    },
+    {
+      "exercise": "Weighted_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Barbell_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Decline_Barbell_Bench_Press",
+      "substitutes": [
+        "Decline_Dumbbell_Flyes",
+        "Decline_Barbell_Bench_Press",
+        "Leverage_Decline_Chest_Press"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Decline_Barbell_Pullover",
+      "substitutes": [
+        "Straight-Arm_Dumbbell_Pullover",
+        "Front_Raise_And_Pullover"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Lat_Pulldown",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Underhand_Cable_Pulldowns"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Pulldown_Behind_The_Neck",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Rear_Pull-Up",
+      "substitutes": [
+        "Bent-Arm_Barbell_Pullover",
+        "Leverage_Iso_Row",
+        "Wide-Grip_Lat_Pulldown"
+      ]
+    },
+    {
+      "exercise": "Wide-Grip_Standing_Barbell_Curl",
+      "substitutes": [
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Close-Grip_Standing_Barbell_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Wide_Stance_Barbell_Squat",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Wide_Stance_Stiff_Legs",
+      "substitutes": [
+        "Clean_Deadlift",
+        "Power_Clean_from_Blocks",
+        "Muscle_Snatch"
+      ]
+    },
+    {
+      "exercise": "Wind_Sprints",
+      "substitutes": [
+        "Spell_Caster",
+        "Landmine_180s",
+        "Standing_Cable_Lift"
+      ]
+    },
+    {
+      "exercise": "Worlds_Greatest_Stretch",
+      "substitutes": [
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Runners_Stretch",
+        "Seated_Hamstring_and_Calf_Stretch"
+      ]
+    },
+    {
+      "exercise": "Wrist_Roller",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Wrist_Rotations_with_Straight_Bar",
+      "substitutes": [
+        "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+        "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+        "Cable_Wrist_Curl"
+      ]
+    },
+    {
+      "exercise": "Yoke_Walk",
+      "substitutes": [
+        "Conans_Wheel"
+      ]
+    },
+    {
+      "exercise": "Zercher_Squats",
+      "substitutes": [
+        "Dumbbell_Lunges",
+        "Barbell_Walking_Lunge",
+        "Smith_Single-Leg_Split_Squat"
+      ]
+    },
+    {
+      "exercise": "Zottman_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    },
+    {
+      "exercise": "Zottman_Preacher_Curl",
+      "substitutes": [
+        "Close-Grip_Standing_Barbell_Curl",
+        "Dumbbell_Alternate_Bicep_Curl",
+        "Machine_Bicep_Curl"
+      ]
+    }
+  ]
+}

@@ -42,6 +42,16 @@ export const GET = withRoute<Params>(
       images: exercise.images,
       origin: exercise.origin,
       archived: exercise.archived,
+      substitutes: exercise.substitutes.map((s) => ({
+        id: s.id,
+        exerciseId: s.exerciseId,
+        name: s.name,
+        code: s.code,
+        category: s.category,
+        equipment: s.equipment,
+        thumbnail: s.thumbnail,
+        origin: s.origin,
+      })),
     };
     return NextResponse.json(dto);
   },

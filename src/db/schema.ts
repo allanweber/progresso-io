@@ -524,6 +524,38 @@ export const exercise = pgTable(
   ],
 );
 
+/**
+ * A substitution edge between two exercises: `substitute_exercise` can replace
+ * `exercise` (same muscle/movement, seeded to favor common gym equipment).
+ * Unlike food substitutions there is no `grams` — an exercise swap is a plain
+ * link. `clinic_id = NULL` is a base substitution (seed / super admin); a set
+ * `clinic_id` is a clinic's own rule.
+ */
+export const exerciseSubstitution = pgTable(
+  "exercise_substitution",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    exerciseId: uuid("exercise_id")
+      .notNull()
+      .references(() => exercise.id, { onDelete: "cascade" }),
+    substituteExerciseId: uuid("substitute_exercise_id")
+      .notNull()
+      .references(() => exercise.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("exercise_sub_lookup_idx").on(t.clinicId, t.exerciseId),
+    check(
+      "exercise_sub_not_self",
+      sql`${t.exerciseId} <> ${t.substituteExerciseId}`,
+    ),
+  ],
+);
+
 /* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -656,12 +688,40 @@ export const foodFavoriteRelations = relations(foodFavorite, ({ one }) => ({
   }),
 }));
 
-export const exerciseRelations = relations(exercise, ({ one }) => ({
+export const exerciseRelations = relations(exercise, ({ one, many }) => ({
   clinic: one(clinic, {
     fields: [exercise.clinicId],
     references: [clinic.id],
   }),
+  // Substitutions where this exercise is the main one.
+  substitutions: many(exerciseSubstitution, {
+    relationName: "exerciseSubstitutionMain",
+  }),
+  // Substitutions where this exercise is offered as the substitute.
+  substituteFor: many(exerciseSubstitution, {
+    relationName: "exerciseSubstitutionSubstitute",
+  }),
 }));
+
+export const exerciseSubstitutionRelations = relations(
+  exerciseSubstitution,
+  ({ one }) => ({
+    clinic: one(clinic, {
+      fields: [exerciseSubstitution.clinicId],
+      references: [clinic.id],
+    }),
+    exercise: one(exercise, {
+      fields: [exerciseSubstitution.exerciseId],
+      references: [exercise.id],
+      relationName: "exerciseSubstitutionMain",
+    }),
+    substitute: one(exercise, {
+      fields: [exerciseSubstitution.substituteExerciseId],
+      references: [exercise.id],
+      relationName: "exerciseSubstitutionSubstitute",
+    }),
+  }),
+);
 
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
@@ -692,3 +752,5 @@ export type FoodFavorite = typeof foodFavorite.$inferSelect;
 export type NewFoodFavorite = typeof foodFavorite.$inferInsert;
 export type Exercise = typeof exercise.$inferSelect;
 export type NewExercise = typeof exercise.$inferInsert;
+export type ExerciseSubstitution = typeof exerciseSubstitution.$inferSelect;
+export type NewExerciseSubstitution = typeof exerciseSubstitution.$inferInsert;

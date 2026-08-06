@@ -148,12 +148,32 @@ export async function listExercises(
   return { items, total, page, pageSize };
 }
 
-export type ExerciseDetail = Exercise & { origin: ExerciseOrigin };
+/** A substitute offered for an exercise (the substitute exercise's identity). */
+export type ExerciseSubstituteRow = {
+  /** The substitution rule id. */
+  id: string;
+  /** The substitute *exercise* id (to link to its detail). */
+  exerciseId: string;
+  name: string;
+  code: string | null;
+  category: ExerciseCategory;
+  equipment: ExerciseEquipment | null;
+  /** First image key of the substitute, for a thumbnail. */
+  thumbnail: string | null;
+  /** Origin of the substitute *exercise* (base or the clinic's own). */
+  origin: ExerciseOrigin;
+};
+
+export type ExerciseDetail = Exercise & {
+  origin: ExerciseOrigin;
+  substitutes: ExerciseSubstituteRow[];
+};
 
 /**
- * A single exercise, visible to this clinic (a base exercise or one of its own).
- * Returns null when the id is neither — so another clinic's custom exercise is
- * never leaked.
+ * A single exercise, visible to this clinic (a base exercise or one of its own),
+ * with the substitutes visible to it (base rules + its own). Returns null when
+ * the id is neither base nor the clinic's own — so another clinic's custom
+ * exercise is never leaked.
  */
 export async function getExercise(
   ctx: TenantContext,
@@ -172,5 +192,44 @@ export async function getExercise(
       ),
     );
   if (!row) return null;
-  return { ...row, origin: row.clinicId === null ? "base" : "clinic" };
+
+  const substitute = schema.exercise;
+  const subs = await ctx.db
+    .select({
+      id: schema.exerciseSubstitution.id,
+      exerciseId: substitute.id,
+      name: substitute.name,
+      code: substitute.code,
+      category: substitute.category,
+      equipment: substitute.equipment,
+      images: substitute.images,
+      clinicId: substitute.clinicId,
+    })
+    .from(schema.exerciseSubstitution)
+    .innerJoin(
+      substitute,
+      eq(schema.exerciseSubstitution.substituteExerciseId, substitute.id),
+    )
+    .where(
+      and(
+        eq(schema.exerciseSubstitution.exerciseId, id),
+        or(
+          isNull(schema.exerciseSubstitution.clinicId),
+          eq(schema.exerciseSubstitution.clinicId, ctx.clinicId),
+        ),
+        // Never offer an archived exercise as a substitute.
+        eq(substitute.archived, false),
+      ),
+    )
+    .orderBy(asc(substitute.name));
+
+  return {
+    ...row,
+    origin: row.clinicId === null ? "base" : "clinic",
+    substitutes: subs.map(({ clinicId, images, ...s }) => ({
+      ...s,
+      thumbnail: images[0] ?? null,
+      origin: clinicId === null ? "base" : "clinic",
+    })),
+  };
 }

@@ -22,6 +22,7 @@ import type {
   Muscle,
   Student,
 } from "@/db/schema";
+import type { ExerciseSubstituteRow } from "@/server/dal/exercises";
 import type { FoodNutrientRow, FoodSubstituteRow } from "@/server/dal/foods";
 
 /**
@@ -705,11 +706,13 @@ export async function listAllExercises(
 export type AdminExerciseDetail = Exercise & {
   origin: AdminExerciseOrigin;
   clinicName: string | null;
+  substitutes: ExerciseSubstituteRow[];
 };
 
 /**
- * Any single exercise (base or any clinic's), with its clinic name. Cross-tenant
- * — admin only. Returns null when the id doesn't exist.
+ * Any single exercise (base or any clinic's), with its clinic name and its
+ * **base** substitutions (the ones the admin manages). Cross-tenant — admin
+ * only. Returns null when the id doesn't exist.
  */
 export async function getAnyExercise(
   db: DB,
@@ -724,9 +727,41 @@ export async function getAnyExercise(
     .leftJoin(schema.clinic, eq(schema.exercise.clinicId, schema.clinic.id))
     .where(eq(schema.exercise.id, id));
   if (!row) return null;
+
+  const substitute = schema.exercise;
+  const subs = await db
+    .select({
+      id: schema.exerciseSubstitution.id,
+      exerciseId: substitute.id,
+      name: substitute.name,
+      code: substitute.code,
+      category: substitute.category,
+      equipment: substitute.equipment,
+      images: substitute.images,
+      clinicId: substitute.clinicId,
+    })
+    .from(schema.exerciseSubstitution)
+    .innerJoin(
+      substitute,
+      eq(schema.exerciseSubstitution.substituteExerciseId, substitute.id),
+    )
+    .where(
+      and(
+        eq(schema.exerciseSubstitution.exerciseId, id),
+        isNull(schema.exerciseSubstitution.clinicId),
+        eq(substitute.archived, false),
+      ),
+    )
+    .orderBy(asc(substitute.name));
+
   return {
     ...row.exercise,
     origin: row.exercise.clinicId === null ? "base" : "clinic",
     clinicName: row.exercise.clinicId === null ? null : row.clinicName,
+    substitutes: subs.map(({ clinicId, images, ...s }) => ({
+      ...s,
+      thumbnail: images[0] ?? null,
+      origin: clinicId === null ? "base" : "clinic",
+    })),
   };
 }

@@ -15,6 +15,7 @@ const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
 const SUBSTITUTIONS = "./drizzle/data/taco-substitutions.json";
 const EXERCISES = "./drizzle/data/exercises-catalog.ndjson.gz";
+const EXERCISE_SUBS = "./drizzle/data/exercise-substitutions.json";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -260,6 +261,69 @@ async function seedExercises(sql) {
   console.log(`✓ Exercise catalog seeded: ${exercises.length} exercises.`);
 }
 
+/**
+ * Loads the base exercise substitutions (`drizzle/data/exercise-substitutions.json`,
+ * produced by scripts/build-exercise-substitutions.mjs): directed "B can replace
+ * A" links stamped `clinic_id = NULL` (shared). Exercises are referenced by their
+ * stable `code` (the source id), resolved to ids here — so it runs after the
+ * exercise catalog is seeded. A link whose exercise or substitute isn't in the
+ * catalog is skipped. Idempotent: skips once any base substitution exists.
+ */
+async function seedExerciseSubstitutions(sql) {
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(EXERCISE_SUBS, "utf8"));
+  } catch {
+    console.log(`• No exercise substitutions at ${EXERCISE_SUBS} — skipping.`);
+    return;
+  }
+  const rules = doc.substitutions ?? [];
+  if (rules.length === 0) return;
+
+  const [{ count }] = await sql`
+    select count(*)::int as count from exercise_substitution where clinic_id is null`;
+  if (count > 0) {
+    console.log(`✓ Base exercise substitutions already seeded (${count}) — skipping.`);
+    return;
+  }
+
+  const codeRows = await sql`select id, code from exercise where code is not null`;
+  const idByCode = new Map(codeRows.map((r) => [r.code, r.id]));
+
+  const rows = [];
+  let skipped = 0;
+  for (const rule of rules) {
+    const exerciseId = idByCode.get(rule.exercise);
+    if (!exerciseId) {
+      skipped++;
+      continue;
+    }
+    for (const subCode of rule.substitutes ?? []) {
+      const substituteId = idByCode.get(subCode);
+      if (!substituteId || substituteId === exerciseId) {
+        skipped++;
+        continue;
+      }
+      rows.push({
+        clinic_id: null,
+        exercise_id: exerciseId,
+        substitute_exercise_id: substituteId,
+      });
+    }
+  }
+
+  if (rows.length > 0) {
+    await sql.begin(async (tx) => {
+      for (let i = 0; i < rows.length; i += 500) {
+        await tx`insert into exercise_substitution ${tx(rows.slice(i, i + 500))}`;
+      }
+    });
+  }
+  console.log(
+    `✓ Base exercise substitutions seeded: ${rows.length}${skipped ? ` (${skipped} skipped)` : ""}.`,
+  );
+}
+
 const sql = postgres(url, { max: 1 });
 try {
   await migrate(drizzle(sql), { migrationsFolder: "./drizzle" });
@@ -268,6 +332,7 @@ try {
   await seedSupplement(sql);
   await seedSubstitutions(sql);
   await seedExercises(sql);
+  await seedExerciseSubstitutions(sql);
   // Push the exercise images to R2 (idempotent; skips when R2 isn't configured
   // or already uploaded). Non-fatal: a failed upload must not fail the deploy —
   // the app falls back to the source CDN for images.
