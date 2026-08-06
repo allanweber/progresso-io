@@ -1,6 +1,6 @@
 {
-  "_comment": "Supplement foods: common diet staples absent from the TACO base, sourced from the TBCA. NOT yet wired into the seed. sourceCode = original TBCA code (provenance). nutrients mapped to the current (TACO) nutrient dimension.",
-  "count": 36,
+  "_comment": "Supplement foods: common diet staples absent from the TACO base. source=TBCA rows carry their original TBCA code; source=USDA rows are researched from USDA FoodData Central (FDC id in sourceCode when available; brand-variable items use a representative value, noted in sourceDescription). Nutrients mapped to the current (TACO) nutrient dimension. NOT yet wired into the seed.",
+  "count": 49,
   "foods": [
     {
       "sourceCode": "C0290T",
@@ -5470,6 +5470,867 @@
         [
           "vitamin_c",
           0,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-whey-concentrate",
+      "description": "Whey protein concentrate (pó)",
+      "sourceDescription": "Whey protein concentrate, powder (média; varia por marca)",
+      "groupSlug": "leite-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 400,
+      "protein": 80,
+      "carbohydrate": 10,
+      "fat": 5,
+      "fiber": 0,
+      "sodium": 180,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          400,
+          false
+        ],
+        [
+          "energy_kj",
+          1674,
+          false
+        ],
+        [
+          "protein",
+          80,
+          false
+        ],
+        [
+          "carbohydrate",
+          10,
+          false
+        ],
+        [
+          "fat",
+          5,
+          false
+        ],
+        [
+          "fiber",
+          0,
+          false
+        ],
+        [
+          "sodium",
+          180,
+          false
+        ],
+        [
+          "calcium",
+          500,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-173417",
+      "description": "Queijo cottage, semidesnatado (1%)",
+      "sourceDescription": "Cheese, cottage, lowfat, 1% milkfat (FDC 173417)",
+      "groupSlug": "leite-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 72,
+      "protein": 12.4,
+      "carbohydrate": 2.72,
+      "fat": 1.02,
+      "fiber": 0,
+      "sodium": 330,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          72,
+          false
+        ],
+        [
+          "energy_kj",
+          301,
+          false
+        ],
+        [
+          "protein",
+          12.4,
+          false
+        ],
+        [
+          "carbohydrate",
+          2.72,
+          false
+        ],
+        [
+          "fat",
+          1.02,
+          false
+        ],
+        [
+          "fiber",
+          0,
+          false
+        ],
+        [
+          "sodium",
+          330,
+          false
+        ],
+        [
+          "calcium",
+          61,
+          false
+        ],
+        [
+          "phosphorus",
+          134,
+          false
+        ],
+        [
+          "potassium",
+          84,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-171314",
+      "description": "Ghee (manteiga clarificada)",
+      "sourceDescription": "Butter, Clarified butter (ghee) (FDC 171314)",
+      "groupSlug": "gorduras-e-oleos",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 876,
+      "protein": 0.28,
+      "carbohydrate": 0,
+      "fat": 99.5,
+      "fiber": 0,
+      "sodium": 2,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          876,
+          false
+        ],
+        [
+          "energy_kj",
+          3665,
+          false
+        ],
+        [
+          "protein",
+          0.28,
+          false
+        ],
+        [
+          "carbohydrate",
+          0,
+          false
+        ],
+        [
+          "fat",
+          99.5,
+          false
+        ],
+        [
+          "fa_saturated",
+          61.9,
+          false
+        ],
+        [
+          "fa_monounsaturated",
+          28.7,
+          false
+        ],
+        [
+          "fa_polyunsaturated",
+          3.69,
+          false
+        ],
+        [
+          "cholesterol",
+          256,
+          false
+        ],
+        [
+          "sodium",
+          2,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-shimeji",
+      "description": "Cogumelo shimeji, cru",
+      "sourceDescription": "Shimeji (beech mushroom), raw (agregadores nutricionais; menos padronizado)",
+      "groupSlug": "verduras-hortalicas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 36,
+      "protein": 4.7,
+      "carbohydrate": 3.6,
+      "fat": 0.45,
+      "fiber": 3.14,
+      "sodium": null,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          36,
+          false
+        ],
+        [
+          "energy_kj",
+          151,
+          false
+        ],
+        [
+          "protein",
+          4.7,
+          false
+        ],
+        [
+          "carbohydrate",
+          3.6,
+          false
+        ],
+        [
+          "fat",
+          0.45,
+          false
+        ],
+        [
+          "fiber",
+          3.14,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170170",
+      "description": "Coco ralado, seco, sem açúcar",
+      "sourceDescription": "Nuts, coconut meat, dried (desiccated), not sweetened (FDC 170170)",
+      "groupSlug": "nozes-e-sementes",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 660,
+      "protein": 6.88,
+      "carbohydrate": 23.65,
+      "fat": 64.53,
+      "fiber": 16.3,
+      "sodium": 37,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          660,
+          false
+        ],
+        [
+          "energy_kj",
+          2761,
+          false
+        ],
+        [
+          "protein",
+          6.88,
+          false
+        ],
+        [
+          "carbohydrate",
+          23.65,
+          false
+        ],
+        [
+          "fat",
+          64.53,
+          false
+        ],
+        [
+          "fiber",
+          16.3,
+          false
+        ],
+        [
+          "sodium",
+          37,
+          false
+        ],
+        [
+          "calcium",
+          26,
+          false
+        ],
+        [
+          "iron",
+          3.32,
+          false
+        ],
+        [
+          "magnesium",
+          90,
+          false
+        ],
+        [
+          "phosphorus",
+          206,
+          false
+        ],
+        [
+          "potassium",
+          543,
+          false
+        ],
+        [
+          "zinc",
+          2.01,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-169741",
+      "description": "Farinha de aveia",
+      "sourceDescription": "Oat flour, partially debranned (FDC 169741)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 404,
+      "protein": 14.66,
+      "carbohydrate": 65.7,
+      "fat": 9.12,
+      "fiber": 6.5,
+      "sodium": 19,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          404,
+          false
+        ],
+        [
+          "energy_kj",
+          1690,
+          false
+        ],
+        [
+          "protein",
+          14.66,
+          false
+        ],
+        [
+          "carbohydrate",
+          65.7,
+          false
+        ],
+        [
+          "fat",
+          9.12,
+          false
+        ],
+        [
+          "fiber",
+          6.5,
+          false
+        ],
+        [
+          "sodium",
+          19,
+          false
+        ],
+        [
+          "calcium",
+          54,
+          false
+        ],
+        [
+          "iron",
+          4,
+          false
+        ],
+        [
+          "magnesium",
+          144,
+          false
+        ],
+        [
+          "phosphorus",
+          452,
+          false
+        ],
+        [
+          "potassium",
+          371,
+          false
+        ],
+        [
+          "zinc",
+          3,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-almond-milk",
+      "description": "Bebida de amêndoas, sem açúcar",
+      "sourceDescription": "Almond milk, unsweetened (fortificada; varia por marca)",
+      "groupSlug": "bebidas-alcoolicas-e-nao-alcoolicas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 15,
+      "protein": 0.59,
+      "carbohydrate": 0.6,
+      "fat": 1.16,
+      "fiber": 0.3,
+      "sodium": 72,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          15,
+          false
+        ],
+        [
+          "energy_kj",
+          63,
+          false
+        ],
+        [
+          "protein",
+          0.59,
+          false
+        ],
+        [
+          "carbohydrate",
+          0.6,
+          false
+        ],
+        [
+          "fat",
+          1.16,
+          false
+        ],
+        [
+          "fiber",
+          0.3,
+          false
+        ],
+        [
+          "sodium",
+          72,
+          false
+        ],
+        [
+          "calcium",
+          184,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-oat-milk",
+      "description": "Bebida de aveia",
+      "sourceDescription": "Oat milk (fortificada; varia por marca)",
+      "groupSlug": "bebidas-alcoolicas-e-nao-alcoolicas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 45,
+      "protein": 1,
+      "carbohydrate": 7,
+      "fat": 1.5,
+      "fiber": 0.8,
+      "sodium": 40,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          45,
+          false
+        ],
+        [
+          "energy_kj",
+          188,
+          false
+        ],
+        [
+          "protein",
+          1,
+          false
+        ],
+        [
+          "carbohydrate",
+          7,
+          false
+        ],
+        [
+          "fat",
+          1.5,
+          false
+        ],
+        [
+          "fiber",
+          0.8,
+          false
+        ],
+        [
+          "sodium",
+          40,
+          false
+        ],
+        [
+          "calcium",
+          120,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170163",
+      "description": "Pasta de castanha de caju",
+      "sourceDescription": "Nuts, cashew butter, plain, without salt added (FDC 170163)",
+      "groupSlug": "nozes-e-sementes",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 587,
+      "protein": 17.56,
+      "carbohydrate": 27.57,
+      "fat": 49.41,
+      "fiber": 2,
+      "sodium": 15,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          587,
+          false
+        ],
+        [
+          "energy_kj",
+          2456,
+          false
+        ],
+        [
+          "protein",
+          17.56,
+          false
+        ],
+        [
+          "carbohydrate",
+          27.57,
+          false
+        ],
+        [
+          "fat",
+          49.41,
+          false
+        ],
+        [
+          "fiber",
+          2,
+          false
+        ],
+        [
+          "sodium",
+          15,
+          false
+        ],
+        [
+          "iron",
+          5.03,
+          false
+        ],
+        [
+          "magnesium",
+          258,
+          false
+        ],
+        [
+          "phosphorus",
+          490,
+          false
+        ],
+        [
+          "potassium",
+          546,
+          false
+        ],
+        [
+          "zinc",
+          5.6,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-168588",
+      "description": "Manteiga de amêndoas",
+      "sourceDescription": "Nuts, almond butter, plain, without salt added (FDC 168588)",
+      "groupSlug": "nozes-e-sementes",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 614,
+      "protein": 20.96,
+      "carbohydrate": 18.82,
+      "fat": 55.5,
+      "fiber": 10.3,
+      "sodium": 7,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          614,
+          false
+        ],
+        [
+          "energy_kj",
+          2569,
+          false
+        ],
+        [
+          "protein",
+          20.96,
+          false
+        ],
+        [
+          "carbohydrate",
+          18.82,
+          false
+        ],
+        [
+          "fat",
+          55.5,
+          false
+        ],
+        [
+          "fiber",
+          10.3,
+          false
+        ],
+        [
+          "sodium",
+          7,
+          false
+        ],
+        [
+          "calcium",
+          347,
+          false
+        ],
+        [
+          "iron",
+          3.49,
+          false
+        ],
+        [
+          "magnesium",
+          279,
+          false
+        ],
+        [
+          "phosphorus",
+          508,
+          false
+        ],
+        [
+          "potassium",
+          748,
+          false
+        ],
+        [
+          "zinc",
+          3.3,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-174289",
+      "description": "Homus (pasta de grão-de-bico)",
+      "sourceDescription": "Hummus, commercial (FDC 174289)",
+      "groupSlug": "alimentos-preparados",
+      "type": "preparacao",
+      "source": "USDA",
+      "energyKcal": 166,
+      "protein": 7.9,
+      "carbohydrate": 14.29,
+      "fat": 9.6,
+      "fiber": 6,
+      "sodium": 379,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          166,
+          false
+        ],
+        [
+          "energy_kj",
+          695,
+          false
+        ],
+        [
+          "protein",
+          7.9,
+          false
+        ],
+        [
+          "carbohydrate",
+          14.29,
+          false
+        ],
+        [
+          "fat",
+          9.6,
+          false
+        ],
+        [
+          "fiber",
+          6,
+          false
+        ],
+        [
+          "sodium",
+          379,
+          false
+        ],
+        [
+          "calcium",
+          38,
+          false
+        ],
+        [
+          "iron",
+          2.44,
+          false
+        ],
+        [
+          "magnesium",
+          71,
+          false
+        ],
+        [
+          "phosphorus",
+          176,
+          false
+        ],
+        [
+          "potassium",
+          228,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-nutritional-yeast",
+      "description": "Levedura nutricional",
+      "sourceDescription": "Nutritional yeast (rica em vitaminas B; teor varia se fortificada)",
+      "groupSlug": "miscelaneas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 350,
+      "protein": 45,
+      "carbohydrate": 36,
+      "fat": 5,
+      "fiber": 21,
+      "sodium": 30,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          350,
+          false
+        ],
+        [
+          "energy_kj",
+          1464,
+          false
+        ],
+        [
+          "protein",
+          45,
+          false
+        ],
+        [
+          "carbohydrate",
+          36,
+          false
+        ],
+        [
+          "fat",
+          5,
+          false
+        ],
+        [
+          "fiber",
+          21,
+          false
+        ],
+        [
+          "sodium",
+          30,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-psyllium",
+      "description": "Psyllium (fibra)",
+      "sourceDescription": "Psyllium husk (predominantemente fibra solúvel)",
+      "groupSlug": "miscelaneas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 200,
+      "protein": 1.5,
+      "carbohydrate": 85,
+      "fat": 0.5,
+      "fiber": 80,
+      "sodium": 35,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          200,
+          false
+        ],
+        [
+          "energy_kj",
+          837,
+          false
+        ],
+        [
+          "protein",
+          1.5,
+          false
+        ],
+        [
+          "carbohydrate",
+          85,
+          false
+        ],
+        [
+          "fat",
+          0.5,
+          false
+        ],
+        [
+          "fiber",
+          80,
+          false
+        ],
+        [
+          "sodium",
+          35,
+          false
+        ],
+        [
+          "potassium",
+          200,
           false
         ]
       ]
