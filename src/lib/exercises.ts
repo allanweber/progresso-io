@@ -145,10 +145,15 @@ export const MUSCLE_OPTIONS = optionsFrom(MUSCLE_LABELS);
 // custom domain (set NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL). When unset — local dev
 // without the bucket — we fall back to the free-exercise-db CDN, which serves the
 // exact same image keys, so the catalog still shows images out of the box.
-const IMAGE_BASE = (process.env.NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL ?? "").replace(
-  /\/+$/,
-  "",
-);
+// Normalize the configured base: trim a trailing slash and, if the scheme is
+// missing (a bare domain like "images.example.dev"), assume https — otherwise
+// the browser would read it as a relative path and the image would 404.
+function normalizeBase(value: string | undefined): string {
+  const base = (value ?? "").trim().replace(/\/+$/, "");
+  if (!base) return "";
+  return /^https?:\/\//.test(base) ? base : `https://${base}`;
+}
+const IMAGE_BASE = normalizeBase(process.env.NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL);
 const IMAGE_FALLBACK =
   "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 
