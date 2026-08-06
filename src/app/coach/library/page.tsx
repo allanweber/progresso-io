@@ -12,7 +12,24 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, Plus, Search, Star } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { FavoriteButton } from "@/components/foods/favorite-button";
 import { SubstituteBadge } from "@/components/foods/substitute-badge";
 import { apiFetch } from "@/lib/api-client";
@@ -37,16 +54,12 @@ function fmt(v: number | null): string {
   return s.replace(".", ",");
 }
 
-function originChip(origin: FoodOrigin) {
-  return origin === "base"
-    ? "bg-[#EEF2FF] text-[#4338CA]"
-    : "bg-[#ECFDF5] text-[#047857]";
+function originVariant(origin: FoodOrigin): "base" | "clinic" {
+  return origin === "base" ? "base" : "clinic";
 }
 
-function typeChip(type: FoodType) {
-  return type === "ingrediente"
-    ? "bg-[#F1F5F9] text-[#475569]"
-    : "bg-[#FEF3C7] text-[#92400E]";
+function typeVariant(type: FoodType): "neutral" | "warn" {
+  return type === "ingrediente" ? "neutral" : "warn";
 }
 
 const columnHelper = createColumnHelper<FoodListItemDto>();
@@ -184,11 +197,9 @@ export default function LibraryPage() {
         id: "type",
         header: "Tipo",
         cell: (ctx) => (
-          <span
-            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeChip(ctx.getValue())}`}
-          >
+          <Badge variant={typeVariant(ctx.getValue())} className="font-medium">
             {FOOD_TYPE_LABELS[ctx.getValue()]}
-          </span>
+          </Badge>
         ),
       }),
       columnHelper.accessor("energyKcal", {
@@ -229,11 +240,9 @@ export default function LibraryPage() {
         id: "origin",
         header: "Origem",
         cell: (ctx) => (
-          <span
-            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${originChip(ctx.getValue())}`}
-          >
+          <Badge variant={originVariant(ctx.getValue())} className="font-medium">
             {ORIGIN_LABELS[ctx.getValue()]}
-          </span>
+          </Badge>
         ),
       }),
     ],
@@ -268,11 +277,11 @@ export default function LibraryPage() {
       </div>
 
       {/* Tabs — only Alimentos for now; more libraries land later. */}
-      <div className="mt-6 border-b border-border">
-        <span className="inline-block border-b-2 border-primary px-1 pb-2.5 text-sm font-semibold text-primary">
-          Alimentos
-        </span>
-      </div>
+      <Tabs value="alimentos" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="alimentos">Alimentos</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Search — full width on its own row. */}
       <div className="relative mt-5 w-full">
@@ -288,27 +297,35 @@ export default function LibraryPage() {
 
       {/* Filters */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <select
-          value={group}
-          onChange={(e) => setGroup(e.target.value)}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
+        <Select
+          value={group || "all"}
+          onValueChange={(v) => setGroup(v === "all" ? "" : v)}
         >
-          <option value="">Todos os grupos</option>
-          {(groups ?? []).map((g) => (
-            <option key={g.slug} value={g.slug}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as FoodType | "")}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
+          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-56 sm:flex-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os grupos</SelectItem>
+            {(groups ?? []).map((g) => (
+              <SelectItem key={g.slug} value={g.slug}>
+                {g.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={type || "all"}
+          onValueChange={(v) => setType(v === "all" ? "" : (v as FoodType))}
         >
-          <option value="">Ingredientes e preparações</option>
-          <option value="ingrediente">Ingredientes</option>
-          <option value="preparacao">Preparações</option>
-        </select>
+          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-56 sm:flex-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Ingredientes e preparações</SelectItem>
+            <SelectItem value="ingrediente">Ingredientes</SelectItem>
+            <SelectItem value="preparacao">Preparações</SelectItem>
+          </SelectContent>
+        </Select>
         <button
           type="button"
           onClick={() => setFavoritesOnly((v) => !v)}
@@ -359,20 +376,19 @@ export default function LibraryPage() {
                       {f.description}
                     </span>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${originChip(f.origin)}`}
+                      <Badge
+                        variant={originVariant(f.origin)}
+                        className="font-medium"
                       >
                         {ORIGIN_LABELS[f.origin]}
-                      </span>
+                      </Badge>
                       <FavoriteButton foodId={f.id} isFavorite={f.isFavorite} />
                     </div>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeChip(f.type)}`}
-                    >
+                    <Badge variant={typeVariant(f.type)} className="font-medium">
                       {FOOD_TYPE_LABELS[f.type]}
-                    </span>
+                    </Badge>
                     <span className="min-w-0 truncate text-xs text-[#94A3B8]">
                       {f.groupName}
                     </span>
@@ -402,7 +418,7 @@ export default function LibraryPage() {
               the numeric columns compact and let the description truncate, so
               the eight columns fit the container instead of overflowing. */}
           <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
-            <table className="w-full table-fixed text-sm">
+            <Table className="table-fixed">
               <colgroup>
                 <col className="w-9" />
                 <col />
@@ -414,44 +430,41 @@ export default function LibraryPage() {
                 <col className="w-14" />
                 <col className="w-16" />
               </colgroup>
-              <thead>
+              <TableHeader>
                 {table.getHeaderGroups().map((hg) => (
-                  <tr key={hg.id} className="border-b border-border">
+                  <TableRow key={hg.id} className="border-border">
                     {hg.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-4 py-3 text-left text-xs font-semibold text-[#94A3B8]"
-                      >
+                      <TableHead key={header.id}>
                         {flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                      </th>
+                      </TableHead>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))}
-              </thead>
-              <tbody>
+              </TableHeader>
+              <TableBody>
                 {table.getRowModel().rows.map((row) => (
-                  <tr
+                  <TableRow
                     key={row.id}
                     onClick={() =>
                       router.push(`/coach/library/foods/${row.original.id}`)
                     }
-                    className="cursor-pointer border-b border-[#F1F5F9] transition-colors last:border-0 hover:bg-surface-light"
+                    className="cursor-pointer hover:bg-surface-light"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 align-top">
+                      <TableCell key={cell.id} className="align-top">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
                         )}
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}

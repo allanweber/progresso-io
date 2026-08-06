@@ -6,7 +6,23 @@ import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { BookOpen, Plus, Search } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { SubstituteBadge } from "@/components/foods/substitute-badge";
 import { apiFetch } from "@/lib/api-client";
 import type {
@@ -26,10 +42,8 @@ function fmt(v: number | null): string {
   return s.replace(".", ",");
 }
 
-function originChip(origin: AdminFoodOrigin) {
-  return origin === "base"
-    ? "bg-[#EEF2FF] text-[#4338CA]"
-    : "bg-[#ECFDF5] text-[#047857]";
+function originVariant(origin: AdminFoodOrigin): "base" | "clinic" {
+  return origin === "base" ? "base" : "clinic";
 }
 
 export default function AdminFoodsPage() {
@@ -135,60 +149,76 @@ export default function AdminFoodsPage() {
 
       {/* Filters */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <select
-          value={origin}
-          onChange={(e) => {
-            setOrigin(e.target.value as AdminFoodOrigin | "");
+        <Select
+          value={origin || "all"}
+          onValueChange={(v) => {
+            setOrigin(v === "all" ? "" : (v as AdminFoodOrigin));
             setPage(1);
           }}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
-          <option value="">Base e clínicas</option>
-          <option value="base">Somente base</option>
-          <option value="clinic">Somente de clínicas</option>
-        </select>
-        <select
-          value={clinic}
-          onChange={(e) => {
-            setClinic(e.target.value);
+          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-48 sm:flex-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Base e clínicas</SelectItem>
+            <SelectItem value="base">Somente base</SelectItem>
+            <SelectItem value="clinic">Somente de clínicas</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={clinic || "all"}
+          onValueChange={(v) => {
+            setClinic(v === "all" ? "" : v);
             setPage(1);
           }}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
-          <option value="">Todas as clínicas</option>
-          {(clinics ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={group}
-          onChange={(e) => {
-            setGroup(e.target.value);
+          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-52 sm:flex-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as clínicas</SelectItem>
+            {(clinics ?? []).map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={group || "all"}
+          onValueChange={(v) => {
+            setGroup(v === "all" ? "" : v);
             setPage(1);
           }}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
-          <option value="">Todos os grupos</option>
-          {(groups ?? []).map((g) => (
-            <option key={g.slug} value={g.slug}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value as FoodType | "");
+          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-52 sm:flex-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os grupos</SelectItem>
+            {(groups ?? []).map((g) => (
+              <SelectItem key={g.slug} value={g.slug}>
+                {g.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={type || "all"}
+          onValueChange={(v) => {
+            setType(v === "all" ? "" : (v as FoodType));
             setPage(1);
           }}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
-          <option value="">Ingredientes e preparações</option>
-          <option value="ingrediente">Ingredientes</option>
-          <option value="preparacao">Preparações</option>
-        </select>
+          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-52 sm:flex-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Ingredientes e preparações</SelectItem>
+            <SelectItem value="ingrediente">Ingredientes</SelectItem>
+            <SelectItem value="preparacao">Preparações</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
@@ -221,16 +251,17 @@ export default function AdminFoodsPage() {
                     <span className="min-w-0 break-words font-medium text-foreground">
                       {f.description}
                     </span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${originChip(f.origin)}`}
+                    <Badge
+                      variant={originVariant(f.origin)}
+                      className="shrink-0 font-medium"
                     >
                       {ownerLabel(f)}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#475569]">
+                    <Badge variant="neutral" className="font-medium">
                       {FOOD_TYPE_LABELS[f.type]}
-                    </span>
+                    </Badge>
                     <span className="min-w-0 truncate text-xs text-[#94A3B8]">
                       {f.groupName}
                     </span>
@@ -258,7 +289,7 @@ export default function AdminFoodsPage() {
 
           {/* Desktop: table. */}
           <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
-            <table className="w-full table-fixed text-sm">
+            <Table className="table-fixed">
               <colgroup>
                 <col />
                 <col className="w-40" />
@@ -269,26 +300,26 @@ export default function AdminFoodsPage() {
                 <col className="w-14" />
                 <col className="w-14" />
               </colgroup>
-              <thead>
-                <tr className="border-b border-border text-left text-xs font-semibold text-[#94A3B8]">
-                  <th className="px-4 py-3">Alimento</th>
-                  <th className="px-4 py-3">Origem</th>
-                  <th className="px-4 py-3">Grupo</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3 text-right">kcal</th>
-                  <th className="px-4 py-3 text-right">Prot.</th>
-                  <th className="px-4 py-3 text-right">Carb.</th>
-                  <th className="px-4 py-3 text-right">Gord.</th>
-                </tr>
-              </thead>
-              <tbody>
+              <TableHeader>
+                <TableRow className="border-border">
+                  <TableHead>Alimento</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead>Grupo</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">kcal</TableHead>
+                  <TableHead className="text-right">Prot.</TableHead>
+                  <TableHead className="text-right">Carb.</TableHead>
+                  <TableHead className="text-right">Gord.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {items.map((f) => (
-                  <tr
+                  <TableRow
                     key={f.id}
                     onClick={() => router.push(`/admin/foods/${f.id}`)}
-                    className="cursor-pointer border-b border-[#F1F5F9] align-top transition-colors last:border-0 hover:bg-surface-light"
+                    className="cursor-pointer align-top hover:bg-surface-light"
                   >
-                    <td className="px-4 py-3">
+                    <TableCell>
                       <div className="break-words font-medium text-foreground">
                         {f.description}
                       </div>
@@ -298,36 +329,37 @@ export default function AdminFoodsPage() {
                         )}
                         <SubstituteBadge count={f.substituteCount} />
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${originChip(f.origin)}`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={originVariant(f.origin)}
+                        className="font-medium"
                       >
                         {ownerLabel(f)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[13px] text-[#475569]">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-[13px] text-[#475569]">
                       {f.groupName}
-                    </td>
-                    <td className="px-4 py-3 text-[13px] text-[#475569]">
+                    </TableCell>
+                    <TableCell className="text-[13px] text-[#475569]">
                       {FOOD_TYPE_LABELS[f.type]}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
                       {fmt(f.energyKcal)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-[#475569]">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-[#475569]">
                       {fmt(f.protein)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-[#475569]">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-[#475569]">
                       {fmt(f.carbohydrate)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-[#475569]">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-[#475569]">
                       {fmt(f.fat)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}

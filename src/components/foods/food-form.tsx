@@ -7,6 +7,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import {
@@ -191,54 +198,55 @@ export function FoodForm({
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <form.Field name="groupSlug">
-          {(field) => (
-            <div className="space-y-1.5">
-              <Label htmlFor="groupSlug">Grupo</Label>
-              <select
-                id="groupSlug"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={
-                  fieldError(field, serverErrors?.groupSlug) ? true : undefined
-                }
-                className="flex h-11 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3.5 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15 aria-invalid:border-destructive"
-              >
-                <option value="" disabled>
-                  Selecione um grupo…
-                </option>
-                {(groups ?? []).map((g) => (
-                  <option key={g.slug} value={g.slug}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-              {fieldError(field, serverErrors?.groupSlug) && (
-                <p className="text-[13px] text-destructive">
-                  {fieldError(field, serverErrors?.groupSlug)}
-                </p>
-              )}
-            </div>
-          )}
+          {(field) => {
+            const err = fieldError(field, serverErrors?.groupSlug);
+            return (
+              <div className="space-y-1.5">
+                <Label htmlFor="groupSlug">Grupo</Label>
+                <Select
+                  value={field.state.value || undefined}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger
+                    id="groupSlug"
+                    aria-invalid={err ? true : undefined}
+                    className={err ? "border-destructive" : undefined}
+                  >
+                    <SelectValue placeholder="Selecione um grupo…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(groups ?? []).map((g) => (
+                      <SelectItem key={g.slug} value={g.slug}>
+                        {g.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {err && <p className="text-[13px] text-destructive">{err}</p>}
+              </div>
+            );
+          }}
         </form.Field>
 
         <form.Field name="type">
           {(field) => (
             <div className="space-y-1.5">
               <Label htmlFor="type">Tipo</Label>
-              <select
-                id="type"
+              <Select
                 value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value as FoodType)}
-                className="flex h-11 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3.5 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                onValueChange={(v) => field.handleChange(v as FoodType)}
               >
-                {(["ingrediente", "preparacao"] as const).map((t) => (
-                  <option key={t} value={t}>
-                    {FOOD_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["ingrediente", "preparacao"] as const).map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {FOOD_TYPE_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </form.Field>

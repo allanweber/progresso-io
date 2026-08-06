@@ -6,7 +6,17 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, ArrowLeft, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { AdminFoodDetailDto, AdminFoodListResponse } from "@/lib/admin";
 import {
@@ -52,6 +62,7 @@ export default function AdminFoodDetailPage() {
   const id = params.id;
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-food", id],
@@ -67,16 +78,6 @@ export default function AdminFoodDetailPage() {
       router.refresh();
     },
   });
-
-  function handleArchive() {
-    if (
-      window.confirm(
-        "Arquivar este alimento base? Ele deixa de aparecer nas bibliotecas, mas o histórico é mantido.",
-      )
-    ) {
-      archiveMutation.mutate();
-    }
-  }
 
   const isBase = data?.origin === "base";
 
@@ -102,26 +103,23 @@ export default function AdminFoodDetailPage() {
         <>
           <div className="mt-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  isBase
-                    ? "bg-[#EEF2FF] text-[#4338CA]"
-                    : "bg-[#ECFDF5] text-[#047857]"
-                }`}
+              <Badge
+                variant={isBase ? "base" : "clinic"}
+                className="font-medium"
               >
                 {isBase ? "base" : (data.clinicName ?? "clínica")}
-              </span>
-              <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#475569]">
+              </Badge>
+              <Badge variant="neutral" className="font-medium">
                 {FOOD_TYPE_LABELS[data.type]}
-              </span>
+              </Badge>
               <span className="text-xs text-[#94A3B8]">{data.groupName}</span>
               {data.code && (
                 <span className="text-xs text-[#94A3B8]">· {data.code}</span>
               )}
               {data.archived && (
-                <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#64748B]">
+                <Badge variant="neutral" className="font-medium">
                   arquivado
-                </span>
+                </Badge>
               )}
             </div>
 
@@ -146,7 +144,7 @@ export default function AdminFoodDetailPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={handleArchive}
+                    onClick={() => setArchiveOpen(true)}
                     disabled={archiveMutation.isPending}
                   >
                     <Archive className="size-4" />
@@ -164,6 +162,40 @@ export default function AdminFoodDetailPage() {
               </div>
             )}
           </div>
+
+          <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Arquivar alimento base</DialogTitle>
+                <DialogDescription>
+                  Arquivar{" "}
+                  <span className="font-medium text-foreground">
+                    {data.description}
+                  </span>
+                  ? Ele deixa de aparecer nas bibliotecas, mas o histórico é
+                  mantido.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" size="sm">
+                    Cancelar
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setArchiveOpen(false);
+                    archiveMutation.mutate();
+                  }}
+                  disabled={archiveMutation.isPending}
+                >
+                  Arquivar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Macro highlight */}
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
