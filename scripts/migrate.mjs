@@ -11,6 +11,7 @@ import postgres from "postgres";
 
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
+const SUBSTITUTIONS = "./drizzle/data/taco-substitutions.json";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -149,12 +150,76 @@ async function seedSupplement(sql) {
   );
 }
 
+/**
+ * Loads the base substitution rules (`drizzle/data/taco-substitutions.json`,
+ * produced by scripts/build-substitutions.mjs): directed swaps where `grams` of
+ * the substitute ≡ 100 g of the main food, stamped `clinic_id = NULL` (shared).
+ * Foods are referenced by their exact catalog `description`, resolved to ids
+ * here — so it runs after the catalog + supplement are seeded. A rule whose food
+ * or substitute isn't in the catalog is skipped rather than failing the seed.
+ * Idempotent: skips once any base substitution exists.
+ */
+async function seedSubstitutions(sql) {
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(SUBSTITUTIONS, "utf8"));
+  } catch {
+    console.log(`• No substitutions at ${SUBSTITUTIONS} — skipping.`);
+    return;
+  }
+  const rules = doc.substitutions ?? [];
+  if (rules.length === 0) return;
+
+  const [{ count }] = await sql`
+    select count(*)::int as count from food_substitution where clinic_id is null`;
+  if (count > 0) {
+    console.log(`✓ Base substitutions already seeded (${count}) — skipping.`);
+    return;
+  }
+
+  // Resolve foods by their exact description (unique in the catalog).
+  const foodRows = await sql`select id, description from food`;
+  const idByDescription = new Map();
+  for (const r of foodRows) {
+    if (!idByDescription.has(r.description)) idByDescription.set(r.description, r.id);
+  }
+
+  const rows = [];
+  let skipped = 0;
+  for (const r of rules) {
+    const foodId = idByDescription.get(r.food);
+    const substituteId = idByDescription.get(r.substitute);
+    if (!foodId || !substituteId || foodId === substituteId) {
+      skipped++;
+      continue;
+    }
+    rows.push({
+      clinic_id: null,
+      food_id: foodId,
+      substitute_food_id: substituteId,
+      grams: r.grams,
+    });
+  }
+
+  if (rows.length > 0) {
+    await sql.begin(async (tx) => {
+      for (let i = 0; i < rows.length; i += 500) {
+        await tx`insert into food_substitution ${tx(rows.slice(i, i + 500))}`;
+      }
+    });
+  }
+  console.log(
+    `✓ Base substitutions seeded: ${rows.length}${skipped ? ` (${skipped} skipped — food not in catalog)` : ""}.`,
+  );
+}
+
 const sql = postgres(url, { max: 1 });
 try {
   await migrate(drizzle(sql), { migrationsFolder: "./drizzle" });
   console.log("✓ Migrations applied.");
   await seedCatalog(sql);
   await seedSupplement(sql);
+  await seedSubstitutions(sql);
 } catch (error) {
   console.error("✗ Migration failed:", error);
   process.exitCode = 1;
