@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
   FOOD_TYPE_LABELS,
@@ -406,12 +407,12 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
                   >
                     Gramas ≡ 100 g de {food.description.split(",")[0]}
                   </label>
-                  <input
+                  <Input
                     id="sub-grams"
                     inputMode="decimal"
                     value={grams}
                     onChange={(e) => setGrams(e.target.value)}
-                    className="h-11 w-32 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 text-sm text-foreground outline-none focus:border-primary"
+                    className="w-32"
                   />
                 </div>
                 <Button
@@ -428,13 +429,13 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
             <div className="mt-3">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
-                <input
+                <Input
                   type="search"
                   autoFocus
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Buscar alimento substituto…"
-                  className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary"
+                  className="pl-9"
                 />
               </div>
               {search.length >= 2 && (

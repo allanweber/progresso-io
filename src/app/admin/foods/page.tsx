@@ -8,6 +8,7 @@ import { BookOpen, Plus, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -162,12 +163,12 @@ export default function AdminFoodsPage() {
       {/* Search — full width */}
       <div className="relative mt-6 w-full">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
-        <input
+        <Input
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Buscar alimento…"
-          className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
+          className="pl-9"
         />
       </div>
 

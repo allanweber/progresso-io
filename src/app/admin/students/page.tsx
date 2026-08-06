@@ -11,6 +11,7 @@ import {
 import { ShieldAlert, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogClose,
@@ -203,13 +204,13 @@ export default function AdminStudentsPage() {
             ))}
           </SelectContent>
         </Select>
-        <input
+        <Input
           type="search"
           value={emailInput}
           onChange={(e) => setEmailInput(e.target.value)}
           placeholder="Filtrar por e-mail…"
           aria-label="Filtrar por e-mail"
-          className="h-10 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3 text-sm text-foreground outline-none placeholder:text-[#94A3B8] focus:border-primary"
+          className="h-10"
         />
       </div>
 
