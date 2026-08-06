@@ -1,48 +1,55 @@
-// Uploads the local exercise images
-// (drizzle/data/exercises-images/<code>/<n>.jpg, populated by
-// scripts/fetch-exercise-images.mjs) to the Cloudflare R2 bucket the app serves
-// images from. R2 is S3-compatible, so this uses the AWS SDK's S3 client.
+// Uploads the exercise images to the Cloudflare R2 bucket the app serves them
+// from. R2 is S3-compatible, so this uses the AWS SDK's S3 client.
 //
 // This runs AUTOMATICALLY on deploy — scripts/migrate.mjs calls
-// uploadExerciseImages() right after seeding — so no manual step is needed. It
-// can also be run on its own: `npm run db:upload-exercise-images`.
+// uploadExerciseImages() right after seeding — so no manual step is needed.
+//
+// Image source: the images are NOT committed to the repo (100 MB of binaries).
+// Instead the keys come from the seed catalog, and each image is read from a
+// local folder if present (drizzle/data/exercises-images/, populated by
+// `npm run db:fetch-exercise-images` for a fast local upload) or streamed from
+// the free-exercise-db CDN otherwise (the deploy path — nothing to clone).
 //
 // Required env (see .env.example): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
-// R2_SECRET_ACCESS_KEY, R2_BUCKET. Optional: R2_PREFIX (key prefix in the
-// bucket). When any is missing the upload is skipped (not an error), so envs
-// without R2 configured — and local dev — deploy fine (the app falls back to the
-// source CDN for images).
+// R2_SECRET_ACCESS_KEY, R2_BUCKET. Optional: R2_PREFIX. When any is missing the
+// upload is skipped (not an error), so envs without R2 deploy fine.
 //
 // Idempotent: after a full upload it writes a small manifest object; subsequent
 // runs see the manifest (a single HEAD) and skip. Delete it to force a re-upload.
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 
-import {
-  HeadObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
+const CATALOG = join(process.cwd(), "drizzle", "data", "exercises-catalog.ndjson.gz");
 const IMAGES_DIR = join(process.cwd(), "drizzle", "data", "exercises-images");
+const CDN = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 const MANIFEST_KEY = ".exercises-manifest.json";
 const CONCURRENCY = 16;
 
-/** Recursively lists every file under `dir` as an absolute path. */
-function walk(dir) {
-  const out = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) out.push(...walk(full));
-    else out.push(full);
-  }
-  return out;
+/** Every image key ("<code>/<n>.jpg") referenced by the seed catalog. */
+function imageKeys() {
+  const text = gunzipSync(readFileSync(CATALOG)).toString("utf8");
+  return text
+    .split("\n")
+    .filter(Boolean)
+    .flatMap((l) => JSON.parse(l).images ?? []);
+}
+
+/** Loads one image as a Buffer — from the local folder if present, else the CDN. */
+async function loadImage(key) {
+  const local = join(IMAGES_DIR, key);
+  if (existsSync(local)) return readFileSync(local);
+  const res = await fetch(`${CDN}/${key}`);
+  if (!res.ok) throw new Error(`CDN ${res.status} for ${key}`);
+  return Buffer.from(await res.arrayBuffer());
 }
 
 /**
- * Uploads every local exercise image to R2. Returns a small result describing
- * what happened. Never throws for a missing configuration — it just skips —
- * so the deploy seed can call it unconditionally.
+ * Uploads every exercise image to R2. Returns a small result describing what
+ * happened. Never throws for a missing configuration — it just skips — so the
+ * deploy seed can call it unconditionally.
  */
 export async function uploadExerciseImages({ log = console.log } = {}) {
   const {
@@ -53,24 +60,19 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
     R2_PREFIX = "",
   } = process.env;
 
-  if (
-    !R2_ACCOUNT_ID ||
-    !R2_ACCESS_KEY_ID ||
-    !R2_SECRET_ACCESS_KEY ||
-    !R2_BUCKET
-  ) {
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
     log("• R2 not configured — skipping exercise image upload.");
     return { skipped: true, reason: "no-config" };
   }
 
-  let files;
+  let keys;
   try {
-    files = walk(IMAGES_DIR);
+    keys = imageKeys();
   } catch {
-    log(`• No local images at ${IMAGES_DIR} — skipping image upload.`);
-    return { skipped: true, reason: "no-images" };
+    log(`• No catalog at ${CATALOG} — skipping image upload.`);
+    return { skipped: true, reason: "no-catalog" };
   }
-  if (files.length === 0) return { skipped: true, reason: "no-images" };
+  if (keys.length === 0) return { skipped: true, reason: "no-images" };
 
   const prefix = R2_PREFIX ? `${R2_PREFIX.replace(/\/+$/, "")}/` : "";
   const s3 = new S3Client({
@@ -83,14 +85,14 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
   });
 
   // A prior full upload leaves a manifest — skip when it already covers these
-  // files, so re-deploys don't re-push thousands of unchanged objects.
+  // images, so re-deploys don't re-push thousands of unchanged objects.
   const manifestKey = `${prefix}${MANIFEST_KEY}`;
   try {
     const head = await s3.send(
       new HeadObjectCommand({ Bucket: R2_BUCKET, Key: manifestKey }),
     );
     const uploaded = Number(head.Metadata?.count ?? "0");
-    if (uploaded >= files.length) {
+    if (uploaded >= keys.length) {
       log(`✓ Exercise images already uploaded (${uploaded}) — skipping.`);
       return { skipped: true, reason: "manifest", uploaded };
     }
@@ -98,24 +100,25 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
     // No manifest (or not readable) — do a full upload below.
   }
 
-  log(`Uploading ${files.length} exercise images to R2 "${R2_BUCKET}"…`);
+  const source = existsSync(IMAGES_DIR) ? "local folder" : "source CDN";
+  log(`Uploading ${keys.length} exercise images to R2 "${R2_BUCKET}" (from ${source})…`);
   let done = 0;
   let cursor = 0;
   async function worker() {
-    while (cursor < files.length) {
-      const file = files[cursor++];
-      const key = prefix + relative(IMAGES_DIR, file).split("\\").join("/");
+    while (cursor < keys.length) {
+      const key = keys[cursor++];
+      const body = await loadImage(key);
       await s3.send(
         new PutObjectCommand({
           Bucket: R2_BUCKET,
-          Key: key,
-          Body: readFileSync(file),
+          Key: prefix + key,
+          Body: body,
           ContentType: "image/jpeg",
           CacheControl: "public, max-age=31536000, immutable",
         }),
       );
       done++;
-      if (done % 200 === 0) log(`  …${done}/${files.length}`);
+      if (done % 200 === 0) log(`  …${done}/${keys.length}`);
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -125,9 +128,9 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
     new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: manifestKey,
-      Body: JSON.stringify({ count: files.length }),
+      Body: JSON.stringify({ count: keys.length }),
       ContentType: "application/json",
-      Metadata: { count: String(files.length) },
+      Metadata: { count: String(keys.length) },
     }),
   );
 

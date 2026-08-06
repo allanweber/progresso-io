@@ -53,3 +53,8 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Exercise images are NOT committed (100 MB of binaries). They live in the
+# Cloudflare R2 bucket the app serves from; `npm run db:fetch-exercise-images`
+# can repopulate this folder locally for a fast upload, but it stays out of git.
+/drizzle/data/exercises-images/

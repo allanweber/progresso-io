@@ -26,8 +26,13 @@ live in `src/lib/exercises.ts`.
 | Step | Command | Output |
 | --- | --- | --- |
 | 1. Build seed artifact | `npm run db:transform-exercises` | `drizzle/data/exercises-catalog.ndjson.gz` |
-| 2. Fetch images locally | `npm run db:fetch-exercise-images` | `drizzle/data/exercises-images/<code>/<n>.jpg` |
-| 3. Build substitutions | `npm run db:build-exercise-substitutions` | `drizzle/data/exercise-substitutions.json` |
+| 2. Build substitutions | `npm run db:build-exercise-substitutions` | `drizzle/data/exercise-substitutions.json` |
+| (optional) Cache images locally | `npm run db:fetch-exercise-images` | `drizzle/data/exercises-images/<code>/<n>.jpg` (git-ignored) |
+
+The images are **not** committed — 100 MB of binaries have no place in the repo
+(and would bloat every Dokploy clone). They live only in the Cloudflare R2
+bucket. The gzipped catalog and the substitutions JSON (a few hundred KB total)
+are the only committed data.
 
 Steps 1–3 are done once, in dev, and their outputs are committed. On deploy,
 `scripts/migrate.mjs` runs automatically and, after applying migrations:
@@ -37,14 +42,23 @@ Steps 1–3 are done once, in dev, and their outputs are committed. On deploy,
 2. `seedExerciseSubstitutions` loads `exercise-substitutions.json` into
    `exercise_substitution` as base rules (`clinic_id NULL`), resolving exercises
    by `code`. Idempotent (skips once any base rule exists).
-3. `uploadExerciseImages` pushes `drizzle/data/exercises-images/` to R2 —
-   also automatic and idempotent (it skips once a full upload's manifest is
-   present, and skips entirely when the `R2_*` env vars aren't set). No manual
+3. `uploadExerciseImages` pushes the images to R2 — streaming each from the
+   source CDN (or a local `drizzle/data/exercises-images/` folder if present).
+   Automatic and idempotent (it skips once a full upload's manifest is present,
+   and skips entirely when the `R2_*` env vars aren't set). No manual
    `npm run db:upload-exercise-images` is required (that script still exists for
    ad-hoc runs). A failed upload is non-fatal — the deploy continues and the app
-   falls back to the source CDN for images.
+   falls back to the source CDN for serving.
 
-The images are versioned in the repo so the seed is self-contained.
+## Images
+
+Exercise images live in the Cloudflare R2 bucket, never in the repo. The `exercise`
+row stores relative keys (`<code>/0.jpg`); the client resolves them with
+`exerciseImageUrl()` (`src/lib/exercises.ts`):
+
+- Production points at the R2 custom domain via `NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL`.
+- When that's unset (local dev), it falls back to the free-exercise-db CDN, which
+  serves the same keys — so images load out of the box.
 
 ## Substitutions
 
@@ -74,16 +88,6 @@ base/custom discriminator as `food`:
   and image keys are stored as text arrays.
 - `search_text = unaccent(lower(name))` backs a GIN trigram index for
   accent-/case-blind search, exactly like the food catalog.
-
-## Images
-
-The `exercise` row stores relative image keys (`<code>/0.jpg`). The client
-resolves them to a URL with `exerciseImageUrl()` (`src/lib/exercises.ts`):
-
-- Production points at the Cloudflare R2 custom domain via
-  `NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL`.
-- When that's unset (local dev), it falls back to the free-exercise-db CDN, which
-  serves the same keys — so images load out of the box.
 
 ## API
 
