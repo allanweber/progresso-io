@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { BookOpen, Plus, Search } from "lucide-react";
 
@@ -48,13 +48,23 @@ function originVariant(origin: AdminFoodOrigin): "base" | "clinic" {
 
 export default function AdminFoodsPage() {
   const router = useRouter();
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [origin, setOrigin] = useState<AdminFoodOrigin | "">("");
-  const [clinic, setClinic] = useState("");
-  const [group, setGroup] = useState("");
-  const [type, setType] = useState<FoodType | "">("");
-  const [page, setPage] = useState(1);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Seed filter state from the URL so returning from a detail page (back button
+  // or the detail's own "voltar") restores the exact list the coach left.
+  const [searchInput, setSearchInput] = useState(
+    () => searchParams.get("search") ?? "",
+  );
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [origin, setOrigin] = useState<AdminFoodOrigin | "">(
+    () => (searchParams.get("origin") as AdminFoodOrigin | null) ?? "",
+  );
+  const [clinic, setClinic] = useState(() => searchParams.get("clinic") ?? "");
+  const [group, setGroup] = useState(() => searchParams.get("group") ?? "");
+  const [type, setType] = useState<FoodType | "">(
+    () => (searchParams.get("type") as FoodType | null) ?? "",
+  );
+  const [page, setPage] = useState(() => Number(searchParams.get("page")) || 1);
 
   // Debounce the search and return to page 1 on a new term. Resetting the page
   // inside the timeout (async) keeps setState out of the synchronous effect body.
@@ -67,6 +77,20 @@ export default function AdminFoodsPage() {
   }, [searchInput]);
 
   // Any filter change also returns to the first page (done in the handlers).
+
+  // Mirror the active filters into the URL (replace, no history spam) so the
+  // list is restorable on back-navigation and shareable as a link.
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (search) p.set("search", search);
+    if (origin) p.set("origin", origin);
+    if (clinic) p.set("clinic", clinic);
+    if (group) p.set("group", group);
+    if (type) p.set("type", type);
+    if (page > 1) p.set("page", String(page));
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [search, origin, clinic, group, type, page, pathname, router]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -147,8 +171,8 @@ export default function AdminFoodsPage() {
         />
       </div>
 
-      {/* Filters */}
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      {/* Filters — stack on phones, two-up on tablets, one row on desktop. */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select
           value={origin || "all"}
           onValueChange={(v) => {
@@ -156,7 +180,7 @@ export default function AdminFoodsPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-48 sm:flex-none">
+          <SelectTrigger className="h-10 w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -172,7 +196,7 @@ export default function AdminFoodsPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-52 sm:flex-none">
+          <SelectTrigger className="h-10 w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -191,7 +215,7 @@ export default function AdminFoodsPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-52 sm:flex-none">
+          <SelectTrigger className="h-10 w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -210,7 +234,7 @@ export default function AdminFoodsPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-52 sm:flex-none">
+          <SelectTrigger className="h-10 w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -239,8 +263,8 @@ export default function AdminFoodsPage() {
         </div>
       ) : (
         <>
-          {/* Mobile: a card per food. */}
-          <ul className="mt-3 space-y-3 md:hidden">
+          {/* Mobile + tablet: a card per food. */}
+          <ul className="mt-3 space-y-3 lg:hidden">
             {items.map((f) => (
               <li key={f.id}>
                 <Link
@@ -288,7 +312,7 @@ export default function AdminFoodsPage() {
           </ul>
 
           {/* Desktop: table. */}
-          <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+          <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] lg:block">
             <Table className="table-fixed">
               <colgroup>
                 <col />

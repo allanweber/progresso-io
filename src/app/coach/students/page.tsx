@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
@@ -13,6 +13,14 @@ import {
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
 import {
   ACCESS_LABELS,
@@ -108,9 +116,31 @@ const columns = [
   }),
 ];
 
+const STATE_KEYS: readonly (StudentStateKey | "all")[] = [
+  "all",
+  "active",
+  "invited",
+  "inactive",
+  "archived",
+];
+
 export default function StudentsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<StudentStateKey | "all">("all");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Seed from the URL so returning from a student's profile keeps the filter.
+  const [filter, setFilter] = useState<StudentStateKey | "all">(() => {
+    const f = searchParams.get("filter");
+    return f && STATE_KEYS.includes(f as StudentStateKey | "all")
+      ? (f as StudentStateKey | "all")
+      : "all";
+  });
+
+  // Mirror the active filter into the URL (replace, no history spam).
+  useEffect(() => {
+    const qs = filter === "all" ? "" : `?filter=${filter}`;
+    router.replace(`${pathname}${qs}`, { scroll: false });
+  }, [filter, pathname, router]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["students"],
@@ -256,46 +286,43 @@ export default function StudentsPage() {
           </ul>
 
           {/* Desktop: the full TanStack table. */}
-          <div className="mt-4 hidden overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
-            <table className="w-full text-sm">
-              <thead>
+          <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+            <Table>
+              <TableHeader>
                 {table.getHeaderGroups().map((hg) => (
-                  <tr key={hg.id} className="border-b border-border">
+                  <TableRow key={hg.id} className="border-border">
                     {hg.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-4 py-3 text-left text-xs font-semibold text-[#94A3B8]"
-                      >
+                      <TableHead key={header.id}>
                         {flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                      </th>
+                      </TableHead>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))}
-              </thead>
-              <tbody>
+              </TableHeader>
+              <TableBody>
                 {table.getRowModel().rows.map((row) => (
-                  <tr
+                  <TableRow
                     key={row.id}
                     onClick={() =>
                       router.push(`/coach/students/${row.original.id}`)
                     }
-                    className="cursor-pointer border-b border-[#F1F5F9] last:border-0 transition-colors hover:bg-surface-light"
+                    className="cursor-pointer hover:bg-surface-light"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 align-middle">
+                      <TableCell key={cell.id} className="align-middle">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
                         )}
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </>
       )}

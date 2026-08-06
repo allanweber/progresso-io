@@ -11,6 +11,30 @@ import {
 import { ShieldAlert, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { AdminStudentDto, ClinicOption } from "@/lib/admin";
 import { avatarColor, studentInitials } from "@/lib/students";
@@ -162,31 +186,34 @@ export default function AdminStudentsPage() {
         aluno de todas as clínicas e tabelas.
       </p>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <select
-          value={clinicId}
-          onChange={(e) => setClinicId(e.target.value)}
-          aria-label="Filtrar por clínica"
-          className="h-10 rounded-[10px] border-[1.5px] border-input bg-white px-3 text-sm text-foreground outline-none focus:border-primary"
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,16rem)_1fr]">
+        <Select
+          value={clinicId || "all"}
+          onValueChange={(v) => setClinicId(v === "all" ? "" : v)}
         >
-          <option value="">Todas as clínicas</option>
-          {(clinics.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="h-10 w-full rounded-[10px]" aria-label="Filtrar por clínica">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as clínicas</SelectItem>
+            {(clinics.data ?? []).map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <input
           type="search"
           value={emailInput}
           onChange={(e) => setEmailInput(e.target.value)}
           placeholder="Filtrar por e-mail…"
           aria-label="Filtrar por e-mail"
-          className="h-10 min-w-[220px] flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3 text-sm text-foreground outline-none placeholder:text-[#94A3B8] focus:border-primary"
+          className="h-10 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3 text-sm text-foreground outline-none placeholder:text-[#94A3B8] focus:border-primary"
         />
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         {students.isLoading ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             Carregando alunos…
@@ -200,103 +227,92 @@ export default function AdminStudentsPage() {
             Nenhum aluno encontrado com esses filtros.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
+          <Table>
+            <TableHeader>
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-border">
+                <TableRow key={hg.id} className="border-border">
                   {hg.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left text-xs font-semibold text-[#94A3B8]"
-                    >
+                    <TableHead key={header.id}>
                       {flexRender(
                         header.column.columnDef.header,
                         header.getContext(),
                       )}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-            </thead>
-            <tbody>
+            </TableHeader>
+            <TableBody>
               {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-[#F1F5F9] last:border-0"
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 align-middle">
+                    <TableCell key={cell.id} className="align-middle">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
 
-      {pendingDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirmar exclusão"
-        >
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => !remove.isPending && setPendingDelete(null)}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-[0_8px_40px_rgba(15,23,42,0.15)]">
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10">
-                <ShieldAlert className="size-5 text-destructive" />
-              </div>
-              <h2 className="font-heading text-lg font-bold text-foreground">
-                Excluir aluno
-              </h2>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Excluir{" "}
-              <span className="font-semibold text-foreground">
-                {pendingDelete.firstName} {pendingDelete.lastName}
-              </span>{" "}
-              ({pendingDelete.email}) da clínica{" "}
-              <span className="font-semibold text-foreground">
-                {pendingDelete.clinicName}
-              </span>
-              ? Esta ação é permanente e remove o aluno, seus convites
-              {pendingDelete.hasAccount ? " e o login de acesso (sessões e credenciais)" : ""}
-              . Não é possível desfazer.
-            </p>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={(o) => {
+          if (!o && !remove.isPending) setPendingDelete(null);
+        }}
+      >
+        <DialogContent>
+          {pendingDelete && (
+            <>
+              <DialogHeader className="flex-row items-center gap-2.5 space-y-0">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10">
+                  <ShieldAlert className="size-5 text-destructive" />
+                </div>
+                <DialogTitle>Excluir aluno</DialogTitle>
+              </DialogHeader>
+              <DialogDescription className="mt-3">
+                Excluir{" "}
+                <span className="font-semibold text-foreground">
+                  {pendingDelete.firstName} {pendingDelete.lastName}
+                </span>{" "}
+                ({pendingDelete.email}) da clínica{" "}
+                <span className="font-semibold text-foreground">
+                  {pendingDelete.clinicName}
+                </span>
+                ? Esta ação é permanente e remove o aluno, seus convites
+                {pendingDelete.hasAccount
+                  ? " e o login de acesso (sessões e credenciais)"
+                  : ""}
+                . Não é possível desfazer.
+              </DialogDescription>
 
-            {remove.error instanceof ApiError && (
-              <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
-                {remove.error.message}
-              </div>
-            )}
+              {remove.error instanceof ApiError && (
+                <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+                  {remove.error.message}
+                </div>
+              )}
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                disabled={remove.isPending}
-                className="rounded-[10px] border-[1.5px] border-input px-4 py-2 text-sm font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => remove.mutate(pendingDelete.id)}
-                disabled={remove.isPending}
-              >
-                {remove.isPending ? "Excluindo…" : "Excluir definitivamente"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" disabled={remove.isPending}>
+                    Cancelar
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => remove.mutate(pendingDelete.id)}
+                  disabled={remove.isPending}
+                >
+                  {remove.isPending ? "Excluindo…" : "Excluir definitivamente"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

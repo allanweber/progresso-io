@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
@@ -66,13 +66,27 @@ const columnHelper = createColumnHelper<FoodListItemDto>();
 
 export default function LibraryPage() {
   const router = useRouter();
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [group, setGroup] = useState("");
-  const [type, setType] = useState<FoodType | "">("");
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [sort, setSort] = useState<Sort>("description");
-  const [dir, setDir] = useState<"asc" | "desc">("asc");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Seed filter state from the URL so returning from a food's detail page
+  // restores the exact filtered/sorted list the coach left.
+  const [searchInput, setSearchInput] = useState(
+    () => searchParams.get("search") ?? "",
+  );
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [group, setGroup] = useState(() => searchParams.get("group") ?? "");
+  const [type, setType] = useState<FoodType | "">(
+    () => (searchParams.get("type") as FoodType | null) ?? "",
+  );
+  const [favoritesOnly, setFavoritesOnly] = useState(
+    () => searchParams.get("favorite") === "true",
+  );
+  const [sort, setSort] = useState<Sort>(
+    () => (searchParams.get("sort") as Sort | null) ?? "description",
+  );
+  const [dir, setDir] = useState<"asc" | "desc">(() =>
+    searchParams.get("dir") === "desc" ? "desc" : "asc",
+  );
   const [page, setPage] = useState(1);
 
   // Debounce the free-text search so we don't refetch on every keystroke.
@@ -83,6 +97,22 @@ export default function LibraryPage() {
 
   // Any filter/sort change returns to the first page.
   useEffect(() => setPage(1), [search, group, type, favoritesOnly, sort, dir]);
+
+  // Mirror the active filters into the URL (replace, no history spam) so the
+  // list is restorable on back-navigation and shareable as a link.
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (search) p.set("search", search);
+    if (group) p.set("group", group);
+    if (type) p.set("type", type);
+    if (favoritesOnly) p.set("favorite", "true");
+    if (!search) {
+      if (sort !== "description") p.set("sort", sort);
+      if (dir !== "asc") p.set("dir", dir);
+    }
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [search, group, type, favoritesOnly, sort, dir, pathname, router]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -295,13 +325,13 @@ export default function LibraryPage() {
         />
       </div>
 
-      {/* Filters */}
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      {/* Filters — stack on phones, three-up from tablet on. */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Select
           value={group || "all"}
           onValueChange={(v) => setGroup(v === "all" ? "" : v)}
         >
-          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-56 sm:flex-none">
+          <SelectTrigger className="h-10 w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -317,7 +347,7 @@ export default function LibraryPage() {
           value={type || "all"}
           onValueChange={(v) => setType(v === "all" ? "" : (v as FoodType))}
         >
-          <SelectTrigger className="h-10 min-w-0 flex-1 rounded-xl sm:w-56 sm:flex-none">
+          <SelectTrigger className="h-10 w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -332,8 +362,8 @@ export default function LibraryPage() {
           aria-pressed={favoritesOnly}
           className={
             favoritesOnly
-              ? "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700"
-              : "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
+              ? "flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-medium text-amber-700"
+              : "flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-white px-3 text-sm font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
           }
         >
           <Star
@@ -363,8 +393,8 @@ export default function LibraryPage() {
         </div>
       ) : (
         <>
-          {/* Mobile: a card per food. */}
-          <ul className="mt-3 space-y-3 md:hidden">
+          {/* Mobile + tablet: a card per food. */}
+          <ul className="mt-3 space-y-3 lg:hidden">
             {items.map((f) => (
               <li key={f.id}>
                 <Link
@@ -417,7 +447,7 @@ export default function LibraryPage() {
           {/* Desktop: the full TanStack table. table-fixed + a colgroup keep
               the numeric columns compact and let the description truncate, so
               the eight columns fit the container instead of overflowing. */}
-          <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+          <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] lg:block">
             <Table className="table-fixed">
               <colgroup>
                 <col className="w-9" />
