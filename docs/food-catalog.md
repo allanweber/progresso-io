@@ -61,6 +61,17 @@ into the running catalog:
    `unaccent(lower(description))`. No shell needed — the compose `migrate`
    service runs it and the app waits for it.
 
+3. **Supplement** (`drizzle/data/taco-supplement.json`, seeded right after the
+   catalog) — ~75 common diet staples the TACO base lacks (peanut butter, whey,
+   Greek yogurt, chia, tempeh, plant milks, seeds, alt-flours, fermented foods…),
+   sourced from the **TBCA** (original code kept) and **USDA FoodData Central**
+   (FDC id kept; brand-variable powders use a representative value). They become
+   shared base foods reusing the existing groups/nutrients. This step is keyed by
+   each food's unique `code` with `on conflict do nothing`, so it is independent
+   of the catalog skip — it can top up a TACO-only database and re-runs safely.
+   `source` records provenance (`TACO` / `TBCA` / `USDA`). Total base: 597 + 75
+   = **672 foods**.
+
 ## Search
 
 Search is server-side and accent-/case-insensitive. `search_text` is the
@@ -111,7 +122,8 @@ Pages:
   `drizzle/0003_taco_source_default.sql` — `food.source` default → `TACO`.
 - `drizzle/data/taco-src/*.csv` (source) → `scripts/transform-taco.mjs` →
   `drizzle/data/taco-catalog.ndjson.gz` (the seed artifact).
-- `scripts/migrate.mjs` — migrations + idempotent catalog seed.
+- `drizzle/data/taco-supplement.json` — the TBCA/USDA base-catalog supplement.
+- `scripts/migrate.mjs` — migrations + idempotent catalog & supplement seed.
 - `src/server/dal/foods.ts` — tenant-scoped reads, search, and writes.
 - `src/lib/foods.ts` — client-safe DTOs + the query/form zod schemas.
 - `src/app/api/foods/*` — the route handlers.
