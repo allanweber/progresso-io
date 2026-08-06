@@ -56,6 +56,8 @@ export type FoodListItemDto = {
   groupSlug: string;
   origin: FoodOrigin;
   isFavorite: boolean;
+  /** Substitutes visible to the clinic for this food (base + own). */
+  substituteCount: number;
   energyKcal: number | null;
   protein: number | null;
   carbohydrate: number | null;

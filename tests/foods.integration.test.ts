@@ -318,6 +318,14 @@ describe("substitutions (phase 2)", () => {
     expect(baseSub).toBeDefined();
     expect(baseSub!.removable).toBe(false);
   });
+
+  it("surfaces the visible substitute count on the listing", async () => {
+    // açaí carries the base açaí→arroz rule; both clinics see the same count.
+    const listA = await foods.listFoods(ctxA, { search: "acai" });
+    expect(listA.items.find((f) => f.id === acaiId)!.substituteCount).toBe(1);
+    const listB = await foods.listFoods(ctxB, { search: "acai" });
+    expect(listB.items.find((f) => f.id === acaiId)!.substituteCount).toBe(1);
+  });
 });
 
 describe("favorites (phase 2)", () => {

@@ -10,7 +10,14 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, Plus, Search, Star } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Search,
+  Star,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FavoriteButton } from "@/components/foods/favorite-button";
@@ -161,12 +168,21 @@ export default function LibraryPage() {
           const f = ctx.row.original;
           return (
             <div className="min-w-0">
-              <div className="truncate font-medium text-foreground">
+              <div className="break-words font-medium text-foreground">
                 {f.description}
               </div>
-              {f.code && (
-                <div className="truncate text-xs text-[#94A3B8]">{f.code}</div>
-              )}
+              <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+                {f.code && <span className="truncate">{f.code}</span>}
+                {f.substituteCount > 0 && (
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 text-[#6366F1]"
+                    title={`${f.substituteCount} substituto(s)`}
+                  >
+                    <ArrowLeftRight className="size-3" />
+                    {f.substituteCount}
+                  </span>
+                )}
+              </div>
             </div>
           );
         },
@@ -369,9 +385,15 @@ export default function LibraryPage() {
                     >
                       {FOOD_TYPE_LABELS[f.type]}
                     </span>
-                    <span className="truncate text-xs text-[#94A3B8]">
+                    <span className="min-w-0 truncate text-xs text-[#94A3B8]">
                       {f.groupName}
                     </span>
+                    {f.substituteCount > 0 && (
+                      <span className="inline-flex shrink-0 items-center gap-1 text-xs text-[#6366F1]">
+                        <ArrowLeftRight className="size-3" />
+                        {f.substituteCount}
+                      </span>
+                    )}
                   </div>
                   <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[13px]">
                     {[
@@ -399,15 +421,15 @@ export default function LibraryPage() {
           <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
             <table className="w-full table-fixed text-sm">
               <colgroup>
-                <col className="w-10" />
+                <col className="w-9" />
                 <col />
-                <col className="w-36" />
-                <col className="w-28" />
+                <col className="w-32" />
+                <col className="w-24" />
+                <col className="w-14" />
+                <col className="w-14" />
+                <col className="w-14" />
+                <col className="w-14" />
                 <col className="w-16" />
-                <col className="w-16" />
-                <col className="w-16" />
-                <col className="w-16" />
-                <col className="w-20" />
               </colgroup>
               <thead>
                 {table.getHeaderGroups().map((hg) => (
@@ -436,7 +458,7 @@ export default function LibraryPage() {
                     className="cursor-pointer border-b border-[#F1F5F9] transition-colors last:border-0 hover:bg-surface-light"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 align-middle">
+                      <td key={cell.id} className="px-4 py-3 align-top">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),

@@ -40,6 +40,8 @@ export type FoodListItem = {
   groupSlug: string;
   origin: FoodOrigin;
   isFavorite: boolean;
+  /** How many substitutes this clinic can see for the food (base + own). */
+  substituteCount: number;
   energyKcal: number | null;
   protein: number | null;
   carbohydrate: number | null;
@@ -143,6 +145,12 @@ export async function listFoods(
       groupSlug: schema.foodGroup.slug,
       // NULL unless this clinic favorited the food (PK makes it at most one row).
       favClinicId: schema.foodFavorite.clinicId,
+      // Substitutes visible to this clinic (base rules + its own), per food.
+      substituteCount: sql<number>`(
+        select count(*)::int from food_substitution fs
+        where fs.food_id = ${schema.food.id}
+          and (fs.clinic_id is null or fs.clinic_id = ${ctx.clinicId})
+      )`,
       energyKcal: schema.food.energyKcal,
       protein: schema.food.protein,
       carbohydrate: schema.food.carbohydrate,
