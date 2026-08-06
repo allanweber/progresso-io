@@ -194,6 +194,9 @@ export default function FoodDetailPage() {
             ))}
           </div>
 
+          {/* Substitutes — right under the macros (managed by the clinic). */}
+          <Substitutes food={data} />
+
           {/* Full profile — only base foods carry a full TACO profile. */}
           {data.nutrients.length > 0 && (
             <>
@@ -227,9 +230,6 @@ export default function FoodDetailPage() {
               </div>
             </>
           )}
-
-          {/* Substitutes — managed by the clinic (add/remove its own rules). */}
-          <Substitutes food={data} />
         </>
       ) : null}
     </div>

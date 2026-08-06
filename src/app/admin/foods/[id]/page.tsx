@@ -187,6 +187,9 @@ export default function AdminFoodDetailPage() {
             ))}
           </div>
 
+          {/* Base substitutes — right under the macros (admin-managed on base). */}
+          <BaseSubstitutes food={data} canManage={isBase} />
+
           {/* Full profile */}
           {data.nutrients.length > 0 && (
             <>
@@ -220,9 +223,6 @@ export default function AdminFoodDetailPage() {
               </div>
             </>
           )}
-
-          {/* Base substitutes — admin-managed only for base foods. */}
-          <BaseSubstitutes food={data} canManage={isBase} />
         </>
       ) : null}
     </div>
