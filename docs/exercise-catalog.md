@@ -27,11 +27,20 @@ live in `src/lib/exercises.ts`.
 | --- | --- | --- |
 | 1. Build seed artifact | `npm run db:transform-exercises` | `drizzle/data/exercises-catalog.ndjson.gz` |
 | 2. Fetch images locally | `npm run db:fetch-exercise-images` | `drizzle/data/exercises-images/<code>/<n>.jpg` |
-| 3. Upload images to R2 | `npm run db:upload-exercise-images` | Cloudflare R2 bucket |
 
-The seed itself (`scripts/migrate.mjs → seedExercises`) loads the gzipped NDJSON
-into the `exercise` table on deploy, idempotently (it no-ops once the table has
-rows). The images are versioned in the repo so the seed is self-contained.
+Steps 1–2 are done once, in dev, and their outputs are committed. On deploy,
+`scripts/migrate.mjs` runs automatically and, after applying migrations:
+
+1. `seedExercises` loads the gzipped NDJSON into the `exercise` table,
+   idempotently (no-ops once the table has rows).
+2. `uploadExerciseImages` pushes `drizzle/data/exercises-images/` to R2 —
+   also automatic and idempotent (it skips once a full upload's manifest is
+   present, and skips entirely when the `R2_*` env vars aren't set). No manual
+   `npm run db:upload-exercise-images` is required (that script still exists for
+   ad-hoc runs). A failed upload is non-fatal — the deploy continues and the app
+   falls back to the source CDN for images.
+
+The images are versioned in the repo so the seed is self-contained.
 
 ## Schema
 

@@ -9,6 +9,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
+import { uploadExerciseImages } from "./upload-exercise-images.mjs";
+
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
 const SUBSTITUTIONS = "./drizzle/data/taco-substitutions.json";
@@ -266,6 +268,14 @@ try {
   await seedSupplement(sql);
   await seedSubstitutions(sql);
   await seedExercises(sql);
+  // Push the exercise images to R2 (idempotent; skips when R2 isn't configured
+  // or already uploaded). Non-fatal: a failed upload must not fail the deploy —
+  // the app falls back to the source CDN for images.
+  try {
+    await uploadExerciseImages();
+  } catch (error) {
+    console.warn("• Exercise image upload failed (continuing):", error?.message ?? error);
+  }
 } catch (error) {
   console.error("✗ Migration failed:", error);
   process.exitCode = 1;
