@@ -26,6 +26,7 @@ function navItems(role: string | null | undefined) {
   }
   if (isAdmin(role)) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });
+    items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
   }
   return items;
 }

@@ -5,8 +5,10 @@ catalog.
 
 - **Phase 1 (read-only):** coaches browse the shared base catalog.
 - **Phase 2 (clinic writes):** a clinic creates/edits/archives its own custom
-  foods, manages substitution rules, and favorites foods. *(current)*
-- **Phase 3:** super-admin curation of the base catalog + cross-clinic view.
+  foods, manages substitution rules, and favorites foods.
+- **Phase 3 (super admin):** the platform admin curates the shared **base**
+  catalog (create/edit/archive base foods, manage base substitutions) and has a
+  read-only **cross-clinic view** of every clinic's own foods. *(current)*
 
 ## Data model
 
@@ -114,6 +116,24 @@ Pages:
   (base foods) grouped by kind, edit/archive for the clinic's own food, and
   substitution management (inline food-search picker + grams, remove own rules).
 
+### Super admin (phase 3)
+
+The platform admin (`role = "admin"`, no clinic) works cross-tenant through the
+admin DAL (`src/server/dal/admin.ts`), gated at every route by `getAdminSession`.
+It **sees** every food (base + all clinics) but only ever **writes** the base
+(`clinic_id IS NULL`): create/edit/archive scope their WHERE to base rows, and
+base substitutions are stamped `clinic_id = NULL`. A clinic's own food/rule is
+read-only here.
+
+- `GET /api/admin/foods` (search / group / type / **origin** / **clinic** /
+  archived), `POST` (create base). `GET/PUT/DELETE /api/admin/foods/[id]` (read
+  any; edit/archive base). `POST` + `DELETE …/substitutions/[subId]` (base
+  rules). `GET /api/admin/foods/groups`.
+- `/admin/foods` — cross-clinic listing with origin + clinic filters and a
+  "Novo alimento base" action; `/admin/foods/new`, `/admin/foods/[id]`,
+  `/admin/foods/[id]/edit`. The `FoodForm` component is reused, parameterized by
+  `apiBase` / cache keys / redirect path.
+
 ## How it's wired
 
 - `src/db/schema.ts` — the six tables.
@@ -124,8 +144,10 @@ Pages:
   `drizzle/data/taco-catalog.ndjson.gz` (the seed artifact).
 - `drizzle/data/taco-supplement.json` — the TBCA/USDA base-catalog supplement.
 - `scripts/migrate.mjs` — migrations + idempotent catalog & supplement seed.
-- `src/server/dal/foods.ts` — tenant-scoped reads, search, and writes.
-- `src/lib/foods.ts` — client-safe DTOs + the query/form zod schemas.
-- `src/app/api/foods/*` — the route handlers.
-- `src/components/foods/*` — `FoodForm` (create/edit) and `FavoriteButton`.
-- `src/app/coach/library/*` — the pages.
+- `src/server/dal/foods.ts` — tenant-scoped (coach) reads, search, and writes;
+  `src/server/dal/admin.ts` — the cross-tenant admin foods DAL (base CRUD).
+- `src/lib/foods.ts` / `src/lib/admin.ts` — client-safe DTOs + zod schemas.
+- `src/app/api/foods/*` and `src/app/api/admin/foods/*` — the route handlers.
+- `src/components/foods/*` — `FoodForm` (create/edit, endpoint-agnostic) and
+  `FavoriteButton`.
+- `src/app/coach/library/*` and `src/app/admin/foods/*` — the pages.

@@ -12,19 +12,35 @@ import { fieldError } from "@/lib/form";
 import {
   FOOD_TYPE_LABELS,
   foodFormSchema,
-  type FoodDetailDto,
   type FoodGroupOption,
   type FoodMutationResponse,
   type FoodType,
 } from "@/lib/foods";
 
 /**
- * The one form used for both creating and editing a clinic's custom food (the
- * "enxuto" form — the six hot macros only). It POSTs to the foods collection or
- * PUTs to the food, both via TanStack Query, validating with the same zod schema
- * the API uses. Macro inputs stay strings in form state; the schema coerces them
- * (a decimal comma is accepted) and empty becomes "não informado".
+ * The one form used for creating and editing a food (the "enxuto" form — the six
+ * hot macros only). It POSTs to the collection or PUTs to the item, both via
+ * TanStack Query, validating with the same zod schema the API uses. Macro inputs
+ * stay strings in form state; the schema coerces them (a decimal comma is
+ * accepted) and empty becomes "não informado".
+ *
+ * It is endpoint-agnostic: the coach library and the admin base catalog both use
+ * it, differing only in the `apiBase`, cache keys and redirect path passed in.
  */
+
+/** The subset of a food the form seeds its fields from (edit mode). */
+type FoodFormSource = {
+  id: string;
+  description: string;
+  groupSlug: string;
+  type: FoodType;
+  energyKcal: number | null;
+  protein: number | null;
+  carbohydrate: number | null;
+  fat: number | null;
+  fiber: number | null;
+  sodium: number | null;
+};
 
 type Values = {
   description: string;
@@ -55,7 +71,7 @@ function macroStr(v: number | null): string {
   return v === null ? "" : String(v).replace(".", ",");
 }
 
-function toValues(food: FoodDetailDto): Values {
+function toValues(food: FoodFormSource): Values {
   return {
     description: food.description,
     groupSlug: food.groupSlug,
@@ -82,17 +98,28 @@ const MACROS: { name: keyof Values; label: string }[] = [
 export function FoodForm({
   mode,
   food,
+  apiBase = "/api/foods",
+  listKey = "foods",
+  detailKey = "food",
+  detailPath = "/coach/library/foods",
 }: {
   mode: "create" | "edit";
-  food?: FoodDetailDto;
+  food?: FoodFormSource;
+  /** API collection this form writes to (default: the coach's own foods). */
+  apiBase?: string;
+  /** TanStack Query list/detail keys to invalidate on success. */
+  listKey?: string;
+  detailKey?: string;
+  /** Route the form navigates to after saving (`${detailPath}/${id}`). */
+  detailPath?: string;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data: groups } = useQuery({
-    queryKey: ["food-groups"],
+    queryKey: ["food-groups", apiBase],
     queryFn: () =>
-      apiFetch<{ groups: FoodGroupOption[] }>("/api/foods/groups").then(
+      apiFetch<{ groups: FoodGroupOption[] }>(`${apiBase}/groups`).then(
         (r) => r.groups,
       ),
     staleTime: Infinity,
@@ -101,16 +128,16 @@ export function FoodForm({
   const mutation = useMutation({
     mutationFn: (values: Values) =>
       apiFetch<FoodMutationResponse>(
-        mode === "create" ? "/api/foods" : `/api/foods/${food!.id}`,
+        mode === "create" ? apiBase : `${apiBase}/${food!.id}`,
         {
           method: mode === "create" ? "POST" : "PUT",
           body: JSON.stringify(values),
         },
       ),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["foods"] });
-      queryClient.invalidateQueries({ queryKey: ["food", data.food.id] });
-      router.push(`/coach/library/foods/${data.food.id}`);
+      queryClient.invalidateQueries({ queryKey: [listKey] });
+      queryClient.invalidateQueries({ queryKey: [detailKey, data.food.id] });
+      router.push(`${detailPath}/${data.food.id}`);
       router.refresh();
     },
   });
