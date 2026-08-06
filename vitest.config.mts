@@ -19,6 +19,10 @@ export default defineConfig({
     include: ["tests/**/*.test.{ts,tsx}"],
     // Keep the pglite integration test isolated from jsdom component tests.
     isolate: true,
+    // Integration files build a PGlite (WASM) database in `beforeAll`, now also
+    // loading the pg_trgm/unaccent extensions the food-catalog migration needs.
+    // That startup can exceed the default 10s hook timeout, so give it room.
+    hookTimeout: 30_000,
     // Run test files one at a time. Several integration files each spin up an
     // in-memory PGlite (WASM) database; running them concurrently occasionally
     // exhausts WASM memory and crashes a worker at `new PGlite()`. Serializing

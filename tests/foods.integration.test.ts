@@ -1,0 +1,363 @@
+// @vitest-environment node
+import { sql } from "drizzle-orm";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import type { DB } from "@/db";
+import * as schema from "@/db/schema";
+import type { TenantContext } from "@/server/tenant";
+import { foods } from "@/server/dal";
+
+import { createTestDb, type TestDb } from "./pglite";
+
+let db: TestDb;
+let ctxA: TenantContext;
+let ctxB: TenantContext;
+
+/** Inserts a food, computing search_text via unaccent(lower()) like the seed. */
+async function addFood(f: {
+  code?: string | null;
+  description: string;
+  groupSlug: string;
+  type?: schema.FoodType;
+  clinicId?: string | null;
+  energyKcal?: number | null;
+  protein?: number | null;
+  archived?: boolean;
+}) {
+  const [group] = await db
+    .select({ id: schema.foodGroup.id })
+    .from(schema.foodGroup)
+    .where(sql`${schema.foodGroup.slug} = ${f.groupSlug}`);
+  const [row] = await db
+    .insert(schema.food)
+    .values({
+      code: f.code ?? null,
+      description: f.description,
+      searchText: sql`unaccent(lower(${f.description}))`,
+      groupId: group.id,
+      type: f.type ?? "ingrediente",
+      clinicId: f.clinicId ?? null,
+      energyKcal: f.energyKcal ?? null,
+      protein: f.protein ?? null,
+      archived: f.archived ?? false,
+    })
+    .returning({ id: schema.food.id });
+  return row.id;
+}
+
+function ctxFor(clinicId: string, userId: string): TenantContext {
+  return { db: db as unknown as DB, clinicId, userId, role: "coach" };
+}
+
+let acaiId: string;
+let arrozId: string;
+let clinicBFoodId: string;
+
+beforeAll(async () => {
+  db = await createTestDb();
+
+  await db.insert(schema.user).values([
+    { id: "user-a", name: "Coach A", email: "a@example.com" },
+    { id: "user-b", name: "Coach B", email: "b@example.com" },
+  ]);
+  const [clinicA] = await db
+    .insert(schema.clinic)
+    .values({ name: "Clinic A", ownerUserId: "user-a" })
+    .returning();
+  const [clinicB] = await db
+    .insert(schema.clinic)
+    .values({ name: "Clinic B", ownerUserId: "user-b" })
+    .returning();
+  ctxA = ctxFor(clinicA.id, "user-a");
+  ctxB = ctxFor(clinicB.id, "user-b");
+
+  await db.insert(schema.foodGroup).values([
+    { name: "Frutas e derivados", slug: "frutas-e-derivados" },
+    { name: "Cereais e derivados", slug: "cereais-e-derivados" },
+  ]);
+  await db.insert(schema.nutrient).values([
+    { id: "energy_kcal", label: "Energia", unit: "kcal", kind: "energy", sortOrder: 0 },
+    { id: "protein", label: "Proteína", unit: "g", kind: "macro", sortOrder: 1 },
+    { id: "calcium", label: "Cálcio", unit: "mg", kind: "mineral", sortOrder: 2 },
+  ]);
+
+  // Base catalog (clinicId null).
+  acaiId = await addFood({
+    code: "C1",
+    description: "Açaí, polpa, congelada",
+    groupSlug: "frutas-e-derivados",
+    energyKcal: 58,
+    protein: 0.8,
+  });
+  arrozId = await addFood({
+    code: "C2",
+    description: "Arroz, integral, cozido",
+    groupSlug: "cereais-e-derivados",
+    type: "ingrediente",
+    energyKcal: 108,
+    protein: 2.44,
+  });
+  await addFood({
+    code: "C3",
+    description: "Alimento arquivado",
+    groupSlug: "frutas-e-derivados",
+    archived: true,
+  });
+
+  // Custom foods.
+  await addFood({
+    description: "Whey própria da clínica A",
+    groupSlug: "cereais-e-derivados",
+    clinicId: ctxA.clinicId,
+    energyKcal: 400,
+  });
+  clinicBFoodId = await addFood({
+    description: "Barra própria da clínica B",
+    groupSlug: "cereais-e-derivados",
+    clinicId: ctxB.clinicId,
+  });
+
+  // Full profile for açaí + a base substitution açaí -> arroz (50 g).
+  await db.insert(schema.foodNutrient).values([
+    { foodId: acaiId, nutrientId: "energy_kcal", value: 58, isTrace: false },
+    { foodId: acaiId, nutrientId: "protein", value: 0.8, isTrace: false },
+    { foodId: acaiId, nutrientId: "calcium", value: null, isTrace: true },
+  ]);
+  await db.insert(schema.foodSubstitution).values({
+    clinicId: null,
+    foodId: acaiId,
+    substituteFoodId: arrozId,
+    grams: 50,
+  });
+});
+
+describe("foods DAL", () => {
+  it("lists base + own custom foods, excluding archived and other clinics", async () => {
+    const { items, total } = await foods.listFoods(ctxA, { pageSize: 100 });
+    const descriptions = items.map((i) => i.description);
+    expect(descriptions).toContain("Açaí, polpa, congelada");
+    expect(descriptions).toContain("Arroz, integral, cozido");
+    expect(descriptions).toContain("Whey própria da clínica A");
+    expect(descriptions).not.toContain("Barra própria da clínica B");
+    expect(descriptions).not.toContain("Alimento arquivado");
+    expect(total).toBe(3);
+  });
+
+  it("marks origin base vs clinic", async () => {
+    const { items } = await foods.listFoods(ctxA, { pageSize: 100 });
+    const acai = items.find((i) => i.description.startsWith("Açaí"))!;
+    const whey = items.find((i) => i.description.startsWith("Whey"))!;
+    expect(acai.origin).toBe("base");
+    expect(whey.origin).toBe("clinic");
+  });
+
+  it("searches accent- and case-insensitively", async () => {
+    const { items } = await foods.listFoods(ctxA, { search: "acai" });
+    expect(items.map((i) => i.description)).toContain("Açaí, polpa, congelada");
+    const upper = await foods.listFoods(ctxA, { search: "AÇAÍ" });
+    expect(upper.items.map((i) => i.description)).toContain(
+      "Açaí, polpa, congelada",
+    );
+  });
+
+  it("requires every search token to match", async () => {
+    const hit = await foods.listFoods(ctxA, { search: "arroz integral" });
+    expect(hit.items).toHaveLength(1);
+    const miss = await foods.listFoods(ctxA, { search: "arroz banana" });
+    expect(miss.items).toHaveLength(0);
+  });
+
+  it("filters by group and paginates", async () => {
+    const cereais = await foods.listFoods(ctxA, {
+      groupSlug: "cereais-e-derivados",
+      pageSize: 100,
+    });
+    // Arroz (base) + Whey (own) — not clinic B's barra.
+    expect(cereais.total).toBe(2);
+
+    const firstPage = await foods.listFoods(ctxA, { pageSize: 1, page: 1 });
+    expect(firstPage.items).toHaveLength(1);
+    expect(firstPage.total).toBe(3);
+  });
+
+  it("returns a detail with ordered nutrients and visible substitutes", async () => {
+    const detail = await foods.getFood(ctxA, acaiId);
+    expect(detail).not.toBeNull();
+    expect(detail!.origin).toBe("base");
+    expect(detail!.nutrients.map((n) => n.id)).toEqual([
+      "energy_kcal",
+      "protein",
+      "calcium",
+    ]);
+    // Trace preserved distinctly from a real value.
+    expect(detail!.nutrients.find((n) => n.id === "calcium")).toMatchObject({
+      value: null,
+      isTrace: true,
+    });
+    expect(detail!.substitutes).toHaveLength(1);
+    expect(detail!.substitutes[0]).toMatchObject({
+      description: "Arroz, integral, cozido",
+      grams: 50,
+    });
+  });
+
+  it("does not leak another clinic's custom food from getFood", async () => {
+    expect(await foods.getFood(ctxA, clinicBFoodId)).toBeNull();
+    // The owning clinic can read it.
+    expect(await foods.getFood(ctxB, clinicBFoodId)).not.toBeNull();
+  });
+});
+
+/** A macro-less write input; spread and override the fields a test cares about. */
+const BLANK_WRITE = {
+  description: "x",
+  groupSlug: "cereais-e-derivados",
+  type: "ingrediente" as const,
+  energyKcal: null,
+  protein: null,
+  carbohydrate: null,
+  fat: null,
+  fiber: null,
+  sodium: null,
+};
+
+describe("custom food writes (phase 2)", () => {
+  let customId: string;
+
+  it("creates a custom food stamped with the clinic + computed search_text", async () => {
+    const created = await foods.createFood(ctxA, {
+      ...BLANK_WRITE,
+      description: "Pasta de amendoim integral",
+      energyKcal: 588,
+      protein: 25,
+      carbohydrate: 20,
+      fat: 50,
+      fiber: 6,
+      sodium: 17,
+    });
+    expect(created).not.toBeNull();
+    customId = created!.id;
+    expect(created!.clinicId).toBe(ctxA.clinicId);
+    expect(created!.source).toBe("custom");
+    expect(created!.code).toBeNull();
+
+    // Accent-insensitive search finds it; clinic B never does.
+    const found = await foods.listFoods(ctxA, { search: "amendoim" });
+    expect(found.items.some((f) => f.id === customId)).toBe(true);
+    const listB = await foods.listFoods(ctxB, { search: "amendoim" });
+    expect(listB.items.some((f) => f.id === customId)).toBe(false);
+  });
+
+  it("returns null for an unknown group slug", async () => {
+    const bad = await foods.createFood(ctxA, {
+      ...BLANK_WRITE,
+      groupSlug: "grupo-inexistente",
+    });
+    expect(bad).toBeNull();
+  });
+
+  it("updates own foods; base + other-clinic ids are untouched", async () => {
+    const updated = await foods.updateFood(ctxA, customId, {
+      ...BLANK_WRITE,
+      description: "Pasta de amendoim (nova receita)",
+      protein: 24,
+    });
+    expect(updated?.description).toBe("Pasta de amendoim (nova receita)");
+
+    // A base food cannot be edited (returns null → treated as 404).
+    expect(await foods.updateFood(ctxA, arrozId, BLANK_WRITE)).toBeNull();
+    // Clinic B cannot edit clinic A's custom food.
+    expect(await foods.updateFood(ctxB, customId, BLANK_WRITE)).toBeNull();
+  });
+
+  it("archives own foods (hiding them from the listing); base can't be archived", async () => {
+    const archived = await foods.archiveFood(ctxA, customId);
+    expect(archived?.archived).toBe(true);
+    const list = await foods.listFoods(ctxA, { search: "amendoim" });
+    expect(list.items.some((f) => f.id === customId)).toBe(false);
+
+    expect(await foods.archiveFood(ctxA, arrozId)).toBeNull();
+  });
+});
+
+describe("substitutions (phase 2)", () => {
+  it("adds a rule, rejects self/duplicate, and scopes removal to the clinic", async () => {
+    const ok = await foods.addSubstitution(ctxA, arrozId, acaiId, 80);
+    expect(ok.ok).toBe(true);
+
+    const detail = await foods.getFood(ctxA, arrozId);
+    const sub = detail!.substitutes.find((s) => s.foodId === acaiId);
+    expect(sub?.grams).toBe(80);
+    expect(sub?.removable).toBe(true);
+
+    // Another clinic never sees clinic A's rule.
+    const detailB = await foods.getFood(ctxB, arrozId);
+    expect(detailB!.substitutes.length).toBe(0);
+
+    // Self-substitution and duplicates are rejected.
+    expect(await foods.addSubstitution(ctxA, arrozId, arrozId, 100)).toEqual({
+      ok: false,
+      reason: "same_food",
+    });
+    expect(await foods.addSubstitution(ctxA, arrozId, acaiId, 90)).toEqual({
+      ok: false,
+      reason: "duplicate",
+    });
+
+    // Clinic B cannot remove clinic A's rule; clinic A can.
+    const subId = (ok as { ok: true; substitute: { id: string } }).substitute.id;
+    expect(await foods.removeSubstitution(ctxB, arrozId, subId)).toBe(false);
+    expect(await foods.removeSubstitution(ctxA, arrozId, subId)).toBe(true);
+    expect((await foods.getFood(ctxA, arrozId))!.substitutes.length).toBe(0);
+  });
+
+  it("marks a base (seeded) substitution as not removable by a clinic", async () => {
+    // açaí → arroz was seeded with clinic_id NULL in beforeAll.
+    const detail = await foods.getFood(ctxA, acaiId);
+    const baseSub = detail!.substitutes.find((s) => s.foodId === arrozId);
+    expect(baseSub).toBeDefined();
+    expect(baseSub!.removable).toBe(false);
+  });
+
+  it("surfaces the visible substitute count on the listing", async () => {
+    // açaí carries the base açaí→arroz rule; both clinics see the same count.
+    const listA = await foods.listFoods(ctxA, { search: "acai" });
+    expect(listA.items.find((f) => f.id === acaiId)!.substituteCount).toBe(1);
+    const listB = await foods.listFoods(ctxB, { search: "acai" });
+    expect(listB.items.find((f) => f.id === acaiId)!.substituteCount).toBe(1);
+  });
+});
+
+describe("favorites (phase 2)", () => {
+  it("marks, filters, isolates by clinic, and unmarks", async () => {
+    expect(await foods.setFavorite(ctxA, acaiId, true)).toBe(true);
+
+    // Reflected on detail and the listing flag for clinic A.
+    expect((await foods.getFood(ctxA, acaiId))!.isFavorite).toBe(true);
+    const all = await foods.listFoods(ctxA, { pageSize: 100 });
+    expect(all.items.find((f) => f.id === acaiId)!.isFavorite).toBe(true);
+
+    // The favorites-only filter returns exactly the favorited food.
+    const fav = await foods.listFoods(ctxA, { favoritesOnly: true, pageSize: 100 });
+    expect(fav.items.map((f) => f.id)).toEqual([acaiId]);
+
+    // Clinic B does not share clinic A's favorite.
+    expect((await foods.getFood(ctxB, acaiId))!.isFavorite).toBe(false);
+    expect(
+      (await foods.listFoods(ctxB, { favoritesOnly: true, pageSize: 100 })).items
+        .length,
+    ).toBe(0);
+
+    // Unfavorite drops it from the filter.
+    expect(await foods.setFavorite(ctxA, acaiId, false)).toBe(true);
+    expect(
+      (await foods.listFoods(ctxA, { favoritesOnly: true, pageSize: 100 })).items
+        .length,
+    ).toBe(0);
+  });
+
+  it("refuses to favorite a food the clinic can't see", async () => {
+    // clinicBFoodId is clinic B's private custom food — invisible to clinic A.
+    expect(await foods.setFavorite(ctxA, clinicBFoodId, true)).toBe(false);
+  });
+});

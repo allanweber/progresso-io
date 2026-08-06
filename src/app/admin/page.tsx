@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, Users } from "lucide-react";
+import { BookOpen, ShieldCheck, Users } from "lucide-react";
 
 import { requireRole } from "@/lib/session";
 
@@ -37,6 +37,21 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
             Buscar por clínica ou e-mail e excluir alunos definitivamente.
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/foods"
+          className="group rounded-2xl border border-border bg-white p-5 shadow-[0_2px_16px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+        >
+          <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-light">
+            <BookOpen className="size-5 text-primary" strokeWidth={2} />
+          </div>
+          <div className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
+            Catálogo de alimentos
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Curar o catálogo base e ver os alimentos próprios de cada clínica.
           </div>
         </Link>
       </div>

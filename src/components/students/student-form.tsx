@@ -7,6 +7,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { Modality } from "@/db/schema";
 import { fieldError } from "@/lib/form";
@@ -177,19 +184,21 @@ export function StudentForm({
           {(field) => (
             <div className="space-y-1.5">
               <Label htmlFor="modality">Modalidade</Label>
-              <select
-                id="modality"
+              <Select
                 value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value as Modality)}
-                className="flex h-11 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3.5 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                onValueChange={(v) => field.handleChange(v as Modality)}
               >
-                {MODALITY_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {MODALITY_LABELS[value]}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="modality" onBlur={field.handleBlur}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODALITY_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {MODALITY_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </form.Field>

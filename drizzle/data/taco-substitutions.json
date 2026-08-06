@@ -1,0 +1,1650 @@
+{
+  "_comment": "Base food substitutions (shared, no clinic). Directed: `grams` of `substitute` ≡ 100 g of `food`, sized isocalorically within each role group. Foods referenced by their exact catalog description. Review artifact — not wired into the seed.",
+  "count": 274,
+  "substitutions": [
+    {
+      "food": "Arroz, integral, cozido",
+      "substitute": "Arroz, tipo 1, cozido",
+      "grams": 96,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, integral, cozido",
+      "substitute": "Batata, doce, cozida",
+      "grams": 161,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, integral, cozido",
+      "substitute": "Mandioca, cozida",
+      "grams": 98,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, integral, cozido",
+      "substitute": "Cuscuz, de milho, cozido com sal",
+      "grams": 109,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, integral, cozido",
+      "substitute": "Cará, cozido",
+      "grams": 159,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, integral, cozido",
+      "substitute": "Polenta, pré-cozida",
+      "grams": 120,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, tipo 1, cozido",
+      "substitute": "Arroz, integral, cozido",
+      "grams": 104,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, tipo 1, cozido",
+      "substitute": "Batata, doce, cozida",
+      "grams": 167,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, tipo 1, cozido",
+      "substitute": "Mandioca, cozida",
+      "grams": 102,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, tipo 1, cozido",
+      "substitute": "Cuscuz, de milho, cozido com sal",
+      "grams": 113,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, tipo 1, cozido",
+      "substitute": "Cará, cozido",
+      "grams": 165,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Arroz, tipo 1, cozido",
+      "substitute": "Polenta, pré-cozida",
+      "grams": 125,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Batata, doce, cozida",
+      "substitute": "Arroz, integral, cozido",
+      "grams": 62,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Batata, doce, cozida",
+      "substitute": "Arroz, tipo 1, cozido",
+      "grams": 60,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Batata, doce, cozida",
+      "substitute": "Mandioca, cozida",
+      "grams": 61,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Batata, doce, cozida",
+      "substitute": "Cuscuz, de milho, cozido com sal",
+      "grams": 68,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Batata, doce, cozida",
+      "substitute": "Cará, cozido",
+      "grams": 99,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Batata, doce, cozida",
+      "substitute": "Polenta, pré-cozida",
+      "grams": 75,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Mandioca, cozida",
+      "substitute": "Arroz, integral, cozido",
+      "grams": 102,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Mandioca, cozida",
+      "substitute": "Arroz, tipo 1, cozido",
+      "grams": 98,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Mandioca, cozida",
+      "substitute": "Batata, doce, cozida",
+      "grams": 163,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Mandioca, cozida",
+      "substitute": "Cuscuz, de milho, cozido com sal",
+      "grams": 110,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Mandioca, cozida",
+      "substitute": "Cará, cozido",
+      "grams": 162,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Mandioca, cozida",
+      "substitute": "Polenta, pré-cozida",
+      "grams": 122,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cuscuz, de milho, cozido com sal",
+      "substitute": "Arroz, integral, cozido",
+      "grams": 92,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cuscuz, de milho, cozido com sal",
+      "substitute": "Arroz, tipo 1, cozido",
+      "grams": 88,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cuscuz, de milho, cozido com sal",
+      "substitute": "Batata, doce, cozida",
+      "grams": 148,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cuscuz, de milho, cozido com sal",
+      "substitute": "Mandioca, cozida",
+      "grams": 91,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cuscuz, de milho, cozido com sal",
+      "substitute": "Cará, cozido",
+      "grams": 146,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cuscuz, de milho, cozido com sal",
+      "substitute": "Polenta, pré-cozida",
+      "grams": 111,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cará, cozido",
+      "substitute": "Arroz, integral, cozido",
+      "grams": 63,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cará, cozido",
+      "substitute": "Arroz, tipo 1, cozido",
+      "grams": 60,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cará, cozido",
+      "substitute": "Batata, doce, cozida",
+      "grams": 101,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cará, cozido",
+      "substitute": "Mandioca, cozida",
+      "grams": 62,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cará, cozido",
+      "substitute": "Cuscuz, de milho, cozido com sal",
+      "grams": 68,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Cará, cozido",
+      "substitute": "Polenta, pré-cozida",
+      "grams": 76,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Polenta, pré-cozida",
+      "substitute": "Arroz, integral, cozido",
+      "grams": 83,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Polenta, pré-cozida",
+      "substitute": "Arroz, tipo 1, cozido",
+      "grams": 80,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Polenta, pré-cozida",
+      "substitute": "Batata, doce, cozida",
+      "grams": 134,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Polenta, pré-cozida",
+      "substitute": "Mandioca, cozida",
+      "grams": 82,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Polenta, pré-cozida",
+      "substitute": "Cuscuz, de milho, cozido com sal",
+      "grams": 90,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Polenta, pré-cozida",
+      "substitute": "Cará, cozido",
+      "grams": 132,
+      "group": "Cereais e tubérculos (cozidos)"
+    },
+    {
+      "food": "Frango, peito, sem pele, grelhado",
+      "substitute": "Frango, peito, sem pele, cozido",
+      "grams": 98,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, grelhado",
+      "substitute": "Carne, bovina, patinho, sem gordura, grelhado",
+      "grams": 73,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, grelhado",
+      "substitute": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "grams": 73,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, grelhado",
+      "substitute": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "grams": 109,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, grelhado",
+      "substitute": "Atum, conserva em óleo",
+      "grams": 96,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, cozido",
+      "substitute": "Frango, peito, sem pele, grelhado",
+      "grams": 102,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, cozido",
+      "substitute": "Carne, bovina, patinho, sem gordura, grelhado",
+      "grams": 74,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, cozido",
+      "substitute": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "grams": 74,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, cozido",
+      "substitute": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "grams": 112,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Frango, peito, sem pele, cozido",
+      "substitute": "Atum, conserva em óleo",
+      "grams": 98,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, patinho, sem gordura, grelhado",
+      "substitute": "Frango, peito, sem pele, grelhado",
+      "grams": 138,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, patinho, sem gordura, grelhado",
+      "substitute": "Frango, peito, sem pele, cozido",
+      "grams": 135,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, patinho, sem gordura, grelhado",
+      "substitute": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "grams": 100,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, patinho, sem gordura, grelhado",
+      "substitute": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "grams": 151,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, patinho, sem gordura, grelhado",
+      "substitute": "Atum, conserva em óleo",
+      "grams": 132,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "substitute": "Frango, peito, sem pele, grelhado",
+      "grams": 137,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "substitute": "Frango, peito, sem pele, cozido",
+      "grams": 134,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "substitute": "Carne, bovina, patinho, sem gordura, grelhado",
+      "grams": 100,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "substitute": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "grams": 150,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "substitute": "Atum, conserva em óleo",
+      "grams": 132,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "substitute": "Frango, peito, sem pele, grelhado",
+      "grams": 92,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "substitute": "Frango, peito, sem pele, cozido",
+      "grams": 89,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "substitute": "Carne, bovina, patinho, sem gordura, grelhado",
+      "grams": 66,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "substitute": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "grams": 67,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "substitute": "Atum, conserva em óleo",
+      "grams": 88,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Atum, conserva em óleo",
+      "substitute": "Frango, peito, sem pele, grelhado",
+      "grams": 104,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Atum, conserva em óleo",
+      "substitute": "Frango, peito, sem pele, cozido",
+      "grams": 102,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Atum, conserva em óleo",
+      "substitute": "Carne, bovina, patinho, sem gordura, grelhado",
+      "grams": 76,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Atum, conserva em óleo",
+      "substitute": "Carne, bovina, coxão mole, sem gordura, cozido",
+      "grams": 76,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Atum, conserva em óleo",
+      "substitute": "Ovo, de galinha, inteiro, cozido/10minutos",
+      "grams": 114,
+      "group": "Proteínas magras (prontas)"
+    },
+    {
+      "food": "Feijão, carioca, cozido",
+      "substitute": "Feijão, preto, cozido",
+      "grams": 99,
+      "group": "Leguminosas (cozidas)"
+    },
+    {
+      "food": "Feijão, carioca, cozido",
+      "substitute": "Lentilha, cozida",
+      "grams": 82,
+      "group": "Leguminosas (cozidas)"
+    },
+    {
+      "food": "Feijão, preto, cozido",
+      "substitute": "Feijão, carioca, cozido",
+      "grams": 101,
+      "group": "Leguminosas (cozidas)"
+    },
+    {
+      "food": "Feijão, preto, cozido",
+      "substitute": "Lentilha, cozida",
+      "grams": 83,
+      "group": "Leguminosas (cozidas)"
+    },
+    {
+      "food": "Lentilha, cozida",
+      "substitute": "Feijão, carioca, cozido",
+      "grams": 121,
+      "group": "Leguminosas (cozidas)"
+    },
+    {
+      "food": "Lentilha, cozida",
+      "substitute": "Feijão, preto, cozido",
+      "grams": 120,
+      "group": "Leguminosas (cozidas)"
+    },
+    {
+      "food": "Azeite, de oliva, extra virgem",
+      "substitute": "Óleo de coco",
+      "grams": 99,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Azeite, de oliva, extra virgem",
+      "substitute": "Óleo, de soja",
+      "grams": 100,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Azeite, de oliva, extra virgem",
+      "substitute": "Manteiga, com sal",
+      "grams": 122,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Azeite, de oliva, extra virgem",
+      "substitute": "Ghee (manteiga clarificada)",
+      "grams": 101,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo de coco",
+      "substitute": "Azeite, de oliva, extra virgem",
+      "grams": 101,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo de coco",
+      "substitute": "Óleo, de soja",
+      "grams": 101,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo de coco",
+      "substitute": "Manteiga, com sal",
+      "grams": 123,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo de coco",
+      "substitute": "Ghee (manteiga clarificada)",
+      "grams": 102,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo, de soja",
+      "substitute": "Azeite, de oliva, extra virgem",
+      "grams": 100,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo, de soja",
+      "substitute": "Óleo de coco",
+      "grams": 99,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo, de soja",
+      "substitute": "Manteiga, com sal",
+      "grams": 122,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Óleo, de soja",
+      "substitute": "Ghee (manteiga clarificada)",
+      "grams": 101,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Manteiga, com sal",
+      "substitute": "Azeite, de oliva, extra virgem",
+      "grams": 82,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Manteiga, com sal",
+      "substitute": "Óleo de coco",
+      "grams": 81,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Manteiga, com sal",
+      "substitute": "Óleo, de soja",
+      "grams": 82,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Manteiga, com sal",
+      "substitute": "Ghee (manteiga clarificada)",
+      "grams": 83,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Ghee (manteiga clarificada)",
+      "substitute": "Azeite, de oliva, extra virgem",
+      "grams": 99,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Ghee (manteiga clarificada)",
+      "substitute": "Óleo de coco",
+      "grams": 98,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Ghee (manteiga clarificada)",
+      "substitute": "Óleo, de soja",
+      "grams": 99,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Ghee (manteiga clarificada)",
+      "substitute": "Manteiga, com sal",
+      "grams": 121,
+      "group": "Gorduras e óleos"
+    },
+    {
+      "food": "Leite, de vaca, integral",
+      "substitute": "Leite, de vaca, desnatado, pó",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, integral",
+      "substitute": "Iogurte, natural",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, integral",
+      "substitute": "Iogurte, natural, desnatado",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, integral",
+      "substitute": "Iogurte, grego, natural, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, integral",
+      "substitute": "Coalhada, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, desnatado, pó",
+      "substitute": "Leite, de vaca, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, desnatado, pó",
+      "substitute": "Iogurte, natural",
+      "grams": 400,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, desnatado, pó",
+      "substitute": "Iogurte, natural, desnatado",
+      "grams": 400,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, desnatado, pó",
+      "substitute": "Iogurte, grego, natural, integral",
+      "grams": 373,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Leite, de vaca, desnatado, pó",
+      "substitute": "Coalhada, integral",
+      "grams": 246,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural",
+      "substitute": "Leite, de vaca, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural",
+      "substitute": "Leite, de vaca, desnatado, pó",
+      "grams": 14,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural",
+      "substitute": "Iogurte, natural, desnatado",
+      "grams": 124,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural",
+      "substitute": "Iogurte, grego, natural, integral",
+      "grams": 53,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural",
+      "substitute": "Coalhada, integral",
+      "grams": 35,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural, desnatado",
+      "substitute": "Leite, de vaca, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural, desnatado",
+      "substitute": "Leite, de vaca, desnatado, pó",
+      "grams": 11,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural, desnatado",
+      "substitute": "Iogurte, natural",
+      "grams": 81,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural, desnatado",
+      "substitute": "Iogurte, grego, natural, integral",
+      "grams": 43,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, natural, desnatado",
+      "substitute": "Coalhada, integral",
+      "grams": 28,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, grego, natural, integral",
+      "substitute": "Leite, de vaca, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, grego, natural, integral",
+      "substitute": "Leite, de vaca, desnatado, pó",
+      "grams": 27,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, grego, natural, integral",
+      "substitute": "Iogurte, natural",
+      "grams": 188,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, grego, natural, integral",
+      "substitute": "Iogurte, natural, desnatado",
+      "grams": 234,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Iogurte, grego, natural, integral",
+      "substitute": "Coalhada, integral",
+      "grams": 66,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Coalhada, integral",
+      "substitute": "Leite, de vaca, integral",
+      "grams": 100,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Coalhada, integral",
+      "substitute": "Leite, de vaca, desnatado, pó",
+      "grams": 41,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Coalhada, integral",
+      "substitute": "Iogurte, natural",
+      "grams": 285,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Coalhada, integral",
+      "substitute": "Iogurte, natural, desnatado",
+      "grams": 354,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Coalhada, integral",
+      "substitute": "Iogurte, grego, natural, integral",
+      "grams": 152,
+      "group": "Leites e iogurtes"
+    },
+    {
+      "food": "Cream cheese",
+      "substitute": "Cream cheese, light",
+      "grams": 119,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Cream cheese",
+      "substitute": "Queijo, requeijão, cremoso",
+      "grams": 90,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Cream cheese",
+      "substitute": "Requeijão, light",
+      "grams": 127,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Cream cheese, light",
+      "substitute": "Cream cheese",
+      "grams": 84,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Cream cheese, light",
+      "substitute": "Queijo, requeijão, cremoso",
+      "grams": 76,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Cream cheese, light",
+      "substitute": "Requeijão, light",
+      "grams": 107,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Queijo, requeijão, cremoso",
+      "substitute": "Cream cheese",
+      "grams": 111,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Queijo, requeijão, cremoso",
+      "substitute": "Cream cheese, light",
+      "grams": 132,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Queijo, requeijão, cremoso",
+      "substitute": "Requeijão, light",
+      "grams": 141,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Requeijão, light",
+      "substitute": "Cream cheese",
+      "grams": 78,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Requeijão, light",
+      "substitute": "Cream cheese, light",
+      "grams": 93,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Requeijão, light",
+      "substitute": "Queijo, requeijão, cremoso",
+      "grams": 71,
+      "group": "Queijos cremosos"
+    },
+    {
+      "food": "Pasta de amendoim, integral",
+      "substitute": "Manteiga de amêndoas",
+      "grams": 100,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Pasta de amendoim, integral",
+      "substitute": "Pasta de castanha de caju",
+      "grams": 105,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Pasta de amendoim, integral",
+      "substitute": "Tahine (pasta de gergelim)",
+      "grams": 100,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Manteiga de amêndoas",
+      "substitute": "Pasta de amendoim, integral",
+      "grams": 100,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Manteiga de amêndoas",
+      "substitute": "Pasta de castanha de caju",
+      "grams": 105,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Manteiga de amêndoas",
+      "substitute": "Tahine (pasta de gergelim)",
+      "grams": 99,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Pasta de castanha de caju",
+      "substitute": "Pasta de amendoim, integral",
+      "grams": 95,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Pasta de castanha de caju",
+      "substitute": "Manteiga de amêndoas",
+      "grams": 96,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Pasta de castanha de caju",
+      "substitute": "Tahine (pasta de gergelim)",
+      "grams": 95,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Tahine (pasta de gergelim)",
+      "substitute": "Pasta de amendoim, integral",
+      "grams": 100,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Tahine (pasta de gergelim)",
+      "substitute": "Manteiga de amêndoas",
+      "grams": 101,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Tahine (pasta de gergelim)",
+      "substitute": "Pasta de castanha de caju",
+      "grams": 105,
+      "group": "Pastas de oleaginosas"
+    },
+    {
+      "food": "Chia, semente, seca",
+      "substitute": "Linhaça, semente",
+      "grams": 89,
+      "group": "Sementes"
+    },
+    {
+      "food": "Chia, semente, seca",
+      "substitute": "Semente de girassol",
+      "grams": 76,
+      "group": "Sementes"
+    },
+    {
+      "food": "Chia, semente, seca",
+      "substitute": "Semente de abóbora",
+      "grams": 79,
+      "group": "Sementes"
+    },
+    {
+      "food": "Chia, semente, seca",
+      "substitute": "Gergelim, semente",
+      "grams": 76,
+      "group": "Sementes"
+    },
+    {
+      "food": "Linhaça, semente",
+      "substitute": "Chia, semente, seca",
+      "grams": 112,
+      "group": "Sementes"
+    },
+    {
+      "food": "Linhaça, semente",
+      "substitute": "Semente de girassol",
+      "grams": 85,
+      "group": "Sementes"
+    },
+    {
+      "food": "Linhaça, semente",
+      "substitute": "Semente de abóbora",
+      "grams": 89,
+      "group": "Sementes"
+    },
+    {
+      "food": "Linhaça, semente",
+      "substitute": "Gergelim, semente",
+      "grams": 85,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de girassol",
+      "substitute": "Chia, semente, seca",
+      "grams": 132,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de girassol",
+      "substitute": "Linhaça, semente",
+      "grams": 118,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de girassol",
+      "substitute": "Semente de abóbora",
+      "grams": 104,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de girassol",
+      "substitute": "Gergelim, semente",
+      "grams": 100,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de abóbora",
+      "substitute": "Chia, semente, seca",
+      "grams": 126,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de abóbora",
+      "substitute": "Linhaça, semente",
+      "grams": 113,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de abóbora",
+      "substitute": "Semente de girassol",
+      "grams": 96,
+      "group": "Sementes"
+    },
+    {
+      "food": "Semente de abóbora",
+      "substitute": "Gergelim, semente",
+      "grams": 96,
+      "group": "Sementes"
+    },
+    {
+      "food": "Gergelim, semente",
+      "substitute": "Chia, semente, seca",
+      "grams": 132,
+      "group": "Sementes"
+    },
+    {
+      "food": "Gergelim, semente",
+      "substitute": "Linhaça, semente",
+      "grams": 118,
+      "group": "Sementes"
+    },
+    {
+      "food": "Gergelim, semente",
+      "substitute": "Semente de girassol",
+      "grams": 100,
+      "group": "Sementes"
+    },
+    {
+      "food": "Gergelim, semente",
+      "substitute": "Semente de abóbora",
+      "grams": 104,
+      "group": "Sementes"
+    },
+    {
+      "food": "Castanha-do-Brasil, crua",
+      "substitute": "Castanha-de-caju, torrada, salgada",
+      "grams": 113,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-do-Brasil, crua",
+      "substitute": "Amêndoa, torrada, salgada",
+      "grams": 111,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-do-Brasil, crua",
+      "substitute": "Amendoim, grão, cru",
+      "grams": 118,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-do-Brasil, crua",
+      "substitute": "Pistache, cru",
+      "grams": 112,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-do-Brasil, crua",
+      "substitute": "Macadâmia, crua",
+      "grams": 86,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-do-Brasil, crua",
+      "substitute": "Noz, crua",
+      "grams": 104,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-de-caju, torrada, salgada",
+      "substitute": "Castanha-do-Brasil, crua",
+      "grams": 89,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-de-caju, torrada, salgada",
+      "substitute": "Amêndoa, torrada, salgada",
+      "grams": 98,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-de-caju, torrada, salgada",
+      "substitute": "Amendoim, grão, cru",
+      "grams": 105,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-de-caju, torrada, salgada",
+      "substitute": "Pistache, cru",
+      "grams": 99,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-de-caju, torrada, salgada",
+      "substitute": "Macadâmia, crua",
+      "grams": 76,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Castanha-de-caju, torrada, salgada",
+      "substitute": "Noz, crua",
+      "grams": 92,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amêndoa, torrada, salgada",
+      "substitute": "Castanha-do-Brasil, crua",
+      "grams": 90,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amêndoa, torrada, salgada",
+      "substitute": "Castanha-de-caju, torrada, salgada",
+      "grams": 102,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amêndoa, torrada, salgada",
+      "substitute": "Amendoim, grão, cru",
+      "grams": 107,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amêndoa, torrada, salgada",
+      "substitute": "Pistache, cru",
+      "grams": 101,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amêndoa, torrada, salgada",
+      "substitute": "Macadâmia, crua",
+      "grams": 77,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amêndoa, torrada, salgada",
+      "substitute": "Noz, crua",
+      "grams": 94,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amendoim, grão, cru",
+      "substitute": "Castanha-do-Brasil, crua",
+      "grams": 85,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amendoim, grão, cru",
+      "substitute": "Castanha-de-caju, torrada, salgada",
+      "grams": 95,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amendoim, grão, cru",
+      "substitute": "Amêndoa, torrada, salgada",
+      "grams": 94,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amendoim, grão, cru",
+      "substitute": "Pistache, cru",
+      "grams": 94,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amendoim, grão, cru",
+      "substitute": "Macadâmia, crua",
+      "grams": 72,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Amendoim, grão, cru",
+      "substitute": "Noz, crua",
+      "grams": 88,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Pistache, cru",
+      "substitute": "Castanha-do-Brasil, crua",
+      "grams": 90,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Pistache, cru",
+      "substitute": "Castanha-de-caju, torrada, salgada",
+      "grams": 101,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Pistache, cru",
+      "substitute": "Amêndoa, torrada, salgada",
+      "grams": 99,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Pistache, cru",
+      "substitute": "Amendoim, grão, cru",
+      "grams": 106,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Pistache, cru",
+      "substitute": "Macadâmia, crua",
+      "grams": 77,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Pistache, cru",
+      "substitute": "Noz, crua",
+      "grams": 93,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Macadâmia, crua",
+      "substitute": "Castanha-do-Brasil, crua",
+      "grams": 117,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Macadâmia, crua",
+      "substitute": "Castanha-de-caju, torrada, salgada",
+      "grams": 132,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Macadâmia, crua",
+      "substitute": "Amêndoa, torrada, salgada",
+      "grams": 129,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Macadâmia, crua",
+      "substitute": "Amendoim, grão, cru",
+      "grams": 138,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Macadâmia, crua",
+      "substitute": "Pistache, cru",
+      "grams": 131,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Macadâmia, crua",
+      "substitute": "Noz, crua",
+      "grams": 121,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Noz, crua",
+      "substitute": "Castanha-do-Brasil, crua",
+      "grams": 96,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Noz, crua",
+      "substitute": "Castanha-de-caju, torrada, salgada",
+      "grams": 109,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Noz, crua",
+      "substitute": "Amêndoa, torrada, salgada",
+      "grams": 107,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Noz, crua",
+      "substitute": "Amendoim, grão, cru",
+      "grams": 114,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Noz, crua",
+      "substitute": "Pistache, cru",
+      "grams": 108,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Noz, crua",
+      "substitute": "Macadâmia, crua",
+      "grams": 82,
+      "group": "Oleaginosas"
+    },
+    {
+      "food": "Banana, nanica, crua",
+      "substitute": "Maçã, Fuji, com casca, crua",
+      "grams": 165,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Banana, nanica, crua",
+      "substitute": "Mamão, Formosa, cru",
+      "grams": 202,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Banana, nanica, crua",
+      "substitute": "Manga, Palmer, crua",
+      "grams": 126,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Banana, nanica, crua",
+      "substitute": "Pêra, Williams, crua",
+      "grams": 172,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Banana, nanica, crua",
+      "substitute": "Uva, Itália, crua",
+      "grams": 173,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Maçã, Fuji, com casca, crua",
+      "substitute": "Banana, nanica, crua",
+      "grams": 61,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Maçã, Fuji, com casca, crua",
+      "substitute": "Mamão, Formosa, cru",
+      "grams": 122,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Maçã, Fuji, com casca, crua",
+      "substitute": "Manga, Palmer, crua",
+      "grams": 77,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Maçã, Fuji, com casca, crua",
+      "substitute": "Pêra, Williams, crua",
+      "grams": 104,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Maçã, Fuji, com casca, crua",
+      "substitute": "Uva, Itália, crua",
+      "grams": 105,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Mamão, Formosa, cru",
+      "substitute": "Banana, nanica, crua",
+      "grams": 50,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Mamão, Formosa, cru",
+      "substitute": "Maçã, Fuji, com casca, crua",
+      "grams": 82,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Mamão, Formosa, cru",
+      "substitute": "Manga, Palmer, crua",
+      "grams": 63,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Mamão, Formosa, cru",
+      "substitute": "Pêra, Williams, crua",
+      "grams": 85,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Mamão, Formosa, cru",
+      "substitute": "Uva, Itália, crua",
+      "grams": 86,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Manga, Palmer, crua",
+      "substitute": "Banana, nanica, crua",
+      "grams": 79,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Manga, Palmer, crua",
+      "substitute": "Maçã, Fuji, com casca, crua",
+      "grams": 131,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Manga, Palmer, crua",
+      "substitute": "Mamão, Formosa, cru",
+      "grams": 160,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Manga, Palmer, crua",
+      "substitute": "Pêra, Williams, crua",
+      "grams": 136,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Manga, Palmer, crua",
+      "substitute": "Uva, Itália, crua",
+      "grams": 137,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Pêra, Williams, crua",
+      "substitute": "Banana, nanica, crua",
+      "grams": 58,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Pêra, Williams, crua",
+      "substitute": "Maçã, Fuji, com casca, crua",
+      "grams": 96,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Pêra, Williams, crua",
+      "substitute": "Mamão, Formosa, cru",
+      "grams": 118,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Pêra, Williams, crua",
+      "substitute": "Manga, Palmer, crua",
+      "grams": 74,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Pêra, Williams, crua",
+      "substitute": "Uva, Itália, crua",
+      "grams": 101,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Uva, Itália, crua",
+      "substitute": "Banana, nanica, crua",
+      "grams": 58,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Uva, Itália, crua",
+      "substitute": "Maçã, Fuji, com casca, crua",
+      "grams": 95,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Uva, Itália, crua",
+      "substitute": "Mamão, Formosa, cru",
+      "grams": 117,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Uva, Itália, crua",
+      "substitute": "Manga, Palmer, crua",
+      "grams": 73,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Uva, Itália, crua",
+      "substitute": "Pêra, Williams, crua",
+      "grams": 99,
+      "group": "Frutas doces"
+    },
+    {
+      "food": "Morango, cru",
+      "substitute": "Mirtilo (blueberry), in natura",
+      "grams": 51,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Morango, cru",
+      "substitute": "Framboesa, in natura",
+      "grams": 67,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Morango, cru",
+      "substitute": "Amora-preta, in natura",
+      "grams": 84,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Mirtilo (blueberry), in natura",
+      "substitute": "Morango, cru",
+      "grams": 196,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Mirtilo (blueberry), in natura",
+      "substitute": "Framboesa, in natura",
+      "grams": 131,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Mirtilo (blueberry), in natura",
+      "substitute": "Amora-preta, in natura",
+      "grams": 164,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Framboesa, in natura",
+      "substitute": "Morango, cru",
+      "grams": 149,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Framboesa, in natura",
+      "substitute": "Mirtilo (blueberry), in natura",
+      "grams": 76,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Framboesa, in natura",
+      "substitute": "Amora-preta, in natura",
+      "grams": 125,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Amora-preta, in natura",
+      "substitute": "Morango, cru",
+      "grams": 119,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Amora-preta, in natura",
+      "substitute": "Mirtilo (blueberry), in natura",
+      "grams": 61,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Amora-preta, in natura",
+      "substitute": "Framboesa, in natura",
+      "grams": 80,
+      "group": "Frutas vermelhas"
+    },
+    {
+      "food": "Açúcar, cristal",
+      "substitute": "Açúcar, mascavo",
+      "grams": 105,
+      "group": "Adoçantes"
+    },
+    {
+      "food": "Açúcar, cristal",
+      "substitute": "Mel, de abelha",
+      "grams": 125,
+      "group": "Adoçantes"
+    },
+    {
+      "food": "Açúcar, mascavo",
+      "substitute": "Açúcar, cristal",
+      "grams": 95,
+      "group": "Adoçantes"
+    },
+    {
+      "food": "Açúcar, mascavo",
+      "substitute": "Mel, de abelha",
+      "grams": 119,
+      "group": "Adoçantes"
+    },
+    {
+      "food": "Mel, de abelha",
+      "substitute": "Açúcar, cristal",
+      "grams": 80,
+      "group": "Adoçantes"
+    },
+    {
+      "food": "Mel, de abelha",
+      "substitute": "Açúcar, mascavo",
+      "grams": 84,
+      "group": "Adoçantes"
+    },
+    {
+      "food": "Farinha de aveia",
+      "substitute": "Aveia, flocos, crua",
+      "grams": 103,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de aveia",
+      "substitute": "Farinha de amêndoas",
+      "grams": 65,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de aveia",
+      "substitute": "Farinha de coco",
+      "grams": 92,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Aveia, flocos, crua",
+      "substitute": "Farinha de aveia",
+      "grams": 97,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Aveia, flocos, crua",
+      "substitute": "Farinha de amêndoas",
+      "grams": 63,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Aveia, flocos, crua",
+      "substitute": "Farinha de coco",
+      "grams": 90,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de amêndoas",
+      "substitute": "Farinha de aveia",
+      "grams": 154,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de amêndoas",
+      "substitute": "Aveia, flocos, crua",
+      "grams": 158,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de amêndoas",
+      "substitute": "Farinha de coco",
+      "grams": 142,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de coco",
+      "substitute": "Farinha de aveia",
+      "grams": 108,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de coco",
+      "substitute": "Aveia, flocos, crua",
+      "grams": 111,
+      "group": "Farinhas alternativas"
+    },
+    {
+      "food": "Farinha de coco",
+      "substitute": "Farinha de amêndoas",
+      "grams": 71,
+      "group": "Farinhas alternativas"
+    }
+  ]
+}

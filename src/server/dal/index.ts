@@ -7,6 +7,7 @@
  */
 export * as admin from "./admin";
 export * as clinics from "./clinics";
+export * as foods from "./foods";
 export * as invitations from "./invitations";
 export * as plans from "./plans";
 export * as students from "./students";

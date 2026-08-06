@@ -4,9 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { authClient } from "@/lib/auth-client";
 import { homePathForRole, isAdmin, ROLE_LABELS, type Role } from "@/lib/roles";
 
@@ -22,9 +29,11 @@ function navItems(role: string | null | undefined) {
   const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
+    items.push({ href: "/coach/library", label: "Bibliotecas", icon: BookOpen });
   }
   if (isAdmin(role)) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });
+    items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
   }
   return items;
 }
@@ -90,59 +99,47 @@ export function DashboardShell({
   }
 
   return (
-    <div className="flex min-h-screen bg-surface-light">
-      {/* Desktop rail */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white px-5 py-6 md:flex">
-        <Link href={home} className="mb-8">
-          <Logo />
-        </Link>
-        <nav className="flex flex-col gap-1 text-sm">{navLinks()}</nav>
-      </aside>
+    <Sheet open={navOpen} onOpenChange={setNavOpen}>
+      <div className="flex min-h-screen bg-surface-light">
+        {/* Desktop rail */}
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white px-5 py-6 md:flex">
+          <Link href={home} className="mb-8">
+            <Logo />
+          </Link>
+          <nav className="flex flex-col gap-1 text-sm">{navLinks()}</nav>
+        </aside>
 
-      {/* Mobile drawer */}
-      {navOpen && (
-        <div
-          className="fixed inset-0 z-50 md:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu de navegação"
-        >
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setNavOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-border bg-white px-5 py-6">
-            <div className="mb-8 flex items-center justify-between">
-              <Link href={home} onClick={() => setNavOpen(false)}>
-                <Logo />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setNavOpen(false)}
-                aria-label="Fechar menu"
-                className="flex size-9 items-center justify-center rounded-[10px] text-[#334155] transition-colors hover:bg-secondary"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            <nav className="flex flex-col gap-1 text-sm">
-              {navLinks(() => setNavOpen(false))}
-            </nav>
-          </aside>
-        </div>
-      )}
+        {/* Mobile drawer */}
+        <SheetContent side="left" className="md:hidden">
+          <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
+          <div className="mb-8 flex items-center justify-between">
+            <Link href={home} onClick={() => setNavOpen(false)}>
+              <Logo />
+            </Link>
+            <SheetClose
+              aria-label="Fechar menu"
+              className="flex size-9 items-center justify-center rounded-[10px] text-[#334155] transition-colors hover:bg-secondary focus:outline-none"
+            >
+              <X className="size-5" />
+            </SheetClose>
+          </div>
+          <nav className="flex flex-col gap-1 text-sm">
+            {navLinks(() => setNavOpen(false))}
+          </nav>
+        </SheetContent>
 
-      <div className="flex flex-1 flex-col">
+        {/* min-w-0 lets this column shrink below its content's intrinsic width,
+          so a wide child (e.g. the food table) scrolls inside its own
+          container instead of forcing horizontal page overflow on mobile. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3.5">
           <div className="flex items-center gap-2.5 md:hidden">
-            <button
-              type="button"
-              onClick={() => setNavOpen(true)}
+            <SheetTrigger
               aria-label="Abrir menu"
-              className="flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary"
+              className="flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus:outline-none"
             >
               <Menu className="size-5" />
-            </button>
+            </SheetTrigger>
             <Logo markOnly />
           </div>
           <div className="ml-auto flex items-center gap-4">
@@ -167,7 +164,8 @@ export function DashboardShell({
         </header>
 
         <main className="flex-1 px-6 py-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }

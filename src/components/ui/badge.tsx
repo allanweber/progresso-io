@@ -14,6 +14,11 @@ const badgeVariants = cva(
         solid:
           "border-transparent bg-primary text-primary-foreground px-3 py-1 text-xs",
         soft: "border-transparent bg-[#dcfce7] text-primary px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em]",
+        // Small catalog chips (origin / type / count).
+        base: "border-transparent bg-[#EEF2FF] text-[#4338CA] px-2 py-0.5 text-xs",
+        clinic: "border-transparent bg-[#ECFDF5] text-[#047857] px-2 py-0.5 text-xs",
+        neutral: "border-transparent bg-[#F1F5F9] text-[#475569] px-2 py-0.5 text-xs",
+        warn: "border-transparent bg-[#FEF3C7] text-[#92400E] px-2 py-0.5 text-xs",
       },
     },
     defaultVariants: {

@@ -8,6 +8,27 @@
       "when": 1785919946335,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785959809717,
+      "tag": "0001_food_catalog",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785999115277,
+      "tag": "0002_food_favorite",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786002296890,
+      "tag": "0003_taco_source_default",
+      "breakpoints": true
     }
   ]
 }
