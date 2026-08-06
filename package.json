@@ -18,7 +18,10 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
     "db:transform-taco": "node scripts/transform-taco.mjs",
-    "db:build-substitutions": "node scripts/build-substitutions.mjs"
+    "db:build-substitutions": "node scripts/build-substitutions.mjs",
+    "db:transform-exercises": "node scripts/transform-exercises.mjs",
+    "db:fetch-exercise-images": "node scripts/fetch-exercise-images.mjs",
+    "db:upload-exercise-images": "node scripts/upload-exercise-images.mjs"
   },
   "dependencies": {
     "@next/third-parties": "^16.3.0",

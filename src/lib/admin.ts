@@ -1,3 +1,11 @@
+import type {
+  ExerciseCategory,
+  ExerciseEquipment,
+  ExerciseForce,
+  ExerciseLevel,
+  ExerciseMechanic,
+  Muscle,
+} from "@/lib/exercises";
 import {
   FOOD_SORTS,
   type FoodNutrientDto,
@@ -105,4 +113,115 @@ export type AdminFoodDetailDto = {
   sodium: number | null;
   nutrients: FoodNutrientDto[];
   substitutes: FoodSubstituteDto[];
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Exercise catalog — platform admin (cross-tenant browse)                    */
+/* -------------------------------------------------------------------------- */
+
+export type AdminExerciseOrigin = "base" | "clinic";
+
+/**
+ * Query for the admin's cross-clinic exercise listing. `origin` narrows to the
+ * shared base or to clinic-owned exercises; `clinic` narrows to one clinic.
+ * Validated before hitting the DAL.
+ */
+export const adminExerciseListQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  category: z
+    .enum([
+      "strength",
+      "stretching",
+      "plyometrics",
+      "strongman",
+      "powerlifting",
+      "cardio",
+      "olympic_weightlifting",
+    ])
+    .optional(),
+  level: z.enum(["beginner", "intermediate", "expert"]).optional(),
+  equipment: z
+    .enum([
+      "body_only",
+      "machine",
+      "other",
+      "foam_roll",
+      "kettlebells",
+      "dumbbell",
+      "cable",
+      "barbell",
+      "bands",
+      "medicine_ball",
+      "exercise_ball",
+      "e_z_curl_bar",
+    ])
+    .optional(),
+  muscle: z
+    .enum([
+      "abdominals",
+      "abductors",
+      "adductors",
+      "biceps",
+      "calves",
+      "chest",
+      "forearms",
+      "glutes",
+      "hamstrings",
+      "lats",
+      "lower_back",
+      "middle_back",
+      "neck",
+      "quadriceps",
+      "shoulders",
+      "traps",
+      "triceps",
+    ])
+    .optional(),
+  origin: z.enum(["base", "clinic"]).optional(),
+  clinic: z.string().uuid("Clínica inválida.").optional(),
+  archived: z.boolean().optional(),
+  page: z.coerce.number().int().min(1).max(100_000).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type AdminExerciseListQuery = z.output<typeof adminExerciseListQuerySchema>;
+
+/** A row in the admin exercise listing (identity + facets + clinic). */
+export type AdminExerciseListItemDto = {
+  id: string;
+  code: string | null;
+  name: string;
+  category: ExerciseCategory;
+  level: ExerciseLevel;
+  equipment: ExerciseEquipment | null;
+  primaryMuscles: Muscle[];
+  origin: AdminExerciseOrigin;
+  clinicName: string | null;
+  archived: boolean;
+  thumbnail: string | null;
+};
+
+export type AdminExerciseListResponse = {
+  items: AdminExerciseListItemDto[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** An admin exercise-detail: identity + who owns it + the full record. */
+export type AdminExerciseDetailDto = {
+  id: string;
+  code: string | null;
+  name: string;
+  category: ExerciseCategory;
+  level: ExerciseLevel;
+  force: ExerciseForce | null;
+  mechanic: ExerciseMechanic | null;
+  equipment: ExerciseEquipment | null;
+  primaryMuscles: Muscle[];
+  secondaryMuscles: Muscle[];
+  instructions: string[];
+  images: string[];
+  origin: AdminExerciseOrigin;
+  clinicName: string | null;
+  archived: boolean;
 };

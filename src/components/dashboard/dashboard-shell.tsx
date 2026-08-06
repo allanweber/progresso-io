@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { BookOpen, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
+import {
+  BookOpen,
+  Dumbbell,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Users,
+  X,
+} from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import {
@@ -30,10 +38,16 @@ function navItems(role: string | null | undefined) {
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
     items.push({ href: "/coach/library", label: "Bibliotecas", icon: BookOpen });
+    items.push({
+      href: "/coach/library/exercises",
+      label: "Exercícios",
+      icon: Dumbbell,
+    });
   }
   if (isAdmin(role)) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });
     items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
+    items.push({ href: "/admin/exercises", label: "Exercícios", icon: Dumbbell });
   }
   return items;
 }
@@ -74,8 +88,22 @@ export function DashboardShell({
     }
   }
 
+  // A link matches when the path is it or nested under it (home only on exact).
+  // Nested routes share a prefix (e.g. /coach/library and
+  // /coach/library/exercises), so the most specific match wins — otherwise the
+  // parent would light up alongside the child.
+  function matches(href: string) {
+    return href === home
+      ? pathname === href
+      : pathname === href || pathname.startsWith(`${href}/`);
+  }
+  const activeHref = items
+    .map((i) => i.href)
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
+
   function isActive(href: string) {
-    return href === home ? pathname === href : pathname.startsWith(href);
+    return href === activeHref;
   }
 
   /** Nav links, shared by the desktop rail and the mobile drawer. */

@@ -12,6 +12,7 @@ import postgres from "postgres";
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
 const SUBSTITUTIONS = "./drizzle/data/taco-substitutions.json";
+const EXERCISES = "./drizzle/data/exercises-catalog.ndjson.gz";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -213,6 +214,50 @@ async function seedSubstitutions(sql) {
   );
 }
 
+/**
+ * Loads the base exercise catalog (`drizzle/data/exercises-catalog.ndjson.gz`,
+ * produced by scripts/transform-exercises.mjs) into the empty `exercise` table.
+ * Each row becomes a shared base exercise (`clinic_id = NULL`), with the muscle /
+ * instruction / image arrays stored as-is and `search_text` computed with
+ * `unaccent(lower(name))` so the trigram search is accent-blind — the same
+ * convention the food catalog uses. Idempotent: skips when `exercise` already
+ * has rows, so it's safe on every deploy.
+ */
+async function seedExercises(sql) {
+  const [{ count }] = await sql`select count(*)::int as count from exercise`;
+  if (count > 0) {
+    console.log(`✓ Exercise catalog already seeded (${count} exercises) — skipping.`);
+    return;
+  }
+
+  let text;
+  try {
+    text = gunzipSync(readFileSync(EXERCISES)).toString("utf8");
+  } catch {
+    console.log(`• No exercise artifact at ${EXERCISES} — skipping exercise seed.`);
+    return;
+  }
+
+  const exercises = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+
+  await sql.begin(async (tx) => {
+    for (const e of exercises) {
+      await tx`
+        insert into exercise (
+          id, code, name, search_text, category, level, force, mechanic,
+          equipment, primary_muscles, secondary_muscles, instructions, images, source
+        ) values (
+          ${crypto.randomUUID()}, ${e.code}, ${e.name}, unaccent(lower(${e.name})),
+          ${e.category}, ${e.level}, ${e.force}, ${e.mechanic}, ${e.equipment},
+          ${e.primaryMuscles}, ${e.secondaryMuscles}, ${e.instructions}, ${e.images},
+          'free-exercise-db'
+        )`;
+    }
+  });
+
+  console.log(`✓ Exercise catalog seeded: ${exercises.length} exercises.`);
+}
+
 const sql = postgres(url, { max: 1 });
 try {
   await migrate(drizzle(sql), { migrationsFolder: "./drizzle" });
@@ -220,6 +265,7 @@ try {
   await seedCatalog(sql);
   await seedSupplement(sql);
   await seedSubstitutions(sql);
+  await seedExercises(sql);
 } catch (error) {
   console.error("✗ Migration failed:", error);
   process.exitCode = 1;

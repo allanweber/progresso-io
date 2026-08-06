@@ -77,6 +77,77 @@ export const NUTRIENT_KINDS = [
 export type NutrientKind = (typeof NUTRIENT_KINDS)[number];
 
 /* -------------------------------------------------------------------------- */
+/*  Exercise catalog enums                                                    */
+/*                                                                            */
+/*  Stable snake_case slugs from the free-exercise-db source (see the         */
+/*  exercise transformer). The PT-BR labels for each live in                  */
+/*  src/lib/exercises.ts, like the food catalog's nutrient labels.            */
+/* -------------------------------------------------------------------------- */
+
+/** Broad training category of an exercise. */
+export const EXERCISE_CATEGORIES = [
+  "strength",
+  "stretching",
+  "plyometrics",
+  "strongman",
+  "powerlifting",
+  "cardio",
+  "olympic_weightlifting",
+] as const;
+export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
+
+/** Difficulty level. */
+export const EXERCISE_LEVELS = ["beginner", "intermediate", "expert"] as const;
+export type ExerciseLevel = (typeof EXERCISE_LEVELS)[number];
+
+/** Force vector of the movement (nullable in the source). */
+export const EXERCISE_FORCES = ["pull", "push", "static"] as const;
+export type ExerciseForce = (typeof EXERCISE_FORCES)[number];
+
+/** Whether the movement is compound or an isolation (nullable in the source). */
+export const EXERCISE_MECHANICS = ["compound", "isolation"] as const;
+export type ExerciseMechanic = (typeof EXERCISE_MECHANICS)[number];
+
+/** Equipment needed (nullable in the source — some exercises list none). */
+export const EXERCISE_EQUIPMENT = [
+  "body_only",
+  "machine",
+  "other",
+  "foam_roll",
+  "kettlebells",
+  "dumbbell",
+  "cable",
+  "barbell",
+  "bands",
+  "medicine_ball",
+  "exercise_ball",
+  "e_z_curl_bar",
+] as const;
+export type ExerciseEquipment = (typeof EXERCISE_EQUIPMENT)[number];
+
+/** The muscle groups an exercise can target (primary or secondary). */
+export const MUSCLES = [
+  "abdominals",
+  "abductors",
+  "adductors",
+  "biceps",
+  "calves",
+  "chest",
+  "forearms",
+  "glutes",
+  "hamstrings",
+  "lats",
+  "lower_back",
+  "middle_back",
+  "neck",
+  "quadriceps",
+  "shoulders",
+  "traps",
+  "triceps",
+] as const;
+export type Muscle = (typeof MUSCLES)[number];
+
+/* -------------------------------------------------------------------------- */
 /*  Better Auth core tables                                                   */
 /*  Field names are camelCase (what Better Auth reads); the Drizzle client is */
 /*  configured with `casing: "snake_case"`, so columns are snake_case in PG.  */
@@ -392,6 +463,68 @@ export const foodFavorite = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Exercise catalog (reference data — same base/custom shape as the food      */
+/*  catalog)                                                                   */
+/*                                                                            */
+/*  The base catalog is the open free-exercise-db dataset (English enums, with */
+/*  PT-BR name/instructions from the exercicios-bd-ptbr translation), shared   */
+/*  by every clinic as rows with `clinic_id = NULL`. A row with `clinic_id`    */
+/*  set is a single clinic's own custom exercise (a later phase). The DAL reads */
+/*  `clinic_id IS NULL OR clinic_id = ctx.clinicId` and only writes custom      */
+/*  rows, so the tenancy rule holds even though base rows are global. Muscles,  */
+/*  instructions and image keys are stored as text arrays; the images          */
+/*  themselves are served from object storage (see src/lib/exercises.ts).      */
+/* -------------------------------------------------------------------------- */
+
+export const exercise = pgTable(
+  "exercise",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Source slug ("3_4_Sit-Up"), also the image folder. NULL for custom
+    // exercises; unique when present.
+    code: text("code").unique(),
+    name: text("name").notNull(),
+    // unaccent(lower(name)); the trigram search index is built on this.
+    searchText: text("search_text").notNull(),
+    category: text("category").$type<ExerciseCategory>().notNull(),
+    level: text("level").$type<ExerciseLevel>().notNull(),
+    // Nullable in the source (some exercises leave these blank).
+    force: text("force").$type<ExerciseForce>(),
+    mechanic: text("mechanic").$type<ExerciseMechanic>(),
+    equipment: text("equipment").$type<ExerciseEquipment>(),
+    primaryMuscles: text("primary_muscles")
+      .array()
+      .$type<Muscle[]>()
+      .notNull()
+      .default([]),
+    secondaryMuscles: text("secondary_muscles")
+      .array()
+      .$type<Muscle[]>()
+      .notNull()
+      .default([]),
+    // Ordered step-by-step instructions (PT-BR).
+    instructions: text("instructions").array().notNull().default([]),
+    // Relative image keys ("<code>/0.jpg"); resolved to a URL at render time.
+    images: text("images").array().notNull().default([]),
+    source: text("source").notNull().default("free-exercise-db"),
+    // NULL = shared base; set = this clinic's private custom exercise.
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    // Soft-delete: archived exercises drop out of listings but keep references.
+    archived: boolean("archived").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("exercise_category_idx").on(t.category),
+    index("exercise_clinic_idx").on(t.clinicId),
+    // The GIN trigram index on `search_text` is added by hand in the migration
+    // (it needs the pg_trgm operator class / the extension, created earlier).
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -523,6 +656,13 @@ export const foodFavoriteRelations = relations(foodFavorite, ({ one }) => ({
   }),
 }));
 
+export const exerciseRelations = relations(exercise, ({ one }) => ({
+  clinic: one(clinic, {
+    fields: [exercise.clinicId],
+    references: [clinic.id],
+  }),
+}));
+
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
@@ -550,3 +690,5 @@ export type FoodSubstitution = typeof foodSubstitution.$inferSelect;
 export type NewFoodSubstitution = typeof foodSubstitution.$inferInsert;
 export type FoodFavorite = typeof foodFavorite.$inferSelect;
 export type NewFoodFavorite = typeof foodFavorite.$inferInsert;
+export type Exercise = typeof exercise.$inferSelect;
+export type NewExercise = typeof exercise.$inferInsert;
