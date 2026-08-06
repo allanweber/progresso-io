@@ -10,8 +10,10 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Search, Star } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { FavoriteButton } from "@/components/foods/favorite-button";
 import { apiFetch } from "@/lib/api-client";
 import {
   FOOD_SORTS,
@@ -54,6 +56,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState("");
   const [group, setGroup] = useState("");
   const [type, setType] = useState<FoodType | "">("");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sort, setSort] = useState<Sort>("description");
   const [dir, setDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -65,13 +68,14 @@ export default function LibraryPage() {
   }, [searchInput]);
 
   // Any filter/sort change returns to the first page.
-  useEffect(() => setPage(1), [search, group, type, sort, dir]);
+  useEffect(() => setPage(1), [search, group, type, favoritesOnly, sort, dir]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     if (group) p.set("group", group);
     if (type) p.set("type", type);
+    if (favoritesOnly) p.set("favorite", "true");
     // A search ranks by relevance, so the column sort only applies when idle.
     if (!search) {
       p.set("sort", sort);
@@ -80,7 +84,7 @@ export default function LibraryPage() {
     p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
     return p.toString();
-  }, [search, group, type, sort, dir, page]);
+  }, [search, group, type, favoritesOnly, sort, dir, page]);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ["foods", query],
@@ -132,6 +136,16 @@ export default function LibraryPage() {
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: "favorite",
+        header: "",
+        cell: (ctx) => (
+          <FavoriteButton
+            foodId={ctx.row.original.id}
+            isFavorite={ctx.row.original.isFavorite}
+          />
+        ),
+      }),
       columnHelper.accessor("description", {
         id: "description",
         header: () => (
@@ -234,13 +248,21 @@ export default function LibraryPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          Bibliotecas
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Consulte a tabela de composição de alimentos.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">
+            Bibliotecas
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Consulte a tabela de composição de alimentos.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/coach/library/foods/new">
+            <Plus className="size-4" />
+            Novo alimento
+          </Link>
+        </Button>
       </div>
 
       {/* Tabs — only Alimentos for now; more libraries land later. */}
@@ -283,6 +305,21 @@ export default function LibraryPage() {
           <option value="ingrediente">Ingredientes</option>
           <option value="preparacao">Preparações</option>
         </select>
+        <button
+          type="button"
+          onClick={() => setFavoritesOnly((v) => !v)}
+          aria-pressed={favoritesOnly}
+          className={
+            favoritesOnly
+              ? "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700"
+              : "inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
+          }
+        >
+          <Star
+            className={`size-4 ${favoritesOnly ? "fill-amber-400 text-amber-400" : ""}`}
+          />
+          Favoritos
+        </button>
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
@@ -299,7 +336,9 @@ export default function LibraryPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
-          Nenhum alimento encontrado com esses filtros.
+          {favoritesOnly
+            ? "Nenhum alimento favoritado ainda. Toque na estrela de um alimento para favoritá-lo."
+            : "Nenhum alimento encontrado com esses filtros."}
         </div>
       ) : (
         <>
@@ -315,11 +354,14 @@ export default function LibraryPage() {
                     <span className="min-w-0 break-words font-medium text-foreground">
                       {f.description}
                     </span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${originChip(f.origin)}`}
-                    >
-                      {ORIGIN_LABELS[f.origin]}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${originChip(f.origin)}`}
+                      >
+                        {ORIGIN_LABELS[f.origin]}
+                      </span>
+                      <FavoriteButton foodId={f.id} isFavorite={f.isFavorite} />
+                    </div>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <span
@@ -357,6 +399,7 @@ export default function LibraryPage() {
           <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
             <table className="w-full table-fixed text-sm">
               <colgroup>
+                <col className="w-10" />
                 <col />
                 <col className="w-36" />
                 <col className="w-28" />

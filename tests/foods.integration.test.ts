@@ -207,3 +207,149 @@ describe("foods DAL", () => {
     expect(await foods.getFood(ctxB, clinicBFoodId)).not.toBeNull();
   });
 });
+
+/** A macro-less write input; spread and override the fields a test cares about. */
+const BLANK_WRITE = {
+  description: "x",
+  groupSlug: "cereais-e-derivados",
+  type: "ingrediente" as const,
+  energyKcal: null,
+  protein: null,
+  carbohydrate: null,
+  fat: null,
+  fiber: null,
+  sodium: null,
+};
+
+describe("custom food writes (phase 2)", () => {
+  let customId: string;
+
+  it("creates a custom food stamped with the clinic + computed search_text", async () => {
+    const created = await foods.createFood(ctxA, {
+      ...BLANK_WRITE,
+      description: "Pasta de amendoim integral",
+      energyKcal: 588,
+      protein: 25,
+      carbohydrate: 20,
+      fat: 50,
+      fiber: 6,
+      sodium: 17,
+    });
+    expect(created).not.toBeNull();
+    customId = created!.id;
+    expect(created!.clinicId).toBe(ctxA.clinicId);
+    expect(created!.source).toBe("custom");
+    expect(created!.code).toBeNull();
+
+    // Accent-insensitive search finds it; clinic B never does.
+    const found = await foods.listFoods(ctxA, { search: "amendoim" });
+    expect(found.items.some((f) => f.id === customId)).toBe(true);
+    const listB = await foods.listFoods(ctxB, { search: "amendoim" });
+    expect(listB.items.some((f) => f.id === customId)).toBe(false);
+  });
+
+  it("returns null for an unknown group slug", async () => {
+    const bad = await foods.createFood(ctxA, {
+      ...BLANK_WRITE,
+      groupSlug: "grupo-inexistente",
+    });
+    expect(bad).toBeNull();
+  });
+
+  it("updates own foods; base + other-clinic ids are untouched", async () => {
+    const updated = await foods.updateFood(ctxA, customId, {
+      ...BLANK_WRITE,
+      description: "Pasta de amendoim (nova receita)",
+      protein: 24,
+    });
+    expect(updated?.description).toBe("Pasta de amendoim (nova receita)");
+
+    // A base food cannot be edited (returns null → treated as 404).
+    expect(await foods.updateFood(ctxA, arrozId, BLANK_WRITE)).toBeNull();
+    // Clinic B cannot edit clinic A's custom food.
+    expect(await foods.updateFood(ctxB, customId, BLANK_WRITE)).toBeNull();
+  });
+
+  it("archives own foods (hiding them from the listing); base can't be archived", async () => {
+    const archived = await foods.archiveFood(ctxA, customId);
+    expect(archived?.archived).toBe(true);
+    const list = await foods.listFoods(ctxA, { search: "amendoim" });
+    expect(list.items.some((f) => f.id === customId)).toBe(false);
+
+    expect(await foods.archiveFood(ctxA, arrozId)).toBeNull();
+  });
+});
+
+describe("substitutions (phase 2)", () => {
+  it("adds a rule, rejects self/duplicate, and scopes removal to the clinic", async () => {
+    const ok = await foods.addSubstitution(ctxA, arrozId, acaiId, 80);
+    expect(ok.ok).toBe(true);
+
+    const detail = await foods.getFood(ctxA, arrozId);
+    const sub = detail!.substitutes.find((s) => s.foodId === acaiId);
+    expect(sub?.grams).toBe(80);
+    expect(sub?.removable).toBe(true);
+
+    // Another clinic never sees clinic A's rule.
+    const detailB = await foods.getFood(ctxB, arrozId);
+    expect(detailB!.substitutes.length).toBe(0);
+
+    // Self-substitution and duplicates are rejected.
+    expect(await foods.addSubstitution(ctxA, arrozId, arrozId, 100)).toEqual({
+      ok: false,
+      reason: "same_food",
+    });
+    expect(await foods.addSubstitution(ctxA, arrozId, acaiId, 90)).toEqual({
+      ok: false,
+      reason: "duplicate",
+    });
+
+    // Clinic B cannot remove clinic A's rule; clinic A can.
+    const subId = (ok as { ok: true; substitute: { id: string } }).substitute.id;
+    expect(await foods.removeSubstitution(ctxB, arrozId, subId)).toBe(false);
+    expect(await foods.removeSubstitution(ctxA, arrozId, subId)).toBe(true);
+    expect((await foods.getFood(ctxA, arrozId))!.substitutes.length).toBe(0);
+  });
+
+  it("marks a base (seeded) substitution as not removable by a clinic", async () => {
+    // açaí → arroz was seeded with clinic_id NULL in beforeAll.
+    const detail = await foods.getFood(ctxA, acaiId);
+    const baseSub = detail!.substitutes.find((s) => s.foodId === arrozId);
+    expect(baseSub).toBeDefined();
+    expect(baseSub!.removable).toBe(false);
+  });
+});
+
+describe("favorites (phase 2)", () => {
+  it("marks, filters, isolates by clinic, and unmarks", async () => {
+    expect(await foods.setFavorite(ctxA, acaiId, true)).toBe(true);
+
+    // Reflected on detail and the listing flag for clinic A.
+    expect((await foods.getFood(ctxA, acaiId))!.isFavorite).toBe(true);
+    const all = await foods.listFoods(ctxA, { pageSize: 100 });
+    expect(all.items.find((f) => f.id === acaiId)!.isFavorite).toBe(true);
+
+    // The favorites-only filter returns exactly the favorited food.
+    const fav = await foods.listFoods(ctxA, { favoritesOnly: true, pageSize: 100 });
+    expect(fav.items.map((f) => f.id)).toEqual([acaiId]);
+
+    // Clinic B does not share clinic A's favorite.
+    expect((await foods.getFood(ctxB, acaiId))!.isFavorite).toBe(false);
+    expect(
+      (await foods.listFoods(ctxB, { favoritesOnly: true, pageSize: 100 })).items
+        .length,
+    ).toBe(0);
+
+    // Unfavorite drops it from the filter.
+    expect(await foods.setFavorite(ctxA, acaiId, false)).toBe(true);
+    expect(
+      (await foods.listFoods(ctxA, { favoritesOnly: true, pageSize: 100 })).items
+        .length,
+    ).toBe(0);
+  });
+
+  it("refuses to favorite a food the clinic can't see", async () => {
+    // clinicBFoodId is clinic B's private custom food — invisible to clinic A.
+    expect(await foods.setFavorite(ctxA, clinicBFoodId, true)).toBe(false);
+  });
+});

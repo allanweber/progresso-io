@@ -366,6 +366,29 @@ export const foodSubstitution = pgTable(
   ],
 );
 
+/**
+ * A clinic's favorited foods. Unlike the rest of the catalog, a favorite is
+ * always tenant-scoped: `clinic_id` is required (there is no shared/base
+ * favorite). A clinic may favorite any food it can see — a base TBCA food or
+ * one of its own custom foods. One row per `(clinic, food)` pair.
+ */
+export const foodFavorite = pgTable(
+  "food_favorite",
+  {
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clinicId, t.foodId] }),
+    index("food_favorite_food_idx").on(t.foodId),
+  ],
+);
+
 /* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -453,6 +476,7 @@ export const foodRelations = relations(food, ({ one, many }) => ({
   substituteFor: many(foodSubstitution, {
     relationName: "substitutionSubstitute",
   }),
+  favoritedBy: many(foodFavorite),
 }));
 
 export const foodNutrientRelations = relations(foodNutrient, ({ one }) => ({
@@ -486,6 +510,17 @@ export const foodSubstitutionRelations = relations(
   }),
 );
 
+export const foodFavoriteRelations = relations(foodFavorite, ({ one }) => ({
+  clinic: one(clinic, {
+    fields: [foodFavorite.clinicId],
+    references: [clinic.id],
+  }),
+  food: one(food, {
+    fields: [foodFavorite.foodId],
+    references: [food.id],
+  }),
+}));
+
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
@@ -511,3 +546,5 @@ export type FoodNutrient = typeof foodNutrient.$inferSelect;
 export type NewFoodNutrient = typeof foodNutrient.$inferInsert;
 export type FoodSubstitution = typeof foodSubstitution.$inferSelect;
 export type NewFoodSubstitution = typeof foodSubstitution.$inferInsert;
+export type FoodFavorite = typeof foodFavorite.$inferSelect;
+export type NewFoodFavorite = typeof foodFavorite.$inferInsert;
