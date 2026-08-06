@@ -312,7 +312,7 @@ export default function LibraryPage() {
                   className="block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 truncate font-medium text-foreground">
+                    <span className="min-w-0 break-words font-medium text-foreground">
                       {f.description}
                     </span>
                     <span
