@@ -288,18 +288,20 @@ export default function LibraryPage() {
         </span>
       </div>
 
-      {/* Search + filters */}
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <div className="relative w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Buscar alimento…"
-            className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
-          />
-        </div>
+      {/* Search — full width on its own row. */}
+      <div className="relative mt-5 w-full">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+        <input
+          type="search"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Buscar alimento…"
+          className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <select
           value={group}
           onChange={(e) => setGroup(e.target.value)}
