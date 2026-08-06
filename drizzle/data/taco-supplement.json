@@ -1,6 +1,6 @@
 {
   "_comment": "Supplement foods: common diet staples absent from the TACO base. source=TBCA rows carry their original TBCA code; source=USDA rows are researched from USDA FoodData Central (FDC id in sourceCode when available; brand-variable items use a representative value, noted in sourceDescription). Nutrients mapped to the current (TACO) nutrient dimension. NOT yet wired into the seed.",
-  "count": 49,
+  "count": 75,
   "foods": [
     {
       "sourceCode": "C0290T",
@@ -6331,6 +6331,1918 @@
         [
           "potassium",
           200,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-172467",
+      "description": "Tempeh",
+      "sourceDescription": "Tempeh, cooked (FDC 172467)",
+      "groupSlug": "leguminosas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 192,
+      "protein": 20.3,
+      "carbohydrate": 7.6,
+      "fat": 10.8,
+      "fiber": null,
+      "sodium": 9,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          192,
+          false
+        ],
+        [
+          "energy_kj",
+          803,
+          false
+        ],
+        [
+          "protein",
+          20.3,
+          false
+        ],
+        [
+          "carbohydrate",
+          7.6,
+          false
+        ],
+        [
+          "fat",
+          10.8,
+          false
+        ],
+        [
+          "sodium",
+          9,
+          false
+        ],
+        [
+          "calcium",
+          111,
+          false
+        ],
+        [
+          "iron",
+          2.7,
+          false
+        ],
+        [
+          "magnesium",
+          81,
+          false
+        ],
+        [
+          "phosphorus",
+          266,
+          false
+        ],
+        [
+          "potassium",
+          412,
+          false
+        ],
+        [
+          "zinc",
+          1.14,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-168147",
+      "description": "Seitan (glúten de trigo)",
+      "sourceDescription": "Vital wheat gluten (FDC 168147); base do seitan",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 370,
+      "protein": 75.2,
+      "carbohydrate": 13.9,
+      "fat": 1.9,
+      "fiber": 0.6,
+      "sodium": 29,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          370,
+          false
+        ],
+        [
+          "energy_kj",
+          1548,
+          false
+        ],
+        [
+          "protein",
+          75.2,
+          false
+        ],
+        [
+          "carbohydrate",
+          13.9,
+          false
+        ],
+        [
+          "fat",
+          1.9,
+          false
+        ],
+        [
+          "fiber",
+          0.6,
+          false
+        ],
+        [
+          "sodium",
+          29,
+          false
+        ],
+        [
+          "calcium",
+          142,
+          false
+        ],
+        [
+          "iron",
+          5.2,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-pea-protein",
+      "description": "Proteína de ervilha (pó)",
+      "sourceDescription": "Pea protein isolate powder (representativo; varia por marca)",
+      "groupSlug": "leguminosas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 350,
+      "protein": 82,
+      "carbohydrate": 1,
+      "fat": 1.7,
+      "fiber": 0,
+      "sodium": 700,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          350,
+          false
+        ],
+        [
+          "energy_kj",
+          1464,
+          false
+        ],
+        [
+          "protein",
+          82,
+          false
+        ],
+        [
+          "carbohydrate",
+          1,
+          false
+        ],
+        [
+          "fat",
+          1.7,
+          false
+        ],
+        [
+          "fiber",
+          0,
+          false
+        ],
+        [
+          "sodium",
+          700,
+          false
+        ],
+        [
+          "iron",
+          6,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-172424",
+      "description": "Tremoço (lupini), cozido",
+      "sourceDescription": "Lupins, mature seeds, cooked (FDC 172424)",
+      "groupSlug": "leguminosas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 116,
+      "protein": 15.6,
+      "carbohydrate": 9.88,
+      "fat": 2.92,
+      "fiber": 2.8,
+      "sodium": 4,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          116,
+          false
+        ],
+        [
+          "energy_kj",
+          485,
+          false
+        ],
+        [
+          "protein",
+          15.6,
+          false
+        ],
+        [
+          "carbohydrate",
+          9.88,
+          false
+        ],
+        [
+          "fat",
+          2.92,
+          false
+        ],
+        [
+          "fiber",
+          2.8,
+          false
+        ],
+        [
+          "sodium",
+          4,
+          false
+        ],
+        [
+          "calcium",
+          51,
+          false
+        ],
+        [
+          "iron",
+          1.2,
+          false
+        ],
+        [
+          "magnesium",
+          54,
+          false
+        ],
+        [
+          "phosphorus",
+          128,
+          false
+        ],
+        [
+          "potassium",
+          245,
+          false
+        ],
+        [
+          "zinc",
+          1.38,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170562",
+      "description": "Semente de girassol",
+      "sourceDescription": "Seeds, sunflower seed kernels, dried (FDC 170562)",
+      "groupSlug": "nozes-e-sementes",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 584,
+      "protein": 20.78,
+      "carbohydrate": 20,
+      "fat": 51.46,
+      "fiber": 8.6,
+      "sodium": 9,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          584,
+          false
+        ],
+        [
+          "energy_kj",
+          2443,
+          false
+        ],
+        [
+          "protein",
+          20.78,
+          false
+        ],
+        [
+          "carbohydrate",
+          20,
+          false
+        ],
+        [
+          "fat",
+          51.46,
+          false
+        ],
+        [
+          "fiber",
+          8.6,
+          false
+        ],
+        [
+          "sodium",
+          9,
+          false
+        ],
+        [
+          "calcium",
+          78,
+          false
+        ],
+        [
+          "iron",
+          5.25,
+          false
+        ],
+        [
+          "magnesium",
+          325,
+          false
+        ],
+        [
+          "phosphorus",
+          660,
+          false
+        ],
+        [
+          "potassium",
+          645,
+          false
+        ],
+        [
+          "zinc",
+          5,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170556",
+      "description": "Semente de abóbora",
+      "sourceDescription": "Seeds, pumpkin/squash seed kernels, dried (FDC 170556)",
+      "groupSlug": "nozes-e-sementes",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 559,
+      "protein": 30.23,
+      "carbohydrate": 10.71,
+      "fat": 49.05,
+      "fiber": 6,
+      "sodium": 7,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          559,
+          false
+        ],
+        [
+          "energy_kj",
+          2339,
+          false
+        ],
+        [
+          "protein",
+          30.23,
+          false
+        ],
+        [
+          "carbohydrate",
+          10.71,
+          false
+        ],
+        [
+          "fat",
+          49.05,
+          false
+        ],
+        [
+          "fiber",
+          6,
+          false
+        ],
+        [
+          "sodium",
+          7,
+          false
+        ],
+        [
+          "calcium",
+          46,
+          false
+        ],
+        [
+          "iron",
+          8.82,
+          false
+        ],
+        [
+          "magnesium",
+          592,
+          false
+        ],
+        [
+          "phosphorus",
+          1233,
+          false
+        ],
+        [
+          "potassium",
+          809,
+          false
+        ],
+        [
+          "zinc",
+          7.81,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170148",
+      "description": "Semente de cânhamo (hemp)",
+      "sourceDescription": "Seeds, hemp seed, hulled (FDC 170148)",
+      "groupSlug": "nozes-e-sementes",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 586,
+      "protein": 31.56,
+      "carbohydrate": 8.67,
+      "fat": 48.75,
+      "fiber": 4,
+      "sodium": 5,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          586,
+          false
+        ],
+        [
+          "energy_kj",
+          2452,
+          false
+        ],
+        [
+          "protein",
+          31.56,
+          false
+        ],
+        [
+          "carbohydrate",
+          8.67,
+          false
+        ],
+        [
+          "fat",
+          48.75,
+          false
+        ],
+        [
+          "fiber",
+          4,
+          false
+        ],
+        [
+          "sodium",
+          5,
+          false
+        ],
+        [
+          "calcium",
+          70,
+          false
+        ],
+        [
+          "iron",
+          7.95,
+          false
+        ],
+        [
+          "magnesium",
+          700,
+          false
+        ],
+        [
+          "phosphorus",
+          1650,
+          false
+        ],
+        [
+          "potassium",
+          1200,
+          false
+        ],
+        [
+          "zinc",
+          9.9,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170495",
+      "description": "Spirulina (pó)",
+      "sourceDescription": "Seaweed, spirulina, dried (FDC 170495)",
+      "groupSlug": "miscelaneas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 290,
+      "protein": 57.47,
+      "carbohydrate": 23.9,
+      "fat": 7.72,
+      "fiber": 3.6,
+      "sodium": 1048,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          290,
+          false
+        ],
+        [
+          "energy_kj",
+          1213,
+          false
+        ],
+        [
+          "protein",
+          57.47,
+          false
+        ],
+        [
+          "carbohydrate",
+          23.9,
+          false
+        ],
+        [
+          "fat",
+          7.72,
+          false
+        ],
+        [
+          "fiber",
+          3.6,
+          false
+        ],
+        [
+          "sodium",
+          1048,
+          false
+        ],
+        [
+          "calcium",
+          120,
+          false
+        ],
+        [
+          "iron",
+          28.5,
+          false
+        ],
+        [
+          "magnesium",
+          195,
+          false
+        ],
+        [
+          "phosphorus",
+          118,
+          false
+        ],
+        [
+          "potassium",
+          1363,
+          false
+        ],
+        [
+          "zinc",
+          2,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-cacao-nibs",
+      "description": "Cacau nibs (nibs de cacau)",
+      "sourceDescription": "Cocoa/cacao nibs (representativo; varia por marca)",
+      "groupSlug": "miscelaneas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 616,
+      "protein": 13.6,
+      "carbohydrate": 35,
+      "fat": 50,
+      "fiber": 27,
+      "sodium": 20,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          616,
+          false
+        ],
+        [
+          "energy_kj",
+          2577,
+          false
+        ],
+        [
+          "protein",
+          13.6,
+          false
+        ],
+        [
+          "carbohydrate",
+          35,
+          false
+        ],
+        [
+          "fat",
+          50,
+          false
+        ],
+        [
+          "fiber",
+          27,
+          false
+        ],
+        [
+          "sodium",
+          20,
+          false
+        ],
+        [
+          "iron",
+          6,
+          false
+        ],
+        [
+          "magnesium",
+          250,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-173755",
+      "description": "Alfarroba (farinha)",
+      "sourceDescription": "Carob flour (FDC 173755)",
+      "groupSlug": "miscelaneas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 222,
+      "protein": 4.62,
+      "carbohydrate": 88.88,
+      "fat": 0.65,
+      "fiber": 39.8,
+      "sodium": 35,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          222,
+          false
+        ],
+        [
+          "energy_kj",
+          929,
+          false
+        ],
+        [
+          "protein",
+          4.62,
+          false
+        ],
+        [
+          "carbohydrate",
+          88.88,
+          false
+        ],
+        [
+          "fat",
+          0.65,
+          false
+        ],
+        [
+          "fiber",
+          39.8,
+          false
+        ],
+        [
+          "sodium",
+          35,
+          false
+        ],
+        [
+          "calcium",
+          348,
+          false
+        ],
+        [
+          "potassium",
+          827,
+          false
+        ],
+        [
+          "magnesium",
+          54,
+          false
+        ],
+        [
+          "iron",
+          2.94,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170286",
+      "description": "Trigo sarraceno (buckwheat), cru",
+      "sourceDescription": "Buckwheat, raw groats (FDC 170286)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 343,
+      "protein": 13.25,
+      "carbohydrate": 71.5,
+      "fat": 3.4,
+      "fiber": 10,
+      "sodium": 1,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          343,
+          false
+        ],
+        [
+          "energy_kj",
+          1435,
+          false
+        ],
+        [
+          "protein",
+          13.25,
+          false
+        ],
+        [
+          "carbohydrate",
+          71.5,
+          false
+        ],
+        [
+          "fat",
+          3.4,
+          false
+        ],
+        [
+          "fiber",
+          10,
+          false
+        ],
+        [
+          "sodium",
+          1,
+          false
+        ],
+        [
+          "calcium",
+          18,
+          false
+        ],
+        [
+          "iron",
+          2.2,
+          false
+        ],
+        [
+          "magnesium",
+          231,
+          false
+        ],
+        [
+          "phosphorus",
+          347,
+          false
+        ],
+        [
+          "potassium",
+          460,
+          false
+        ],
+        [
+          "zinc",
+          2.4,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-169702",
+      "description": "Painço (millet), cru",
+      "sourceDescription": "Millet, raw (FDC 169702)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 378,
+      "protein": 11.02,
+      "carbohydrate": 72.85,
+      "fat": 4.22,
+      "fiber": 8.5,
+      "sodium": 5,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          378,
+          false
+        ],
+        [
+          "energy_kj",
+          1582,
+          false
+        ],
+        [
+          "protein",
+          11.02,
+          false
+        ],
+        [
+          "carbohydrate",
+          72.85,
+          false
+        ],
+        [
+          "fat",
+          4.22,
+          false
+        ],
+        [
+          "fiber",
+          8.5,
+          false
+        ],
+        [
+          "sodium",
+          5,
+          false
+        ],
+        [
+          "calcium",
+          8,
+          false
+        ],
+        [
+          "iron",
+          3.01,
+          false
+        ],
+        [
+          "magnesium",
+          114,
+          false
+        ],
+        [
+          "phosphorus",
+          285,
+          false
+        ],
+        [
+          "potassium",
+          195,
+          false
+        ],
+        [
+          "zinc",
+          1.68,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-168892",
+      "description": "Gérmen de trigo",
+      "sourceDescription": "Wheat germ, crude (FDC 168892)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 360,
+      "protein": 23.15,
+      "carbohydrate": 51.8,
+      "fat": 9.72,
+      "fiber": 13.2,
+      "sodium": 12,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          360,
+          false
+        ],
+        [
+          "energy_kj",
+          1506,
+          false
+        ],
+        [
+          "protein",
+          23.15,
+          false
+        ],
+        [
+          "carbohydrate",
+          51.8,
+          false
+        ],
+        [
+          "fat",
+          9.72,
+          false
+        ],
+        [
+          "fiber",
+          13.2,
+          false
+        ],
+        [
+          "sodium",
+          12,
+          false
+        ],
+        [
+          "calcium",
+          39,
+          false
+        ],
+        [
+          "iron",
+          6.26,
+          false
+        ],
+        [
+          "magnesium",
+          239,
+          false
+        ],
+        [
+          "phosphorus",
+          842,
+          false
+        ],
+        [
+          "potassium",
+          892,
+          false
+        ],
+        [
+          "zinc",
+          12.29,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-168872",
+      "description": "Farelo de aveia",
+      "sourceDescription": "Oat bran, raw (FDC 168872)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 246,
+      "protein": 17.3,
+      "carbohydrate": 66.2,
+      "fat": 7.03,
+      "fiber": 15.4,
+      "sodium": 4,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          246,
+          false
+        ],
+        [
+          "energy_kj",
+          1029,
+          false
+        ],
+        [
+          "protein",
+          17.3,
+          false
+        ],
+        [
+          "carbohydrate",
+          66.2,
+          false
+        ],
+        [
+          "fat",
+          7.03,
+          false
+        ],
+        [
+          "fiber",
+          15.4,
+          false
+        ],
+        [
+          "sodium",
+          4,
+          false
+        ],
+        [
+          "calcium",
+          58,
+          false
+        ],
+        [
+          "iron",
+          5.41,
+          false
+        ],
+        [
+          "magnesium",
+          235,
+          false
+        ],
+        [
+          "phosphorus",
+          734,
+          false
+        ],
+        [
+          "potassium",
+          566,
+          false
+        ],
+        [
+          "zinc",
+          3.11,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-almond-flour",
+      "description": "Farinha de amêndoas",
+      "sourceDescription": "Blanched almond flour (representativo)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 621,
+      "protein": 23,
+      "carbohydrate": 21,
+      "fat": 50,
+      "fiber": 10.7,
+      "sodium": 2,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          621,
+          false
+        ],
+        [
+          "energy_kj",
+          2598,
+          false
+        ],
+        [
+          "protein",
+          23,
+          false
+        ],
+        [
+          "carbohydrate",
+          21,
+          false
+        ],
+        [
+          "fat",
+          50,
+          false
+        ],
+        [
+          "fiber",
+          10.7,
+          false
+        ],
+        [
+          "sodium",
+          2,
+          false
+        ],
+        [
+          "calcium",
+          120,
+          false
+        ],
+        [
+          "magnesium",
+          270,
+          false
+        ],
+        [
+          "potassium",
+          730,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-coconut-flour",
+      "description": "Farinha de coco",
+      "sourceDescription": "Coconut flour (representativo)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 438,
+      "protein": 16.1,
+      "carbohydrate": 58.9,
+      "fat": 15.3,
+      "fiber": 34.2,
+      "sodium": 50,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          438,
+          false
+        ],
+        [
+          "energy_kj",
+          1833,
+          false
+        ],
+        [
+          "protein",
+          16.1,
+          false
+        ],
+        [
+          "carbohydrate",
+          58.9,
+          false
+        ],
+        [
+          "fat",
+          15.3,
+          false
+        ],
+        [
+          "fiber",
+          34.2,
+          false
+        ],
+        [
+          "sodium",
+          50,
+          false
+        ],
+        [
+          "iron",
+          6,
+          false
+        ],
+        [
+          "potassium",
+          830,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-pitaya",
+      "description": "Pitaya (dragon fruit)",
+      "sourceDescription": "Dragon fruit / pitaya, raw (representativo)",
+      "groupSlug": "frutas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 60,
+      "protein": 1.2,
+      "carbohydrate": 13,
+      "fat": 0.4,
+      "fiber": 3,
+      "sodium": 0,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          60,
+          false
+        ],
+        [
+          "energy_kj",
+          251,
+          false
+        ],
+        [
+          "protein",
+          1.2,
+          false
+        ],
+        [
+          "carbohydrate",
+          13,
+          false
+        ],
+        [
+          "fat",
+          0.4,
+          false
+        ],
+        [
+          "fiber",
+          3,
+          false
+        ],
+        [
+          "sodium",
+          0,
+          false
+        ],
+        [
+          "calcium",
+          18,
+          false
+        ],
+        [
+          "magnesium",
+          40,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-174687",
+      "description": "Jaca (jackfruit), crua",
+      "sourceDescription": "Jackfruit, raw (FDC 174687)",
+      "groupSlug": "frutas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 95,
+      "protein": 1.72,
+      "carbohydrate": 23.25,
+      "fat": 0.64,
+      "fiber": 1.5,
+      "sodium": 2,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          95,
+          false
+        ],
+        [
+          "energy_kj",
+          397,
+          false
+        ],
+        [
+          "protein",
+          1.72,
+          false
+        ],
+        [
+          "carbohydrate",
+          23.25,
+          false
+        ],
+        [
+          "fat",
+          0.64,
+          false
+        ],
+        [
+          "fiber",
+          1.5,
+          false
+        ],
+        [
+          "sodium",
+          2,
+          false
+        ],
+        [
+          "calcium",
+          24,
+          false
+        ],
+        [
+          "magnesium",
+          29,
+          false
+        ],
+        [
+          "potassium",
+          448,
+          false
+        ],
+        [
+          "vitamin_c",
+          13.7,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-173032",
+      "description": "Goji berry, seca",
+      "sourceDescription": "Goji berries, dried (FDC 173032)",
+      "groupSlug": "frutas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 349,
+      "protein": 14.26,
+      "carbohydrate": 77.06,
+      "fat": 0.39,
+      "fiber": 13,
+      "sodium": 298,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          349,
+          false
+        ],
+        [
+          "energy_kj",
+          1460,
+          false
+        ],
+        [
+          "protein",
+          14.26,
+          false
+        ],
+        [
+          "carbohydrate",
+          77.06,
+          false
+        ],
+        [
+          "fat",
+          0.39,
+          false
+        ],
+        [
+          "fiber",
+          13,
+          false
+        ],
+        [
+          "sodium",
+          298,
+          false
+        ],
+        [
+          "calcium",
+          190,
+          false
+        ],
+        [
+          "iron",
+          6.8,
+          false
+        ],
+        [
+          "vitamin_c",
+          48.4,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-physalis",
+      "description": "Physalis (fruto)",
+      "sourceDescription": "Physalis / cape gooseberry (representativo)",
+      "groupSlug": "frutas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 53,
+      "protein": 1.9,
+      "carbohydrate": 11.2,
+      "fat": 0.7,
+      "fiber": 3,
+      "sodium": 1,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          53,
+          false
+        ],
+        [
+          "energy_kj",
+          222,
+          false
+        ],
+        [
+          "protein",
+          1.9,
+          false
+        ],
+        [
+          "carbohydrate",
+          11.2,
+          false
+        ],
+        [
+          "fat",
+          0.7,
+          false
+        ],
+        [
+          "fiber",
+          3,
+          false
+        ],
+        [
+          "sodium",
+          1,
+          false
+        ],
+        [
+          "vitamin_c",
+          11,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-169279",
+      "description": "Chucrute (sauerkraut)",
+      "sourceDescription": "Sauerkraut, canned (FDC 169279)",
+      "groupSlug": "verduras-hortalicas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 19,
+      "protein": 0.91,
+      "carbohydrate": 4.28,
+      "fat": 0.14,
+      "fiber": 2.9,
+      "sodium": 661,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          19,
+          false
+        ],
+        [
+          "energy_kj",
+          79,
+          false
+        ],
+        [
+          "protein",
+          0.91,
+          false
+        ],
+        [
+          "carbohydrate",
+          4.28,
+          false
+        ],
+        [
+          "fat",
+          0.14,
+          false
+        ],
+        [
+          "fiber",
+          2.9,
+          false
+        ],
+        [
+          "sodium",
+          661,
+          false
+        ],
+        [
+          "calcium",
+          30,
+          false
+        ],
+        [
+          "iron",
+          1.47,
+          false
+        ],
+        [
+          "potassium",
+          170,
+          false
+        ],
+        [
+          "vitamin_c",
+          14.7,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-170392",
+      "description": "Kimchi",
+      "sourceDescription": "Cabbage, kimchi (FDC 170392; varia por preparo)",
+      "groupSlug": "verduras-hortalicas-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 23,
+      "protein": 1.5,
+      "carbohydrate": 4.2,
+      "fat": 0.5,
+      "fiber": 1.6,
+      "sodium": 747,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          23,
+          false
+        ],
+        [
+          "energy_kj",
+          96,
+          false
+        ],
+        [
+          "protein",
+          1.5,
+          false
+        ],
+        [
+          "carbohydrate",
+          4.2,
+          false
+        ],
+        [
+          "fat",
+          0.5,
+          false
+        ],
+        [
+          "fiber",
+          1.6,
+          false
+        ],
+        [
+          "sodium",
+          747,
+          false
+        ],
+        [
+          "calcium",
+          33,
+          false
+        ],
+        [
+          "iron",
+          0.5,
+          false
+        ],
+        [
+          "vitamin_c",
+          18,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-whey-isolate",
+      "description": "Whey protein isolado (pó)",
+      "sourceDescription": "Whey protein isolate (representativo; varia por marca)",
+      "groupSlug": "leite-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 375,
+      "protein": 85,
+      "carbohydrate": 5,
+      "fat": 1,
+      "fiber": 0,
+      "sodium": 200,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          375,
+          false
+        ],
+        [
+          "energy_kj",
+          1569,
+          false
+        ],
+        [
+          "protein",
+          85,
+          false
+        ],
+        [
+          "carbohydrate",
+          5,
+          false
+        ],
+        [
+          "fat",
+          1,
+          false
+        ],
+        [
+          "fiber",
+          0,
+          false
+        ],
+        [
+          "sodium",
+          200,
+          false
+        ],
+        [
+          "calcium",
+          400,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-collagen",
+      "description": "Colágeno (peptídeos, pó)",
+      "sourceDescription": "Collagen peptides / hydrolyzed collagen (representativo)",
+      "groupSlug": "miscelaneas",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 363,
+      "protein": 90,
+      "carbohydrate": 0,
+      "fat": 0,
+      "fiber": 0,
+      "sodium": 150,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          363,
+          false
+        ],
+        [
+          "energy_kj",
+          1519,
+          false
+        ],
+        [
+          "protein",
+          90,
+          false
+        ],
+        [
+          "carbohydrate",
+          0,
+          false
+        ],
+        [
+          "fat",
+          0,
+          false
+        ],
+        [
+          "fiber",
+          0,
+          false
+        ],
+        [
+          "sodium",
+          150,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "USDA-rice-protein",
+      "description": "Proteína de arroz (pó)",
+      "sourceDescription": "Rice protein powder (representativo; varia por marca)",
+      "groupSlug": "cereais-e-derivados",
+      "type": "ingrediente",
+      "source": "USDA",
+      "energyKcal": 353,
+      "protein": 80,
+      "carbohydrate": 6,
+      "fat": 3,
+      "fiber": 2,
+      "sodium": 200,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kcal",
+          353,
+          false
+        ],
+        [
+          "energy_kj",
+          1477,
+          false
+        ],
+        [
+          "protein",
+          80,
+          false
+        ],
+        [
+          "carbohydrate",
+          6,
+          false
+        ],
+        [
+          "fat",
+          3,
+          false
+        ],
+        [
+          "fiber",
+          2,
+          false
+        ],
+        [
+          "sodium",
+          200,
+          false
+        ],
+        [
+          "iron",
+          5,
+          false
+        ]
+      ]
+    },
+    {
+      "sourceCode": "C0187T",
+      "description": "Missô (pasta de soja fermentada)",
+      "sourceDescription": "Missô, pasta de soja, aka, Sakura",
+      "groupSlug": "leguminosas-e-derivados",
+      "type": "ingrediente",
+      "source": "TBCA",
+      "energyKcal": 166,
+      "protein": 13,
+      "carbohydrate": 13,
+      "fat": 8,
+      "fiber": 4.97,
+      "sodium": 1504,
+      "needsReview": false,
+      "nutrients": [
+        [
+          "energy_kj",
+          693,
+          false
+        ],
+        [
+          "energy_kcal",
+          166,
+          false
+        ],
+        [
+          "humidity",
+          52,
+          false
+        ],
+        [
+          "carbohydrate",
+          13,
+          false
+        ],
+        [
+          "protein",
+          13,
+          false
+        ],
+        [
+          "fat",
+          8,
+          false
+        ],
+        [
+          "fiber",
+          4.97,
+          false
+        ],
+        [
+          "ash",
+          14,
+          false
+        ],
+        [
+          "cholesterol",
+          0,
+          false
+        ],
+        [
+          "fa_saturated",
+          1.36,
+          false
+        ],
+        [
+          "fa_monounsaturated",
+          1.49,
+          false
+        ],
+        [
+          "fa_polyunsaturated",
+          2.84,
+          false
+        ],
+        [
+          "calcium",
+          23,
+          false
+        ],
+        [
+          "iron",
+          1,
+          false
+        ],
+        [
+          "sodium",
+          1504,
+          false
+        ],
+        [
+          "magnesium",
+          19.4,
+          false
+        ],
+        [
+          "phosphorus",
+          64.2,
+          false
+        ],
+        [
+          "potassium",
+          84.8,
+          false
+        ],
+        [
+          "zinc",
+          1.03,
+          false
+        ],
+        [
+          "copper",
+          null,
+          false
+        ],
+        [
+          "vitamin_a_re",
+          null,
+          false
+        ],
+        [
+          "vitamin_a_rae",
+          28.4,
+          false
+        ],
+        [
+          "thiamine",
+          0.04,
+          false
+        ],
+        [
+          "riboflavin",
+          0.09,
+          false
+        ],
+        [
+          "niacin",
+          0.37,
+          false
+        ],
+        [
+          "pyridoxine",
+          0.08,
+          false
+        ],
+        [
+          "vitamin_c",
+          0,
           false
         ]
       ]
