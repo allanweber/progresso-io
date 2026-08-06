@@ -150,6 +150,8 @@ export type AdminFoodListItem = {
   origin: AdminFoodOrigin;
   clinicName: string | null;
   archived: boolean;
+  /** Number of shared base substitutions (`clinic_id NULL`) for this food. */
+  substituteCount: number;
   energyKcal: number | null;
   protein: number | null;
   carbohydrate: number | null;
@@ -243,6 +245,11 @@ export async function listAllFoods(
       archived: schema.food.archived,
       groupName: schema.foodGroup.name,
       groupSlug: schema.foodGroup.slug,
+      // Shared base substitutions attached to this food (the admin-managed ones).
+      substituteCount: sql<number>`(
+        select count(*)::int from food_substitution fs
+        where fs.food_id = ${schema.food.id} and fs.clinic_id is null
+      )`,
       energyKcal: schema.food.energyKcal,
       protein: schema.food.protein,
       carbohydrate: schema.food.carbohydrate,

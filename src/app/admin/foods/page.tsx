@@ -7,6 +7,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { BookOpen, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SubstituteBadge } from "@/components/foods/substitute-badge";
 import { apiFetch } from "@/lib/api-client";
 import type {
   AdminFoodListItemDto,
@@ -226,13 +227,14 @@ export default function AdminFoodsPage() {
                       {ownerLabel(f)}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#475569]">
                       {FOOD_TYPE_LABELS[f.type]}
                     </span>
                     <span className="min-w-0 truncate text-xs text-[#94A3B8]">
                       {f.groupName}
                     </span>
+                    <SubstituteBadge count={f.substituteCount} />
                   </div>
                   <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[13px]">
                     {[
@@ -290,9 +292,12 @@ export default function AdminFoodsPage() {
                       <div className="break-words font-medium text-foreground">
                         {f.description}
                       </div>
-                      {f.code && (
-                        <div className="text-xs text-[#94A3B8]">{f.code}</div>
-                      )}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        {f.code && (
+                          <span className="text-xs text-[#94A3B8]">{f.code}</span>
+                        )}
+                        <SubstituteBadge count={f.substituteCount} />
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span

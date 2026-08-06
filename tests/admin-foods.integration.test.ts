@@ -217,10 +217,16 @@ describe("admin foods — base substitutions", () => {
       reason: "duplicate",
     });
 
+    // The listing surfaces the base-substitution count.
+    const listed = await admin.listAllFoods(adb(), { origin: "base", pageSize: 100 });
+    expect(listed.items.find((i) => i.id === baseRice)!.substituteCount).toBe(1);
+
     const subId = (ok as { ok: true; substitute: { id: string } }).substitute.id;
     expect(await admin.removeBaseSubstitution(adb(), baseRice, subId)).toBe(true);
     const after = await admin.getAnyFood(adb(), baseRice);
     expect(after!.substitutes.length).toBe(0);
+    const relisted = await admin.listAllFoods(adb(), { origin: "base", pageSize: 100 });
+    expect(relisted.items.find((i) => i.id === baseRice)!.substituteCount).toBe(0);
   });
 
   it("does not remove a clinic-owned substitution as a base one", async () => {

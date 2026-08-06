@@ -10,17 +10,11 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import {
-  ArrowLeftRight,
-  ChevronDown,
-  ChevronUp,
-  Plus,
-  Search,
-  Star,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Search, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FavoriteButton } from "@/components/foods/favorite-button";
+import { SubstituteBadge } from "@/components/foods/substitute-badge";
 import { apiFetch } from "@/lib/api-client";
 import {
   FOOD_SORTS,
@@ -171,17 +165,9 @@ export default function LibraryPage() {
               <div className="break-words font-medium text-foreground">
                 {f.description}
               </div>
-              <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[#94A3B8]">
                 {f.code && <span className="truncate">{f.code}</span>}
-                {f.substituteCount > 0 && (
-                  <span
-                    className="inline-flex shrink-0 items-center gap-1 text-[#6366F1]"
-                    title={`${f.substituteCount} substituto(s)`}
-                  >
-                    <ArrowLeftRight className="size-3" />
-                    {f.substituteCount}
-                  </span>
-                )}
+                <SubstituteBadge count={f.substituteCount} />
               </div>
             </div>
           );
@@ -381,7 +367,7 @@ export default function LibraryPage() {
                       <FavoriteButton foodId={f.id} isFavorite={f.isFavorite} />
                     </div>
                   </div>
-                  <div className="mt-1 flex items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span
                       className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeChip(f.type)}`}
                     >
@@ -390,12 +376,7 @@ export default function LibraryPage() {
                     <span className="min-w-0 truncate text-xs text-[#94A3B8]">
                       {f.groupName}
                     </span>
-                    {f.substituteCount > 0 && (
-                      <span className="inline-flex shrink-0 items-center gap-1 text-xs text-[#6366F1]">
-                        <ArrowLeftRight className="size-3" />
-                        {f.substituteCount}
-                      </span>
-                    )}
+                    <SubstituteBadge count={f.substituteCount} />
                   </div>
                   <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[13px]">
                     {[

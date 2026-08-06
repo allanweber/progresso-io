@@ -70,6 +70,7 @@ export type AdminFoodListItemDto = {
   origin: AdminFoodOrigin;
   clinicName: string | null;
   archived: boolean;
+  substituteCount: number;
   energyKcal: number | null;
   protein: number | null;
   carbohydrate: number | null;
