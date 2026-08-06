@@ -41,12 +41,17 @@ export default function AdminFoodsPage() {
   const [type, setType] = useState<FoodType | "">("");
   const [page, setPage] = useState(1);
 
+  // Debounce the search and return to page 1 on a new term. Resetting the page
+  // inside the timeout (async) keeps setState out of the synchronous effect body.
   useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  useEffect(() => setPage(1), [search, origin, clinic, group, type]);
+  // Any filter change also returns to the first page (done in the handlers).
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -131,7 +136,10 @@ export default function AdminFoodsPage() {
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <select
           value={origin}
-          onChange={(e) => setOrigin(e.target.value as AdminFoodOrigin | "")}
+          onChange={(e) => {
+            setOrigin(e.target.value as AdminFoodOrigin | "");
+            setPage(1);
+          }}
           className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
           <option value="">Base e clínicas</option>
@@ -140,7 +148,10 @@ export default function AdminFoodsPage() {
         </select>
         <select
           value={clinic}
-          onChange={(e) => setClinic(e.target.value)}
+          onChange={(e) => {
+            setClinic(e.target.value);
+            setPage(1);
+          }}
           className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
           <option value="">Todas as clínicas</option>
@@ -152,7 +163,10 @@ export default function AdminFoodsPage() {
         </select>
         <select
           value={group}
-          onChange={(e) => setGroup(e.target.value)}
+          onChange={(e) => {
+            setGroup(e.target.value);
+            setPage(1);
+          }}
           className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
           <option value="">Todos os grupos</option>
@@ -164,7 +178,10 @@ export default function AdminFoodsPage() {
         </select>
         <select
           value={type}
-          onChange={(e) => setType(e.target.value as FoodType | "")}
+          onChange={(e) => {
+            setType(e.target.value as FoodType | "");
+            setPage(1);
+          }}
           className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-primary sm:flex-none"
         >
           <option value="">Ingredientes e preparações</option>
