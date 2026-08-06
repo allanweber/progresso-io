@@ -56,7 +56,7 @@ export type Modality = (typeof MODALITIES)[number];
 
 /**
  * Whether a catalog entry is a single food/ingredient or a composite dish.
- * Derived at seed time from the TBCA description (see the catalog transformer).
+ * Derived at seed time from the TACO description (see the catalog transformer).
  */
 export const FOOD_TYPES = ["ingrediente", "preparacao"] as const;
 export type FoodType = (typeof FOOD_TYPES)[number];
@@ -71,6 +71,7 @@ export const NUTRIENT_KINDS = [
   "mineral",
   "vitamin",
   "fatty_acid",
+  "amino_acid",
   "other",
 ] as const;
 export type NutrientKind = (typeof NUTRIENT_KINDS)[number];
@@ -238,15 +239,16 @@ export const invitation = pgTable("invitation", {
 /* -------------------------------------------------------------------------- */
 /*  Food catalog (reference data — mostly NOT tenant-scoped, like plan_limit)  */
 /*                                                                            */
-/*  The base catalog is the Brazilian food composition table (TBCA), shared   */
-/*  by every clinic. A `food`/`food_substitution` row with `clinic_id = NULL`  */
-/*  is that shared base; a row with `clinic_id` set is a single clinic's own   */
-/*  custom entry. The DAL reads `clinic_id IS NULL OR clinic_id = ctx.clinicId`*/
+/*  The base catalog is the Brazilian food composition table (TACO, NEPA/       */
+/*  UNICAMP), shared by every clinic. A `food`/`food_substitution` row with     */
+/*  `clinic_id = NULL` is that shared base; a row with `clinic_id` set is a     */
+/*  single clinic's own custom entry. The DAL reads                            */
+/*  `clinic_id IS NULL OR clinic_id = ctx.clinicId`                            */
 /*  and only writes custom rows with `ctx.clinicId`, so the tenancy rule still */
 /*  holds even though the base rows are global.                               */
 /* -------------------------------------------------------------------------- */
 
-/** Canonical food groups — the normalized TBCA "classe" values. */
+/** Canonical food groups — the normalized TACO "categoria" values. */
 export const foodGroup = pgTable("food_group", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull().unique(),
@@ -270,13 +272,13 @@ export const nutrient = pgTable("nutrient", {
  * One row per food, values per 100 g. The six "hot" macros are denormalized
  * from {@link foodNutrient} so the listing can sort/filter without a join; the
  * full nutrient profile lives in {@link foodNutrient}. `clinic_id = NULL` is the
- * shared TBCA base; a set `clinic_id` is a clinic's own custom food.
+ * shared TACO base; a set `clinic_id` is a clinic's own custom food.
  */
 export const food = pgTable(
   "food",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // TBCA code ("C0018A"). NULL for clinic-custom foods; unique when present.
+    // TACO food number ("42"). NULL for clinic-custom foods; unique when present.
     code: text("code").unique(),
     description: text("description").notNull(),
     // unaccent(lower(description)); the trigram search index is built on this.
@@ -285,12 +287,12 @@ export const food = pgTable(
       .notNull()
       .references(() => foodGroup.id),
     type: text("type").$type<FoodType>().notNull(),
-    source: text("source").notNull().default("TBCA"),
-    // NULL = shared TBCA base; set = this clinic's private custom food.
+    source: text("source").notNull().default("TACO"),
+    // NULL = shared TACO base; set = this clinic's private custom food.
     clinicId: uuid("clinic_id").references(() => clinic.id, {
       onDelete: "cascade",
     }),
-    // Denormalized macros per 100 g (nullable: TBCA has unmeasured cells).
+    // Denormalized macros per 100 g (nullable: TACO has unmeasured cells).
     energyKcal: doublePrecision("energy_kcal"),
     protein: doublePrecision("protein"),
     carbohydrate: doublePrecision("carbohydrate"),
@@ -315,8 +317,8 @@ export const food = pgTable(
 
 /**
  * Full nutrient profile of a food (per 100 g). An absent nutrient has no row
- * (read as null). `value = NULL` means the TBCA cell was unmeasured (`NA`/`-`)
- * or a trace; `is_trace` distinguishes a measured trace (`tr`) from unmeasured.
+ * (read as null). `value = NULL` means the TACO cell was unmeasured (empty)
+ * or a trace; `is_trace` distinguishes a measured trace (`Tr`) from unmeasured.
  */
 export const foodNutrient = pgTable(
   "food_nutrient",
@@ -369,7 +371,7 @@ export const foodSubstitution = pgTable(
 /**
  * A clinic's favorited foods. Unlike the rest of the catalog, a favorite is
  * always tenant-scoped: `clinic_id` is required (there is no shared/base
- * favorite). A clinic may favorite any food it can see — a base TBCA food or
+ * favorite). A clinic may favorite any food it can see — a base TACO food or
  * one of its own custom foods. One row per `(clinic, food)` pair.
  */
 export const foodFavorite = pgTable(

@@ -25,12 +25,21 @@ import {
 const KIND_LABELS: Record<string, string> = {
   energy: "Energia",
   macro: "Macronutrientes",
-  fatty_acid: "Ácidos graxos",
   mineral: "Minerais",
   vitamin: "Vitaminas",
+  fatty_acid: "Ácidos graxos",
+  amino_acid: "Aminoácidos",
   other: "Outros",
 };
-const KIND_ORDER = ["energy", "macro", "fatty_acid", "mineral", "vitamin", "other"];
+const KIND_ORDER = [
+  "energy",
+  "macro",
+  "mineral",
+  "vitamin",
+  "fatty_acid",
+  "amino_acid",
+  "other",
+];
 
 /** Groups a food's nutrients into ordered sections by kind (order preserved). */
 function sections(nutrients: FoodNutrientDto[]) {
@@ -185,7 +194,7 @@ export default function FoodDetailPage() {
             ))}
           </div>
 
-          {/* Full profile — only base foods carry a full TBCA profile. */}
+          {/* Full profile — only base foods carry a full TACO profile. */}
           {data.nutrients.length > 0 && (
             <>
               <h2 className="mt-8 font-heading text-lg font-semibold text-foreground">

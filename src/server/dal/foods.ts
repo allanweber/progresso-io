@@ -6,7 +6,7 @@ import type { TenantContext } from "@/server/tenant";
 
 /**
  * Food-catalog DAL. The catalog is reference data: a `food` row with
- * `clinicId = null` is the shared TBCA base, a row with `clinicId` set is a
+ * `clinicId = null` is the shared TACO base, a row with `clinicId` set is a
  * clinic's own custom food. Every read here is scoped to
  * `clinicId IS NULL OR clinicId = ctx.clinicId`, so a clinic sees the base plus
  * only its own custom foods — never another clinic's. Writes (phase 2/3) always
@@ -204,7 +204,7 @@ export type FoodSubstituteRow = {
   description: string;
   code: string | null;
   grams: number;
-  /** Origin of the substitute *food* (base TBCA or the clinic's own). */
+  /** Origin of the substitute *food* (base TACO or the clinic's own). */
   origin: FoodOrigin;
   /** Whether this clinic may delete the rule (only its own; base is read-only). */
   removable: boolean;
@@ -388,7 +388,7 @@ function macroValues(input: FoodWriteInput) {
 
 /**
  * Creates a custom food for this clinic. `clinicId` is stamped from the context,
- * `code` is null (only base TBCA foods carry one), and `search_text` is computed
+ * `code` is null (only base TACO foods carry one), and `search_text` is computed
  * the same way the seed does so search stays accent-/case-blind. Returns null
  * only when the group slug is unknown (a validation guard).
  */

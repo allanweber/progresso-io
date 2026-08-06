@@ -17,7 +17,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "db:transform-catalog": "node scripts/transform-catalog.mjs"
+    "db:transform-taco": "node scripts/transform-taco.mjs"
   },
   "dependencies": {
     "@next/third-parties": "^16.3.0",

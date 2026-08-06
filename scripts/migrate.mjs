@@ -9,7 +9,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
-const CATALOG = "./drizzle/data/food-catalog.ndjson.gz";
+const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -18,8 +18,8 @@ if (!url) {
 }
 
 /**
- * Loads the base TBCA catalog (`drizzle/data/food-catalog.ndjson.gz`, produced
- * by scripts/transform-catalog.mjs) into the empty catalog tables. Idempotent:
+ * Loads the base TACO catalog (`drizzle/data/taco-catalog.ndjson.gz`, produced
+ * by scripts/transform-taco.mjs) into the empty catalog tables. Idempotent:
  * skips when `food` already has rows, so it's safe on every deploy. `search_text`
  * is computed with `unaccent(lower(...))` so the trigram search is accent-blind.
  */
@@ -62,7 +62,7 @@ async function seedCatalog(sql) {
           energy_kcal, protein, carbohydrate, fat, fiber, sodium, needs_review
         ) values (
           ${id}, ${f.code}, ${f.description}, unaccent(lower(${f.description})),
-          ${groupId.get(f.groupSlug)}, ${f.type}, 'TBCA',
+          ${groupId.get(f.groupSlug)}, ${f.type}, 'TACO',
           ${f.energyKcal}, ${f.protein}, ${f.carbohydrate}, ${f.fat},
           ${f.fiber}, ${f.sodium}, ${f.needsReview}
         )`;

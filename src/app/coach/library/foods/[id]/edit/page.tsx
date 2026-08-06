@@ -41,7 +41,7 @@ export default function EditFoodPage() {
           {(error as Error).message}
         </div>
       ) : data && data.origin === "base" ? (
-        // Base TBCA foods are read-only; only the clinic's own foods are editable.
+        // Base TACO foods are read-only; only the clinic's own foods are editable.
         <div className="mt-6 rounded-2xl border border-border bg-white p-6 text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           Este é um alimento da tabela base e não pode ser editado. Você pode
           criar um alimento próprio da clínica.

@@ -16,7 +16,7 @@ import { getTenantContext } from "@/server/tenant";
 /**
  * A single food: read the detail (identity, full per-100 g profile, visible
  * substitutes), edit or archive it. Editing/archiving only ever touches the
- * clinic's own custom foods — base TBCA foods are read-only (the DAL scopes the
+ * clinic's own custom foods — base TACO foods are read-only (the DAL scopes the
  * write by `clinicId`, so a base/other-clinic id yields a 404). Coach-only.
  */
 type Params = { params: Promise<{ id: string }> };

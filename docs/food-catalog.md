@@ -15,15 +15,15 @@ not tenant-scoped, the way `plan_limit` is:
 
 | Table | Role |
 | --- | --- |
-| `food_group` | the 17 canonical TBCA groups (`name`, `slug`) |
-| `nutrient` | the 40 canonical nutrients (`id` slug, `label`, `unit`, `kind`, `sort_order`) |
+| `food_group` | the 15 canonical TACO groups (`name`, `slug`) |
+| `nutrient` | the 66 canonical nutrients (`id` slug, `label`, `unit`, `kind`, `sort_order`) |
 | `food` | one row per food; six **hot macros denormalized** + `search_text` + nullable `clinic_id` + `archived` + `needs_review` |
 | `food_nutrient` | full per-100 g profile (`value` nullable, `is_trace`), PK `(food_id, nutrient_id)` |
 | `food_substitution` | directed edge `grams` of substitute ≡ 100 g of food; nullable `clinic_id` |
 | `food_favorite` | a clinic's favorited foods — PK `(clinic_id, food_id)`, **always** tenant-scoped (no base favorites) |
 
 **Tenancy.** A `food` / `food_substitution` row with `clinic_id = NULL` is the
-shared base (TBCA); a row with `clinic_id` set is one clinic's own. The DAL reads
+shared base (TACO); a row with `clinic_id` set is one clinic's own. The DAL reads
 `clinic_id IS NULL OR clinic_id = ctx.clinicId` and only ever writes custom rows
 with `ctx.clinicId`, so the written-in-stone tenancy rule still holds even though
 the base rows are global. Every **write** (create/update/archive a food, add/
@@ -34,20 +34,26 @@ but the favorited food may be a base food or the clinic's own.
 
 ## Source data & the seed
 
-The raw TBCA dump lives at `alimentos.json` (a stream of concatenated JSON
-objects, ~5 668 foods). Two steps turn it into the running catalog:
+The base catalog is the **Tabela Brasileira de Composição de Alimentos (TACO),
+4ª edição — NEPA/UNICAMP (2011)**: **597 curated foods** (vs the ~5 668 of the
+TBCA it replaced — far easier to search). The normalized source CSVs live in
+`drizzle/data/taco-src/` (see its `SOURCE.md`; taken from the MIT-licensed
+[`brolesi/taco`](https://github.com/brolesi/taco) pipeline). Two steps turn them
+into the running catalog:
 
-1. **Transform** (`npm run db:transform-catalog`, dev-time) —
-   `scripts/transform-catalog.mjs` normalizes it into a compact
-   `drizzle/data/food-catalog.ndjson.gz` (~0.95 MB), applying:
-   - decimal comma → number; `NA`/`-` → `null` (unmeasured); `tr` → `null` + `is_trace`
-   - 41 source `Componente|Unidade` pairs → 40 canonical nutrient ids
-     (cholesterol is always mg — the `g` unit in the source is a mislabel)
-   - duplicate nutrient rows per food deduped (a few foods carry a doubled profile)
-   - TBCA classes merged into 17 canonical groups (case/accent variants folded)
-   - `ingrediente` / `preparacao` derived heuristically from the description
+1. **Transform** (`npm run db:transform-taco`, dev-time) —
+   `scripts/transform-taco.mjs` joins the three CSVs (composição centesimal,
+   ácidos graxos, aminoácidos) into a compact `drizzle/data/taco-catalog.ndjson.gz`
+   (~0.1 MB), applying:
+   - empty cell → no `food_nutrient` row (unmeasured, read as null); `1e-05`
+     (source sentinel for "Tr") → a row with `value = null` + `is_trace = true`
+   - 66 canonical nutrients: proximates + 9 minerals + 8 vitamins (`energy`…),
+     22 fatty acids (`fatty_acid`), 18 amino acids (`amino_acid`); values kept to
+     4 significant figures (the source carries per-sample means with long tails)
+   - the 15 TACO `categoria` values → canonical groups (accent-folded slugs)
+   - `type` = `preparacao` for the "Alimentos preparados" group, else `ingrediente`
    - the six hot macros (kcal, protein, carb, fat, fiber, sodium) denormalized
-   - foods sharing an identical description flagged `needs_review` (24 groups)
+   - foods sharing an identical description flagged `needs_review` (none in TACO)
 
 2. **Seed** (`scripts/migrate.mjs`, at deploy) — after the migrations apply, the
    same job loads the gz into the empty tables. **Idempotent**: it skips once
@@ -62,6 +68,11 @@ unaccented, lowercased description; the migration creates the `pg_trgm` and
 `unaccent` extensions and a **GIN trigram index** on it. The DAL matches each
 whitespace token with `LIKE '%' || unaccent(lower(token)) || '%'` and ranks by
 `similarity()`. (Confirmed installable on the target Postgres 18.4.)
+
+> **Switching from TBCA to TACO.** The seed is idempotent (skips when `food` has
+> rows), so it never overwrites an already-seeded database. To move an existing
+> deployment from the old TBCA catalog to TACO, empty the database first, then
+> deploy — the `migrate` job seeds TACO into the fresh tables.
 
 ## API & UI
 
@@ -96,8 +107,10 @@ Pages:
 
 - `src/db/schema.ts` — the six tables.
 - `drizzle/0001_food_catalog.sql` — catalog tables + extensions + trigram index;
-  `drizzle/0002_food_favorite.sql` — the favorites table.
-- `scripts/transform-catalog.mjs` / `drizzle/data/food-catalog.ndjson.gz` — the artifact.
+  `drizzle/0002_food_favorite.sql` — the favorites table;
+  `drizzle/0003_taco_source_default.sql` — `food.source` default → `TACO`.
+- `drizzle/data/taco-src/*.csv` (source) → `scripts/transform-taco.mjs` →
+  `drizzle/data/taco-catalog.ndjson.gz` (the seed artifact).
 - `scripts/migrate.mjs` — migrations + idempotent catalog seed.
 - `src/server/dal/foods.ts` — tenant-scoped reads, search, and writes.
 - `src/lib/foods.ts` — client-safe DTOs + the query/form zod schemas.
