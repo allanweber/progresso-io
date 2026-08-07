@@ -82,6 +82,10 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
       accessKeyId: R2_ACCESS_KEY_ID,
       secretAccessKey: R2_SECRET_ACCESS_KEY,
     },
+    // R2 rejects the aws-sdk v3 default integrity checksums with
+    // "SignatureDoesNotMatch"; only send them when the operation requires it.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   // A prior full upload leaves a manifest — skip when it already covers these
