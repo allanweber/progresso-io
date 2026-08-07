@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Image as ImageIcon, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,6 @@ import {
   CATEGORY_OPTIONS,
   EQUIPMENT_LABELS,
   EQUIPMENT_OPTIONS,
-  exerciseImageUrl,
   LEVEL_LABELS,
   LEVEL_OPTIONS,
   MUSCLE_LABELS,
@@ -375,79 +374,62 @@ export function ExerciseCatalog({
       ) : (
         <>
           <ul className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((ex) => {
-              const src = exerciseImageUrl(ex.thumbnail);
-              return (
-                <li key={ex.id}>
-                  <Link
-                    href={`${basePath}/${ex.id}`}
-                    className="group block overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-light">
-                      {src ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={src}
-                          alt={ex.name}
-                          loading="lazy"
-                          className="size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center text-xs text-[#94A3B8]">
-                          sem imagem
-                        </div>
-                      )}
-                      {ex.origin === "clinic" && (
-                        <Badge
-                          variant="clinic"
-                          className="absolute left-2 top-2 font-medium"
-                        >
-                          {ORIGIN_LABELS.clinic}
-                        </Badge>
-                      )}
-                      {ex.archived && (
-                        <Badge
-                          variant="neutral"
-                          className="absolute right-2 top-2 font-medium"
-                        >
-                          arquivado
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="break-words font-medium text-foreground">
-                        {ex.name}
-                      </h3>
-                      {ex.clinicName && (
-                        <p className="mt-0.5 truncate text-xs text-[#94A3B8]">
-                          {ex.clinicName}
-                        </p>
-                      )}
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <Badge variant="neutral" className="font-medium">
-                          {CATEGORY_LABELS[ex.category]}
-                        </Badge>
-                        <Badge variant="base" className="font-medium">
-                          {LEVEL_LABELS[ex.level]}
-                        </Badge>
-                        {ex.equipment && (
-                          <span className="text-xs text-[#94A3B8]">
-                            {EQUIPMENT_LABELS[ex.equipment]}
-                          </span>
-                        )}
-                      </div>
-                      {ex.primaryMuscles.length > 0 && (
-                        <p className="mt-2 truncate text-[13px] text-[#475569]">
-                          {ex.primaryMuscles
-                            .map((m) => MUSCLE_LABELS[m])
-                            .join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
+            {items.map((ex) => (
+              <li key={ex.id}>
+                <Link
+                  href={`${basePath}/${ex.id}`}
+                  className="group block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="break-words font-medium text-foreground">
+                      {ex.name}
+                    </h3>
+                    {ex.thumbnail && (
+                      <span
+                        title="Contém imagens"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-light px-2 py-0.5 text-[11px] font-medium text-[#475569]"
+                      >
+                        <ImageIcon className="size-3.5" aria-hidden />
+                        imagem
+                      </span>
+                    )}
+                  </div>
+                  {ex.clinicName && (
+                    <p className="mt-0.5 truncate text-xs text-[#94A3B8]">
+                      {ex.clinicName}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {ex.origin === "clinic" && (
+                      <Badge variant="clinic" className="font-medium">
+                        {ORIGIN_LABELS.clinic}
+                      </Badge>
+                    )}
+                    {ex.archived && (
+                      <Badge variant="neutral" className="font-medium">
+                        arquivado
+                      </Badge>
+                    )}
+                    <Badge variant="neutral" className="font-medium">
+                      {CATEGORY_LABELS[ex.category]}
+                    </Badge>
+                    <Badge variant="base" className="font-medium">
+                      {LEVEL_LABELS[ex.level]}
+                    </Badge>
+                    {ex.equipment && (
+                      <span className="text-xs text-[#94A3B8]">
+                        {EQUIPMENT_LABELS[ex.equipment]}
+                      </span>
+                    )}
+                  </div>
+                  {ex.primaryMuscles.length > 0 && (
+                    <p className="mt-2 truncate text-[13px] text-[#475569]">
+                      {ex.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
           </ul>
 
           {/* Pagination */}
