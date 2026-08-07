@@ -19,6 +19,7 @@ import {
 import { apiFetch } from "@/lib/api-client";
 import {
   DIET_ORIGIN_LABELS,
+  formatGrams,
   formatKcal,
   type DietListResponse,
 } from "@/lib/diets";
@@ -169,6 +170,26 @@ export default function DietsListPage() {
                       {d.mealCount} refeição(ões) · {d.itemCount} alimento(s) ·
                       atualizada{" "}
                       {new Date(d.updatedAt).toLocaleDateString("pt-BR")}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+                      <span>
+                        <span className="font-semibold text-blue-600">
+                          {formatGrams(d.totalProtein)}
+                        </span>{" "}
+                        <span className="text-muted-foreground">Prot</span>
+                      </span>
+                      <span>
+                        <span className="font-semibold text-red-600">
+                          {formatGrams(d.totalCarbohydrate)}
+                        </span>{" "}
+                        <span className="text-muted-foreground">Carb</span>
+                      </span>
+                      <span>
+                        <span className="font-semibold text-amber-600">
+                          {formatGrams(d.totalFat)}
+                        </span>{" "}
+                        <span className="text-muted-foreground">Gord</span>
+                      </span>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
