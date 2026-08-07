@@ -48,6 +48,9 @@ export type DietListItemDto = {
   mealCount: number;
   itemCount: number;
   totalKcal: number;
+  totalProtein: number;
+  totalCarbohydrate: number;
+  totalFat: number;
   /** ISO timestamp (JSON-serialized Date). */
   updatedAt: string;
 };

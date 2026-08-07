@@ -35,8 +35,11 @@ export type DietListItem = {
   archived: boolean;
   mealCount: number;
   itemCount: number;
-  /** Sum of every item's energy (kcal), computed from the referenced foods. */
+  /** Sum of every item's macros, computed from the referenced foods. */
   totalKcal: number;
+  totalProtein: number;
+  totalCarbohydrate: number;
+  totalFat: number;
   updatedAt: Date;
 };
 
@@ -203,6 +206,27 @@ export async function listDiets(
         join food f on f.id = i.food_id
         where m.diet_id = diet.id
       )`,
+      totalProtein: sql<number>`(
+        select coalesce(sum(f.protein * i.grams / 100), 0)
+        from diet_meal_item i
+        join diet_meal m on m.id = i.diet_meal_id
+        join food f on f.id = i.food_id
+        where m.diet_id = diet.id
+      )`,
+      totalCarbohydrate: sql<number>`(
+        select coalesce(sum(f.carbohydrate * i.grams / 100), 0)
+        from diet_meal_item i
+        join diet_meal m on m.id = i.diet_meal_id
+        join food f on f.id = i.food_id
+        where m.diet_id = diet.id
+      )`,
+      totalFat: sql<number>`(
+        select coalesce(sum(f.fat * i.grams / 100), 0)
+        from diet_meal_item i
+        join diet_meal m on m.id = i.diet_meal_id
+        join food f on f.id = i.food_id
+        where m.diet_id = diet.id
+      )`,
     })
     .from(schema.diet)
     .where(where)
@@ -219,6 +243,9 @@ export async function listDiets(
     ...r,
     origin: clinicId === null ? "base" : "clinic",
     totalKcal: Math.round(Number(r.totalKcal)),
+    totalProtein: Number(r.totalProtein),
+    totalCarbohydrate: Number(r.totalCarbohydrate),
+    totalFat: Number(r.totalFat),
   }));
 
   return { items, total, page, pageSize };
