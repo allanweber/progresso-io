@@ -91,7 +91,12 @@ export function FoodPicker({
   const [search, setSearch] = useState("");
   const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<PickedFood | null>(null);
-  const [grams, setGrams] = useState<number | "">(initialGrams);
+  // Quantity entry unit: "g" (grams) or a measure id. When a measure is the
+  // unit, `amount` counts that measure and the grams are derived (count × grams
+  // per measure) — selecting a measure sets the quantity in that unit, it does
+  // not sum grams.
+  const [unit, setUnit] = useState<string>("g");
+  const [amount, setAmount] = useState<number | "">(initialGrams);
   const [loadingSuggestion, setLoadingSuggestion] = useState<string | null>(
     null,
   );
@@ -135,7 +140,8 @@ export function FoodPicker({
   function choose(food: PickedFood) {
     if (withQuantity) {
       setSelected(food);
-      setGrams(initialGrams);
+      setUnit("g");
+      setAmount(initialGrams);
     } else {
       onPick({ food, grams: null });
       reset();
@@ -158,7 +164,8 @@ export function FoodPicker({
       };
       if (withQuantity) {
         setSelected(food);
-        setGrams(Math.round(s.grams) || initialGrams);
+        setUnit("g");
+        setAmount(Math.round(s.grams) || initialGrams);
       } else {
         onPick({ food, grams: null });
         reset();
@@ -172,12 +179,20 @@ export function FoodPicker({
     setQuery("");
     setSearch("");
     setSelected(null);
-    setGrams(initialGrams);
+    setUnit("g");
+    setAmount(initialGrams);
     setActive(0);
   }
 
+  /** Grams for the current unit + amount (count × grams/measure, or grams). */
+  function gramsFor(u: string, a: number | ""): number {
+    const n = Number(a) || 0;
+    const m = measures.find((x) => x.id === u);
+    return m ? n * m.grams : n;
+  }
+
   function confirm() {
-    const g = typeof grams === "number" ? grams : 0;
+    const g = gramsFor(unit, amount);
     if (!selected || g <= 0) return;
     onPick({ food: selected, grams: g });
     reset();
@@ -207,7 +222,17 @@ export function FoodPicker({
 
   // Quantity step ----------------------------------------------------------
   if (selected) {
-    const g = typeof grams === "number" ? grams : 0;
+    const activeMeasure = measures.find((m) => m.id === unit) ?? null;
+    const g = gramsFor(unit, amount);
+    const step = activeMeasure ? 1 : 10;
+    // Switch the entry unit, converting the current grams to the new unit so
+    // the quantity carries over (e.g. 50 g ↔ 2 fatias) instead of resetting.
+    const selectUnit = (next: string) => {
+      const current = g;
+      const m = measures.find((x) => x.id === next);
+      setUnit(next);
+      setAmount(m ? Math.max(1, Math.round(current / m.grams) || 1) : Math.round(current));
+    };
     const macros: { label: string; value: string; className: string }[] = [
       {
         label: "kcal",
@@ -234,13 +259,52 @@ export function FoodPicker({
         </button>
         <div className="font-semibold text-foreground">{selected.description}</div>
         <div className="mb-3 text-xs text-muted-foreground">
-          Defina a quantidade em gramas
+          Defina a quantidade
+          {activeMeasure ? ` em ${activeMeasure.label}` : " em gramas"}
         </div>
 
-        <div className="mb-3 flex items-stretch gap-2">
+        {measures.length > 0 && (
+          <div className="mb-3">
+            <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+              Unidade
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => selectUnit("g")}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  !activeMeasure
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+                }`}
+              >
+                gramas
+              </button>
+              {measures.map((m) => {
+                const on = unit === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => selectUnit(m.id)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      on
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+                    }`}
+                  >
+                    {m.label} · {m.grams} g
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-2 flex items-stretch gap-2">
           <button
             type="button"
-            onClick={() => setGrams((v) => Math.max(0, (Number(v) || 0) - 10))}
+            onClick={() => setAmount((v) => Math.max(0, (Number(v) || 0) - step))}
             className="w-11 shrink-0 rounded-lg border border-border bg-white text-lg font-semibold text-[#334155] hover:border-primary"
             aria-label="Diminuir"
           >
@@ -250,10 +314,10 @@ export function FoodPicker({
             <input
               type="text"
               inputMode="numeric"
-              value={grams}
+              value={amount}
               onChange={(e) => {
                 const v = e.target.value.replace(/[^0-9]/g, "");
-                setGrams(v === "" ? "" : parseInt(v, 10));
+                setAmount(v === "" ? "" : parseInt(v, 10));
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -264,12 +328,12 @@ export function FoodPicker({
               className="w-full bg-transparent px-3 py-2 text-center text-lg font-bold text-foreground outline-none"
             />
             <span className="absolute right-3 text-xs font-semibold text-muted-foreground">
-              g
+              {activeMeasure ? activeMeasure.label : "g"}
             </span>
           </div>
           <button
             type="button"
-            onClick={() => setGrams((v) => (Number(v) || 0) + 10)}
+            onClick={() => setAmount((v) => (Number(v) || 0) + step)}
             className="w-11 shrink-0 rounded-lg border border-border bg-white text-lg font-semibold text-[#334155] hover:border-primary"
             aria-label="Aumentar"
           >
@@ -277,23 +341,13 @@ export function FoodPicker({
           </button>
         </div>
 
-        {measures.length > 0 && (
-          <div className="mb-3">
-            <div className="mb-1 text-[11px] font-medium text-muted-foreground">
-              Medidas — toque para somar
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {measures.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setGrams((v) => (Number(v) || 0) + m.grams)}
-                  className="rounded-full border border-border bg-surface-light px-2.5 py-1 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
-                >
-                  + 1 {m.label} · {m.grams} g
-                </button>
-              ))}
-            </div>
+        {activeMeasure && (
+          <div className="mb-3 text-center text-xs text-muted-foreground">
+            equivale a{" "}
+            <span className="font-semibold text-foreground">{g} g</span>{" "}
+            <span className="text-[#94A3B8]">
+              (1 {activeMeasure.label} = {activeMeasure.grams} g)
+            </span>
           </div>
         )}
 
