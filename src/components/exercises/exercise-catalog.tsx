@@ -67,8 +67,13 @@ export function ExerciseCatalog({
   apiBase: string;
   /** Detail link base, e.g. "/coach/library/exercises". */
   basePath: string;
-  title: string;
-  subtitle: string;
+  /**
+   * Optional page heading + subtitle. Omit both when the catalog is embedded
+   * under a shared header (e.g. the coach's Biblioteca tabs), so there's no
+   * duplicate title.
+   */
+  title?: string;
+  subtitle?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -149,12 +154,16 @@ export function ExerciseCatalog({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          {title}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-      </div>
+      {title && (
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
+      )}
 
       {/* Search — full width on its own row. */}
       <div className="relative mt-6 w-full">

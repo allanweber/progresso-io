@@ -162,6 +162,12 @@ export type ExerciseSubstituteRow = {
   thumbnail: string | null;
   /** Origin of the substitute *exercise* (base or the clinic's own). */
   origin: ExerciseOrigin;
+  /**
+   * Whether the viewer may delete THIS rule. A clinic may remove only its own
+   * rules; the shared base rules are read-only for a coach. (For the admin, the
+   * base rules it manages are removable.)
+   */
+  removable: boolean;
 };
 
 export type ExerciseDetail = Exercise & {
@@ -197,6 +203,8 @@ export async function getExercise(
   const subs = await ctx.db
     .select({
       id: schema.exerciseSubstitution.id,
+      // The rule's own clinic: NULL = base rule (read-only for a clinic).
+      ruleClinicId: schema.exerciseSubstitution.clinicId,
       exerciseId: substitute.id,
       name: substitute.name,
       code: substitute.code,
@@ -226,10 +234,133 @@ export async function getExercise(
   return {
     ...row,
     origin: row.clinicId === null ? "base" : "clinic",
-    substitutes: subs.map(({ clinicId, images, ...s }) => ({
+    substitutes: subs.map(({ clinicId, ruleClinicId, images, ...s }) => ({
       ...s,
       thumbnail: images[0] ?? null,
       origin: clinicId === null ? "base" : "clinic",
+      // A clinic may delete only its own rules; base rules are read-only.
+      removable: ruleClinicId === ctx.clinicId,
     })),
   };
+}
+
+/** Whether an exercise is visible to this clinic (a base exercise or its own). */
+async function exerciseVisibleToClinic(
+  ctx: TenantContext,
+  id: string,
+): Promise<boolean> {
+  const [row] = await ctx.db
+    .select({ id: schema.exercise.id })
+    .from(schema.exercise)
+    .where(
+      and(
+        eq(schema.exercise.id, id),
+        or(
+          isNull(schema.exercise.clinicId),
+          eq(schema.exercise.clinicId, ctx.clinicId),
+        ),
+      ),
+    );
+  return Boolean(row);
+}
+
+export type AddExerciseSubstitutionResult =
+  | { ok: true; substitute: ExerciseSubstituteRow }
+  | {
+      ok: false;
+      reason:
+        | "exercise_not_found"
+        | "substitute_not_found"
+        | "same_exercise"
+        | "duplicate";
+    };
+
+/**
+ * Adds a clinic-owned substitution rule: `substituteExerciseId` may replace
+ * `exerciseId`. Both exercises must be visible to the clinic (base or its own).
+ * The rule is stamped with `ctx.clinicId`, so it never touches — and can never
+ * modify — the shared base rules. Self-substitution and duplicates are rejected.
+ */
+export async function addExerciseSubstitution(
+  ctx: TenantContext,
+  exerciseId: string,
+  substituteExerciseId: string,
+): Promise<AddExerciseSubstitutionResult> {
+  if (exerciseId === substituteExerciseId) {
+    return { ok: false, reason: "same_exercise" };
+  }
+  if (!(await exerciseVisibleToClinic(ctx, exerciseId))) {
+    return { ok: false, reason: "exercise_not_found" };
+  }
+  if (!(await exerciseVisibleToClinic(ctx, substituteExerciseId))) {
+    return { ok: false, reason: "substitute_not_found" };
+  }
+
+  // One rule per (clinic, exercise, substitute) — don't stack duplicates. A
+  // clinic-owned rule is also allowed to mirror a base one (a personal copy).
+  const [dupe] = await ctx.db
+    .select({ id: schema.exerciseSubstitution.id })
+    .from(schema.exerciseSubstitution)
+    .where(
+      and(
+        eq(schema.exerciseSubstitution.clinicId, ctx.clinicId),
+        eq(schema.exerciseSubstitution.exerciseId, exerciseId),
+        eq(schema.exerciseSubstitution.substituteExerciseId, substituteExerciseId),
+      ),
+    );
+  if (dupe) return { ok: false, reason: "duplicate" };
+
+  const [ins] = await ctx.db
+    .insert(schema.exerciseSubstitution)
+    .values({ clinicId: ctx.clinicId, exerciseId, substituteExerciseId })
+    .returning({ id: schema.exerciseSubstitution.id });
+  const [sub] = await ctx.db
+    .select({
+      name: schema.exercise.name,
+      code: schema.exercise.code,
+      category: schema.exercise.category,
+      equipment: schema.exercise.equipment,
+      images: schema.exercise.images,
+      clinicId: schema.exercise.clinicId,
+    })
+    .from(schema.exercise)
+    .where(eq(schema.exercise.id, substituteExerciseId));
+
+  return {
+    ok: true,
+    substitute: {
+      id: ins.id,
+      exerciseId: substituteExerciseId,
+      name: sub.name,
+      code: sub.code,
+      category: sub.category,
+      equipment: sub.equipment,
+      thumbnail: sub.images[0] ?? null,
+      origin: sub.clinicId === null ? "base" : "clinic",
+      removable: true,
+    },
+  };
+}
+
+/**
+ * Removes one of this clinic's own substitution rules. Scoped to the clinic and
+ * the main exercise, so base rules and other clinics' rules are never deleted.
+ * Returns true when a row was removed.
+ */
+export async function removeExerciseSubstitution(
+  ctx: TenantContext,
+  exerciseId: string,
+  substitutionId: string,
+): Promise<boolean> {
+  const deleted = await ctx.db
+    .delete(schema.exerciseSubstitution)
+    .where(
+      and(
+        eq(schema.exerciseSubstitution.id, substitutionId),
+        eq(schema.exerciseSubstitution.exerciseId, exerciseId),
+        eq(schema.exerciseSubstitution.clinicId, ctx.clinicId),
+      ),
+    )
+    .returning({ id: schema.exerciseSubstitution.id });
+  return deleted.length > 0;
 }

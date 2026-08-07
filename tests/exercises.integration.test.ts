@@ -238,4 +238,79 @@ describe("exercises DAL", () => {
     // The owning clinic can read it.
     expect(await exercises.getExercise(ctxB, clinicBExerciseId)).not.toBeNull();
   });
+
+  it("marks base rules as read-only (not removable) for a clinic", async () => {
+    const detail = await exercises.getExercise(ctxA, agachamentoId);
+    const corrida = detail!.substitutes.find((s) => s.name === "Corrida")!;
+    expect(corrida.removable).toBe(false);
+    // A base rule can't be removed via the clinic-scoped delete.
+    expect(
+      await exercises.removeExerciseSubstitution(ctxA, agachamentoId, corrida.id),
+    ).toBe(false);
+  });
+
+  it("lets a coach add and remove its own clinic substitution", async () => {
+    const [rosca] = await db
+      .select({ id: schema.exercise.id })
+      .from(schema.exercise)
+      .where(sql`${schema.exercise.name} = 'Rosca própria da clínica A'`);
+
+    const added = await exercises.addExerciseSubstitution(
+      ctxA,
+      agachamentoId,
+      rosca.id,
+    );
+    expect(added.ok).toBe(true);
+    const ruleId = (added as { ok: true; substitute: { id: string } }).substitute
+      .id;
+
+    // The coach now sees base (Corrida, read-only) + its own (Rosca, removable).
+    const detailA = await exercises.getExercise(ctxA, agachamentoId);
+    const rows = Object.fromEntries(
+      detailA!.substitutes.map((s) => [s.name, s.removable]),
+    );
+    expect(rows["Corrida"]).toBe(false);
+    expect(rows["Rosca própria da clínica A"]).toBe(true);
+
+    // Clinic B never sees clinic A's own rule (only the base one).
+    const detailB = await exercises.getExercise(ctxB, agachamentoId);
+    expect(detailB!.substitutes.map((s) => s.name)).toEqual(["Corrida"]);
+
+    // Self + duplicate rejected.
+    expect(
+      await exercises.addExerciseSubstitution(ctxA, agachamentoId, agachamentoId),
+    ).toEqual({ ok: false, reason: "same_exercise" });
+    expect(
+      await exercises.addExerciseSubstitution(ctxA, agachamentoId, rosca.id),
+    ).toEqual({ ok: false, reason: "duplicate" });
+
+    // The owner removes its own rule; another clinic cannot.
+    expect(
+      await exercises.removeExerciseSubstitution(ctxB, agachamentoId, ruleId),
+    ).toBe(false);
+    expect(
+      await exercises.removeExerciseSubstitution(ctxA, agachamentoId, ruleId),
+    ).toBe(true);
+    const after = await exercises.getExercise(ctxA, agachamentoId);
+    expect(after!.substitutes.map((s) => s.name)).toEqual(["Corrida"]);
+  });
+
+  it("refuses to add a substitution against another clinic's exercise", async () => {
+    // clinicBExerciseId isn't visible to clinic A → exercise_not_found.
+    expect(
+      await exercises.addExerciseSubstitution(
+        ctxA,
+        clinicBExerciseId,
+        agachamentoId,
+      ),
+    ).toEqual({ ok: false, reason: "exercise_not_found" });
+    // And it can't be used as a substitute either.
+    expect(
+      await exercises.addExerciseSubstitution(
+        ctxA,
+        agachamentoId,
+        clinicBExerciseId,
+      ),
+    ).toEqual({ ok: false, reason: "substitute_not_found" });
+  });
 });

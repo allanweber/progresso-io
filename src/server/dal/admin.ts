@@ -762,6 +762,7 @@ export async function getAnyExercise(
       ...s,
       thumbnail: images[0] ?? null,
       origin: clinicId === null ? "base" : "clinic",
+      removable: true, // every base rule is admin-removable
     })),
   };
 }
@@ -845,6 +846,7 @@ export async function addBaseExerciseSubstitution(
       equipment: sub.equipment,
       thumbnail: sub.images[0] ?? null,
       origin: "base",
+      removable: true,
     },
   };
 }

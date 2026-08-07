@@ -271,6 +271,8 @@ export type ExerciseSubstituteDto = {
   equipment: ExerciseEquipment | null;
   thumbnail: string | null;
   origin: ExerciseOrigin;
+  /** Whether the viewer may delete this rule (own clinic rule; base is read-only). */
+  removable: boolean;
 };
 
 /** An exercise's detail page. */

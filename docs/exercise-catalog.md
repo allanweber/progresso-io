@@ -80,8 +80,16 @@ exercise detail page (`/admin/exercises/[id]`): add one by searching the catalog
 and picking another exercise, or remove one with the trash button. To keep tenant
 isolation intact, a base rule may only link two **base** exercises — the search
 is restricted to `origin = base` and the DAL rejects any non-base id — so a base
-rule can never expose a clinic's own exercise to other tenants. Coaches adding
-their own (clinic-scoped) substitution rules is a future phase.
+rule can never expose a clinic's own exercise to other tenants.
+
+A **coach** can add its own (clinic-scoped) substitution rules from the coach
+exercise detail page, on any exercise it can see, and remove those it created —
+but it can **never alter the base rules**: they render read-only (no delete), the
+DAL stamps every coach rule with `ctx.clinicId`, and the delete is scoped by that
+clinic, so a base rule is untouchable. Each substitute row carries a `removable`
+flag (its own rule = true; an inherited base rule = false) that drives whether the
+delete control shows. The coach's picker spans every exercise the clinic can see
+(base + its own), since a clinic rule is private to that clinic and can't leak.
 
 ## Schema
 
@@ -100,7 +108,10 @@ base/custom discriminator as `food`:
 ## API
 
 - Coach: `GET /api/exercises` (list) and `GET /api/exercises/[id]` (detail),
-  tenant-scoped via `getTenantContext()` + the DAL, coach-only.
+  tenant-scoped via `getTenantContext()` + the DAL, coach-only. Clinic
+  substitutions are managed with `POST /api/exercises/[id]/substitutions` (add)
+  and `DELETE /api/exercises/[id]/substitutions/[subId]` (remove) — the DAL stamps
+  `ctx.clinicId` and scopes the delete by it, so base rules are never touched.
 - Admin: `GET /api/admin/exercises` and `GET /api/admin/exercises/[id]`,
   cross-tenant, gated by `getAdminSession()`. Base substitutions are managed with
   `POST /api/admin/exercises/[id]/substitutions` (add) and
@@ -108,12 +119,17 @@ base/custom discriminator as `food`:
   base-to-base.
 
 All query input is validated with zod before the DAL. Browsing is read-only for
-coaches; the admin can additionally edit base substitutions. Custom exercises,
-favorites and workouts are future phases.
+alunos; a coach manages its own clinic substitutions and the admin manages the
+base ones. Custom exercises, favorites and workouts are future phases.
 
 ## UI
 
-- Coach: `/coach/library/exercises` (grid) and `/coach/library/exercises/[id]`.
+- Coach: the Exercícios tab of the Biblioteca — `/coach/library/exercises` (grid)
+  and `/coach/library/exercises/[id]` (detail, with the clinic substitution
+  manager). The Biblioteca has two tabs, **Alimentos** (`/coach/library/foods`)
+  and **Exercícios**, each a real route so a tab loads its data only when opened;
+  `/coach/library` redirects to the default (Alimentos). The shared tab header is
+  `LibraryTabs`.
 - Admin: `/admin/exercises` and `/admin/exercises/[id]`.
 
 Both reuse the shared client components `src/components/exercises/exercise-catalog.tsx`

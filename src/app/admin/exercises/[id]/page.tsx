@@ -7,7 +7,7 @@ export default function AdminExerciseDetailPage() {
     <ExerciseDetail
       apiBase="/api/admin/exercises"
       backHref="/admin/exercises"
-      canManage
+      manage="base"
     />
   );
 }

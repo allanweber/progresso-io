@@ -51,6 +51,7 @@ export const GET = withRoute<Params>(
         equipment: s.equipment,
         thumbnail: s.thumbnail,
         origin: s.origin,
+        removable: s.removable,
       })),
     };
     return NextResponse.json(dto);

@@ -10,10 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
-import type { AdminExerciseListResponse } from "@/lib/admin";
 import {
   CATEGORY_LABELS,
   EQUIPMENT_LABELS,
+  type ExerciseEquipment,
   exerciseImageUrl,
   FORCE_LABELS,
   LEVEL_LABELS,
@@ -27,25 +27,33 @@ import {
 type Detail = ExerciseDetailDto & { clinicName?: string | null };
 
 /**
+ * Who may manage this exercise's substitutions, and how:
+ * - `"base"` — the admin edits the shared base rules (only on a base exercise).
+ * - `"clinic"` — the coach adds/removes its OWN clinic rules on any visible
+ *   exercise; the base rules stay read-only (a coach can't alter the base).
+ */
+type ManageMode = "base" | "clinic";
+
+/**
  * The exercise detail view — image gallery, facets and step-by-step
  * instructions. Reused by the coach library and the admin catalog; they differ
  * only in the API endpoint, the back link, and whether substitutions are
- * editable (`canManage`, admin on a base exercise).
+ * editable (`manage`).
  */
 export function ExerciseDetail({
   apiBase,
   backHref,
-  canManage = false,
+  manage,
 }: {
   /** API detail endpoint base, e.g. "/api/exercises". */
   apiBase: string;
   /** Where the "back" link points, e.g. "/coach/library/exercises". */
   backHref: string;
   /**
-   * When true, base exercises get an editable substitution manager (add/remove)
-   * that POSTs/DELETEs under `${apiBase}/${id}/substitutions`. Admin only.
+   * Substitution editing mode (see {@link ManageMode}). Omit for a read-only
+   * view. Writes go to `${apiBase}/${id}/substitutions`.
    */
-  canManage?: boolean;
+  manage?: ManageMode;
 }) {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -165,9 +173,13 @@ export function ExerciseDetail({
 
           {/* Substitutions — swap this exercise for one that trains the same
               muscle the same way (seeded to favor common gym equipment). The
-              admin can add/remove base rules; everyone else sees them read-only. */}
-          {canManage && data.origin === "base" ? (
+              admin manages the base rules; a coach manages its own clinic rules
+              (base stays read-only); everyone else sees them read-only. The
+              admin only manages base exercises — a clinic exercise is read-only
+              for it too. */}
+          {manage === "clinic" || (manage === "base" && data.origin === "base") ? (
             <SubstitutionsManager
+              mode={manage}
               exercise={data}
               apiBase={apiBase}
               backHref={backHref}
@@ -247,17 +259,27 @@ export function ExerciseDetail({
   );
 }
 
+/** Minimal shape shared by the coach and admin listing responses (for the picker). */
+type PickerResponse = {
+  items: { id: string; name: string; equipment: ExerciseEquipment | null }[];
+};
+
 /**
- * The editable base-substitutions section (admin, base exercise): the shared
- * substitution rules for the exercise, with add (search + pick another base
- * exercise) and remove. Inline — it's part of this reused component, not a
- * standalone one-off. Writes go through `${apiBase}/${id}/substitutions`.
+ * The editable substitutions section. Inline — it's part of this reused
+ * component, not a standalone one-off. Writes go through
+ * `${apiBase}/${id}/substitutions`. Two modes (see {@link ManageMode}):
+ * - `"base"` (admin): manages the shared base rules; the picker is restricted to
+ *   base exercises so a base rule never points at a clinic's own exercise.
+ * - `"clinic"` (coach): adds/removes the clinic's OWN rules; the picker spans
+ *   every exercise the clinic can see. Base rules render read-only (no delete).
  */
 function SubstitutionsManager({
+  mode,
   exercise,
   apiBase,
   backHref,
 }: {
+  mode: ManageMode;
   exercise: Detail;
   apiBase: string;
   backHref: string;
@@ -307,12 +329,14 @@ function SubstitutionsManager({
     [exercise],
   );
 
-  // Only base exercises may back a base rule (a clinic exercise would leak).
+  // A base rule may only point at another base exercise (a clinic exercise would
+  // leak); a clinic rule may point at anything the clinic can see.
+  const originFilter = mode === "base" ? "&origin=base" : "";
   const { data: results, isFetching } = useQuery({
-    queryKey: [apiBase, "sub-search", search],
+    queryKey: [apiBase, "sub-search", mode, search],
     queryFn: () =>
-      apiFetch<AdminExerciseListResponse>(
-        `${apiBase}?search=${encodeURIComponent(search)}&origin=base&pageSize=8`,
+      apiFetch<PickerResponse>(
+        `${apiBase}?search=${encodeURIComponent(search)}${originFilter}&pageSize=8`,
       ),
     enabled: adding && search.length >= 2,
   });
@@ -321,6 +345,11 @@ function SubstitutionsManager({
 
   const addError =
     addMutation.error instanceof ApiError ? addMutation.error.message : undefined;
+  const newLabel = mode === "base" ? "Novo substituto base" : "Novo substituto";
+  const emptyLabel =
+    mode === "base"
+      ? "Nenhum substituto base cadastrado para este exercício."
+      : "Nenhum substituto cadastrado para este exercício.";
 
   return (
     <div className="mt-6">
@@ -347,9 +376,7 @@ function SubstitutionsManager({
       {adding && (
         <div className="mt-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium text-foreground">
-              Novo substituto base
-            </span>
+            <span className="text-sm font-medium text-foreground">{newLabel}</span>
             <button
               type="button"
               onClick={resetPicker}
@@ -412,9 +439,7 @@ function SubstitutionsManager({
       )}
 
       {exercise.substitutes.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Nenhum substituto base cadastrado para este exercício.
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">{emptyLabel}</p>
       ) : (
         <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {exercise.substitutes.map((s) => {
@@ -450,16 +475,20 @@ function SubstitutionsManager({
                     )}
                   </div>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => removeMutation.mutate(s.id)}
-                  disabled={removeMutation.isPending}
-                  aria-label="Remover substituto"
-                  title="Remover substituto"
-                  className="shrink-0 rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                {/* Only the viewer's own rules are removable; base rules that a
+                    coach merely inherits render without a delete control. */}
+                {s.removable && (
+                  <button
+                    type="button"
+                    onClick={() => removeMutation.mutate(s.id)}
+                    disabled={removeMutation.isPending}
+                    aria-label="Remover substituto"
+                    title="Remover substituto"
+                    className="shrink-0 rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </li>
             );
           })}

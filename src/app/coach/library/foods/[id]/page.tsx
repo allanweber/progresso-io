@@ -83,7 +83,7 @@ export default function FoodDetailPage() {
     mutationFn: () => apiFetch(`/api/foods/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foods"] });
-      router.push("/coach/library");
+      router.push("/coach/library/foods");
       router.refresh();
     },
   });
@@ -93,7 +93,7 @@ export default function FoodDetailPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <Link
-        href="/coach/library"
+        href="/coach/library/foods"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
