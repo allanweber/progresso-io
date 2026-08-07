@@ -1,0 +1,168 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import {
+  DIET_ORIGIN_LABELS,
+  formatGrams,
+  formatKcal,
+  type DietItemDto,
+  type DietMacrosDto,
+  type DietMealDto,
+} from "@/lib/diets";
+
+/** A compact kcal + P/C/G line, reused in the total bar and per-meal footers. */
+export function MacroSummary({
+  totals,
+  className = "",
+}: {
+  totals: DietMacrosDto;
+  className?: string;
+}) {
+  const cells = [
+    { label: "kcal", value: formatKcal(totals.energyKcal), c: "text-primary" },
+    { label: "Prot", value: formatGrams(totals.protein), c: "text-blue-600" },
+    { label: "Carb", value: formatGrams(totals.carbohydrate), c: "text-red-600" },
+    { label: "Gord", value: formatGrams(totals.fat), c: "text-amber-600" },
+  ];
+  return (
+    <div className={`flex flex-wrap gap-x-5 gap-y-1 ${className}`}>
+      {cells.map((c) => (
+        <span key={c.label} className="text-sm">
+          <span className={`font-bold ${c.c}`}>{c.value}</span>{" "}
+          <span className="text-xs text-muted-foreground">{c.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Soft food-icon tints, picked deterministically from the food name so the same
+// food always gets the same square (no per-food emoji in our data).
+const SQUARE_TINTS = [
+  "bg-amber-100 text-amber-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-blue-100 text-blue-700",
+  "bg-rose-100 text-rose-700",
+  "bg-violet-100 text-violet-700",
+  "bg-orange-100 text-orange-700",
+  "bg-teal-100 text-teal-700",
+  "bg-cyan-100 text-cyan-700",
+];
+function squareTint(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return SQUARE_TINTS[h % SQUARE_TINTS.length];
+}
+function initial(s: string): string {
+  return s.trim().charAt(0).toUpperCase() || "?";
+}
+
+/** "1 unidade" + "150 g" when a measure was used, else just "150 g". */
+function quantityParts(
+  grams: number,
+  measureLabel: string | null,
+  measureGrams: number | null,
+): { main: string; sub: string | null } {
+  if (measureLabel && measureGrams && measureGrams > 0) {
+    const count = Math.round(grams / measureGrams);
+    return { main: `${count} ${measureLabel}`, sub: `${grams} g` };
+  }
+  return { main: `${grams} g`, sub: null };
+}
+
+function ItemRow({ item }: { item: DietItemDto }) {
+  const q = quantityParts(item.grams, item.measureLabel, item.measureGrams);
+  return (
+    <li className="flex items-center gap-3 border-b border-[#F1F5F9] px-4 py-2.5 last:border-b-0">
+      <div
+        className={`flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${squareTint(item.description)}`}
+        aria-hidden
+      >
+        {initial(item.description)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="font-medium text-foreground">{item.description}</span>
+          <Badge
+            variant={item.origin === "base" ? "base" : "clinic"}
+            className="px-1.5 py-0 text-[10px] font-semibold"
+          >
+            {item.origin === "base"
+              ? DIET_ORIGIN_LABELS.base
+              : DIET_ORIGIN_LABELS.clinic}
+          </Badge>
+        </div>
+        {item.substitutes.map((s) => {
+          const sq = quantityParts(s.grams, s.measureLabel, s.measureGrams);
+          return (
+            <div
+              key={s.id}
+              className="mt-0.5 flex items-center gap-1 text-xs text-amber-700"
+            >
+              <span className="shrink-0">⇄</span>
+              <span className="truncate">
+                ≈ {sq.main} {s.description}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="shrink-0 text-right">
+        <div className="text-sm font-semibold text-foreground">{q.main}</div>
+        {q.sub && <div className="text-[11px] text-muted-foreground">{q.sub}</div>}
+      </div>
+      <div className="w-14 shrink-0 text-right text-xs text-muted-foreground">
+        {formatKcal(item.macros.energyKcal)} kcal
+      </div>
+    </li>
+  );
+}
+
+/**
+ * The read-only meals of a diet, styled after the design: each meal is a card
+ * (name + time header), each item a row with a tinted food square, the food name
+ * + origin tag, its equivalences as amber "⇄ ≈ …" lines, the quantity (in the
+ * measure used) and its kcal; a subtle per-meal macro footer closes each card.
+ */
+export function DietMealsView({ meals }: { meals: DietMealDto[] }) {
+  if (meals.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-white p-8 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        Esta dieta ainda não tem refeições.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {meals.map((meal) => (
+        <div
+          key={meal.id}
+          className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+        >
+          <div className="flex items-center gap-2 border-b border-border bg-surface-light px-4 py-3">
+            <span className="font-heading font-semibold text-foreground">
+              {meal.name}
+            </span>
+            {meal.time && (
+              <span className="text-xs text-muted-foreground">{meal.time}</span>
+            )}
+          </div>
+          {meal.items.length === 0 ? (
+            <div className="px-4 py-4 text-sm text-muted-foreground">
+              Sem alimentos.
+            </div>
+          ) : (
+            <ul>
+              {meal.items.map((item) => (
+                <ItemRow key={item.id} item={item} />
+              ))}
+            </ul>
+          )}
+          <div className="flex justify-end border-t border-[#F1F5F9] px-4 py-2">
+            <MacroSummary totals={meal.totals} className="justify-end" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
