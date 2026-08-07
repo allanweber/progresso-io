@@ -132,10 +132,14 @@ ships per-100 g data, so measures are our own layer: a `food_measure` table
 set = a clinic's own) with `label`, `grams`, `isDefault`. Grams stay the source
 of truth for macros; a measure is just a gram equivalent.
 
-- **Seed**: `drizzle/data/food-measures.json` — a curated set of common base
-  measures (ovo, pães, frutas, colheres, scoop…), matched to the catalog by
-  description and loaded as base rows by `scripts/migrate.mjs` (`seedMeasures`,
-  idempotent). Values are approximate references.
+- **Seed**: `drizzle/data/food-measures.json` — **generated** by
+  `scripts/build-food-measures.mjs` (`npm run db:build-food-measures`), which
+  walks every base food (TACO CSV + supplement) and applies ~90 ordered
+  pattern rules by category (ovos, pães, frutas, legumes, tubérculos, grãos,
+  carnes, laticínios, óleos/colheres, pós, bebidas…). It currently covers **~410
+  foods / ~530 measures**. Matched to the catalog by description and loaded as
+  base rows by `scripts/migrate.mjs` (`seedMeasures`, idempotent). Grams are
+  approximate Brazilian references; coaches/admin can add or override per food.
 - **DAL**: `getFood` returns the food's visible measures (base + own). Coach:
   `addMeasure`/`removeMeasure` (clinic-scoped, on any visible food). Admin:
   `addBaseMeasure`/`removeBaseMeasure` (base, on base foods).
