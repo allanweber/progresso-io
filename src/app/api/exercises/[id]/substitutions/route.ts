@@ -1,25 +1,26 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/db";
 import type { ExerciseSubstituteDto } from "@/lib/exercises";
 import { exerciseSubstitutionFormSchema } from "@/lib/exercises";
-import { admin } from "@/server/dal";
+import { exercises } from "@/server/dal";
 import {
   apiError,
   forbidden,
   isUuid,
   notFound,
   readJson,
+  unauthorized,
   validationError,
 } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { getTenantContext } from "@/server/tenant";
 
 /**
- * Adds a shared **base** substitution rule to an exercise (`clinic_id NULL`):
- * the chosen substitute may replace this exercise. Admin-only. Both the exercise
- * and the substitute must be base exercises; self-substitution and duplicates
- * are rejected.
+ * Adds a clinic-owned substitution rule to an exercise: the chosen substitute
+ * may replace this exercise. Coach-only; the DAL stamps `clinicId`, so it never
+ * touches the shared base rules — a coach can add its own alternatives but can
+ * never alter what was defined as base. Self-substitution and duplicates are
+ * rejected.
  */
 type Params = { params: Promise<{ id: string }> };
 
@@ -37,10 +38,11 @@ const REASONS: Record<string, { message: string; status: number }> = {
 };
 
 export const POST = withRoute<Params>(
-  "admin.exercises.substitution.add",
+  "exercises.substitution.add",
   async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
+    const ctx = await getTenantContext();
+    if (!ctx) return unauthorized();
+    if (ctx.role !== "coach") return forbidden();
 
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
@@ -51,8 +53,8 @@ export const POST = withRoute<Params>(
     const parsed = exerciseSubstitutionFormSchema.safeParse(body.data);
     if (!parsed.success) return validationError(parsed.error);
 
-    const result = await admin.addBaseExerciseSubstitution(
-      db,
+    const result = await exercises.addExerciseSubstitution(
+      ctx,
       id,
       parsed.data.substituteExerciseId,
     );
@@ -60,7 +62,7 @@ export const POST = withRoute<Params>(
       const r = REASONS[result.reason];
       return apiError(r.message, r.status);
     }
-    logger.info("admin.exercise.base_substitution_added", {
+    logger.info("exercise.substitution_added", {
       exerciseId: id,
       substituteExerciseId: parsed.data.substituteExerciseId,
     });

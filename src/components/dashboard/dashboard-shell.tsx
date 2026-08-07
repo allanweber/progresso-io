@@ -37,12 +37,8 @@ function navItems(role: string | null | undefined) {
   const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
-    items.push({ href: "/coach/library", label: "Bibliotecas", icon: BookOpen });
-    items.push({
-      href: "/coach/library/exercises",
-      label: "Exercícios",
-      icon: Dumbbell,
-    });
+    // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
+    items.push({ href: "/coach/library", label: "Biblioteca", icon: BookOpen });
   }
   if (isAdmin(role)) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });

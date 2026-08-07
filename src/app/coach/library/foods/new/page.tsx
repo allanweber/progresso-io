@@ -9,11 +9,11 @@ export default function NewFoodPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <Link
-        href="/coach/library"
+        href="/coach/library/foods"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Bibliotecas
+        Biblioteca
       </Link>
       <h1 className="mt-3 font-heading text-2xl font-bold text-foreground">
         Novo alimento

@@ -116,10 +116,13 @@ Writes (phase 2):
 - `PUT` / `DELETE /api/foods/[id]/favorite` — mark / unmark the clinic's favorite.
 
 Pages:
-- `/coach/library` — the Alimentos tab: debounced search, group/type filters, a
-  **Favoritos** toggle, a per-row **star** (favorite), sortable macro columns,
-  classic 25/page pagination, base/própria + type chips, "Novo alimento" action,
-  mobile cards / desktop table.
+- `/coach/library` — redirects to the default tab (`/coach/library/foods`). The
+  Biblioteca is a set of tabs (Alimentos / Exercícios), each a real route so a
+  tab only fetches its data when opened; the shared header lives in `LibraryTabs`.
+- `/coach/library/foods` — the Alimentos tab: debounced search, group/type
+  filters, a **Favoritos** toggle, a per-row **star** (favorite), sortable macro
+  columns, classic 25/page pagination, base/própria + type chips, "Novo alimento"
+  action, mobile cards / desktop table.
 - `/coach/library/foods/new` and `/coach/library/foods/[id]/edit` — the "enxuto"
   custom-food form (six hot macros), shared by create + edit (`FoodForm`).
 - `/coach/library/foods/[id]` — detail: favorite star, hot macros, full profile
