@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 
-import { FoodMeasures } from "@/components/foods/food-measures";
+import { FoodComposition } from "@/components/foods/food-composition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,43 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { AdminFoodDetailDto, AdminFoodListResponse } from "@/lib/admin";
-import {
-  FOOD_TYPE_LABELS,
-  formatNutrient,
-  type FoodNutrientDto,
-} from "@/lib/foods";
-
-const KIND_LABELS: Record<string, string> = {
-  energy: "Energia",
-  macro: "Macronutrientes",
-  mineral: "Minerais",
-  vitamin: "Vitaminas",
-  fatty_acid: "Ácidos graxos",
-  amino_acid: "Aminoácidos",
-  other: "Outros",
-};
-const KIND_ORDER = [
-  "energy",
-  "macro",
-  "mineral",
-  "vitamin",
-  "fatty_acid",
-  "amino_acid",
-  "other",
-];
-
-function sections(nutrients: FoodNutrientDto[]) {
-  const byKind = new Map<string, FoodNutrientDto[]>();
-  for (const n of nutrients) {
-    if (!byKind.has(n.kind)) byKind.set(n.kind, []);
-    byKind.get(n.kind)!.push(n);
-  }
-  return KIND_ORDER.filter((k) => byKind.has(k)).map((k) => ({
-    kind: k,
-    label: KIND_LABELS[k] ?? k,
-    items: byKind.get(k)!,
-  }));
-}
+import { FOOD_TYPE_LABELS, formatNutrient } from "@/lib/foods";
 
 export default function AdminFoodDetailPage() {
   const params = useParams<{ id: string }>();
@@ -146,9 +110,6 @@ export default function AdminFoodDetailPage() {
             <h1 className="mt-2 font-heading text-2xl font-bold text-foreground">
               {data.description}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Composição por 100 g
-            </p>
 
             {/* Base foods are admin-editable; clinic foods are view-only. */}
             {isBase ? (
@@ -230,79 +191,18 @@ export default function AdminFoodDetailPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Macro highlight */}
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[
-              ["Energia", data.energyKcal, "kcal"],
-              ["Proteína", data.protein, "g"],
-              ["Carboidrato", data.carbohydrate, "g"],
-              ["Gordura", data.fat, "g"],
-              ["Fibra", data.fiber, "g"],
-              ["Sódio", data.sodium, "mg"],
-            ].map(([label, value, unit]) => (
-              <div
-                key={label as string}
-                className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
-              >
-                <div className="text-xs text-[#94A3B8]">{label}</div>
-                <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
-                  {formatNutrient(value as number | null, unit as string)}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Base substitutes — right under the macros (admin-managed on base). */}
-          <BaseSubstitutes food={data} canManage={isBase} />
-
-          {/* Base household measures — admin-managed on base foods. */}
-          <FoodMeasures
-            apiBase="/api/admin/foods"
-            foodId={data.id}
-            measures={data.measures}
-            macros={{
-              energyKcal: data.energyKcal,
-              protein: data.protein,
-              carbohydrate: data.carbohydrate,
-              fat: data.fat,
-            }}
+          {/* Portion selector + macros + full profile (rescales live). The key
+              resets the selected portion when navigating between foods. */}
+          <FoodComposition
+            key={data.id}
+            food={data}
+            measuresApiBase="/api/admin/foods"
             queryKey={["admin-food", id]}
-            canManage={isBase}
+            canManageMeasures={isBase}
           />
 
-          {/* Full profile */}
-          {data.nutrients.length > 0 && (
-            <>
-              <h2 className="mt-8 font-heading text-lg font-semibold text-foreground">
-                Perfil nutricional completo
-              </h2>
-              <div className="mt-3 space-y-5">
-                {sections(data.nutrients).map((sec) => (
-                  <div
-                    key={sec.kind}
-                    className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
-                  >
-                    <div className="border-b border-border bg-surface-light px-4 py-2 text-xs font-semibold text-[#475569]">
-                      {sec.label}
-                    </div>
-                    <dl>
-                      {sec.items.map((n) => (
-                        <div
-                          key={n.id}
-                          className="flex items-center justify-between border-b border-[#F1F5F9] px-4 py-2.5 text-sm last:border-0"
-                        >
-                          <dt className="text-[#475569]">{n.label}</dt>
-                          <dd className="tabular-nums text-foreground">
-                            {formatNutrient(n.value, n.unit, n.isTrace)}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+          {/* Base substitutes — admin-managed on base foods. */}
+          <BaseSubstitutes food={data} canManage={isBase} />
         </>
       ) : null}
     </div>

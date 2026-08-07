@@ -2,63 +2,57 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Plus, Trash2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { FoodMeasureDto } from "@/lib/foods";
 
-/** Per-100 g macros of the food these measures belong to. */
-type FoodMacros = {
-  energyKcal: number | null;
-  protein: number | null;
-  carbohydrate: number | null;
-  fat: number | null;
+/** A selected portion — the virtual 100 g default (`id: "base"`) or a measure. */
+export type MeasureSelection = { id: string; grams: number; label: string };
+
+/** The always-present default portion: 100 g, not a database row. */
+export const BASE_SELECTION: MeasureSelection = {
+  id: "base",
+  grams: 100,
+  label: "100 g",
 };
 
-/** Scales a per-100 g value by grams, formatted pt-BR (— when unknown). */
-function scaled(value: number | null, grams: number, decimals = 0): string {
-  if (value === null || value === undefined) return "—";
-  const n = (value * grams) / 100;
-  return (decimals === 0 ? Math.round(n) : Number(n.toFixed(decimals)))
-    .toString()
-    .replace(".", ",");
-}
-
 /**
- * Household-measure (medida caseira) manager for a food, shared by the coach and
- * admin detail pages (reused in two places, so it earns its own component). The
- * coach adds clinic-scoped measures via `/api/foods`; the admin adds base ones
- * via `/api/admin/foods` — the endpoint and the query key to refresh are the only
- * differences, passed in. Lists base + own measures; only removable ones (the
- * viewer's own) show a delete control.
+ * Household-measure (medida caseira) selector + manager for a food, shared by the
+ * coach and admin detail pages. It renders the food's portions as selectable
+ * chips — a virtual "100 g" default (never a stored row) plus every real measure
+ * — and reports the selection up so the page can rescale the composition. The
+ * coach adds clinic-scoped measures via `/api/foods`; the admin adds base ones via
+ * `/api/admin/foods` (the endpoint and the query key to refresh are the only
+ * differences). Only the viewer's own removable measures show a delete control.
  */
 export function FoodMeasures({
   apiBase,
   foodId,
   measures,
-  macros,
   queryKey,
   canManage = true,
+  selectedId,
+  onSelect,
 }: {
   apiBase: string;
   foodId: string;
   measures: FoodMeasureDto[];
-  /** The food's per-100 g macros, used to compute each measure's macros. */
-  macros: FoodMacros;
   queryKey: unknown[];
-  /** When false, the section is read-only (no add/remove controls). */
+  /** When false, the add/remove controls are hidden (read-only). */
   canManage?: boolean;
+  /** Selected portion id — `"base"` for the 100 g default, else a measure id. */
+  selectedId: string;
+  /** Called when a portion chip is picked. */
+  onSelect: (selection: MeasureSelection) => void;
 }) {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [grams, setGrams] = useState("");
   const [isDefault, setIsDefault] = useState(false);
-  // Which measure row is expanded to show its kcal/macros breakdown.
-  const [openId, setOpenId] = useState<string | null>(null);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
@@ -95,26 +89,86 @@ export function FoodMeasures({
     addMutation.mutate({ label: label.trim(), grams: g, isDefault });
   }
 
+  function removeMeasure(m: FoodMeasureDto) {
+    // Falling back to the 100 g default keeps the composition valid.
+    if (m.id === selectedId) onSelect(BASE_SELECTION);
+    removeMutation.mutate(m.id);
+  }
+
   const addError =
     addMutation.error instanceof ApiError ? addMutation.error.message : undefined;
 
+  const chipClass = (on: boolean) =>
+    `inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+      on
+        ? "border-primary bg-primary/5 text-primary"
+        : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+    }`;
+
   return (
-    <>
-      <div className="mt-8 flex items-center justify-between gap-3">
-        <h2 className="font-heading text-lg font-semibold text-foreground">
-          Medidas caseiras
-        </h2>
+    <div className="mt-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Medida
+        </span>
         {canManage && !adding && (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setAdding(true)}
           >
             <Plus className="size-4" />
-            Adicionar
+            Adicionar medida
           </Button>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => onSelect(BASE_SELECTION)}
+          className={chipClass(selectedId === "base")}
+        >
+          100 g
+        </button>
+        {measures.map((m) => {
+          const on = selectedId === m.id;
+          return (
+            <span key={m.id} className={chipClass(on)}>
+              <button
+                type="button"
+                onClick={() =>
+                  onSelect({
+                    id: m.id,
+                    grams: m.grams,
+                    label: `1 ${m.label} (${m.grams} g)`,
+                  })
+                }
+                className="inline-flex items-center gap-1"
+              >
+                1 {m.label} · {m.grams} g
+                {m.isDefault && (
+                  <span className="text-[10px] uppercase tracking-wide opacity-70">
+                    padrão
+                  </span>
+                )}
+              </button>
+              {canManage && m.removable && (
+                <button
+                  type="button"
+                  onClick={() => removeMeasure(m)}
+                  disabled={removeMutation.isPending}
+                  aria-label="Remover medida"
+                  title="Remover medida"
+                  className="-mr-1 rounded-full p-0.5 transition-colors hover:text-destructive disabled:opacity-50"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </span>
+          );
+        })}
       </div>
 
       {adding && (
@@ -132,7 +186,10 @@ export function FoodMeasures({
           </div>
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="measure-label" className="block text-[13px] font-medium text-foreground">
+              <label
+                htmlFor="measure-label"
+                className="block text-[13px] font-medium text-foreground"
+              >
                 Medida
               </label>
               <Input
@@ -145,7 +202,10 @@ export function FoodMeasures({
               />
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="measure-grams" className="block text-[13px] font-medium text-foreground">
+              <label
+                htmlFor="measure-grams"
+                className="block text-[13px] font-medium text-foreground"
+              >
                 Gramas
               </label>
               <Input
@@ -166,112 +226,18 @@ export function FoodMeasures({
               />
               Padrão
             </label>
-            <Button type="button" size="sm" onClick={submit} disabled={addMutation.isPending}>
+            <Button
+              type="button"
+              size="sm"
+              onClick={submit}
+              disabled={addMutation.isPending}
+            >
               {addMutation.isPending ? "Adicionando…" : "Adicionar medida"}
             </Button>
           </div>
           {addError && <p className="mt-3 text-[13px] text-destructive">{addError}</p>}
         </div>
       )}
-
-      {measures.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Nenhuma medida caseira cadastrada. Sem medidas, o alimento é usado em
-          gramas.
-        </p>
-      ) : (
-        <ul className="mt-3 space-y-2">
-          {measures.map((m) => {
-            const open = openId === m.id;
-            return (
-              <li
-                key={m.id}
-                className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
-              >
-                <div className="flex items-center justify-between gap-3 p-4">
-                  <button
-                    type="button"
-                    onClick={() => setOpenId((cur) => (cur === m.id ? null : m.id))}
-                    aria-expanded={open}
-                    className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left"
-                  >
-                    <ChevronDown
-                      className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
-                      aria-hidden
-                    />
-                    <span className="font-medium text-foreground">1 {m.label}</span>
-                    {m.isDefault && (
-                      <Badge variant="neutral" className="font-medium">
-                        padrão
-                      </Badge>
-                    )}
-                    {m.origin === "clinic" && (
-                      <Badge variant="clinic" className="font-medium">
-                        própria
-                      </Badge>
-                    )}
-                  </button>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-sm text-[#475569]">
-                      <span className="font-semibold tabular-nums text-foreground">
-                        {m.grams}
-                      </span>{" "}
-                      g
-                    </span>
-                    {canManage && m.removable && (
-                      <button
-                        type="button"
-                        onClick={() => removeMutation.mutate(m.id)}
-                        disabled={removeMutation.isPending}
-                        aria-label="Remover medida"
-                        title="Remover medida"
-                        className="rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {open && (
-                  <div className="grid grid-cols-4 gap-2 border-t border-[#F1F5F9] bg-surface-light/50 px-4 py-3">
-                    {[
-                      {
-                        label: "kcal",
-                        value: scaled(macros.energyKcal, m.grams),
-                        className: "text-primary",
-                      },
-                      {
-                        label: "Prot",
-                        value: `${scaled(macros.protein, m.grams, 1)} g`,
-                        className: "text-blue-600",
-                      },
-                      {
-                        label: "Carb",
-                        value: `${scaled(macros.carbohydrate, m.grams, 1)} g`,
-                        className: "text-red-600",
-                      },
-                      {
-                        label: "Gord",
-                        value: `${scaled(macros.fat, m.grams, 1)} g`,
-                        className: "text-amber-600",
-                      },
-                    ].map((c) => (
-                      <div key={c.label} className="text-center">
-                        <div className={`text-base font-bold ${c.className}`}>
-                          {c.value}
-                        </div>
-                        <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {c.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </>
+    </div>
   );
 }
