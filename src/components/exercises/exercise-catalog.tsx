@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api-client";
+import type { ClinicOption } from "@/lib/admin";
 import {
   CATEGORY_LABELS,
   CATEGORY_OPTIONS,
@@ -62,6 +63,8 @@ export function ExerciseCatalog({
   basePath,
   title,
   subtitle,
+  action,
+  admin = false,
 }: {
   /** API listing endpoint, e.g. "/api/exercises" or "/api/admin/exercises". */
   apiBase: string;
@@ -74,6 +77,13 @@ export function ExerciseCatalog({
    */
   title?: string;
   subtitle?: string;
+  /** Optional right-aligned action next to the title (e.g. "Novo exercício"). */
+  action?: React.ReactNode;
+  /**
+   * Admin mode: adds the cross-tenant origin (base/clinic) and clinic filters
+   * right after the search box, and sends them to the admin listing endpoint.
+   */
+  admin?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -95,7 +105,22 @@ export function ExerciseCatalog({
   const [level, setLevel] = useState<ExerciseLevel | "">(
     () => (searchParams.get("level") as ExerciseLevel | null) ?? "",
   );
+  // Admin-only cross-tenant filters (ignored/empty for the coach).
+  const [origin, setOrigin] = useState<"" | "base" | "clinic">(
+    () => (searchParams.get("origin") as "base" | "clinic" | null) ?? "",
+  );
+  const [clinic, setClinic] = useState(() => searchParams.get("clinic") ?? "");
   const [page, setPage] = useState(1);
+
+  const { data: clinics } = useQuery({
+    queryKey: ["admin-clinics"],
+    queryFn: () =>
+      apiFetch<{ clinics: ClinicOption[] }>("/api/admin/clinics").then(
+        (r) => r.clinics,
+      ),
+    staleTime: Infinity,
+    enabled: admin,
+  });
 
   // Debounce the free-text search so we don't refetch on every keystroke; a new
   // search returns to the first page. (Resetting page inside the timeout — not
@@ -122,17 +147,21 @@ export function ExerciseCatalog({
   useEffect(() => {
     const p = new URLSearchParams();
     if (search) p.set("search", search);
+    if (origin) p.set("origin", origin);
+    if (clinic) p.set("clinic", clinic);
     if (category) p.set("category", category);
     if (muscle) p.set("muscle", muscle);
     if (equipment) p.set("equipment", equipment);
     if (level) p.set("level", level);
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [search, category, muscle, equipment, level, pathname, router]);
+  }, [search, origin, clinic, category, muscle, equipment, level, pathname, router]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
     if (search) p.set("search", search);
+    if (origin) p.set("origin", origin);
+    if (clinic) p.set("clinic", clinic);
     if (category) p.set("category", category);
     if (muscle) p.set("muscle", muscle);
     if (equipment) p.set("equipment", equipment);
@@ -140,7 +169,7 @@ export function ExerciseCatalog({
     p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
     return p.toString();
-  }, [search, category, muscle, equipment, level, page]);
+  }, [search, origin, clinic, category, muscle, equipment, level, page]);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: [apiBase, query],
@@ -155,13 +184,16 @@ export function ExerciseCatalog({
   return (
     <div className="mx-auto max-w-6xl">
       {title && (
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          )}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-2xl font-bold text-foreground">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          {action}
         </div>
       )}
 
@@ -177,8 +209,46 @@ export function ExerciseCatalog({
         />
       </div>
 
-      {/* Filters — stack on phones, up to four-up on desktop. */}
+      {/* Filters — stack on phones, up to four-up on desktop. In admin mode the
+          first two are the cross-tenant origin and clinic selects. */}
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {admin && (
+          <>
+            <Select
+              value={origin || "all"}
+              onValueChange={onFilterChange((v: string) =>
+                setOrigin(v === "all" ? "" : (v as "base" | "clinic")),
+              )}
+            >
+              <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Origem">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Base e clínicas</SelectItem>
+                <SelectItem value="base">Somente base</SelectItem>
+                <SelectItem value="clinic">Somente de clínicas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={clinic || "all"}
+              onValueChange={onFilterChange((v: string) =>
+                setClinic(v === "all" ? "" : v),
+              )}
+            >
+              <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Clínica">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as clínicas</SelectItem>
+                {(clinics ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
         <Select
           value={category || "all"}
           onValueChange={onFilterChange((v: string) =>

@@ -213,6 +213,7 @@ export type AdminExerciseDetailDto = {
   id: string;
   code: string | null;
   name: string;
+  description: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
   force: ExerciseForce | null;

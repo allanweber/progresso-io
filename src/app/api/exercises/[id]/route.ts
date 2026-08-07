@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 
-import type { ExerciseDetailDto } from "@/lib/exercises";
+import { exerciseFormSchema, type ExerciseDetailDto } from "@/lib/exercises";
 import { exercises } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
+import {
+  forbidden,
+  isUuid,
+  notFound,
+  readJson,
+  unauthorized,
+  validationError,
+} from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 import { getTenantContext } from "@/server/tenant";
 
 /**
@@ -31,6 +38,7 @@ export const GET = withRoute<Params>(
       id: exercise.id,
       code: exercise.code,
       name: exercise.name,
+      description: exercise.description,
       category: exercise.category,
       level: exercise.level,
       force: exercise.force,
@@ -55,5 +63,55 @@ export const GET = withRoute<Params>(
       })),
     };
     return NextResponse.json(dto);
+  },
+);
+
+/**
+ * Edits one of this clinic's own custom exercises. Coach-only; the DAL scopes
+ * the write by `clinicId`, so a base or other-clinic id yields a 404. Input
+ * validated with zod.
+ */
+export const PUT = withRoute<Params>(
+  "exercises.update",
+  async (request, { params }) => {
+    const ctx = await getTenantContext();
+    if (!ctx) return unauthorized();
+    if (ctx.role !== "coach") return forbidden();
+
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Exercício não encontrado.");
+
+    const body = await readJson(request);
+    if (!body.ok) return body.response;
+
+    const parsed = exerciseFormSchema.safeParse(body.data);
+    if (!parsed.success) return validationError(parsed.error);
+
+    const exercise = await exercises.updateExercise(ctx, id, parsed.data);
+    if (!exercise) {
+      return notFound("Exercício não encontrado ou não editável.");
+    }
+    logger.info("exercise.updated", { exerciseId: id });
+    return NextResponse.json({ exercise });
+  },
+);
+
+/** Archives one of this clinic's own custom exercises. Coach-only. */
+export const DELETE = withRoute<Params>(
+  "exercises.archive",
+  async (_request, { params }) => {
+    const ctx = await getTenantContext();
+    if (!ctx) return unauthorized();
+    if (ctx.role !== "coach") return forbidden();
+
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Exercício não encontrado.");
+
+    const exercise = await exercises.archiveExercise(ctx, id);
+    if (!exercise) {
+      return notFound("Exercício não encontrado ou não editável.");
+    }
+    logger.info("exercise.archived", { exerciseId: id });
+    return NextResponse.json({ exercise });
   },
 );

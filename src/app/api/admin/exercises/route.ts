@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { adminExerciseListQuerySchema } from "@/lib/admin";
+import { exerciseFormSchema } from "@/lib/exercises";
 import { admin } from "@/server/dal";
-import { forbidden, validationError } from "@/server/api";
-import { withRoute } from "@/server/observability";
+import { forbidden, readJson, validationError } from "@/server/api";
+import { logger, withRoute } from "@/server/observability";
 import { getAdminSession } from "@/server/admin";
 
 /**
@@ -47,4 +48,24 @@ export const GET = withRoute("admin.exercises.list", async (request) => {
     pageSize: q.pageSize,
   });
   return NextResponse.json(result);
+});
+
+/**
+ * Creates a shared **base** exercise (`clinic_id NULL`), visible to every
+ * clinic. Admin-only (gated by {@link getAdminSession}); the DAL writes the base
+ * row. Same zod validation as the coach create route.
+ */
+export const POST = withRoute("admin.exercises.create", async (request) => {
+  const session = await getAdminSession();
+  if (!session) return forbidden();
+
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
+
+  const parsed = exerciseFormSchema.safeParse(body.data);
+  if (!parsed.success) return validationError(parsed.error);
+
+  const exercise = await admin.createBaseExercise(db, parsed.data);
+  logger.info("admin.exercise.created", { exerciseId: exercise.id });
+  return NextResponse.json({ exercise }, { status: 201 });
 });

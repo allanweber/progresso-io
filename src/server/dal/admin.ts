@@ -22,7 +22,10 @@ import type {
   Muscle,
   Student,
 } from "@/db/schema";
-import type { ExerciseSubstituteRow } from "@/server/dal/exercises";
+import type {
+  ExerciseSubstituteRow,
+  ExerciseWriteInput,
+} from "@/server/dal/exercises";
 import type { FoodNutrientRow, FoodSubstituteRow } from "@/server/dal/foods";
 
 /**
@@ -765,6 +768,85 @@ export async function getAnyExercise(
       removable: true, // every base rule is admin-removable
     })),
   };
+}
+
+/** Maps the write input to the base-exercise columns (tenant/searchText set below). */
+function baseExerciseValues(input: ExerciseWriteInput) {
+  return {
+    name: input.name,
+    description: input.description,
+    searchText: sql`unaccent(lower(${input.name}))`,
+    category: input.category,
+    level: input.level,
+    force: input.force,
+    mechanic: input.mechanic,
+    equipment: input.equipment,
+    primaryMuscles: input.primaryMuscles,
+    secondaryMuscles: input.secondaryMuscles,
+    instructions: input.instructions,
+    images: input.images,
+  };
+}
+
+/** Creates a shared **base** exercise (`clinic_id NULL`, `source = "custom"`, no code). */
+export async function createBaseExercise(
+  db: DB,
+  input: ExerciseWriteInput,
+): Promise<Exercise> {
+  const [row] = await db
+    .insert(schema.exercise)
+    .values({ clinicId: null, code: null, source: "custom", ...baseExerciseValues(input) })
+    .returning();
+  return row;
+}
+
+/**
+ * Edits a shared **base** exercise. Scoped to `clinic_id IS NULL`, so a clinic's
+ * own exercise is never touched (returns null — a 404 at the route).
+ */
+export async function updateBaseExercise(
+  db: DB,
+  id: string,
+  input: ExerciseWriteInput,
+): Promise<Exercise | null> {
+  const [row] = await db
+    .update(schema.exercise)
+    .set({ ...baseExerciseValues(input), updatedAt: new Date() })
+    .where(and(eq(schema.exercise.id, id), isNull(schema.exercise.clinicId)))
+    .returning();
+  return row ?? null;
+}
+
+/** Archives a shared **base** exercise (`clinic_id IS NULL` only). */
+export async function archiveBaseExercise(
+  db: DB,
+  id: string,
+): Promise<Exercise | null> {
+  const [row] = await db
+    .update(schema.exercise)
+    .set({ archived: true, updatedAt: new Date() })
+    .where(and(eq(schema.exercise.id, id), isNull(schema.exercise.clinicId)))
+    .returning();
+  return row ?? null;
+}
+
+/**
+ * Archives ANY exercise — base or a clinic's own. This is the one exception to
+ * the "admin writes base only" rule: as a moderation action the platform admin
+ * may retire any exercise from the catalog (editing a clinic exercise is still
+ * off-limits — only archiving). Cross-tenant by design; admin only. Returns null
+ * when the id doesn't exist.
+ */
+export async function archiveAnyExercise(
+  db: DB,
+  id: string,
+): Promise<Exercise | null> {
+  const [row] = await db
+    .update(schema.exercise)
+    .set({ archived: true, updatedAt: new Date() })
+    .where(eq(schema.exercise.id, id))
+    .returning();
+  return row ?? null;
 }
 
 /** Whether an exercise exists and is a shared **base** exercise (`clinic_id NULL`). */

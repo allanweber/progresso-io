@@ -5,7 +5,9 @@ import type {
   Exercise,
   ExerciseCategory,
   ExerciseEquipment,
+  ExerciseForce,
   ExerciseLevel,
+  ExerciseMechanic,
   Muscle,
 } from "@/db/schema";
 import type { TenantContext } from "@/server/tenant";
@@ -146,6 +148,102 @@ export async function listExercises(
   }));
 
   return { items, total, page, pageSize };
+}
+
+/**
+ * The editable fields of a custom exercise — shared by the coach write path
+ * (a clinic's own exercise) and the admin write path (a shared base exercise);
+ * only the tenant discriminator (`clinicId`) differs. Free text is confined to
+ * `name`, `description` and the `instructions` steps; everything else is an enum.
+ * `images` holds already-uploaded R2 keys (max 2, enforced at the route).
+ */
+export type ExerciseWriteInput = {
+  name: string;
+  description: string | null;
+  category: ExerciseCategory;
+  level: ExerciseLevel;
+  force: ExerciseForce | null;
+  mechanic: ExerciseMechanic | null;
+  equipment: ExerciseEquipment | null;
+  primaryMuscles: Muscle[];
+  secondaryMuscles: Muscle[];
+  instructions: string[];
+  images: string[];
+};
+
+/** Maps the write input to the row columns (minus tenant/searchText, set by callers). */
+function exerciseValues(input: ExerciseWriteInput) {
+  return {
+    name: input.name,
+    description: input.description,
+    searchText: sql`unaccent(lower(${input.name}))`,
+    category: input.category,
+    level: input.level,
+    force: input.force,
+    mechanic: input.mechanic,
+    equipment: input.equipment,
+    primaryMuscles: input.primaryMuscles,
+    secondaryMuscles: input.secondaryMuscles,
+    instructions: input.instructions,
+    images: input.images,
+  };
+}
+
+/**
+ * Creates a custom exercise for this clinic (`source = "custom"`, no `code`).
+ * The DAL stamps `clinicId` from the session context, so the exercise is private
+ * to the clinic and can never be a base row.
+ */
+export async function createExercise(
+  ctx: TenantContext,
+  input: ExerciseWriteInput,
+): Promise<Exercise> {
+  const [row] = await ctx.db
+    .insert(schema.exercise)
+    .values({ clinicId: ctx.clinicId, code: null, source: "custom", ...exerciseValues(input) })
+    .returning();
+  return row;
+}
+
+/**
+ * Edits one of this clinic's own custom exercises. Scoped to `clinicId = ctx.
+ * clinicId`, so a base exercise or another clinic's is never touched (returns
+ * null — a 404 at the route).
+ */
+export async function updateExercise(
+  ctx: TenantContext,
+  id: string,
+  input: ExerciseWriteInput,
+): Promise<Exercise | null> {
+  const [row] = await ctx.db
+    .update(schema.exercise)
+    .set({ ...exerciseValues(input), updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.exercise.id, id),
+        eq(schema.exercise.clinicId, ctx.clinicId),
+      ),
+    )
+    .returning();
+  return row ?? null;
+}
+
+/** Archives one of this clinic's own custom exercises (its own rows only). */
+export async function archiveExercise(
+  ctx: TenantContext,
+  id: string,
+): Promise<Exercise | null> {
+  const [row] = await ctx.db
+    .update(schema.exercise)
+    .set({ archived: true, updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.exercise.id, id),
+        eq(schema.exercise.clinicId, ctx.clinicId),
+      ),
+    )
+    .returning();
+  return row ?? null;
 }
 
 /** A substitute offered for an exercise (the substitute exercise's identity). */

@@ -484,6 +484,9 @@ export const exercise = pgTable(
     // exercises; unique when present.
     code: text("code").unique(),
     name: text("name").notNull(),
+    // Free-text summary (PT-BR). NULL for the seeded base catalog (which has no
+    // description); set by coaches/admin when they register a custom exercise.
+    description: text("description"),
     // unaccent(lower(name)); the trigram search index is built on this.
     searchText: text("search_text").notNull(),
     category: text("category").$type<ExerciseCategory>().notNull(),
