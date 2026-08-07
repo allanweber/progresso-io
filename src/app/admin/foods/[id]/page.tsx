@@ -192,17 +192,16 @@ export default function AdminFoodDetailPage() {
           </Dialog>
 
           {/* Portion selector + macros + full profile (rescales live). The key
-              resets the selected portion when navigating between foods. */}
+              resets the selected portion when navigating between foods. The base
+              substitutes render right under the macros. */}
           <FoodComposition
             key={data.id}
             food={data}
             measuresApiBase="/api/admin/foods"
             queryKey={["admin-food", id]}
             canManageMeasures={isBase}
+            afterMacros={<BaseSubstitutes food={data} canManage={isBase} />}
           />
-
-          {/* Base substitutes — admin-managed on base foods. */}
-          <BaseSubstitutes food={data} canManage={isBase} />
         </>
       ) : null}
     </div>
