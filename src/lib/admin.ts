@@ -9,6 +9,7 @@ import type {
 } from "@/lib/exercises";
 import {
   FOOD_SORTS,
+  type FoodMeasureDto,
   type FoodNutrientDto,
   type FoodSubstituteDto,
   type FoodType,
@@ -114,6 +115,7 @@ export type AdminFoodDetailDto = {
   sodium: number | null;
   nutrients: FoodNutrientDto[];
   substitutes: FoodSubstituteDto[];
+  measures: FoodMeasureDto[];
 };
 
 /* -------------------------------------------------------------------------- */

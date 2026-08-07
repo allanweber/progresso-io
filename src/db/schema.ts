@@ -440,6 +440,39 @@ export const foodSubstitution = pgTable(
 );
 
 /**
+ * A named household measure for a food (medida caseira): `grams` of the food
+ * equal one `label` (e.g. "unidade" = 50 g, "fatia" = 25 g). Same base/custom
+ * shape as `food_substitution`: `clinic_id = NULL` is a shared base measure
+ * (seed / super admin), a set `clinic_id` is a clinic's own. A clinic sees
+ * `clinic_id IS NULL OR clinic_id = ctx.clinicId`. Lets a diet item be entered
+ * as "2 unidades" and converted to grams (macros stay per 100 g).
+ */
+export const foodMeasure = pgTable(
+  "food_measure",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "cascade" }),
+    // Free-text portion name (PT-BR), e.g. "unidade", "fatia", "colher de sopa".
+    label: text("label").notNull(),
+    // Grams equivalent to one of this measure.
+    grams: doublePrecision("grams").notNull(),
+    // Suggested as the pre-selected unit for the food (a hint, not enforced).
+    isDefault: boolean("is_default").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("food_measure_lookup_idx").on(t.clinicId, t.foodId),
+    check("food_measure_grams_positive", sql`${t.grams} > 0`),
+  ],
+);
+
+/**
  * A clinic's favorited foods. Unlike the rest of the catalog, a favorite is
  * always tenant-scoped: `clinic_id` is required (there is no shared/base
  * favorite). A clinic may favorite any food it can see — a base TACO food or
@@ -787,6 +820,17 @@ export const foodSubstitutionRelations = relations(
   }),
 );
 
+export const foodMeasureRelations = relations(foodMeasure, ({ one }) => ({
+  clinic: one(clinic, {
+    fields: [foodMeasure.clinicId],
+    references: [clinic.id],
+  }),
+  food: one(food, {
+    fields: [foodMeasure.foodId],
+    references: [food.id],
+  }),
+}));
+
 export const foodFavoriteRelations = relations(foodFavorite, ({ one }) => ({
   clinic: one(clinic, {
     fields: [foodFavorite.clinicId],
@@ -909,6 +953,8 @@ export type FoodSubstitution = typeof foodSubstitution.$inferSelect;
 export type NewFoodSubstitution = typeof foodSubstitution.$inferInsert;
 export type FoodFavorite = typeof foodFavorite.$inferSelect;
 export type NewFoodFavorite = typeof foodFavorite.$inferInsert;
+export type FoodMeasure = typeof foodMeasure.$inferSelect;
+export type NewFoodMeasure = typeof foodMeasure.$inferInsert;
 export type Exercise = typeof exercise.$inferSelect;
 export type NewExercise = typeof exercise.$inferInsert;
 export type ExerciseSubstitution = typeof exerciseSubstitution.$inferSelect;

@@ -11,6 +11,7 @@ import {
 import { Archive, ArrowLeft, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 
 import { FavoriteButton } from "@/components/foods/favorite-button";
+import { FoodMeasures } from "@/components/foods/food-measures";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -229,6 +230,14 @@ export default function FoodDetailPage() {
 
           {/* Substitutes — right under the macros (managed by the clinic). */}
           <Substitutes food={data} />
+
+          {/* Household measures (medidas caseiras) — managed by the clinic. */}
+          <FoodMeasures
+            apiBase="/api/foods"
+            foodId={data.id}
+            measures={data.measures}
+            queryKey={["food", id]}
+          />
 
           {/* Full profile — only base foods carry a full TACO profile. */}
           {data.nutrients.length > 0 && (

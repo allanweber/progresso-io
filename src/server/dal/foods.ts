@@ -210,6 +210,18 @@ export type FoodSubstituteRow = {
   removable: boolean;
 };
 
+/** A household measure (medida caseira) for a food: `grams` equal one `label`. */
+export type FoodMeasureRow = {
+  id: string;
+  label: string;
+  grams: number;
+  isDefault: boolean;
+  /** Origin of the measure rule (base = shared/admin, clinic = the clinic's own). */
+  origin: FoodOrigin;
+  /** Whether this clinic may delete the measure (only its own; base is read-only). */
+  removable: boolean;
+};
+
 export type FoodDetail = Food & {
   groupName: string;
   groupSlug: string;
@@ -217,6 +229,7 @@ export type FoodDetail = Food & {
   isFavorite: boolean;
   nutrients: FoodNutrientRow[];
   substitutes: FoodSubstituteRow[];
+  measures: FoodMeasureRow[];
 };
 
 /**
@@ -299,6 +312,28 @@ export async function getFood(
       ),
     );
 
+  // Measures visible to this clinic: base (NULL) + its own. Default measures
+  // surface first, then by grams.
+  const measureRows = await ctx.db
+    .select({
+      id: schema.foodMeasure.id,
+      label: schema.foodMeasure.label,
+      grams: schema.foodMeasure.grams,
+      isDefault: schema.foodMeasure.isDefault,
+      ruleClinicId: schema.foodMeasure.clinicId,
+    })
+    .from(schema.foodMeasure)
+    .where(
+      and(
+        eq(schema.foodMeasure.foodId, id),
+        or(
+          isNull(schema.foodMeasure.clinicId),
+          eq(schema.foodMeasure.clinicId, ctx.clinicId),
+        ),
+      ),
+    )
+    .orderBy(desc(schema.foodMeasure.isDefault), asc(schema.foodMeasure.grams));
+
   return {
     ...row.food,
     groupName: row.groupName,
@@ -309,6 +344,11 @@ export async function getFood(
     substitutes: subs.map(({ clinicId, ruleClinicId, ...s }) => ({
       ...s,
       origin: clinicId === null ? "base" : "clinic",
+      removable: ruleClinicId === ctx.clinicId,
+    })),
+    measures: measureRows.map(({ ruleClinicId, ...m }) => ({
+      ...m,
+      origin: ruleClinicId === null ? "base" : "clinic",
       removable: ruleClinicId === ctx.clinicId,
     })),
   };
@@ -553,6 +593,65 @@ export async function removeSubstitution(
       ),
     )
     .returning({ id: schema.foodSubstitution.id });
+  return deleted.length > 0;
+}
+
+/** The editable fields of a household measure. */
+export type MeasureInput = { label: string; grams: number; isDefault: boolean };
+
+/**
+ * Adds a clinic-owned household measure to a food (any food the clinic can see).
+ * Stamped with `ctx.clinicId`, so it never touches the shared base measures.
+ * Returns null when the food isn't visible to the clinic.
+ */
+export async function addMeasure(
+  ctx: TenantContext,
+  foodId: string,
+  input: MeasureInput,
+): Promise<FoodMeasureRow | null> {
+  if (!(await foodVisibleToClinic(ctx, foodId))) return null;
+
+  const [ins] = await ctx.db
+    .insert(schema.foodMeasure)
+    .values({
+      clinicId: ctx.clinicId,
+      foodId,
+      label: input.label,
+      grams: input.grams,
+      isDefault: input.isDefault,
+    })
+    .returning();
+
+  return {
+    id: ins.id,
+    label: ins.label,
+    grams: ins.grams,
+    isDefault: ins.isDefault,
+    origin: "clinic",
+    removable: true,
+  };
+}
+
+/**
+ * Removes one of this clinic's own measures. Scoped to the clinic and the food,
+ * so base measures and other clinics' measures are never deleted. Returns true
+ * when a row was removed.
+ */
+export async function removeMeasure(
+  ctx: TenantContext,
+  foodId: string,
+  measureId: string,
+): Promise<boolean> {
+  const deleted = await ctx.db
+    .delete(schema.foodMeasure)
+    .where(
+      and(
+        eq(schema.foodMeasure.id, measureId),
+        eq(schema.foodMeasure.foodId, foodId),
+        eq(schema.foodMeasure.clinicId, ctx.clinicId),
+      ),
+    )
+    .returning({ id: schema.foodMeasure.id });
   return deleted.length > 0;
 }
 

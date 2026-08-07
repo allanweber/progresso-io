@@ -124,6 +124,28 @@ The whole tree is saved in a single `POST`/`PUT`. While editing, the draft is
 **persisted to `localStorage`** (recovered on return, discardable), and a
 **beforeunload guard** warns before leaving with unsaved changes.
 
+## Household measures (medidas caseiras)
+
+Some foods read better in portions than grams (1 ovo, 1 fatia de pão). TACO only
+ships per-100 g data, so measures are our own layer: a `food_measure` table
+(same base/custom shape as `food_substitution` — `clinic_id NULL` = base/admin,
+set = a clinic's own) with `label`, `grams`, `isDefault`. Grams stay the source
+of truth for macros; a measure is just a gram equivalent.
+
+- **Seed**: `drizzle/data/food-measures.json` — a curated set of common base
+  measures (ovo, pães, frutas, colheres, scoop…), matched to the catalog by
+  description and loaded as base rows by `scripts/migrate.mjs` (`seedMeasures`,
+  idempotent). Values are approximate references.
+- **DAL**: `getFood` returns the food's visible measures (base + own). Coach:
+  `addMeasure`/`removeMeasure` (clinic-scoped, on any visible food). Admin:
+  `addBaseMeasure`/`removeBaseMeasure` (base, on base foods).
+- **API**: `POST /api/foods/[id]/measures` + `DELETE …/[measureId]` (coach);
+  `POST /api/admin/foods/[id]/measures` + `DELETE …/[measureId]` (admin).
+- **UI**: a shared `FoodMeasures` manager on the coach and admin food detail
+  pages. In the `FoodPicker` quantity step, each measure is a chip that adds its
+  grams (tap "1 unidade" twice for 100 g), so a diet item can be entered by
+  portion — still stored as grams.
+
 ### FoodPicker (`src/components/foods/food-picker.tsx`)
 
 A **reusable** food search-and-select, styled after the "Adicionar alimento"

@@ -122,6 +122,16 @@ export function FoodPicker({
   // Highlighted row, clamped into range (results change length asynchronously).
   const activeIndex = results.length ? Math.min(active, results.length - 1) : 0;
 
+  // Household measures of the selected food, to enter the quantity by unit
+  // (e.g. "1 unidade" = 50 g). Fetched only in the quantity step.
+  const { data: selectedDetail } = useQuery({
+    queryKey: ["food", selected?.id],
+    queryFn: () => apiFetch<FoodDetailDto>(`/api/foods/${selected!.id}`),
+    enabled: withQuantity && !!selected,
+    staleTime: 5 * 60_000,
+  });
+  const measures = selectedDetail?.measures ?? [];
+
   function choose(food: PickedFood) {
     if (withQuantity) {
       setSelected(food);
@@ -266,6 +276,26 @@ export function FoodPicker({
             +
           </button>
         </div>
+
+        {measures.length > 0 && (
+          <div className="mb-3">
+            <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+              Medidas — toque para somar
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {measures.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setGrams((v) => (Number(v) || 0) + m.grams)}
+                  className="rounded-full border border-border bg-surface-light px-2.5 py-1 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
+                >
+                  + 1 {m.label} · {m.grams} g
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mb-3 grid grid-cols-4 gap-2">
           {macros.map((m) => (

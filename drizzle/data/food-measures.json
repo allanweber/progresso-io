@@ -1,0 +1,52 @@
+{
+  "note": "Curated household measures (medidas caseiras) for common base foods. Grams are approximate, well-established Brazilian references — coaches/admin can add or override per food. Foods are matched to the catalog by exact description (like taco-substitutions.json). Seeded as base measures (clinic_id NULL) by scripts/migrate.mjs.",
+  "measures": [
+    { "food": "Ovo, de galinha, inteiro, cru", "label": "unidade", "grams": 50, "isDefault": true },
+    { "food": "Ovo, de galinha, inteiro, cozido/10minutos", "label": "unidade", "grams": 50, "isDefault": true },
+
+    { "food": "Pão, trigo, francês", "label": "unidade", "grams": 50, "isDefault": true },
+    { "food": "Pão, trigo, forma, integral", "label": "fatia", "grams": 25, "isDefault": true },
+    { "food": "Pão, glúten, forma", "label": "fatia", "grams": 25, "isDefault": true },
+    { "food": "Pão, milho, forma", "label": "fatia", "grams": 25, "isDefault": true },
+    { "food": "Pão, aveia, forma", "label": "fatia", "grams": 25, "isDefault": true },
+
+    { "food": "Banana, prata, crua", "label": "unidade", "grams": 70, "isDefault": true },
+    { "food": "Banana, nanica, crua", "label": "unidade", "grams": 85, "isDefault": true },
+    { "food": "Banana, da terra, crua", "label": "unidade", "grams": 130, "isDefault": true },
+    { "food": "Maçã, Fuji, com casca, crua", "label": "unidade", "grams": 130, "isDefault": true },
+    { "food": "Laranja, baía, crua", "label": "unidade", "grams": 180, "isDefault": true },
+
+    { "food": "Arroz, tipo 1, cozido", "label": "colher de sopa", "grams": 25, "isDefault": true },
+    { "food": "Arroz, tipo 1, cozido", "label": "escumadeira", "grams": 45, "isDefault": false },
+    { "food": "Arroz, integral, cozido", "label": "colher de sopa", "grams": 25, "isDefault": true },
+    { "food": "Arroz, integral, cozido", "label": "escumadeira", "grams": 45, "isDefault": false },
+
+    { "food": "Feijão, carioca, cozido", "label": "concha", "grams": 80, "isDefault": true },
+    { "food": "Feijão, carioca, cozido", "label": "colher de sopa", "grams": 20, "isDefault": false },
+    { "food": "Feijão, preto, cozido", "label": "concha", "grams": 80, "isDefault": true },
+    { "food": "Feijão, preto, cozido", "label": "colher de sopa", "grams": 20, "isDefault": false },
+
+    { "food": "Batata, inglesa, cozida", "label": "unidade", "grams": 100, "isDefault": true },
+    { "food": "Aveia, flocos, crua", "label": "colher de sopa", "grams": 15, "isDefault": true },
+    { "food": "Tapioca, com manteiga", "label": "unidade", "grams": 90, "isDefault": true },
+
+    { "food": "Leite, de vaca, integral", "label": "copo", "grams": 200, "isDefault": true },
+    { "food": "Leite, de vaca, integral, pó", "label": "colher de sopa", "grams": 12, "isDefault": true },
+
+    { "food": "Frango, peito, sem pele, cozido", "label": "filé", "grams": 100, "isDefault": true },
+    { "food": "Frango, peito, com pele, assado", "label": "filé", "grams": 100, "isDefault": true },
+    { "food": "Frango, coxa, sem pele, cozida", "label": "unidade", "grams": 55, "isDefault": true },
+    { "food": "Frango, coxa, com pele, assada", "label": "unidade", "grams": 65, "isDefault": true },
+
+    { "food": "Whey protein concentrate (pó)", "label": "scoop", "grams": 30, "isDefault": true },
+    { "food": "Whey protein concentrate (pó)", "label": "colher de sopa", "grams": 15, "isDefault": false },
+    { "food": "Whey protein isolado (pó)", "label": "scoop", "grams": 30, "isDefault": true },
+    { "food": "Proteína de ervilha (pó)", "label": "scoop", "grams": 30, "isDefault": true },
+    { "food": "Proteína de arroz (pó)", "label": "scoop", "grams": 30, "isDefault": true },
+    { "food": "Farinha de aveia", "label": "colher de sopa", "grams": 15, "isDefault": true },
+    { "food": "Farelo de aveia", "label": "colher de sopa", "grams": 12, "isDefault": true },
+    { "food": "Soja, proteína texturizada (PTS), seca", "label": "colher de sopa", "grams": 10, "isDefault": true },
+    { "food": "Iogurte, grego, natural, integral", "label": "pote", "grams": 130, "isDefault": true },
+    { "food": "Iogurte, grego, natural, integral", "label": "colher de sopa", "grams": 20, "isDefault": false }
+  ]
+}
