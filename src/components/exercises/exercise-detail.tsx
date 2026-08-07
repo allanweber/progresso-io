@@ -1,12 +1,16 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { apiFetch } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ApiError, apiFetch } from "@/lib/api-client";
+import type { AdminExerciseListResponse } from "@/lib/admin";
 import {
   CATEGORY_LABELS,
   EQUIPMENT_LABELS,
@@ -25,16 +29,23 @@ type Detail = ExerciseDetailDto & { clinicName?: string | null };
 /**
  * The exercise detail view — image gallery, facets and step-by-step
  * instructions. Reused by the coach library and the admin catalog; they differ
- * only in the API endpoint and the back link.
+ * only in the API endpoint, the back link, and whether substitutions are
+ * editable (`canManage`, admin on a base exercise).
  */
 export function ExerciseDetail({
   apiBase,
   backHref,
+  canManage = false,
 }: {
   /** API detail endpoint base, e.g. "/api/exercises". */
   apiBase: string;
   /** Where the "back" link points, e.g. "/coach/library/exercises". */
   backHref: string;
+  /**
+   * When true, base exercises get an editable substitution manager (add/remove)
+   * that POSTs/DELETEs under `${apiBase}/${id}/substitutions`. Admin only.
+   */
+  canManage?: boolean;
 }) {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -153,52 +164,61 @@ export function ExerciseDetail({
           </div>
 
           {/* Substitutions — swap this exercise for one that trains the same
-              muscle the same way (seeded to favor common gym equipment). */}
-          {data.substitutes.length > 0 && (
-            <div className="mt-6">
-              <h2 className="font-heading text-lg font-bold text-foreground">
-                Substituições
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Exercícios que treinam o mesmo músculo e podem entrar no lugar
-                deste.
-              </p>
-              <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.substitutes.map((s) => {
-                  const src = exerciseImageUrl(s.thumbnail);
-                  return (
-                    <li key={s.id}>
-                      <Link
-                        href={`${backHref}/${s.exerciseId}`}
-                        className="group flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
-                      >
-                        <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
-                          {src ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={src}
-                              alt={s.name}
-                              loading="lazy"
-                              className="size-full object-cover"
-                            />
-                          ) : null}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="break-words text-sm font-medium text-foreground">
-                            {s.name}
+              muscle the same way (seeded to favor common gym equipment). The
+              admin can add/remove base rules; everyone else sees them read-only. */}
+          {canManage && data.origin === "base" ? (
+            <SubstitutionsManager
+              exercise={data}
+              apiBase={apiBase}
+              backHref={backHref}
+            />
+          ) : (
+            data.substitutes.length > 0 && (
+              <div className="mt-6">
+                <h2 className="font-heading text-lg font-bold text-foreground">
+                  Substituições
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Exercícios que treinam o mesmo músculo e podem entrar no lugar
+                  deste.
+                </p>
+                <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {data.substitutes.map((s) => {
+                    const src = exerciseImageUrl(s.thumbnail);
+                    return (
+                      <li key={s.id}>
+                        <Link
+                          href={`${backHref}/${s.exerciseId}`}
+                          className="group flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                        >
+                          <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
+                            {src ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={src}
+                                alt={s.name}
+                                loading="lazy"
+                                className="size-full object-cover"
+                              />
+                            ) : null}
                           </div>
-                          {s.equipment && (
-                            <div className="mt-0.5 text-xs text-[#94A3B8]">
-                              {EQUIPMENT_LABELS[s.equipment]}
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-medium text-foreground">
+                              {s.name}
                             </div>
-                          )}
-                        </div>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                            {s.equipment && (
+                              <div className="mt-0.5 text-xs text-[#94A3B8]">
+                                {EQUIPMENT_LABELS[s.equipment]}
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )
           )}
 
           {/* Instructions */}
@@ -223,6 +243,228 @@ export function ExerciseDetail({
           )}
         </article>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * The editable base-substitutions section (admin, base exercise): the shared
+ * substitution rules for the exercise, with add (search + pick another base
+ * exercise) and remove. Inline — it's part of this reused component, not a
+ * standalone one-off. Writes go through `${apiBase}/${id}/substitutions`.
+ */
+function SubstitutionsManager({
+  exercise,
+  apiBase,
+  backHref,
+}: {
+  exercise: Detail;
+  apiBase: string;
+  backHref: string;
+}) {
+  const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: [apiBase, exercise.id] });
+
+  const addMutation = useMutation({
+    mutationFn: (substituteExerciseId: string) =>
+      apiFetch(`${apiBase}/${exercise.id}/substitutions`, {
+        method: "POST",
+        body: JSON.stringify({ substituteExerciseId }),
+      }),
+    onSuccess: () => {
+      resetPicker();
+      invalidate();
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (subId: string) =>
+      apiFetch(`${apiBase}/${exercise.id}/substitutions/${subId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: invalidate,
+  });
+
+  function resetPicker() {
+    setAdding(false);
+    setSearchInput("");
+    setSearch("");
+  }
+
+  // Exclude the exercise itself and its current substitutes from the picker.
+  const existingIds = useMemo(
+    () => new Set([exercise.id, ...exercise.substitutes.map((s) => s.exerciseId)]),
+    [exercise],
+  );
+
+  // Only base exercises may back a base rule (a clinic exercise would leak).
+  const { data: results, isFetching } = useQuery({
+    queryKey: [apiBase, "sub-search", search],
+    queryFn: () =>
+      apiFetch<AdminExerciseListResponse>(
+        `${apiBase}?search=${encodeURIComponent(search)}&origin=base&pageSize=8`,
+      ),
+    enabled: adding && search.length >= 2,
+  });
+
+  const options = (results?.items ?? []).filter((e) => !existingIds.has(e.id));
+
+  const addError =
+    addMutation.error instanceof ApiError ? addMutation.error.message : undefined;
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-heading text-lg font-bold text-foreground">
+          Substituições
+        </h2>
+        {!adding && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setAdding(true)}
+          >
+            <Plus className="size-4" />
+            Adicionar
+          </Button>
+        )}
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Exercícios que treinam o mesmo músculo e podem entrar no lugar deste.
+      </p>
+
+      {adding && (
+        <div className="mt-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-foreground">
+              Novo substituto base
+            </span>
+            <button
+              type="button"
+              onClick={resetPicker}
+              aria-label="Cancelar"
+              className="rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <div className="mt-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+              <Input
+                type="search"
+                autoFocus
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Buscar exercício substituto…"
+                className="pl-9"
+              />
+            </div>
+            {search.length >= 2 && (
+              <ul className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-border">
+                {isFetching && options.length === 0 ? (
+                  <li className="px-3 py-2.5 text-sm text-muted-foreground">
+                    Buscando…
+                  </li>
+                ) : options.length === 0 ? (
+                  <li className="px-3 py-2.5 text-sm text-muted-foreground">
+                    Nenhum exercício encontrado.
+                  </li>
+                ) : (
+                  options.map((e) => (
+                    <li key={e.id}>
+                      <button
+                        type="button"
+                        onClick={() => addMutation.mutate(e.id)}
+                        disabled={addMutation.isPending}
+                        className="flex w-full items-center justify-between gap-2 border-b border-[#F1F5F9] px-3 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-surface-light disabled:opacity-50"
+                      >
+                        <span className="min-w-0 break-words text-foreground">
+                          {e.name}
+                        </span>
+                        {e.equipment && (
+                          <span className="shrink-0 text-xs text-[#94A3B8]">
+                            {EQUIPMENT_LABELS[e.equipment]}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
+          {addError && (
+            <p className="mt-3 text-[13px] text-destructive">{addError}</p>
+          )}
+        </div>
+      )}
+
+      {exercise.substitutes.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Nenhum substituto base cadastrado para este exercício.
+        </p>
+      ) : (
+        <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {exercise.substitutes.map((s) => {
+            const src = exerciseImageUrl(s.thumbnail);
+            return (
+              <li
+                key={s.id}
+                className="group relative flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+              >
+                <Link
+                  href={`${backHref}/${s.exerciseId}`}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
+                  <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
+                    {src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={src}
+                        alt={s.name}
+                        loading="lazy"
+                        className="size-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="break-words text-sm font-medium text-foreground">
+                      {s.name}
+                    </div>
+                    {s.equipment && (
+                      <div className="mt-0.5 text-xs text-[#94A3B8]">
+                        {EQUIPMENT_LABELS[s.equipment]}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => removeMutation.mutate(s.id)}
+                  disabled={removeMutation.isPending}
+                  aria-label="Remover substituto"
+                  title="Remover substituto"
+                  className="shrink-0 rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

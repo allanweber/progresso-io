@@ -73,7 +73,15 @@ each gets up to **3** substitutes chosen to favor the most common gym equipment
 (dumbbell, barbell, machine, cable, bodyweight), with a guarantee that a barbell
 exercise always offers a dumbbell alternative and vice versa. The coach and
 admin detail pages show an exercise's visible substitutes (base + the clinic's
-own). Coaches adding their own substitution rules is a future phase.
+own).
+
+The **platform admin** can edit the **base** substitution rules from the admin
+exercise detail page (`/admin/exercises/[id]`): add one by searching the catalog
+and picking another exercise, or remove one with the trash button. To keep tenant
+isolation intact, a base rule may only link two **base** exercises — the search
+is restricted to `origin = base` and the DAL rejects any non-base id — so a base
+rule can never expose a clinic's own exercise to other tenants. Coaches adding
+their own (clinic-scoped) substitution rules is a future phase.
 
 ## Schema
 
@@ -94,10 +102,14 @@ base/custom discriminator as `food`:
 - Coach: `GET /api/exercises` (list) and `GET /api/exercises/[id]` (detail),
   tenant-scoped via `getTenantContext()` + the DAL, coach-only.
 - Admin: `GET /api/admin/exercises` and `GET /api/admin/exercises/[id]`,
-  cross-tenant, gated by `getAdminSession()`.
+  cross-tenant, gated by `getAdminSession()`. Base substitutions are managed with
+  `POST /api/admin/exercises/[id]/substitutions` (add) and
+  `DELETE /api/admin/exercises/[id]/substitutions/[subId]` (remove) — admin-only,
+  base-to-base.
 
-All query input is validated with zod before the DAL. This first delivery is
-read-only (browse); custom exercises, favorites and workouts are future phases.
+All query input is validated with zod before the DAL. Browsing is read-only for
+coaches; the admin can additionally edit base substitutions. Custom exercises,
+favorites and workouts are future phases.
 
 ## UI
 
@@ -106,4 +118,7 @@ read-only (browse); custom exercises, favorites and workouts are future phases.
 
 Both reuse the shared client components `src/components/exercises/exercise-catalog.tsx`
 (searchable, filterable card grid with URL-persisted filters) and
-`exercise-detail.tsx` (image gallery, facets, step-by-step instructions).
+`exercise-detail.tsx` (image gallery, facets, step-by-step instructions). The
+detail component takes a `canManage` prop: the admin page passes it, turning the
+substitutions section into an add/remove manager for base exercises; the coach
+sees the same section read-only.

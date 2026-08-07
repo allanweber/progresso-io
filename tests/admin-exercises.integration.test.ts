@@ -1,0 +1,149 @@
+// @vitest-environment node
+import { sql } from "drizzle-orm";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import { type DB, schema } from "@/db";
+import { admin } from "@/server/dal";
+
+import { createTestDb, type TestDb } from "./pglite";
+
+let db: TestDb;
+let clinicAId: string;
+let baseSquat: string;
+let baseLunge: string;
+let baseLegPress: string;
+let clinicAExercise: string;
+
+/** Inserts an exercise (base when clinicId is null), computing search_text like the seed. */
+async function addExercise(e: {
+  code?: string | null;
+  name: string;
+  category?: schema.ExerciseCategory;
+  equipment?: schema.ExerciseEquipment | null;
+  primaryMuscles?: schema.Muscle[];
+  images?: string[];
+  clinicId?: string | null;
+  archived?: boolean;
+}) {
+  const [row] = await db
+    .insert(schema.exercise)
+    .values({
+      code: e.code ?? null,
+      name: e.name,
+      searchText: sql`unaccent(lower(${e.name}))`,
+      category: e.category ?? "strength",
+      level: "intermediate",
+      equipment: e.equipment ?? null,
+      primaryMuscles: e.primaryMuscles ?? ["quadriceps"],
+      images: e.images ?? [],
+      clinicId: e.clinicId ?? null,
+      archived: e.archived ?? false,
+    })
+    .returning({ id: schema.exercise.id });
+  return row.id;
+}
+
+const adb = () => db as unknown as DB;
+
+beforeAll(async () => {
+  db = await createTestDb();
+
+  await db.insert(schema.user).values([
+    { id: "u-a", name: "Coach A", email: "a@example.com" },
+  ]);
+  const [ca] = await db
+    .insert(schema.clinic)
+    .values({ name: "Clínica Alfa", ownerUserId: "u-a" })
+    .returning();
+  clinicAId = ca.id;
+
+  baseSquat = await addExercise({
+    code: "Barbell_Squat",
+    name: "Agachamento com barra",
+    equipment: "barbell",
+    images: ["Barbell_Squat/0.jpg"],
+  });
+  baseLunge = await addExercise({
+    code: "Dumbbell_Lunge",
+    name: "Afundo com halteres",
+    equipment: "dumbbell",
+    images: ["Dumbbell_Lunge/0.jpg"],
+  });
+  baseLegPress = await addExercise({
+    code: "Leg_Press",
+    name: "Leg press",
+    equipment: "machine",
+  });
+  clinicAExercise = await addExercise({
+    name: "Agachamento próprio da clínica Alfa",
+    equipment: "dumbbell",
+    clinicId: clinicAId,
+  });
+});
+
+describe("admin exercises — base substitutions", () => {
+  it("adds/rejects/removes base substitution rules", async () => {
+    const ok = await admin.addBaseExerciseSubstitution(adb(), baseSquat, baseLunge);
+    expect(ok.ok).toBe(true);
+
+    const detail = await admin.getAnyExercise(adb(), baseSquat);
+    const sub = detail!.substitutes.find((s) => s.exerciseId === baseLunge);
+    expect(sub?.name).toBe("Afundo com halteres");
+    expect(sub?.thumbnail).toBe("Dumbbell_Lunge/0.jpg");
+    expect(sub?.origin).toBe("base");
+
+    // Self + duplicate rejected.
+    expect(
+      await admin.addBaseExerciseSubstitution(adb(), baseSquat, baseSquat),
+    ).toEqual({ ok: false, reason: "same_exercise" });
+    expect(
+      await admin.addBaseExerciseSubstitution(adb(), baseSquat, baseLunge),
+    ).toEqual({ ok: false, reason: "duplicate" });
+
+    const subId = (ok as { ok: true; substitute: { id: string } }).substitute.id;
+    expect(
+      await admin.removeBaseExerciseSubstitution(adb(), baseSquat, subId),
+    ).toBe(true);
+    const after = await admin.getAnyExercise(adb(), baseSquat);
+    expect(after!.substitutes.length).toBe(0);
+  });
+
+  it("refuses a clinic exercise as either side of a base rule (no tenant leak)", async () => {
+    // A clinic exercise as the substitute of a base rule would leak it to all.
+    expect(
+      await admin.addBaseExerciseSubstitution(adb(), baseSquat, clinicAExercise),
+    ).toEqual({ ok: false, reason: "substitute_not_found" });
+    // A clinic exercise as the main of a base rule is rejected too.
+    expect(
+      await admin.addBaseExerciseSubstitution(adb(), clinicAExercise, baseLunge),
+    ).toEqual({ ok: false, reason: "exercise_not_found" });
+    // A missing substitute id is rejected.
+    expect(
+      await admin.addBaseExerciseSubstitution(
+        adb(),
+        baseSquat,
+        "00000000-0000-0000-0000-000000000000",
+      ),
+    ).toEqual({ ok: false, reason: "substitute_not_found" });
+  });
+
+  it("does not remove a clinic-owned substitution as a base one", async () => {
+    // A clinic rule on baseSquat (clinic_id set) must be immutable here.
+    const [rule] = await db
+      .insert(schema.exerciseSubstitution)
+      .values({
+        clinicId: clinicAId,
+        exerciseId: baseSquat,
+        substituteExerciseId: baseLegPress,
+      })
+      .returning({ id: schema.exerciseSubstitution.id });
+
+    // getAnyExercise only surfaces base substitutions.
+    const detail = await admin.getAnyExercise(adb(), baseSquat);
+    expect(detail!.substitutes.length).toBe(0);
+    // And the base removal never touches a clinic rule.
+    expect(
+      await admin.removeBaseExerciseSubstitution(adb(), baseSquat, rule.id),
+    ).toBe(false);
+  });
+});
