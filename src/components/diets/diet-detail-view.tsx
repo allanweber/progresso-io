@@ -36,27 +36,6 @@ export function MacroSummary({
   );
 }
 
-// Soft food-icon tints, picked deterministically from the food name so the same
-// food always gets the same square (no per-food emoji in our data).
-const SQUARE_TINTS = [
-  "bg-amber-100 text-amber-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-blue-100 text-blue-700",
-  "bg-rose-100 text-rose-700",
-  "bg-violet-100 text-violet-700",
-  "bg-orange-100 text-orange-700",
-  "bg-teal-100 text-teal-700",
-  "bg-cyan-100 text-cyan-700",
-];
-function squareTint(s: string): string {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return SQUARE_TINTS[h % SQUARE_TINTS.length];
-}
-function initial(s: string): string {
-  return s.trim().charAt(0).toUpperCase() || "?";
-}
-
 /** "1 unidade" + "150 g" when a measure was used, else just "150 g". */
 function quantityParts(
   grams: number,
@@ -74,12 +53,6 @@ function ItemRow({ item }: { item: DietItemDto }) {
   const q = quantityParts(item.grams, item.measureLabel, item.measureGrams);
   return (
     <li className="flex items-center gap-3 border-b border-[#F1F5F9] px-4 py-2.5 last:border-b-0">
-      <div
-        className={`flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${squareTint(item.description)}`}
-        aria-hidden
-      >
-        {initial(item.description)}
-      </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-foreground">{item.description}</span>
