@@ -79,6 +79,19 @@ function ItemRow({ item }: { item: DietItemDto }) {
             </div>
           );
         })}
+        {(() => {
+          // The food's catalog substitutes, minus the ones already added as an
+          // equivalence above (matched by food).
+          const added = new Set(item.substitutes.map((s) => s.foodId));
+          const catalog = item.foodSubstitutes.filter((s) => !added.has(s.foodId));
+          if (catalog.length === 0) return null;
+          return (
+            <div className="mt-0.5 truncate text-xs text-muted-foreground">
+              <span className="text-amber-700">⇄</span>{" "}
+              {catalog.map((s) => s.description.split(",")[0]).join(", ")}
+            </div>
+          );
+        })()}
       </div>
       <div className="shrink-0 text-right">
         <div className="text-sm font-semibold text-foreground">{q.main}</div>
