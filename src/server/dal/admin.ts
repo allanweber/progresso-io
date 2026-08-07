@@ -830,6 +830,25 @@ export async function archiveBaseExercise(
   return row ?? null;
 }
 
+/**
+ * Archives ANY exercise — base or a clinic's own. This is the one exception to
+ * the "admin writes base only" rule: as a moderation action the platform admin
+ * may retire any exercise from the catalog (editing a clinic exercise is still
+ * off-limits — only archiving). Cross-tenant by design; admin only. Returns null
+ * when the id doesn't exist.
+ */
+export async function archiveAnyExercise(
+  db: DB,
+  id: string,
+): Promise<Exercise | null> {
+  const [row] = await db
+    .update(schema.exercise)
+    .set({ archived: true, updatedAt: new Date() })
+    .where(eq(schema.exercise.id, id))
+    .returning();
+  return row ?? null;
+}
+
 /** Whether an exercise exists and is a shared **base** exercise (`clinic_id NULL`). */
 async function baseExerciseExists(db: DB, id: string): Promise<boolean> {
   const [row] = await db

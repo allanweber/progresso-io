@@ -85,13 +85,19 @@ export function ExerciseDetail({
     },
   });
 
-  // The viewer owns this exercise when their manage mode matches its origin: a
-  // coach owns its clinic exercises; the admin owns the shared base ones.
+  // Editing follows ownership: a coach edits its clinic exercises, the admin
+  // edits the shared base ones.
   const canEdit =
     !!data &&
     !data.archived &&
     ((manage === "clinic" && data.origin === "clinic") ||
       (manage === "base" && data.origin === "base"));
+  // Archiving is broader for the admin: as a moderation action it may retire any
+  // exercise (base OR a clinic's own); a coach still archives only its own.
+  const canArchive =
+    !!data &&
+    !data.archived &&
+    (manage === "clinic" ? data.origin === "clinic" : manage === "base");
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -132,26 +138,29 @@ export function ExerciseDetail({
             </Badge>
           )}
 
-          {/* Edit / archive — only for the owner (coach on its clinic exercise,
-              admin on a base exercise). */}
-          {canEdit && (
+          {/* Edit (owner only) / archive (admin may archive any exercise). */}
+          {(canEdit || canArchive) && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href={`${backHref}/${data.id}/edit`}>
-                  <Pencil className="size-4" />
-                  Editar
-                </Link>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setArchiveOpen(true)}
-                disabled={archiveMutation.isPending}
-              >
-                <Archive className="size-4" />
-                {archiveMutation.isPending ? "Arquivando…" : "Arquivar"}
-              </Button>
+              {canEdit && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`${backHref}/${data.id}/edit`}>
+                    <Pencil className="size-4" />
+                    Editar
+                  </Link>
+                </Button>
+              )}
+              {canArchive && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setArchiveOpen(true)}
+                  disabled={archiveMutation.isPending}
+                >
+                  <Archive className="size-4" />
+                  {archiveMutation.isPending ? "Arquivando…" : "Arquivar"}
+                </Button>
+              )}
             </div>
           )}
 

@@ -209,4 +209,20 @@ describe("admin exercises — base CRUD", () => {
     // Archiving a base exercise works.
     expect(await admin.archiveBaseExercise(adb(), baseLegPress)).not.toBeNull();
   });
+
+  it("archives any exercise as admin — base or a clinic's own", async () => {
+    // A clinic exercise: the base-only archive refuses it…
+    expect(await admin.archiveBaseExercise(adb(), clinicAExercise)).toBeNull();
+    // …but the moderation archive retires it (across tenant), keeping its clinic.
+    const archived = await admin.archiveAnyExercise(adb(), clinicAExercise);
+    expect(archived?.archived).toBe(true);
+    expect(archived?.clinicId).toBe(clinicAId);
+    // Unknown id → null.
+    expect(
+      await admin.archiveAnyExercise(
+        adb(),
+        "00000000-0000-0000-0000-000000000000",
+      ),
+    ).toBeNull();
+  });
 });

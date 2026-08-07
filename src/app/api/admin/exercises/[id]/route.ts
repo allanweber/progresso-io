@@ -93,7 +93,10 @@ export const PUT = withRoute<Params>(
   },
 );
 
-/** Archives a shared **base** exercise (base rows only). Admin-only. */
+/**
+ * Archives any exercise — base or a clinic's own. Admin-only; as a moderation
+ * action the admin may retire any exercise (unlike edit, which stays base-only).
+ */
 export const DELETE = withRoute<Params>(
   "admin.exercises.archive",
   async (_request, { params }) => {
@@ -103,10 +106,8 @@ export const DELETE = withRoute<Params>(
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 
-    const exercise = await admin.archiveBaseExercise(db, id);
-    if (!exercise) {
-      return notFound("Exercício não encontrado ou não editável.");
-    }
+    const exercise = await admin.archiveAnyExercise(db, id);
+    if (!exercise) return notFound("Exercício não encontrado.");
     logger.info("admin.exercise.archived", { exerciseId: id });
     return NextResponse.json({ exercise });
   },

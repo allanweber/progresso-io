@@ -69,8 +69,9 @@ the same catalog shape as the seed:
   only to that clinic (alongside the base catalog). It can edit and archive its
   own; a base exercise is read-only for it.
 - The **admin** creates a **base** exercise (`clinic_id NULL`), visible to every
-  clinic. It edits/archives base rows only — a clinic's own exercise is read-only
-  in the admin view.
+  clinic, and **edits** base rows only. As a **moderation** action, though, the
+  admin may **archive any** exercise — base *or* a clinic's own (`archiveAnyExercise`);
+  editing a clinic exercise stays off-limits.
 
 The tenant/origin is always derived from the session (coach ⇒ own clinic; admin
 ⇒ base) — **never** from the payload. The write path scopes every `UPDATE`/
@@ -177,6 +178,9 @@ manages the base ones. Favorites and workouts are future phases.
   `LibraryTabs`.
 - Admin: `/admin/exercises` (grid, with a "Novo exercício base" action),
   `/admin/exercises/new`, `/admin/exercises/[id]` and `/admin/exercises/[id]/edit`.
+  In admin mode the catalog adds, right after the search box, an **origin** select
+  (base e clínicas / somente base / somente de clínicas) and a **clinic** select,
+  ahead of the category/muscle/equipment/level filters (all mirrored to the URL).
 
 They reuse the shared client components `src/components/exercises/exercise-catalog.tsx`
 (searchable, filterable card grid with URL-persisted filters and an optional

@@ -11,6 +11,7 @@ export default function AdminExercisesPage() {
     <ExerciseCatalog
       apiBase="/api/admin/exercises"
       basePath="/admin/exercises"
+      admin
       title="Exercícios"
       subtitle="Catálogo de exercícios da plataforma (base compartilhada e de cada clínica)."
       action={
