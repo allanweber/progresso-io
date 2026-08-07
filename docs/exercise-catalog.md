@@ -70,8 +70,13 @@ the same catalog shape as the seed:
   own; a base exercise is read-only for it.
 - The **admin** creates a **base** exercise (`clinic_id NULL`), visible to every
   clinic, and **edits** base rows only. As a **moderation** action, though, the
-  admin may **archive any** exercise — base *or* a clinic's own (`archiveAnyExercise`);
-  editing a clinic exercise stays off-limits.
+  admin may **archive and unarchive any** exercise — base *or* a clinic's own
+  (`archiveAnyExercise` / `unarchiveAnyExercise`); editing a clinic exercise stays
+  off-limits. The admin list has a status filter (**Somente ativos** / **Incluir
+  arquivados**) so archived exercises can be found and restored; unarchive lives on
+  the detail page (`PATCH /api/admin/exercises/[id]`). For foods the admin archives
+  and unarchives **base** foods only (`PATCH /api/admin/foods/[id]`), matching the
+  base-only food write scope.
 
 The tenant/origin is always derived from the session (coach ⇒ own clinic; admin
 ⇒ base) — **never** from the payload. The write path scopes every `UPDATE`/

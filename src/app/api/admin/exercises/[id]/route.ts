@@ -112,3 +112,23 @@ export const DELETE = withRoute<Params>(
     return NextResponse.json({ exercise });
   },
 );
+
+/**
+ * Restores (unarchives) any exercise — base or a clinic's own. Admin-only; the
+ * moderation counterpart of the archive above.
+ */
+export const PATCH = withRoute<Params>(
+  "admin.exercises.unarchive",
+  async (_request, { params }) => {
+    const session = await getAdminSession();
+    if (!session) return forbidden();
+
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Exercício não encontrado.");
+
+    const exercise = await admin.unarchiveAnyExercise(db, id);
+    if (!exercise) return notFound("Exercício não encontrado.");
+    logger.info("admin.exercise.unarchived", { exerciseId: id });
+    return NextResponse.json({ exercise });
+  },
+);

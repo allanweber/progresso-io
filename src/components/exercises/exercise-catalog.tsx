@@ -110,6 +110,9 @@ export function ExerciseCatalog({
     () => (searchParams.get("origin") as "base" | "clinic" | null) ?? "",
   );
   const [clinic, setClinic] = useState(() => searchParams.get("clinic") ?? "");
+  const [includeArchived, setIncludeArchived] = useState(
+    () => searchParams.get("archived") === "true",
+  );
   const [page, setPage] = useState(1);
 
   const { data: clinics } = useQuery({
@@ -149,19 +152,32 @@ export function ExerciseCatalog({
     if (search) p.set("search", search);
     if (origin) p.set("origin", origin);
     if (clinic) p.set("clinic", clinic);
+    if (includeArchived) p.set("archived", "true");
     if (category) p.set("category", category);
     if (muscle) p.set("muscle", muscle);
     if (equipment) p.set("equipment", equipment);
     if (level) p.set("level", level);
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [search, origin, clinic, category, muscle, equipment, level, pathname, router]);
+  }, [
+    search,
+    origin,
+    clinic,
+    includeArchived,
+    category,
+    muscle,
+    equipment,
+    level,
+    pathname,
+    router,
+  ]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     if (origin) p.set("origin", origin);
     if (clinic) p.set("clinic", clinic);
+    if (includeArchived) p.set("archived", "true");
     if (category) p.set("category", category);
     if (muscle) p.set("muscle", muscle);
     if (equipment) p.set("equipment", equipment);
@@ -169,7 +185,7 @@ export function ExerciseCatalog({
     p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
     return p.toString();
-  }, [search, origin, clinic, category, muscle, equipment, level, page]);
+  }, [search, origin, clinic, includeArchived, category, muscle, equipment, level, page]);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: [apiBase, query],
@@ -321,6 +337,22 @@ export function ExerciseCatalog({
             ))}
           </SelectContent>
         </Select>
+        {admin && (
+          <Select
+            value={includeArchived ? "all" : "active"}
+            onValueChange={onFilterChange((v: string) =>
+              setIncludeArchived(v === "all"),
+            )}
+          >
+            <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Somente ativos</SelectItem>
+              <SelectItem value="all">Incluir arquivados</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
@@ -371,6 +403,14 @@ export function ExerciseCatalog({
                           className="absolute left-2 top-2 font-medium"
                         >
                           {ORIGIN_LABELS.clinic}
+                        </Badge>
+                      )}
+                      {ex.archived && (
+                        <Badge
+                          variant="neutral"
+                          className="absolute right-2 top-2 font-medium"
+                        >
+                          arquivado
                         </Badge>
                       )}
                     </div>

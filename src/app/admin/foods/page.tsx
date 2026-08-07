@@ -65,6 +65,9 @@ export default function AdminFoodsPage() {
   const [type, setType] = useState<FoodType | "">(
     () => (searchParams.get("type") as FoodType | null) ?? "",
   );
+  const [includeArchived, setIncludeArchived] = useState(
+    () => searchParams.get("archived") === "true",
+  );
   const [page, setPage] = useState(() => Number(searchParams.get("page")) || 1);
 
   // Debounce the search and return to page 1 on a new term. Resetting the page
@@ -88,10 +91,11 @@ export default function AdminFoodsPage() {
     if (clinic) p.set("clinic", clinic);
     if (group) p.set("group", group);
     if (type) p.set("type", type);
+    if (includeArchived) p.set("archived", "true");
     if (page > 1) p.set("page", String(page));
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [search, origin, clinic, group, type, page, pathname, router]);
+  }, [search, origin, clinic, group, type, includeArchived, page, pathname, router]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -100,10 +104,11 @@ export default function AdminFoodsPage() {
     if (clinic) p.set("clinic", clinic);
     if (group) p.set("group", group);
     if (type) p.set("type", type);
+    if (includeArchived) p.set("archived", "true");
     p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
     return p.toString();
-  }, [search, origin, clinic, group, type, page]);
+  }, [search, origin, clinic, group, type, includeArchived, page]);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ["admin-foods", query],
@@ -244,6 +249,21 @@ export default function AdminFoodsPage() {
             <SelectItem value="preparacao">Preparações</SelectItem>
           </SelectContent>
         </Select>
+        <Select
+          value={includeArchived ? "all" : "active"}
+          onValueChange={(v) => {
+            setIncludeArchived(v === "all");
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="h-10 w-full rounded-xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Somente ativos</SelectItem>
+            <SelectItem value="all">Incluir arquivados</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
@@ -276,12 +296,19 @@ export default function AdminFoodsPage() {
                     <span className="min-w-0 break-words font-medium text-foreground">
                       {f.description}
                     </span>
-                    <Badge
-                      variant={originVariant(f.origin)}
-                      className="shrink-0 font-medium"
-                    >
-                      {ownerLabel(f)}
-                    </Badge>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                      {f.archived && (
+                        <Badge variant="neutral" className="font-medium">
+                          arquivado
+                        </Badge>
+                      )}
+                      <Badge
+                        variant={originVariant(f.origin)}
+                        className="font-medium"
+                      >
+                        {ownerLabel(f)}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <Badge variant="neutral" className="font-medium">
@@ -356,12 +383,19 @@ export default function AdminFoodsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={originVariant(f.origin)}
-                        className="font-medium"
-                      >
-                        {ownerLabel(f)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          variant={originVariant(f.origin)}
+                          className="font-medium"
+                        >
+                          {ownerLabel(f)}
+                        </Badge>
+                        {f.archived && (
+                          <Badge variant="neutral" className="font-medium">
+                            arquivado
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-[13px] text-[#475569]">
                       {f.groupName}

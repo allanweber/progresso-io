@@ -195,6 +195,17 @@ describe("admin foods — base-only writes", () => {
     // Clinic food can't be archived here.
     expect(await admin.archiveBaseFood(adb(), clinicBFood)).toBeNull();
   });
+
+  it("unarchives a base food, but never a clinic's own food", async () => {
+    // `created` was archived in the previous test — restore it.
+    const restored = await admin.unarchiveBaseFood(adb(), created);
+    expect(restored?.archived).toBe(false);
+    // It's back in the default (active-only) listing.
+    const base = await admin.listAllFoods(adb(), { origin: "base", pageSize: 100 });
+    expect(base.items.some((i) => i.id === created)).toBe(true);
+    // A clinic's own food is never touched by the base unarchive.
+    expect(await admin.unarchiveBaseFood(adb(), clinicBFood)).toBeNull();
+  });
 });
 
 describe("admin foods — base substitutions", () => {

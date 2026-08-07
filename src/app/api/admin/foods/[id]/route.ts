@@ -101,3 +101,20 @@ export const DELETE = withRoute<Params>("admin.foods.archiveBase", async (_reque
   logger.info("admin.food.base_archived", { foodId: id });
   return NextResponse.json({ food });
 });
+
+/**
+ * Restores (unarchives) a **base** food. Admin-only; scoped to `clinic_id IS
+ * NULL` like the archive, so a clinic's own food is never touched (404).
+ */
+export const PATCH = withRoute<Params>("admin.foods.unarchiveBase", async (_request, { params }) => {
+  const session = await getAdminSession();
+  if (!session) return forbidden();
+
+  const { id } = await params;
+  if (!isUuid(id)) return notFound("Alimento não encontrado.");
+
+  const food = await admin.unarchiveBaseFood(db, id);
+  if (!food) return notFound("Alimento base não encontrado ou não editável.");
+  logger.info("admin.food.base_unarchived", { foodId: id });
+  return NextResponse.json({ food });
+});
