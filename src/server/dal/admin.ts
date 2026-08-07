@@ -484,6 +484,19 @@ export async function archiveBaseFood(
   return row ?? null;
 }
 
+/** Restores (unarchives) a shared base food (`clinic_id IS NULL` only). */
+export async function unarchiveBaseFood(
+  db: DB,
+  id: string,
+): Promise<Food | null> {
+  const [row] = await db
+    .update(schema.food)
+    .set({ archived: false, updatedAt: new Date() })
+    .where(and(eq(schema.food.id, id), isNull(schema.food.clinicId)))
+    .returning();
+  return row ?? null;
+}
+
 export type AddBaseSubstitutionResult =
   | { ok: true; substitute: FoodSubstituteRow }
   | {
@@ -844,6 +857,23 @@ export async function archiveAnyExercise(
   const [row] = await db
     .update(schema.exercise)
     .set({ archived: true, updatedAt: new Date() })
+    .where(eq(schema.exercise.id, id))
+    .returning();
+  return row ?? null;
+}
+
+/**
+ * Restores (unarchives) ANY exercise — base or a clinic's own — the moderation
+ * counterpart of {@link archiveAnyExercise}. Cross-tenant; admin only. Returns
+ * null when the id doesn't exist.
+ */
+export async function unarchiveAnyExercise(
+  db: DB,
+  id: string,
+): Promise<Exercise | null> {
+  const [row] = await db
+    .update(schema.exercise)
+    .set({ archived: false, updatedAt: new Date() })
     .where(eq(schema.exercise.id, id))
     .returning();
   return row ?? null;

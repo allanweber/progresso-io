@@ -225,4 +225,24 @@ describe("admin exercises — base CRUD", () => {
       ),
     ).toBeNull();
   });
+
+  it("unarchives any exercise as admin — base or a clinic's own", async () => {
+    // clinicAExercise was archived just above — restore it (clinic scope kept).
+    const backClinic = await admin.unarchiveAnyExercise(adb(), clinicAExercise);
+    expect(backClinic?.archived).toBe(false);
+    expect(backClinic?.clinicId).toBe(clinicAId);
+
+    // A base exercise round-trips too.
+    await admin.archiveAnyExercise(adb(), baseSquat);
+    const backBase = await admin.unarchiveAnyExercise(adb(), baseSquat);
+    expect(backBase?.archived).toBe(false);
+
+    // Unknown id → null.
+    expect(
+      await admin.unarchiveAnyExercise(
+        adb(),
+        "00000000-0000-0000-0000-000000000000",
+      ),
+    ).toBeNull();
+  });
 });

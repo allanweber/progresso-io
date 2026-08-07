@@ -4,7 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArrowLeft, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +94,15 @@ export function ExerciseDetail({
     },
   });
 
+  const unarchiveMutation = useMutation({
+    mutationFn: () => apiFetch(`${apiBase}/${id}`, { method: "PATCH" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [apiBase] });
+      queryClient.invalidateQueries({ queryKey: [apiBase, id] });
+      router.refresh();
+    },
+  });
+
   // Editing follows ownership: a coach edits its clinic exercises, the admin
   // edits the shared base ones.
   const canEdit =
@@ -98,6 +116,8 @@ export function ExerciseDetail({
     !!data &&
     !data.archived &&
     (manage === "clinic" ? data.origin === "clinic" : manage === "base");
+  // The admin may also restore any archived exercise.
+  const canUnarchive = !!data && data.archived && manage === "base";
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -133,9 +153,23 @@ export function ExerciseDetail({
             <p className="mt-1 text-sm text-muted-foreground">{data.clinicName}</p>
           )}
           {data.archived && (
-            <Badge variant="neutral" className="mt-2 font-medium">
-              arquivado
-            </Badge>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge variant="neutral" className="font-medium">
+                arquivado
+              </Badge>
+              {canUnarchive && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => unarchiveMutation.mutate()}
+                  disabled={unarchiveMutation.isPending}
+                >
+                  <ArchiveRestore className="size-4" />
+                  {unarchiveMutation.isPending ? "Restaurando…" : "Desarquivar"}
+                </Button>
+              )}
+            </div>
           )}
 
           {/* Edit (owner only) / archive (admin may archive any exercise). */}

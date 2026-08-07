@@ -4,7 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArrowLeft, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +89,15 @@ export default function AdminFoodDetailPage() {
     },
   });
 
+  const unarchiveMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/admin/foods/${id}`, { method: "PATCH" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-foods"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-food", id] });
+      router.refresh();
+    },
+  });
+
   const isBase = data?.origin === "base";
 
   return (
@@ -133,7 +151,20 @@ export default function AdminFoodDetailPage() {
 
             {/* Base foods are admin-editable; clinic foods are view-only. */}
             {isBase ? (
-              !data.archived && (
+              data.archived ? (
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => unarchiveMutation.mutate()}
+                    disabled={unarchiveMutation.isPending}
+                  >
+                    <ArchiveRestore className="size-4" />
+                    {unarchiveMutation.isPending ? "Restaurando…" : "Desarquivar"}
+                  </Button>
+                </div>
+              ) : (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/admin/foods/${data.id}/edit`}>
