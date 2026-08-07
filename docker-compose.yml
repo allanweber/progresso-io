@@ -15,6 +15,14 @@ services:
     restart: "no"
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      # Cloudflare R2 (optional): when set, the seed uploads the base exercise
+      # images to the bucket after migrating. When any is unset the upload is
+      # skipped and the app falls back to the source CDN for the base images.
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
+      - R2_BUCKET=${R2_BUCKET:-}
+      - R2_PREFIX=${R2_PREFIX:-}
     networks:
       - dokploy-network
 
@@ -25,6 +33,7 @@ services:
       # NEXT_PUBLIC_* must be present at build time (inlined into the bundle).
       args:
         NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+        NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL: ${NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL:-}
     restart: unless-stopped
     # Values are set in Dokploy's Environment tab and interpolated here (same
     # pattern as TUNNEL_TOKEN below). Required for auth to work:
@@ -43,6 +52,14 @@ services:
       - CONTACT_EMAIL=${CONTACT_EMAIL:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      # Cloudflare R2 (optional): required for coaches/admin to UPLOAD custom
+      # exercise images at runtime. When any is unset, the upload route answers a
+      # friendly 503 and exercises can still be saved without images.
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
+      - R2_BUCKET=${R2_BUCKET:-}
+      - R2_PREFIX=${R2_PREFIX:-}
     expose:
       - "3000"
     # Container health via the app's own liveness endpoint (node has global fetch).
