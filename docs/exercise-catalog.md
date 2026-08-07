@@ -91,11 +91,14 @@ text; every other field is constrained to its enum (see the label maps in
 `src/lib/exercises.ts`) and validated with the shared `exerciseFormSchema` zod
 schema on both the coach and admin write routes.
 
-Images are uploaded to R2 first — `POST /api/exercises/images` (coach) or
-`POST /api/admin/exercises/images` (admin) accept one multipart file (JPG/PNG/
-WEBP, ≤ 5 MB), store it under a `custom/<uuid>.<ext>` key in the same bucket the
-seed images live in, and return the key; the form then saves those keys with the
-exercise. `exerciseImageUrl()` resolves a `custom/…` key exactly like a seed key.
+Images are **held in memory in the form** (with a local object-URL preview) and
+uploaded to R2 only when the exercise is saved — so abandoning the form, a failed
+validation, or removing an image before saving never leaves an orphan object in
+the bucket. On save, each file goes to `POST /api/exercises/images` (coach) or
+`POST /api/admin/exercises/images` (admin) — one multipart file (JPG/PNG/WEBP,
+≤ 5 MB), stored under a `custom/<uuid>.<ext>` key in the same bucket the seed
+images live in — and the returned keys are saved with the exercise. (Already-saved
+images are edited by their key; only newly picked files are uploaded on save.) `exerciseImageUrl()` resolves a `custom/…` key exactly like a seed key.
 When R2 isn't configured (e.g. local dev), the upload route answers a friendly
 503 and the exercise can still be saved without images (`description` is `text`,
 nullable — the seeded base rows have none).

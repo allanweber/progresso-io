@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -55,6 +55,18 @@ const MECHANIC_OPTIONS = (Object.keys(MECHANIC_LABELS) as ExerciseMechanic[]).ma
   (v) => ({ value: v, label: MECHANIC_LABELS[v] }),
 );
 const MAX_IMAGES = 2;
+
+/** Uploads one file to the R2 image endpoint and returns its stored key. */
+async function uploadImage(endpoint: string, file: File): Promise<string> {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch(endpoint, { method: "POST", body });
+  const data = res.headers.get("content-type")?.includes("application/json")
+    ? await res.json()
+    : null;
+  if (!res.ok) throw new Error(data?.error ?? "Falha ao enviar a imagem.");
+  return data.key as string;
+}
 
 /** The subset of an exercise the form seeds its fields from (edit mode). */
 export type ExerciseFormSource = {
@@ -139,6 +151,13 @@ export function ExerciseForm({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  // Selected-but-not-yet-uploaded images: we keep the File objects in memory and
+  // only upload them to R2 when the exercise is actually saved — so abandoning
+  // the form, a failed validation, or removing an image before saving never
+  // leaves an orphan object in the bucket.
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (values: Values) =>
@@ -161,8 +180,30 @@ export function ExerciseForm({
     defaultValues: exercise ? toValues(exercise) : EMPTY,
     validators: { onChange: exerciseFormSchema },
     onSubmit: async ({ value }) => {
+      // Only reached once the form is valid. Upload the in-memory files now,
+      // then save the exercise with the resulting keys plus any already-saved
+      // ones — so nothing is written to R2 until the exercise itself is saved.
+      let images = value.images;
+      if (pendingFiles.length > 0) {
+        setImageError(null);
+        setUploadingImages(true);
+        try {
+          const keys: string[] = [];
+          for (const file of pendingFiles) {
+            keys.push(await uploadImage(imageEndpoint, file));
+          }
+          images = [...value.images, ...keys].slice(0, MAX_IMAGES);
+        } catch (e) {
+          setImageError(
+            e instanceof Error ? e.message : "Falha ao enviar a imagem.",
+          );
+          return;
+        } finally {
+          setUploadingImages(false);
+        }
+      }
       try {
-        await mutation.mutateAsync(value);
+        await mutation.mutateAsync({ ...value, images });
       } catch {
         /* surfaced via mutation.error */
       }
@@ -190,15 +231,34 @@ export function ExerciseForm({
         </div>
       )}
 
-      {/* Images (up to two) */}
+      {/* Images (up to two) — kept in memory, uploaded on save. */}
       <form.Field name="images">
-        {(field) => (
-          <ImageUploader
-            endpoint={imageEndpoint}
-            value={field.state.value}
-            onChange={(next) => field.handleChange(next)}
-          />
-        )}
+        {(field) => {
+          const total = field.state.value.length + pendingFiles.length;
+          return (
+            <ImageUploader
+              existingKeys={field.state.value}
+              pendingFiles={pendingFiles}
+              canAdd={total < MAX_IMAGES}
+              busy={uploadingImages}
+              error={imageError}
+              onAddFiles={(files) => {
+                setImageError(null);
+                const room = MAX_IMAGES - total;
+                if (room <= 0) return;
+                setPendingFiles((prev) => [...prev, ...files.slice(0, room)]);
+              }}
+              onRemoveExisting={(key) =>
+                field.handleChange(
+                  field.state.value.filter((k) => k !== key),
+                )
+              }
+              onRemovePending={(idx) =>
+                setPendingFiles((prev) => prev.filter((_, i) => i !== idx))
+              }
+            />
+          );
+        }}
       </form.Field>
 
       <form.Field name="name">
@@ -425,18 +485,20 @@ export function ExerciseForm({
       </form.Field>
 
       <div className="flex items-center gap-3 pt-1">
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending
-            ? "Salvando…"
-            : mode === "create"
-              ? "Adicionar exercício"
-              : "Salvar alterações"}
+        <Button type="submit" disabled={mutation.isPending || uploadingImages}>
+          {uploadingImages
+            ? "Enviando imagens…"
+            : mutation.isPending
+              ? "Salvando…"
+              : mode === "create"
+                ? "Adicionar exercício"
+                : "Salvar alterações"}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || uploadingImages}
         >
           Cancelar
         </Button>
@@ -519,54 +581,48 @@ function MusclePicker({
   );
 }
 
-/** Up to two image slots, uploaded to R2 on selection. Inline — used only here. */
+/**
+ * Up to two image slots. Already-saved images are shown by their R2 key; newly
+ * picked files are held in memory (with a local object-URL preview) and only
+ * uploaded to R2 when the exercise is saved. Inline — used only here.
+ */
 function ImageUploader({
-  endpoint,
-  value,
-  onChange,
+  existingKeys,
+  pendingFiles,
+  canAdd,
+  busy,
+  error,
+  onAddFiles,
+  onRemoveExisting,
+  onRemovePending,
 }: {
-  endpoint: string;
-  value: string[];
-  onChange: (next: string[]) => void;
+  existingKeys: string[];
+  pendingFiles: File[];
+  canAdd: boolean;
+  busy: boolean;
+  error: string | null;
+  onAddFiles: (files: File[]) => void;
+  onRemoveExisting: (key: string) => void;
+  onRemovePending: (index: number) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function onFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setError(null);
-    const room = MAX_IMAGES - value.length;
-    const chosen = Array.from(files).slice(0, room);
-    setUploading(true);
-    try {
-      const keys: string[] = [];
-      for (const file of chosen) {
-        const body = new FormData();
-        body.append("file", file);
-        const res = await fetch(endpoint, { method: "POST", body });
-        const data = res.headers
-          .get("content-type")
-          ?.includes("application/json")
-          ? await res.json()
-          : null;
-        if (!res.ok) {
-          throw new Error(data?.error ?? "Falha ao enviar a imagem.");
-        }
-        keys.push(data.key as string);
-      }
-      onChange([...value, ...keys].slice(0, MAX_IMAGES));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao enviar a imagem.");
-    } finally {
-      setUploading(false);
-    }
-  }
+  // Local previews for the in-memory files; revoke them when they change / unmount.
+  const previews = useMemo(
+    () => pendingFiles.map((f) => URL.createObjectURL(f)),
+    [pendingFiles],
+  );
+  useEffect(
+    () => () => previews.forEach((url) => URL.revokeObjectURL(url)),
+    [previews],
+  );
 
   return (
     <div className="space-y-2">
       <Label>Imagens (até {MAX_IMAGES})</Label>
+      <p className="text-xs text-muted-foreground">
+        As imagens são enviadas ao salvar o exercício.
+      </p>
       <div className="flex flex-wrap gap-3">
-        {value.map((key) => {
+        {existingKeys.map((key) => {
           const src = exerciseImageUrl(key);
           return (
             <div
@@ -583,7 +639,7 @@ function ImageUploader({
               ) : null}
               <button
                 type="button"
-                onClick={() => onChange(value.filter((k) => k !== key))}
+                onClick={() => onRemoveExisting(key)}
                 aria-label="Remover imagem"
                 className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-[#475569] shadow transition-colors hover:text-destructive"
               >
@@ -593,18 +649,40 @@ function ImageUploader({
           );
         })}
 
-        {value.length < MAX_IMAGES && (
+        {pendingFiles.map((file, idx) => (
+          <div
+            key={`${file.name}-${idx}`}
+            className="relative size-28 overflow-hidden rounded-2xl border border-border bg-surface-light"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previews[idx]}
+              alt={file.name}
+              className="size-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => onRemovePending(idx)}
+              aria-label="Remover imagem"
+              className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-[#475569] shadow transition-colors hover:text-destructive"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ))}
+
+        {canAdd && (
           <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-white text-[12px] text-muted-foreground transition-colors hover:border-primary hover:text-primary">
             <Upload className="size-5" />
-            {uploading ? "Enviando…" : "Adicionar"}
+            {busy ? "Enviando…" : "Adicionar"}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
               multiple
               className="sr-only"
-              disabled={uploading}
+              disabled={busy}
               onChange={(e) => {
-                onFiles(e.target.files);
+                onAddFiles(Array.from(e.target.files ?? []));
                 e.target.value = "";
               }}
             />
