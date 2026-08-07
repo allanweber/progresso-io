@@ -144,6 +144,35 @@ describe("diets DAL", () => {
     expect(cafe.items[0].substitutes[0].grams).toBe(120);
   });
 
+  it("persists the medida-caseira snapshot on an item", async () => {
+    const res = await diets.createDiet(ctxA, {
+      name: "Com medida",
+      notes: null,
+      meals: [
+        {
+          name: "Almoço",
+          time: null,
+          items: [
+            {
+              foodId: arrozId,
+              grams: 150,
+              measureLabel: "escumadeira",
+              measureGrams: 50,
+              substitutes: [],
+            },
+          ],
+        },
+      ],
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    const item = (await diets.getDiet(ctxA, res.id))!.meals[0].items[0];
+    expect(item.grams).toBe(150);
+    expect(item.measureLabel).toBe("escumadeira");
+    expect(item.measureGrams).toBe(50);
+  });
+
   it("lists the clinic's own diet but not another clinic's", async () => {
     const listA = await diets.listDiets(ctxA);
     expect(listA.items.some((d) => d.name === "Cutting 1800")).toBe(true);

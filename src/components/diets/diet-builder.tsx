@@ -25,6 +25,7 @@ import {
   ArrowLeft,
   Clock,
   GripVertical,
+  Pencil,
   Plus,
   Save,
   Trash2,
@@ -32,6 +33,10 @@ import {
 } from "lucide-react";
 
 import { FoodPicker, type PickedFood } from "@/components/foods/food-picker";
+import {
+  QuantityEditor,
+  type PickedMeasure,
+} from "@/components/foods/quantity-editor";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -66,6 +71,8 @@ type SubDraft = {
   foodId: string;
   description: string;
   grams: number;
+  measureLabel: string | null;
+  measureGrams: number | null;
   per100: Macro;
 };
 
@@ -74,6 +81,8 @@ type ItemDraft = {
   foodId: string;
   description: string;
   grams: number;
+  measureLabel: string | null;
+  measureGrams: number | null;
   per100: Macro;
   substitutes: SubDraft[];
 };
@@ -97,6 +106,19 @@ function formatTimeInput(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 4);
   if (digits.length <= 2) return digits;
   return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+/** "2 fatias · 50 g" when a measure was used, else "50 g". */
+function quantityLabel(
+  grams: number,
+  measureLabel: string | null,
+  measureGrams: number | null,
+): string {
+  if (measureLabel && measureGrams && measureGrams > 0) {
+    const count = Math.round(grams / measureGrams);
+    return `${count} ${measureLabel} · ${grams} g`;
+  }
+  return `${grams} g`;
 }
 
 function pickedToPer100(f: PickedFood | FoodDetailDto): Macro {
@@ -166,12 +188,16 @@ function initialDraft(diet?: DietDetailDto): Draft {
         foodId: it.foodId,
         description: it.description,
         grams: it.grams,
+        measureLabel: it.measureLabel,
+        measureGrams: it.measureGrams,
         per100: per100From(it.macros, it.grams),
         substitutes: it.substitutes.map((s) => ({
           key: newKey(),
           foodId: s.foodId,
           description: s.description,
           grams: s.grams,
+          measureLabel: s.measureLabel,
+          measureGrams: s.measureGrams,
           per100: per100From(s.macros, s.grams),
         })),
       })),
@@ -264,9 +290,13 @@ export function DietBuilder({
           items: m.items.map((it) => ({
             foodId: it.foodId,
             grams: it.grams,
+            measureLabel: it.measureLabel,
+            measureGrams: it.measureGrams,
             substitutes: it.substitutes.map((s) => ({
               foodId: s.foodId,
               grams: s.grams,
+              measureLabel: s.measureLabel,
+              measureGrams: s.measureGrams,
             })),
           })),
         })),
@@ -603,7 +633,7 @@ function SortableMeal({
 
   const totals = sumMacros(meal.items.map((it) => itemMacros(it.per100, it.grams)));
 
-  function addItem(food: PickedFood, grams: number) {
+  function addItem(food: PickedFood, grams: number, measure: PickedMeasure) {
     onItems((items) => [
       ...items,
       {
@@ -611,6 +641,8 @@ function SortableMeal({
         foodId: food.id,
         description: food.description,
         grams,
+        measureLabel: measure?.label ?? null,
+        measureGrams: measure?.grams ?? null,
         per100: pickedToPer100(food),
         substitutes: [],
       },
@@ -708,17 +740,24 @@ function SortableMeal({
                   <SortableItem
                     key={item.key}
                     item={item}
-                    onGrams={(grams) =>
+                    onEdit={(grams, measure) =>
                       onItems((items) =>
                         items.map((i) =>
-                          i.key === item.key ? { ...i, grams } : i,
+                          i.key === item.key
+                            ? {
+                                ...i,
+                                grams,
+                                measureLabel: measure?.label ?? null,
+                                measureGrams: measure?.grams ?? null,
+                              }
+                            : i,
                         ),
                       )
                     }
                     onRemove={() =>
                       onItems((items) => items.filter((i) => i.key !== item.key))
                     }
-                    onAddSub={(food, grams) =>
+                    onAddSub={(food, grams, measure) =>
                       onItems((items) =>
                         items.map((i) =>
                           i.key === item.key
@@ -731,6 +770,8 @@ function SortableMeal({
                                     foodId: food.id,
                                     description: food.description,
                                     grams,
+                                    measureLabel: measure?.label ?? null,
+                                    measureGrams: measure?.grams ?? null,
                                     per100: pickedToPer100(food),
                                   },
                                 ],
@@ -763,7 +804,7 @@ function SortableMeal({
         {adding ? (
           <FoodPicker
             withQuantity
-            onPick={({ food, grams }) => addItem(food, grams ?? 100)}
+            onPick={({ food, grams, measure }) => addItem(food, grams ?? 100, measure)}
             onClose={() => setAdding(false)}
           />
         ) : (
@@ -816,15 +857,15 @@ function SortableMeal({
 
 function SortableItem({
   item,
-  onGrams,
+  onEdit,
   onRemove,
   onAddSub,
   onRemoveSub,
 }: {
   item: ItemDraft;
-  onGrams: (grams: number) => void;
+  onEdit: (grams: number, measure: PickedMeasure) => void;
   onRemove: () => void;
-  onAddSub: (food: PickedFood, grams: number) => void;
+  onAddSub: (food: PickedFood, grams: number, measure: PickedMeasure) => void;
   onRemoveSub: (subKey: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
@@ -837,14 +878,15 @@ function SortableItem({
   };
 
   const [addingSub, setAddingSub] = useState(false);
+  const [editing, setEditing] = useState(false);
   const kcal = itemMacros(item.per100, item.grams).energyKcal;
 
-  // Catalog substitutes for this item's food, fetched only when adding an
-  // equivalence, shown as suggestions (grams scaled to this item's grams).
+  // The item's food (measures + catalog substitutes), fetched only when adding an
+  // equivalence or editing the quantity. Reused for both.
   const { data: catalog } = useQuery({
     queryKey: ["food", item.foodId],
     queryFn: () => apiFetch<FoodDetailDto>(`/api/foods/${item.foodId}`),
-    enabled: addingSub,
+    enabled: addingSub || editing,
     staleTime: 5 * 60_000,
   });
   const suggestions = (catalog?.substitutes ?? []).map((s) => ({
@@ -854,51 +896,95 @@ function SortableItem({
     grams: Math.round((s.grams * item.grams) / 100),
   }));
 
+  // A PickedFood built from the draft's stored per-100 g macros, so editing the
+  // quantity needs no extra fetch for the numbers.
+  const itemAsPicked: PickedFood = {
+    id: item.foodId,
+    description: item.description,
+    code: null,
+    origin: "base",
+    energyKcal: item.per100.energyKcal,
+    protein: item.per100.protein,
+    carbohydrate: item.per100.carbohydrate,
+    fat: item.per100.fat,
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className="rounded-xl border border-border bg-surface-light/40 p-2.5"
     >
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-label="Reordenar alimento"
-          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-        >
-          <GripVertical className="size-4" />
-        </button>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-          {item.description}
-        </span>
-        <div className="flex items-center gap-1">
-          <Input
-            inputMode="numeric"
-            value={String(item.grams)}
-            onChange={(e) => {
-              const v = e.target.value.replace(/[^0-9]/g, "");
-              onGrams(v === "" ? 0 : parseInt(v, 10));
+      {editing ? (
+        catalog ? (
+          <QuantityEditor
+            food={itemAsPicked}
+            measures={catalog.measures}
+            initialGrams={item.grams}
+            initialMeasure={
+              item.measureLabel && item.measureGrams
+                ? { label: item.measureLabel, grams: item.measureGrams }
+                : null
+            }
+            confirmLabel="Salvar"
+            backLabel="Cancelar"
+            onBack={() => setEditing(false)}
+            onConfirm={({ grams, measure }) => {
+              onEdit(grams, measure);
+              setEditing(false);
             }}
-            className="h-8 w-16 text-center"
-            aria-label="Gramas"
           />
-          <span className="text-xs text-muted-foreground">g</span>
+        ) : (
+          <div className="py-4 text-center text-xs text-muted-foreground">
+            Carregando…
+          </div>
+        )
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-label="Reordenar alimento"
+            className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          >
+            <GripVertical className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="min-w-0 flex-1 text-left"
+          >
+            <span className="block truncate text-sm font-medium text-foreground">
+              {item.description}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {quantityLabel(item.grams, item.measureLabel, item.measureGrams)}
+            </span>
+          </button>
+          <span className="shrink-0 text-right text-xs text-muted-foreground">
+            {formatKcal(kcal)} kcal
+          </span>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label="Editar quantidade"
+            title="Editar"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Remover alimento"
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-        <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
-          {formatKcal(kcal)} kcal
-        </span>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remover alimento"
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
+      )}
 
       {/* Equivalences */}
       {item.substitutes.length > 0 && (
@@ -910,7 +996,9 @@ function SortableItem({
             >
               <span className="text-amber-600">⇄</span>
               <span className="min-w-0 flex-1 truncate">{s.description}</span>
-              <span className="shrink-0 text-muted-foreground">{s.grams} g</span>
+              <span className="shrink-0 text-muted-foreground">
+                {quantityLabel(s.grams, s.measureLabel, s.measureGrams)}
+              </span>
               <button
                 type="button"
                 onClick={() => onRemoveSub(s.key)}
@@ -930,8 +1018,8 @@ function SortableItem({
             withQuantity
             initialGrams={item.grams}
             suggestions={suggestions}
-            onPick={({ food, grams }) => {
-              onAddSub(food, grams ?? item.grams);
+            onPick={({ food, grams, measure }) => {
+              onAddSub(food, grams ?? item.grams, measure);
               setAddingSub(false);
             }}
             onClose={() => setAddingSub(false)}

@@ -71,6 +71,8 @@ export type DietItemSubstitute = {
   code: string | null;
   origin: DietOrigin;
   grams: number;
+  measureLabel: string | null;
+  measureGrams: number | null;
   macros: DietMacros;
 };
 
@@ -82,6 +84,8 @@ export type DietItem = {
   code: string | null;
   origin: DietOrigin;
   grams: number;
+  measureLabel: string | null;
+  measureGrams: number | null;
   macros: DietMacros;
   substitutes: DietItemSubstitute[];
 };
@@ -251,6 +255,8 @@ export async function getDiet(
           id: schema.dietMealItem.id,
           mealId: schema.dietMealItem.dietMealId,
           grams: schema.dietMealItem.grams,
+          measureLabel: schema.dietMealItem.measureLabel,
+          measureGrams: schema.dietMealItem.measureGrams,
           position: schema.dietMealItem.position,
           foodId: schema.food.id,
           description: schema.food.description,
@@ -276,6 +282,8 @@ export async function getDiet(
           id: schema.dietMealItemSubstitute.id,
           itemId: schema.dietMealItemSubstitute.dietMealItemId,
           grams: schema.dietMealItemSubstitute.grams,
+          measureLabel: schema.dietMealItemSubstitute.measureLabel,
+          measureGrams: schema.dietMealItemSubstitute.measureGrams,
           position: schema.dietMealItemSubstitute.position,
           foodId: schema.food.id,
           description: schema.food.description,
@@ -308,6 +316,8 @@ export async function getDiet(
       code: s.code,
       origin: s.clinicId === null ? "base" : "clinic",
       grams: s.grams,
+      measureLabel: s.measureLabel,
+      measureGrams: s.measureGrams,
       macros: {
         energyKcal: scale(s.energyKcal, s.grams),
         protein: scale(s.protein, s.grams),
@@ -328,6 +338,8 @@ export async function getDiet(
       code: it.code,
       origin: it.clinicId === null ? "base" : "clinic",
       grams: it.grams,
+      measureLabel: it.measureLabel,
+      measureGrams: it.measureGrams,
       macros: {
         energyKcal: scale(it.energyKcal, it.grams),
         protein: scale(it.protein, it.grams),
@@ -369,12 +381,19 @@ export async function getDiet(
 /* -------------------------------------------------------------------------- */
 
 /** One substitute in a write payload. */
-export type DietSubstituteInput = { foodId: string; grams: number };
+export type DietSubstituteInput = {
+  foodId: string;
+  grams: number;
+  measureLabel?: string | null;
+  measureGrams?: number | null;
+};
 
 /** One meal item in a write payload, with its substitutes. */
 export type DietItemInput = {
   foodId: string;
   grams: number;
+  measureLabel?: string | null;
+  measureGrams?: number | null;
   substitutes: DietSubstituteInput[];
 };
 
@@ -461,6 +480,8 @@ async function insertTree(
           dietMealId: insertedMeal.id,
           foodId: item.foodId,
           grams: item.grams,
+          measureLabel: item.measureLabel ?? null,
+          measureGrams: item.measureGrams ?? null,
           position: itemPos,
         })
         .returning({ id: schema.dietMealItem.id });
@@ -471,6 +492,8 @@ async function insertTree(
             dietMealItemId: insertedItem.id,
             foodId: sub.foodId,
             grams: sub.grams,
+            measureLabel: sub.measureLabel ?? null,
+            measureGrams: sub.measureGrams ?? null,
             position: subPos,
           })),
         );
