@@ -560,6 +560,113 @@ export const exerciseSubstitution = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Diets (coach-authored meal plans — same base/custom shape as the catalog)  */
+/*                                                                            */
+/*  A diet is a generic, reusable meal-plan template. `clinic_id = NULL` is a   */
+/*  shared base/template diet (reserved for a future platform/admin catalog —   */
+/*  not created in this phase); a set `clinic_id` is a clinic's own diet,        */
+/*  authored by a coach. The DAL reads                                          */
+/*  `clinic_id IS NULL OR clinic_id = ctx.clinicId` and only writes clinic-owned */
+/*  rows (stamping `ctx.clinicId`), so the tenancy rule holds. Assigning a diet  */
+/*  to a student (with versioned history) is a later phase and will snapshot,    */
+/*  so there is deliberately no student link here.                              */
+/*                                                                            */
+/*  Nutrition (kcal/macros) is NOT stored: totals are computed at read time      */
+/*  from the referenced `food` rows (a live reference, per 100 g × grams/100).   */
+/*  The child tables inherit tenancy through their FK to `diet` (the DAL scopes  */
+/*  by the parent diet), so they carry no `clinic_id` of their own.             */
+/* -------------------------------------------------------------------------- */
+
+export const diet = pgTable(
+  "diet",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // NULL = shared base/template diet; set = this clinic's own diet.
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    // The coach who authored the diet. NULL for base diets (no author); set to
+    // the creating coach for a clinic's own diet.
+    coachId: text("coach_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    // Free-text notes/observations (PT-BR), optional.
+    notes: text("notes"),
+    // Soft-delete: archived diets drop out of listings but keep their rows.
+    archived: boolean("archived").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("diet_clinic_idx").on(t.clinicId)],
+);
+
+/** A meal within a diet (e.g. "Café da manhã"), ordered by `position`. */
+export const dietMeal = pgTable(
+  "diet_meal",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    dietId: uuid("diet_id")
+      .notNull()
+      .references(() => diet.id, { onDelete: "cascade" }),
+    // Free-text label (PT-BR), e.g. "Café da manhã", "Almoço".
+    name: text("name").notNull(),
+    // Optional time-of-day label, e.g. "08:00". Free text (not validated as a
+    // real time) so the coach can write "ao acordar" etc.
+    time: text("time"),
+    // Ordering within the diet (0-based).
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("diet_meal_diet_idx").on(t.dietId)],
+);
+
+/** A food line within a meal: `grams` of `food`, ordered by `position`. */
+export const dietMealItem = pgTable(
+  "diet_meal_item",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    dietMealId: uuid("diet_meal_id")
+      .notNull()
+      .references(() => dietMeal.id, { onDelete: "cascade" }),
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "restrict" }),
+    grams: doublePrecision("grams").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [
+    index("diet_meal_item_meal_idx").on(t.dietMealId),
+    index("diet_meal_item_food_idx").on(t.foodId),
+    check("diet_meal_item_grams_positive", sql`${t.grams} > 0`),
+  ],
+);
+
+/**
+ * An equivalence/substitute a coach offers for a meal item: `grams` of `food`
+ * may replace the item's own food. Independent of the catalog's
+ * `food_substitution` rules (those only pre-suggest options in the UI).
+ */
+export const dietMealItemSubstitute = pgTable(
+  "diet_meal_item_substitute",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    dietMealItemId: uuid("diet_meal_item_id")
+      .notNull()
+      .references(() => dietMealItem.id, { onDelete: "cascade" }),
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => food.id, { onDelete: "restrict" }),
+    grams: doublePrecision("grams").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [
+    index("diet_item_sub_item_idx").on(t.dietMealItemId),
+    index("diet_item_sub_food_idx").on(t.foodId),
+    check("diet_item_sub_grams_positive", sql`${t.grams} > 0`),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -726,6 +833,55 @@ export const exerciseSubstitutionRelations = relations(
   }),
 );
 
+export const dietRelations = relations(diet, ({ one, many }) => ({
+  clinic: one(clinic, {
+    fields: [diet.clinicId],
+    references: [clinic.id],
+  }),
+  coach: one(user, {
+    fields: [diet.coachId],
+    references: [user.id],
+  }),
+  meals: many(dietMeal),
+}));
+
+export const dietMealRelations = relations(dietMeal, ({ one, many }) => ({
+  diet: one(diet, {
+    fields: [dietMeal.dietId],
+    references: [diet.id],
+  }),
+  items: many(dietMealItem),
+}));
+
+export const dietMealItemRelations = relations(
+  dietMealItem,
+  ({ one, many }) => ({
+    meal: one(dietMeal, {
+      fields: [dietMealItem.dietMealId],
+      references: [dietMeal.id],
+    }),
+    food: one(food, {
+      fields: [dietMealItem.foodId],
+      references: [food.id],
+    }),
+    substitutes: many(dietMealItemSubstitute),
+  }),
+);
+
+export const dietMealItemSubstituteRelations = relations(
+  dietMealItemSubstitute,
+  ({ one }) => ({
+    item: one(dietMealItem, {
+      fields: [dietMealItemSubstitute.dietMealItemId],
+      references: [dietMealItem.id],
+    }),
+    food: one(food, {
+      fields: [dietMealItemSubstitute.foodId],
+      references: [food.id],
+    }),
+  }),
+);
+
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
@@ -757,3 +913,12 @@ export type Exercise = typeof exercise.$inferSelect;
 export type NewExercise = typeof exercise.$inferInsert;
 export type ExerciseSubstitution = typeof exerciseSubstitution.$inferSelect;
 export type NewExerciseSubstitution = typeof exerciseSubstitution.$inferInsert;
+export type Diet = typeof diet.$inferSelect;
+export type NewDiet = typeof diet.$inferInsert;
+export type DietMeal = typeof dietMeal.$inferSelect;
+export type NewDietMeal = typeof dietMeal.$inferInsert;
+export type DietMealItem = typeof dietMealItem.$inferSelect;
+export type NewDietMealItem = typeof dietMealItem.$inferInsert;
+export type DietMealItemSubstitute = typeof dietMealItemSubstitute.$inferSelect;
+export type NewDietMealItemSubstitute =
+  typeof dietMealItemSubstitute.$inferInsert;
