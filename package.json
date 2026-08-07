@@ -19,7 +19,6 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:transform-taco": "node scripts/transform-taco.mjs",
     "db:build-substitutions": "node scripts/build-substitutions.mjs",
-    "db:build-food-measures": "node scripts/build-food-measures.mjs",
     "db:transform-exercises": "node scripts/transform-exercises.mjs",
     "db:build-exercise-substitutions": "node scripts/build-exercise-substitutions.mjs",
     "db:fetch-exercise-images": "node scripts/fetch-exercise-images.mjs",
