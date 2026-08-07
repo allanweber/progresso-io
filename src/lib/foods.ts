@@ -95,6 +95,17 @@ export type FoodSubstituteDto = {
   removable: boolean;
 };
 
+/** A household measure (medida caseira): `grams` equal one `label`. */
+export type FoodMeasureDto = {
+  id: string;
+  label: string;
+  grams: number;
+  isDefault: boolean;
+  origin: FoodOrigin;
+  /** Whether the current viewer may delete this measure. */
+  removable: boolean;
+};
+
 /** A food's detail page: identity + full profile + substitutes (per 100 g). */
 export type FoodDetailDto = {
   id: string;
@@ -114,6 +125,7 @@ export type FoodDetailDto = {
   sodium: number | null;
   nutrients: FoodNutrientDto[];
   substitutes: FoodSubstituteDto[];
+  measures: FoodMeasureDto[];
 };
 
 /* -------------------------------------------------------------------------- */
@@ -177,6 +189,24 @@ export const substitutionFormSchema = z.object({
   ),
 });
 export type SubstitutionFormValues = z.output<typeof substitutionFormSchema>;
+
+/** Adding a household measure to a food: a name and its grams. */
+export const measureFormSchema = z.object({
+  label: z
+    .string()
+    .trim()
+    .min(1, "Informe o nome da medida.")
+    .max(40, "Nome muito longo."),
+  grams: z.preprocess(
+    (v) => (typeof v === "string" ? Number(v.replace(",", ".")) : v),
+    z
+      .number({ error: "Informe as gramas." })
+      .positive("As gramas devem ser maiores que zero.")
+      .max(100_000, "Valor muito alto."),
+  ),
+  isDefault: z.boolean().optional().default(false),
+});
+export type MeasureFormValues = z.output<typeof measureFormSchema>;
 
 /** Toggle a food's favorite state for the clinic. */
 export const favoriteSchema = z.object({ favorite: z.boolean() });

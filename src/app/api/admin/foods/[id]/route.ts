@@ -65,6 +65,14 @@ export const GET = withRoute<Params>("admin.foods.detail", async (_request, { pa
       origin: s.origin,
       removable: s.removable,
     })),
+    measures: food.measures.map((m) => ({
+      id: m.id,
+      label: m.label,
+      grams: m.grams,
+      isDefault: m.isDefault,
+      origin: m.origin,
+      removable: m.removable,
+    })),
   };
   return NextResponse.json(dto);
 });

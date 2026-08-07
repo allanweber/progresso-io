@@ -14,6 +14,7 @@ import { uploadExerciseImages } from "./upload-exercise-images.mjs";
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
 const SUBSTITUTIONS = "./drizzle/data/taco-substitutions.json";
+const MEASURES = "./drizzle/data/food-measures.json";
 const EXERCISES = "./drizzle/data/exercises-catalog.ndjson.gz";
 const EXERCISE_SUBS = "./drizzle/data/exercise-substitutions.json";
 
@@ -218,6 +219,67 @@ async function seedSubstitutions(sql) {
 }
 
 /**
+ * Loads the curated base household measures (`drizzle/data/food-measures.json`):
+ * named portions (e.g. "unidade" = 50 g) stamped `clinic_id = NULL` (shared).
+ * Foods are referenced by their exact catalog `description`, resolved to ids
+ * here — so it runs after the catalog + supplement are seeded. A measure whose
+ * food isn't in the catalog is skipped rather than failing the seed. Idempotent:
+ * skips once any base measure exists.
+ */
+async function seedMeasures(sql) {
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(MEASURES, "utf8"));
+  } catch {
+    console.log(`• No measures at ${MEASURES} — skipping.`);
+    return;
+  }
+  const measures = doc.measures ?? [];
+  if (measures.length === 0) return;
+
+  const [{ count }] = await sql`
+    select count(*)::int as count from food_measure where clinic_id is null`;
+  if (count > 0) {
+    console.log(`✓ Base measures already seeded (${count}) — skipping.`);
+    return;
+  }
+
+  const foodRows = await sql`select id, description from food`;
+  const idByDescription = new Map();
+  for (const r of foodRows) {
+    if (!idByDescription.has(r.description)) idByDescription.set(r.description, r.id);
+  }
+
+  const rows = [];
+  let skipped = 0;
+  for (const m of measures) {
+    const foodId = idByDescription.get(m.food);
+    if (!foodId || !(m.grams > 0) || !m.label) {
+      skipped++;
+      continue;
+    }
+    rows.push({
+      clinic_id: null,
+      food_id: foodId,
+      label: m.label,
+      grams: m.grams,
+      is_default: m.isDefault ?? false,
+    });
+  }
+
+  if (rows.length > 0) {
+    await sql.begin(async (tx) => {
+      for (let i = 0; i < rows.length; i += 500) {
+        await tx`insert into food_measure ${tx(rows.slice(i, i + 500))}`;
+      }
+    });
+  }
+  console.log(
+    `✓ Base measures seeded: ${rows.length}${skipped ? ` (${skipped} skipped — food not in catalog)` : ""}.`,
+  );
+}
+
+/**
  * Loads the base exercise catalog (`drizzle/data/exercises-catalog.ndjson.gz`,
  * produced by scripts/transform-exercises.mjs) into the empty `exercise` table.
  * Each row becomes a shared base exercise (`clinic_id = NULL`), with the muscle /
@@ -331,6 +393,7 @@ try {
   await seedCatalog(sql);
   await seedSupplement(sql);
   await seedSubstitutions(sql);
+  await seedMeasures(sql);
   await seedExercises(sql);
   await seedExerciseSubstitutions(sql);
   // Push the exercise images to R2 (idempotent; skips when R2 isn't configured

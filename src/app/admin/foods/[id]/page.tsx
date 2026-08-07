@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 
+import { FoodMeasures } from "@/components/foods/food-measures";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -253,6 +254,15 @@ export default function AdminFoodDetailPage() {
 
           {/* Base substitutes — right under the macros (admin-managed on base). */}
           <BaseSubstitutes food={data} canManage={isBase} />
+
+          {/* Base household measures — admin-managed on base foods. */}
+          <FoodMeasures
+            apiBase="/api/admin/foods"
+            foodId={data.id}
+            measures={data.measures}
+            queryKey={["admin-food", id]}
+            canManage={isBase}
+          />
 
           {/* Full profile */}
           {data.nutrients.length > 0 && (

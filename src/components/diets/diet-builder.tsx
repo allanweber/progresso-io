@@ -89,6 +89,16 @@ type Draft = { name: string; notes: string; meals: MealDraft[] };
 
 const newKey = () => crypto.randomUUID();
 
+/**
+ * Keep only digits and format a meal time as `HH:MM` while typing (e.g. "0800"
+ * → "08:00"). The field accepts numbers only — any other character is dropped.
+ */
+function formatTimeInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
 function pickedToPer100(f: PickedFood | FoodDetailDto): Macro {
   return {
     energyKcal: f.energyKcal,
@@ -648,7 +658,9 @@ function SortableMeal({
               <Clock className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={meal.time}
-                onChange={(e) => onTimeChange(e.target.value)}
+                onChange={(e) => onTimeChange(formatTimeInput(e.target.value))}
+                inputMode="numeric"
+                maxLength={5}
                 placeholder="Horário"
                 className="pl-8"
               />
@@ -766,16 +778,31 @@ function SortableMeal({
         )}
 
         {meal.items.length > 0 && (
-          <div className="flex justify-end gap-4 border-t border-[#F1F5F9] pt-2 text-xs text-muted-foreground">
+          <div className="flex justify-end gap-4 border-t border-[#F1F5F9] pt-2 text-xs">
             <span>
               <span className="font-semibold text-primary">
                 {formatKcal(totals.energyKcal)}
               </span>{" "}
-              kcal
+              <span className="text-muted-foreground">kcal</span>
             </span>
-            <span>P {formatGrams(totals.protein)}</span>
-            <span>C {formatGrams(totals.carbohydrate)}</span>
-            <span>G {formatGrams(totals.fat)}</span>
+            <span>
+              <span className="font-semibold text-blue-600">
+                {formatGrams(totals.protein)}
+              </span>{" "}
+              <span className="text-muted-foreground">Prot</span>
+            </span>
+            <span>
+              <span className="font-semibold text-red-600">
+                {formatGrams(totals.carbohydrate)}
+              </span>{" "}
+              <span className="text-muted-foreground">Carb</span>
+            </span>
+            <span>
+              <span className="font-semibold text-amber-600">
+                {formatGrams(totals.fat)}
+              </span>{" "}
+              <span className="text-muted-foreground">Gord</span>
+            </span>
           </div>
         )}
       </div>

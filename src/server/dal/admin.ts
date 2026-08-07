@@ -26,7 +26,11 @@ import type {
   ExerciseSubstituteRow,
   ExerciseWriteInput,
 } from "@/server/dal/exercises";
-import type { FoodNutrientRow, FoodSubstituteRow } from "@/server/dal/foods";
+import type {
+  FoodMeasureRow,
+  FoodNutrientRow,
+  FoodSubstituteRow,
+} from "@/server/dal/foods";
 
 /**
  * Platform-admin DAL — the one deliberate exception to the tenant-scoping rule.
@@ -303,6 +307,8 @@ export type AdminFoodDetail = Food & {
   nutrients: FoodNutrientRow[];
   /** Base substitutions (`clinic_id NULL`) for the food — admin-managed. */
   substitutes: FoodSubstituteRow[];
+  /** Base measures (`clinic_id NULL`) for the food — admin-managed. */
+  measures: FoodMeasureRow[];
 };
 
 /**
@@ -367,6 +373,23 @@ export async function getAnyFood(
     )
     .orderBy(asc(substitute.description));
 
+  // Base measures the admin manages (clinic_id NULL only).
+  const measureRows = await db
+    .select({
+      id: schema.foodMeasure.id,
+      label: schema.foodMeasure.label,
+      grams: schema.foodMeasure.grams,
+      isDefault: schema.foodMeasure.isDefault,
+    })
+    .from(schema.foodMeasure)
+    .where(
+      and(
+        eq(schema.foodMeasure.foodId, id),
+        isNull(schema.foodMeasure.clinicId),
+      ),
+    )
+    .orderBy(desc(schema.foodMeasure.isDefault), asc(schema.foodMeasure.grams));
+
   return {
     ...row.food,
     groupName: row.groupName,
@@ -378,6 +401,11 @@ export async function getAnyFood(
       ...s,
       origin: clinicId === null ? "base" : "clinic",
       removable: true, // every base substitution is admin-removable
+    })),
+    measures: measureRows.map((m) => ({
+      ...m,
+      origin: "base" as const,
+      removable: true, // every base measure is admin-removable
     })),
   };
 }
@@ -559,6 +587,55 @@ export async function addBaseSubstitution(
       removable: true,
     },
   };
+}
+
+/**
+ * Adds a **base** household measure (`clinic_id NULL`) to any food. Admin-only,
+ * cross-tenant. Returns null when the food doesn't exist.
+ */
+export async function addBaseMeasure(
+  db: DB,
+  foodId: string,
+  input: { label: string; grams: number; isDefault: boolean },
+): Promise<FoodMeasureRow | null> {
+  if (!(await anyFoodExists(db, foodId))) return null;
+  const [ins] = await db
+    .insert(schema.foodMeasure)
+    .values({
+      clinicId: null,
+      foodId,
+      label: input.label,
+      grams: input.grams,
+      isDefault: input.isDefault,
+    })
+    .returning();
+  return {
+    id: ins.id,
+    label: ins.label,
+    grams: ins.grams,
+    isDefault: ins.isDefault,
+    origin: "base",
+    removable: true,
+  };
+}
+
+/** Removes a **base** household measure (`clinic_id NULL` only). */
+export async function removeBaseMeasure(
+  db: DB,
+  foodId: string,
+  measureId: string,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(schema.foodMeasure)
+    .where(
+      and(
+        eq(schema.foodMeasure.id, measureId),
+        eq(schema.foodMeasure.foodId, foodId),
+        isNull(schema.foodMeasure.clinicId),
+      ),
+    )
+    .returning({ id: schema.foodMeasure.id });
+  return deleted.length > 0;
 }
 
 /** Removes a **base** substitution rule (`clinic_id NULL` only). */
