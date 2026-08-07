@@ -25,6 +25,7 @@ import {
   ArrowLeft,
   Clock,
   GripVertical,
+  Loader2,
   Pencil,
   Plus,
   Save,
@@ -233,6 +234,10 @@ export function DietBuilder({
   const [meals, setMeals] = useState<MealDraft[]>(() => initialDraft(diet).meals);
   const [mealErrors, setMealErrors] = useState<Record<string, string>>({});
   const [recovered, setRecovered] = useState(false);
+  // Render the drag-and-drop tree only after mount: @dnd-kit's sortable adds
+  // client-only aria attributes that don't match the SSR HTML, so gating avoids
+  // a hydration mismatch. The builder is auth-only and not SEO-relevant.
+  const [mounted, setMounted] = useState(false);
   const dirtyRef = useRef(false);
   // A monotonically-increasing counter bumped on every edit, so the persist
   // effect fires even when only the (form-owned) name/notes change.
@@ -365,6 +370,12 @@ export function DietBuilder({
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
+  // Flip to client-rendered after mount (see the `mounted` declaration).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   /* --- meal/item mutators (all mark the draft dirty) --------------------- */
 
   const updateMeals = useCallback(
@@ -443,6 +454,12 @@ export function DietBuilder({
     }
     dirtyRef.current = false;
     router.push(mode === "edit" ? `/coach/diets/${diet!.id}` : "/coach/diets");
+  }
+
+  // Before mount, render a minimal placeholder so the server HTML carries no
+  // @dnd-kit client-only attributes to mismatch on hydration.
+  if (!mounted) {
+    return <div className="mx-auto max-w-3xl pb-24" aria-hidden />;
   }
 
   return (
@@ -881,12 +898,12 @@ function SortableItem({
   const [editing, setEditing] = useState(false);
   const kcal = itemMacros(item.per100, item.grams).energyKcal;
 
-  // The item's food (measures + catalog substitutes), fetched only when adding an
-  // equivalence or editing the quantity. Reused for both.
+  // The item's food (measures + catalog substitutes). Fetched for every item so
+  // the food's catalog substitutes can be surfaced while building; also feeds the
+  // add-equivalence picker and the quantity editor.
   const { data: catalog } = useQuery({
     queryKey: ["food", item.foodId],
     queryFn: () => apiFetch<FoodDetailDto>(`/api/foods/${item.foodId}`),
-    enabled: addingSub || editing,
     staleTime: 5 * 60_000,
   });
   const suggestions = (catalog?.substitutes ?? []).map((s) => ({
@@ -895,6 +912,35 @@ function SortableItem({
     code: s.code,
     grams: Math.round((s.grams * item.grams) / 100),
   }));
+
+  // The food's catalog substitutes not already added as an equivalence — shown
+  // as quick-add chips so the coach can see (and use) them while building.
+  const addedFoodIds = new Set(item.substitutes.map((s) => s.foodId));
+  const catalogSuggestions = (catalog?.substitutes ?? []).filter(
+    (s) => !addedFoodIds.has(s.foodId),
+  );
+  const [addingSuggestion, setAddingSuggestion] = useState<string | null>(null);
+
+  async function quickAddSuggestion(foodId: string, subGrams: number) {
+    setAddingSuggestion(foodId);
+    try {
+      const detail = await apiFetch<FoodDetailDto>(`/api/foods/${foodId}`);
+      const picked: PickedFood = {
+        id: detail.id,
+        description: detail.description,
+        code: detail.code,
+        origin: detail.origin,
+        energyKcal: detail.energyKcal,
+        protein: detail.protein,
+        carbohydrate: detail.carbohydrate,
+        fat: detail.fat,
+      };
+      const grams = Math.round((subGrams * item.grams) / 100) || item.grams;
+      onAddSub(picked, grams, null);
+    } finally {
+      setAddingSuggestion(null);
+    }
+  }
 
   // A PickedFood built from the draft's stored per-100 g macros, so editing the
   // quantity needs no extra fetch for the numbers.
@@ -1025,14 +1071,42 @@ function SortableItem({
             onClose={() => setAddingSub(false)}
           />
         ) : (
-          <button
-            type="button"
-            onClick={() => setAddingSub(true)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
-          >
-            <Plus className="size-3.5" />
-            Equivalência
-          </button>
+          <>
+            {/* Catalog substitutes for this food — visible while building; tap
+                to add as an equivalence. */}
+            {catalogSuggestions.length > 0 && (
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">
+                  Substitutos:
+                </span>
+                {catalogSuggestions.map((s) => (
+                  <button
+                    key={s.foodId}
+                    type="button"
+                    onClick={() => quickAddSuggestion(s.foodId, s.grams)}
+                    disabled={addingSuggestion !== null}
+                    title="Adicionar como equivalência"
+                    className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 transition-colors hover:border-amber-400 disabled:opacity-50"
+                  >
+                    {addingSuggestion === s.foodId ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Plus className="size-3" />
+                    )}
+                    {s.description.split(",")[0]}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setAddingSub(true)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
+            >
+              <Plus className="size-3.5" />
+              Equivalência
+            </button>
+          </>
         )}
       </div>
     </div>

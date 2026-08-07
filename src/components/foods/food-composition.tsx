@@ -73,6 +73,7 @@ export function FoodComposition({
   measuresApiBase,
   queryKey,
   canManageMeasures,
+  afterMacros,
 }: {
   food: CompositionFood;
   /** Measures endpoint base, e.g. "/api/foods" or "/api/admin/foods". */
@@ -80,6 +81,9 @@ export function FoodComposition({
   /** Query key to refresh after a measure add/remove. */
   queryKey: unknown[];
   canManageMeasures: boolean;
+  /** Rendered right under the macro grid, before the full profile (e.g. the
+   *  substitutes section). */
+  afterMacros?: React.ReactNode;
 }) {
   const [sel, setSel] = useState<MeasureSelection>(BASE_SELECTION);
   const factor = sel.grams / 100;
@@ -124,6 +128,8 @@ export function FoodComposition({
           </div>
         ))}
       </div>
+
+      {afterMacros}
 
       {/* Full profile — only base foods carry a full TACO profile. */}
       {food.nutrients.length > 0 && (

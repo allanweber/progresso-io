@@ -170,17 +170,16 @@ export default function FoodDetailPage() {
           </Dialog>
 
           {/* Portion selector + macros + full profile (rescales live). The key
-              resets the selected portion when navigating between foods. */}
+              resets the selected portion when navigating between foods. The
+              substitutes render right under the macros. */}
           <FoodComposition
             key={data.id}
             food={data}
             measuresApiBase="/api/foods"
             queryKey={["food", id]}
             canManageMeasures
+            afterMacros={<Substitutes food={data} />}
           />
-
-          {/* Substitutes — managed by the clinic. */}
-          <Substitutes food={data} />
         </>
       ) : null}
     </div>
