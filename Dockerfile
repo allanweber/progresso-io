@@ -21,6 +21,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Provide the Google Analytics id as a build arg (empty = analytics disabled).
 ARG NEXT_PUBLIC_GA_ID=""
 ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
+# Base URL the browser serves exercise images from (the R2 custom domain). Empty
+# falls back to the free-exercise-db CDN, which only has the seed images — set
+# this so custom (uploaded) images resolve too.
+ARG NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=""
+ENV NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=$NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL
 RUN npm run build
 
 # ---- Migrator ----
