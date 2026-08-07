@@ -25,13 +25,14 @@ const ALLOWED_TYPES: Record<string, string> = {
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB per image.
 
 function r2Env() {
-  const {
-    R2_ACCOUNT_ID,
-    R2_ACCESS_KEY_ID,
-    R2_SECRET_ACCESS_KEY,
-    R2_BUCKET,
-    R2_PREFIX = "",
-  } = process.env;
+  // Trim every value: a stray newline/space pasted into the deploy env is a
+  // classic cause of R2 "SignatureDoesNotMatch".
+  const trim = (v: string | undefined) => (v ?? "").trim();
+  const R2_ACCOUNT_ID = trim(process.env.R2_ACCOUNT_ID);
+  const R2_ACCESS_KEY_ID = trim(process.env.R2_ACCESS_KEY_ID);
+  const R2_SECRET_ACCESS_KEY = trim(process.env.R2_SECRET_ACCESS_KEY);
+  const R2_BUCKET = trim(process.env.R2_BUCKET);
+  const R2_PREFIX = trim(process.env.R2_PREFIX);
   if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
     return null;
   }
@@ -64,6 +65,11 @@ export async function putExerciseImage(
       accessKeyId: env.R2_ACCESS_KEY_ID,
       secretAccessKey: env.R2_SECRET_ACCESS_KEY,
     },
+    // Recent aws-sdk v3 sends integrity checksum headers by default, which
+    // Cloudflare R2 rejects with "SignatureDoesNotMatch". Only send them when
+    // the operation actually requires it (PutObject does not).
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
   await s3.send(
     new PutObjectCommand({
