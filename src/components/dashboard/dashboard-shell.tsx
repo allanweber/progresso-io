@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  UtensilsCrossed,
   Users,
   X,
 } from "lucide-react";
@@ -37,6 +38,7 @@ function navItems(role: string | null | undefined) {
   const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
+    items.push({ href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed });
     // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
     items.push({ href: "/coach/library", label: "Biblioteca", icon: BookOpen });
   }
