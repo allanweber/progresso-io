@@ -79,6 +79,14 @@ export type DietItemSubstitute = {
   macros: DietMacros;
 };
 
+/** A catalog substitute available for the item's food (a base/clinic swap). */
+export type DietFoodSubstitute = {
+  foodId: string;
+  description: string;
+  /** Grams of the substitute equivalent to 100 g of the item's food. */
+  grams: number;
+};
+
 /** A food line within a meal, with its scaled macros and its substitutes. */
 export type DietItem = {
   id: string;
@@ -90,7 +98,10 @@ export type DietItem = {
   measureLabel: string | null;
   measureGrams: number | null;
   macros: DietMacros;
+  /** Coach-defined equivalences for this diet item. */
   substitutes: DietItemSubstitute[];
+  /** The food's catalog substitutes (base + clinic), for reference. */
+  foodSubstitutes: DietFoodSubstitute[];
 };
 
 /** A meal within a diet: its items plus the summed macros of those items. */
@@ -355,6 +366,40 @@ export async function getDiet(
     subsByItem.set(s.itemId, list);
   }
 
+  // The catalog substitutes (base + this clinic's) for the item foods, so the
+  // detail can show the swaps available for each food — one query for the diet.
+  const itemFoodIds = [...new Set(itemRows.map((i) => i.foodId))];
+  const catalogRows = itemFoodIds.length
+    ? await ctx.db
+        .select({
+          foodId: schema.foodSubstitution.foodId,
+          grams: schema.foodSubstitution.grams,
+          subFoodId: schema.food.id,
+          description: schema.food.description,
+        })
+        .from(schema.foodSubstitution)
+        .innerJoin(
+          schema.food,
+          eq(schema.foodSubstitution.substituteFoodId, schema.food.id),
+        )
+        .where(
+          and(
+            inArray(schema.foodSubstitution.foodId, itemFoodIds),
+            or(
+              isNull(schema.foodSubstitution.clinicId),
+              eq(schema.foodSubstitution.clinicId, ctx.clinicId),
+            ),
+          ),
+        )
+    : [];
+
+  const catalogByFood = new Map<string, DietFoodSubstitute[]>();
+  for (const r of catalogRows) {
+    const list = catalogByFood.get(r.foodId) ?? [];
+    list.push({ foodId: r.subFoodId, description: r.description, grams: r.grams });
+    catalogByFood.set(r.foodId, list);
+  }
+
   const itemsByMeal = new Map<string, DietItem[]>();
   for (const it of itemRows) {
     const list = itemsByMeal.get(it.mealId) ?? [];
@@ -374,6 +419,7 @@ export async function getDiet(
         fat: scale(it.fat, it.grams),
       },
       substitutes: subsByItem.get(it.id) ?? [],
+      foodSubstitutes: catalogByFood.get(it.foodId) ?? [],
     });
     itemsByMeal.set(it.mealId, list);
   }

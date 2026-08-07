@@ -76,6 +76,14 @@ export type DietItemSubstituteDto = {
   macros: DietMacrosDto;
 };
 
+/** A catalog substitute available for the item's food (reference, read-only). */
+export type DietFoodSubstituteDto = {
+  foodId: string;
+  description: string;
+  /** Grams of the substitute equivalent to 100 g of the item's food. */
+  grams: number;
+};
+
 export type DietItemDto = {
   id: string;
   foodId: string;
@@ -88,7 +96,10 @@ export type DietItemDto = {
   /** Grams of one of that measure (so a count = grams / measureGrams). */
   measureGrams: number | null;
   macros: DietMacrosDto;
+  /** Coach-defined equivalences for this diet item. */
   substitutes: DietItemSubstituteDto[];
+  /** The food's catalog substitutes (base + clinic), for reference. */
+  foodSubstitutes: DietFoodSubstituteDto[];
 };
 
 export type DietMealDto = {
