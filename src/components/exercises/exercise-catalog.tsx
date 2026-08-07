@@ -62,6 +62,7 @@ export function ExerciseCatalog({
   basePath,
   title,
   subtitle,
+  action,
 }: {
   /** API listing endpoint, e.g. "/api/exercises" or "/api/admin/exercises". */
   apiBase: string;
@@ -74,6 +75,8 @@ export function ExerciseCatalog({
    */
   title?: string;
   subtitle?: string;
+  /** Optional right-aligned action next to the title (e.g. "Novo exercício"). */
+  action?: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -155,13 +158,16 @@ export function ExerciseCatalog({
   return (
     <div className="mx-auto max-w-6xl">
       {title && (
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          )}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-2xl font-bold text-foreground">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          {action}
         </div>
       )}
 

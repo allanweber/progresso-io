@@ -176,6 +176,8 @@ const CATEGORY_VALUES = [
   "olympic_weightlifting",
 ] as const;
 const LEVEL_VALUES = ["beginner", "intermediate", "expert"] as const;
+const FORCE_VALUES = ["pull", "push", "static"] as const;
+const MECHANIC_VALUES = ["compound", "isolation"] as const;
 const EQUIPMENT_VALUES = [
   "body_only",
   "machine",
@@ -236,6 +238,66 @@ export type ExerciseSubstitutionForm = z.output<
   typeof exerciseSubstitutionFormSchema
 >;
 
+/* ------------------------ create/edit an exercise ------------------------- */
+
+/**
+ * An optional enum select: the form sends "" when nothing is chosen, which
+ * becomes null. Kept as a `"" | enum` union (not a preprocess) so the schema's
+ * INPUT type stays a plain string — TanStack Form matches its field values
+ * against that input type, and an `unknown` input (what preprocess yields) would
+ * not line up. Everything the catalog captures is a fixed enum — only the name,
+ * description and steps are free text (per the project rule).
+ */
+function optionalEnum<T extends readonly [string, ...string[]]>(
+  values: T,
+  message: string,
+) {
+  return z
+    .union([z.literal(""), z.enum(values, { error: message })])
+    .transform((v) => (v === "" ? null : v));
+}
+
+/**
+ * The create/edit form for a custom exercise, shared by the coach library and
+ * the admin base catalog and validated identically on both write routes. Free
+ * text is limited to `name`, `description` and the `instructions` steps; every
+ * other field is constrained to its enum. `images` holds already-uploaded R2
+ * keys (max 2). The DAL derives origin/tenant — never the payload.
+ */
+export const exerciseFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Informe o nome do exercício.")
+    .max(200, "Nome muito longo."),
+  description: z
+    .string()
+    .trim()
+    .max(2000, "Descrição muito longa.")
+    .transform((v) => (v === "" ? null : v)),
+  category: z.enum(CATEGORY_VALUES, { error: "Selecione uma categoria." }),
+  level: z.enum(LEVEL_VALUES, { error: "Selecione um nível." }),
+  force: optionalEnum(FORCE_VALUES, "Força inválida."),
+  mechanic: optionalEnum(MECHANIC_VALUES, "Mecânica inválida."),
+  equipment: optionalEnum(EQUIPMENT_VALUES, "Equipamento inválido."),
+  primaryMuscles: z
+    .array(z.enum(MUSCLE_VALUES))
+    .max(MUSCLE_VALUES.length, "Músculos inválidos."),
+  secondaryMuscles: z
+    .array(z.enum(MUSCLE_VALUES))
+    .max(MUSCLE_VALUES.length, "Músculos inválidos."),
+  instructions: z
+    .array(z.string().trim().min(1, "Passo vazio.").max(2000, "Passo muito longo."))
+    .max(40, "Passos demais."),
+  images: z
+    .array(z.string().trim().min(1).max(300))
+    .max(2, "No máximo duas imagens."),
+});
+export type ExerciseFormValues = z.output<typeof exerciseFormSchema>;
+
+/** The subset of a created/updated exercise the client needs (to navigate). */
+export type ExerciseMutationResponse = { exercise: { id: string } };
+
 /* ---------------------------------- DTOs ---------------------------------- */
 
 /** A row in the exercise listing (identity + the facets the cards show). */
@@ -280,6 +342,7 @@ export type ExerciseDetailDto = {
   id: string;
   code: string | null;
   name: string;
+  description: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
   force: ExerciseForce | null;

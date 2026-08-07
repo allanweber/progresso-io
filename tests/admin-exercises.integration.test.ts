@@ -147,3 +147,66 @@ describe("admin exercises — base substitutions", () => {
     ).toBe(false);
   });
 });
+
+describe("admin exercises — base CRUD", () => {
+  it("creates a base exercise visible to every clinic", async () => {
+    const created = await admin.createBaseExercise(adb(), {
+      name: "Remada curvada base",
+      description: "Exercício de costas.",
+      category: "strength",
+      level: "intermediate",
+      force: "pull",
+      mechanic: "compound",
+      equipment: "barbell",
+      primaryMuscles: ["middle_back"],
+      secondaryMuscles: ["biceps"],
+      instructions: ["Incline o tronco.", "Puxe a barra."],
+      images: ["custom/rem.jpg"],
+    });
+    expect(created.clinicId).toBeNull();
+    expect(created.code).toBeNull();
+    expect(created.source).toBe("custom");
+
+    const detail = await admin.getAnyExercise(adb(), created.id);
+    expect(detail?.origin).toBe("base");
+    expect(detail?.description).toBe("Exercício de costas.");
+    expect(detail?.images).toEqual(["custom/rem.jpg"]);
+  });
+
+  it("edits/archives base only — a clinic exercise is read-only here", async () => {
+    const updated = await admin.updateBaseExercise(adb(), baseLegPress, {
+      name: "Leg press renomeado",
+      description: null,
+      category: "strength",
+      level: "beginner",
+      force: null,
+      mechanic: null,
+      equipment: "machine",
+      primaryMuscles: ["quadriceps"],
+      secondaryMuscles: [],
+      instructions: [],
+      images: [],
+    });
+    expect(updated?.name).toBe("Leg press renomeado");
+
+    // A clinic exercise can't be edited or archived through the base path.
+    const clinicEdit = await admin.updateBaseExercise(adb(), clinicAExercise, {
+      name: "Sequestro",
+      description: null,
+      category: "strength",
+      level: "beginner",
+      force: null,
+      mechanic: null,
+      equipment: null,
+      primaryMuscles: [],
+      secondaryMuscles: [],
+      instructions: [],
+      images: [],
+    });
+    expect(clinicEdit).toBeNull();
+    expect(await admin.archiveBaseExercise(adb(), clinicAExercise)).toBeNull();
+
+    // Archiving a base exercise works.
+    expect(await admin.archiveBaseExercise(adb(), baseLegPress)).not.toBeNull();
+  });
+});

@@ -2,12 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Search, Trash2, X } from "lucide-react";
+import { Archive, ArrowLeft, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
@@ -57,12 +66,32 @@ export function ExerciseDetail({
 }) {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [apiBase, id],
     queryFn: () => apiFetch<Detail>(`${apiBase}/${id}`),
     retry: false,
   });
+
+  const archiveMutation = useMutation({
+    mutationFn: () => apiFetch(`${apiBase}/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [apiBase] });
+      router.push(backHref);
+      router.refresh();
+    },
+  });
+
+  // The viewer owns this exercise when their manage mode matches its origin: a
+  // coach owns its clinic exercises; the admin owns the shared base ones.
+  const canEdit =
+    !!data &&
+    !data.archived &&
+    ((manage === "clinic" && data.origin === "clinic") ||
+      (manage === "base" && data.origin === "base"));
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -97,6 +126,65 @@ export function ExerciseDetail({
           {data.clinicName && (
             <p className="mt-1 text-sm text-muted-foreground">{data.clinicName}</p>
           )}
+          {data.archived && (
+            <Badge variant="neutral" className="mt-2 font-medium">
+              arquivado
+            </Badge>
+          )}
+
+          {/* Edit / archive — only for the owner (coach on its clinic exercise,
+              admin on a base exercise). */}
+          {canEdit && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href={`${backHref}/${data.id}/edit`}>
+                  <Pencil className="size-4" />
+                  Editar
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setArchiveOpen(true)}
+                disabled={archiveMutation.isPending}
+              >
+                <Archive className="size-4" />
+                {archiveMutation.isPending ? "Arquivando…" : "Arquivar"}
+              </Button>
+            </div>
+          )}
+
+          <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Arquivar exercício</DialogTitle>
+                <DialogDescription>
+                  Arquivar{" "}
+                  <span className="font-medium text-foreground">{data.name}</span>?
+                  Ele deixa de aparecer no catálogo, mas o histórico é mantido.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" size="sm">
+                    Cancelar
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setArchiveOpen(false);
+                    archiveMutation.mutate();
+                  }}
+                  disabled={archiveMutation.isPending}
+                >
+                  Arquivar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Facets */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -122,6 +210,13 @@ export function ExerciseDetail({
               </Badge>
             )}
           </div>
+
+          {/* Description (free text) */}
+          {data.description && (
+            <p className="mt-4 text-sm leading-relaxed text-[#334155]">
+              {data.description}
+            </p>
+          )}
 
           {/* Image gallery */}
           {data.images.length > 0 && (

@@ -313,4 +313,92 @@ describe("exercises DAL", () => {
       ),
     ).toEqual({ ok: false, reason: "substitute_not_found" });
   });
+
+  it("lets a coach create, edit and archive its own custom exercise", async () => {
+    const created = await exercises.createExercise(ctxA, {
+      name: "Rosca direta com halteres",
+      description: "Bíceps com halteres.",
+      category: "strength",
+      level: "beginner",
+      force: "pull",
+      mechanic: "isolation",
+      equipment: "dumbbell",
+      primaryMuscles: ["biceps"],
+      secondaryMuscles: ["forearms"],
+      instructions: ["Segure os halteres.", "Flexione os cotovelos."],
+      images: ["custom/a.jpg"],
+    });
+    // The DAL derives the tenant/origin — never the payload.
+    expect(created.clinicId).toBe(ctxA.clinicId);
+    expect(created.code).toBeNull();
+    expect(created.source).toBe("custom");
+
+    // Visible to its own clinic (origin clinic), never to another.
+    const detailA = await exercises.getExercise(ctxA, created.id);
+    expect(detailA?.origin).toBe("clinic");
+    expect(detailA?.description).toBe("Bíceps com halteres.");
+    expect(detailA?.images).toEqual(["custom/a.jpg"]);
+    expect(detailA?.secondaryMuscles).toEqual(["forearms"]);
+    expect(await exercises.getExercise(ctxB, created.id)).toBeNull();
+
+    // Another clinic can't edit it; the owner can.
+    expect(
+      await exercises.updateExercise(ctxB, created.id, {
+        name: "Sequestro",
+        description: null,
+        category: "strength",
+        level: "beginner",
+        force: null,
+        mechanic: null,
+        equipment: null,
+        primaryMuscles: [],
+        secondaryMuscles: [],
+        instructions: [],
+        images: [],
+      }),
+    ).toBeNull();
+    const updated = await exercises.updateExercise(ctxA, created.id, {
+      name: "Rosca alternada",
+      description: null,
+      category: "strength",
+      level: "beginner",
+      force: "pull",
+      mechanic: "isolation",
+      equipment: "dumbbell",
+      primaryMuscles: ["biceps"],
+      secondaryMuscles: [],
+      instructions: ["Alterne os braços."],
+      images: [],
+    });
+    expect(updated?.name).toBe("Rosca alternada");
+    expect(updated?.description).toBeNull();
+
+    // Archiving is scoped to the owner and drops it from listings.
+    expect(await exercises.archiveExercise(ctxB, created.id)).toBeNull();
+    expect(await exercises.archiveExercise(ctxA, created.id)).not.toBeNull();
+    const list = await exercises.listExercises(ctxA, { pageSize: 100 });
+    expect(list.items.map((i) => i.id)).not.toContain(created.id);
+  });
+
+  it("does not let a coach edit or archive a base exercise", async () => {
+    const noop = {
+      name: "hijack",
+      description: null,
+      category: "strength" as const,
+      level: "beginner" as const,
+      force: null,
+      mechanic: null,
+      equipment: null,
+      primaryMuscles: [],
+      secondaryMuscles: [],
+      instructions: [],
+      images: [],
+    };
+    expect(await exercises.updateExercise(ctxA, agachamentoId, noop)).toBeNull();
+    expect(await exercises.archiveExercise(ctxA, agachamentoId)).toBeNull();
+    // The base exercise is untouched.
+    const stillThere = await exercises.getExercise(ctxA, agachamentoId);
+    expect(stillThere?.name).toBe("Agachamento com barra");
+    expect(stillThere?.archived).toBe(false);
+  });
 });
