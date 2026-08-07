@@ -5,6 +5,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { FoodMeasureDto } from "@/lib/foods";
@@ -53,6 +62,8 @@ export function FoodMeasures({
   const [label, setLabel] = useState("");
   const [grams, setGrams] = useState("");
   const [isDefault, setIsDefault] = useState(false);
+  // The measure pending a delete confirmation (null when the dialog is closed).
+  const [pendingRemove, setPendingRemove] = useState<FoodMeasureDto | null>(null);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
@@ -89,10 +100,12 @@ export function FoodMeasures({
     addMutation.mutate({ label: label.trim(), grams: g, isDefault });
   }
 
-  function removeMeasure(m: FoodMeasureDto) {
+  function confirmRemove() {
+    const m = pendingRemove;
+    if (!m) return;
     // Falling back to the 100 g default keeps the composition valid.
     if (m.id === selectedId) onSelect(BASE_SELECTION);
-    removeMutation.mutate(m.id);
+    removeMutation.mutate(m.id, { onSettled: () => setPendingRemove(null) });
   }
 
   const addError =
@@ -157,7 +170,7 @@ export function FoodMeasures({
               {canManage && m.removable && (
                 <button
                   type="button"
-                  onClick={() => removeMeasure(m)}
+                  onClick={() => setPendingRemove(m)}
                   disabled={removeMutation.isPending}
                   aria-label="Remover medida"
                   title="Remover medida"
@@ -238,6 +251,41 @@ export function FoodMeasures({
           {addError && <p className="mt-3 text-[13px] text-destructive">{addError}</p>}
         </div>
       )}
+
+      <Dialog
+        open={pendingRemove !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRemove(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover medida</DialogTitle>
+            <DialogDescription>
+              Remover a medida{" "}
+              <span className="font-medium text-foreground">
+                1 {pendingRemove?.label} ({pendingRemove?.grams} g)
+              </span>
+              ? Essa ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" size="sm">
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              size="sm"
+              onClick={confirmRemove}
+              disabled={removeMutation.isPending}
+            >
+              {removeMutation.isPending ? "Removendo…" : "Remover"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
