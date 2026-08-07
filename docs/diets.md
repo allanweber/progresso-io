@@ -44,10 +44,16 @@ Four tables (`src/db/schema.ts`), migration `0007_diets`:
 - **`diet_meal`** — `diet_id`, `name` (free text), `time` (nullable free text),
   `position`.
 - **`diet_meal_item`** — `diet_meal_id`, `food_id` (→ `food`, `on delete
-  restrict`), `grams` (> 0), `position`.
+  restrict`), `grams` (> 0), `measure_label`/`measure_grams` (nullable), `position`.
 - **`diet_meal_item_substitute`** — `diet_meal_item_id`, `food_id`, `grams`
-  (> 0), `position`. A coach-defined equivalence, independent of the catalog's
-  `food_substitution` (those only pre-suggest options in the UI).
+  (> 0), `measure_label`/`measure_grams` (nullable), `position`. A coach-defined
+  equivalence, independent of the catalog's `food_substitution` (those only
+  pre-suggest options in the UI).
+
+`grams` is always the canonical amount. When the quantity was entered by a
+household measure, `measure_label` + `measure_grams` snapshot that unit (grams
+per one measure) so the item can be shown as "2 fatias" and re-edited in that
+unit later (migration `0009_diet_item_measure`). `NULL` means plain grams.
 
 The child tables carry no `clinic_id`; they inherit tenancy through their FK to
 `diet` (the DAL scopes by the parent diet). Deleting a diet cascades to the whole
@@ -119,6 +125,14 @@ Per the frontend rules, the scalar shell (`name`, `notes`) uses **TanStack Form*
 state with **drag-and-drop reordering** (`@dnd-kit`) for meals and items. Meal
 names are free text with prominent suggestion chips (Café da manhã, Lanche da
 manhã, Almoço, Lanche da tarde, Jantar, Ceia, Pré-treino). Totals update live.
+
+Each item is added through the `FoodPicker` (search → the shared
+`QuantityEditor`, where the amount can be entered in grams or a household
+measure). After adding, the item row is **read-only** — it shows the quantity in
+the unit used ("2 fatias · 50 g") and a live kcal; clicking the row (or its
+pencil) reopens the `QuantityEditor` to change **both the quantity and the
+unit**. The chosen measure is snapshotted on the item (see Schema), so it
+survives save/reload. Equivalences work the same way.
 
 The whole tree is saved in a single `POST`/`PUT`. While editing, the draft is
 **persisted to `localStorage`** (recovered on return, discardable), and a

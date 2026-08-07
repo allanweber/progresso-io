@@ -665,6 +665,11 @@ export const dietMealItem = pgTable(
       .notNull()
       .references(() => food.id, { onDelete: "restrict" }),
     grams: doublePrecision("grams").notNull(),
+    // How the quantity was entered (medida caseira): a snapshot of the measure
+    // label and its grams-per-unit, for display and re-editing. NULL = plain
+    // grams. `grams` stays the canonical amount (= count × measureGrams).
+    measureLabel: text("measure_label"),
+    measureGrams: doublePrecision("measure_grams"),
     position: integer("position").notNull().default(0),
   },
   (t) => [
@@ -690,6 +695,9 @@ export const dietMealItemSubstitute = pgTable(
       .notNull()
       .references(() => food.id, { onDelete: "restrict" }),
     grams: doublePrecision("grams").notNull(),
+    // Measure snapshot for display/edit (see diet_meal_item). NULL = grams.
+    measureLabel: text("measure_label"),
+    measureGrams: doublePrecision("measure_grams"),
     position: integer("position").notNull().default(0),
   },
   (t) => [

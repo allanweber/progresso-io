@@ -66,6 +66,10 @@ export type DietItemSubstituteDto = {
   code: string | null;
   origin: DietOrigin;
   grams: number;
+  /** How the quantity was entered: a medida caseira, or null for plain grams. */
+  measureLabel: string | null;
+  /** Grams of one of that measure (so a count = grams / measureGrams). */
+  measureGrams: number | null;
   macros: DietMacrosDto;
 };
 
@@ -76,6 +80,10 @@ export type DietItemDto = {
   code: string | null;
   origin: DietOrigin;
   grams: number;
+  /** How the quantity was entered: a medida caseira, or null for plain grams. */
+  measureLabel: string | null;
+  /** Grams of one of that measure (so a count = grams / measureGrams). */
+  measureGrams: number | null;
   macros: DietMacrosDto;
   substitutes: DietItemSubstituteDto[];
 };
@@ -139,14 +147,32 @@ function optionalText(max: number, tooLong: string) {
   );
 }
 
+/** The optional medida-caseira snapshot on an item/substitute. */
+const measureFields = {
+  measureLabel: z
+    .string()
+    .trim()
+    .max(40, "Medida muito longa.")
+    .nullish()
+    .transform((v) => (v ? v : null)),
+  measureGrams: z
+    .number()
+    .positive()
+    .max(100_000)
+    .nullish()
+    .transform((v) => (v == null ? null : v)),
+};
+
 const substituteSchema = z.object({
   foodId: z.string().uuid("Alimento inválido."),
   grams: gramsSchema,
+  ...measureFields,
 });
 
 const itemSchema = z.object({
   foodId: z.string().uuid("Alimento inválido."),
   grams: gramsSchema,
+  ...measureFields,
   substitutes: z.array(substituteSchema).max(20).default([]),
 });
 

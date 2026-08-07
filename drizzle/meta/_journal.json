@@ -64,6 +64,13 @@
       "when": 1786105145309,
       "tag": "0008_food_measure",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786113134137,
+      "tag": "0009_diet_item_measure",
+      "breakpoints": true
     }
   ]
 }
