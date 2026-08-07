@@ -260,6 +260,12 @@ export default function AdminFoodDetailPage() {
             apiBase="/api/admin/foods"
             foodId={data.id}
             measures={data.measures}
+            macros={{
+              energyKcal: data.energyKcal,
+              protein: data.protein,
+              carbohydrate: data.carbohydrate,
+              fat: data.fat,
+            }}
             queryKey={["admin-food", id]}
             canManage={isBase}
           />

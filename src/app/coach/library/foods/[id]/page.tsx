@@ -236,6 +236,12 @@ export default function FoodDetailPage() {
             apiBase="/api/foods"
             foodId={data.id}
             measures={data.measures}
+            macros={{
+              energyKcal: data.energyKcal,
+              protein: data.protein,
+              carbohydrate: data.carbohydrate,
+              fat: data.fat,
+            }}
             queryKey={["food", id]}
           />
 

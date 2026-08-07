@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api-client";
 import type {
   FoodDetailDto,
   FoodListResponse,
+  FoodMeasureDto,
   FoodOrigin,
 } from "@/lib/foods";
 
@@ -92,6 +93,10 @@ export function FoodPicker({
   const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<PickedFood | null>(null);
   const [grams, setGrams] = useState<number | "">(initialGrams);
+  // The last measure chip tapped, so we can show its kcal/macros breakdown.
+  const [pickedMeasure, setPickedMeasure] = useState<FoodMeasureDto | null>(
+    null,
+  );
   const [loadingSuggestion, setLoadingSuggestion] = useState<string | null>(
     null,
   );
@@ -173,6 +178,7 @@ export function FoodPicker({
     setSearch("");
     setSelected(null);
     setGrams(initialGrams);
+    setPickedMeasure(null);
     setActive(0);
   }
 
@@ -287,13 +293,44 @@ export function FoodPicker({
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setGrams((v) => (Number(v) || 0) + m.grams)}
+                  onClick={() => {
+                    setGrams((v) => (Number(v) || 0) + m.grams);
+                    setPickedMeasure(m);
+                  }}
                   className="rounded-full border border-border bg-surface-light px-2.5 py-1 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
                 >
-                  + 1 {m.label} · {m.grams} g
+                  + 1 {m.label} · {m.grams} g ·{" "}
+                  <span className="font-semibold text-primary">
+                    {scaled(selected.energyKcal, m.grams)} kcal
+                  </span>
                 </button>
               ))}
             </div>
+            {pickedMeasure &&
+              measures.some((m) => m.id === pickedMeasure.id) && (
+                <div className="mt-2 rounded-lg border border-[#EEF2F6] bg-surface-light px-2.5 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    1 {pickedMeasure.label} ({pickedMeasure.grams} g)
+                  </span>{" "}
+                  ={" "}
+                  <span className="font-semibold text-primary">
+                    {scaled(selected.energyKcal, pickedMeasure.grams)}
+                  </span>{" "}
+                  kcal ·{" "}
+                  <span className="font-semibold text-blue-600">
+                    {scaled(selected.protein, pickedMeasure.grams, 1)} g
+                  </span>{" "}
+                  Prot ·{" "}
+                  <span className="font-semibold text-red-600">
+                    {scaled(selected.carbohydrate, pickedMeasure.grams, 1)} g
+                  </span>{" "}
+                  Carb ·{" "}
+                  <span className="font-semibold text-amber-600">
+                    {scaled(selected.fat, pickedMeasure.grams, 1)} g
+                  </span>{" "}
+                  Gord
+                </div>
+              )}
           </div>
         )}
 
