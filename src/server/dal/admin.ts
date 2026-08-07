@@ -765,3 +765,105 @@ export async function getAnyExercise(
     })),
   };
 }
+
+/** Whether an exercise exists and is a shared **base** exercise (`clinic_id NULL`). */
+async function baseExerciseExists(db: DB, id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: schema.exercise.id })
+    .from(schema.exercise)
+    .where(and(eq(schema.exercise.id, id), isNull(schema.exercise.clinicId)));
+  return Boolean(row);
+}
+
+export type AddBaseExerciseSubstitutionResult =
+  | { ok: true; substitute: ExerciseSubstituteRow }
+  | {
+      ok: false;
+      reason:
+        | "exercise_not_found"
+        | "substitute_not_found"
+        | "same_exercise"
+        | "duplicate";
+    };
+
+/**
+ * Adds a shared **base** substitution rule (`clinic_id NULL`): the substitute
+ * exercise may replace the exercise. Both the exercise and its substitute MUST
+ * be base exercises — a base rule pointing at a clinic's own exercise would leak
+ * that exercise to every tenant, so a non-base id is rejected as "not found".
+ * Self-substitution and duplicates are rejected too.
+ */
+export async function addBaseExerciseSubstitution(
+  db: DB,
+  exerciseId: string,
+  substituteExerciseId: string,
+): Promise<AddBaseExerciseSubstitutionResult> {
+  if (exerciseId === substituteExerciseId) {
+    return { ok: false, reason: "same_exercise" };
+  }
+  if (!(await baseExerciseExists(db, exerciseId))) {
+    return { ok: false, reason: "exercise_not_found" };
+  }
+  if (!(await baseExerciseExists(db, substituteExerciseId))) {
+    return { ok: false, reason: "substitute_not_found" };
+  }
+  const [dupe] = await db
+    .select({ id: schema.exerciseSubstitution.id })
+    .from(schema.exerciseSubstitution)
+    .where(
+      and(
+        isNull(schema.exerciseSubstitution.clinicId),
+        eq(schema.exerciseSubstitution.exerciseId, exerciseId),
+        eq(schema.exerciseSubstitution.substituteExerciseId, substituteExerciseId),
+      ),
+    );
+  if (dupe) return { ok: false, reason: "duplicate" };
+
+  const [ins] = await db
+    .insert(schema.exerciseSubstitution)
+    .values({ clinicId: null, exerciseId, substituteExerciseId })
+    .returning({ id: schema.exerciseSubstitution.id });
+  const [sub] = await db
+    .select({
+      name: schema.exercise.name,
+      code: schema.exercise.code,
+      category: schema.exercise.category,
+      equipment: schema.exercise.equipment,
+      images: schema.exercise.images,
+    })
+    .from(schema.exercise)
+    .where(eq(schema.exercise.id, substituteExerciseId));
+
+  return {
+    ok: true,
+    substitute: {
+      id: ins.id,
+      exerciseId: substituteExerciseId,
+      name: sub.name,
+      code: sub.code,
+      category: sub.category,
+      equipment: sub.equipment,
+      thumbnail: sub.images[0] ?? null,
+      origin: "base",
+    },
+  };
+}
+
+/** Removes a shared **base** exercise substitution rule (`clinic_id NULL` only). */
+export async function removeBaseExerciseSubstitution(
+  db: DB,
+  exerciseId: string,
+  substitutionId: string,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(schema.exerciseSubstitution)
+    .where(
+      and(
+        eq(schema.exerciseSubstitution.id, substitutionId),
+        eq(schema.exerciseSubstitution.exerciseId, exerciseId),
+        isNull(schema.exerciseSubstitution.clinicId),
+      ),
+    )
+    .returning({ id: schema.exerciseSubstitution.id });
+  return deleted.length > 0;
+}

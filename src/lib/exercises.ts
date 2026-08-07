@@ -225,6 +225,17 @@ export const exerciseListQuerySchema = z.object({
 });
 export type ExerciseListQuery = z.output<typeof exerciseListQuerySchema>;
 
+/**
+ * Body for adding a base substitution rule to an exercise (admin only). Unlike
+ * food substitutions there is no `grams` — an exercise swap is a plain link.
+ */
+export const exerciseSubstitutionFormSchema = z.object({
+  substituteExerciseId: z.string().uuid("Exercício substituto inválido."),
+});
+export type ExerciseSubstitutionForm = z.output<
+  typeof exerciseSubstitutionFormSchema
+>;
+
 /* ---------------------------------- DTOs ---------------------------------- */
 
 /** A row in the exercise listing (identity + the facets the cards show). */
