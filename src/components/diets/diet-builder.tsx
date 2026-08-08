@@ -569,7 +569,7 @@ export function DietBuilder({
       }}
       className="mx-auto max-w-3xl pb-24"
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
           onClick={cancel}
@@ -578,15 +578,15 @@ export function DietBuilder({
           <ArrowLeft className="size-4" />
           Cancelar
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
           {adapter ? (
             <>
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
                 onClick={runDiscard}
                 disabled={busy !== null}
+                className="w-full sm:w-auto"
               >
                 {busy === "discard" ? "Descartando…" : "Descartar"}
               </Button>
@@ -595,6 +595,7 @@ export function DietBuilder({
                 variant="outline"
                 onClick={() => runAdapter("save")}
                 disabled={busy !== null}
+                className="w-full sm:w-auto"
               >
                 <Save className="size-4" />
                 {busy === "save"
@@ -605,6 +606,7 @@ export function DietBuilder({
                 type="button"
                 onClick={() => runAdapter("publish")}
                 disabled={busy !== null}
+                className="w-full sm:w-auto"
               >
                 {busy === "publish"
                   ? "Publicando…"
@@ -617,13 +619,17 @@ export function DietBuilder({
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
                   onClick={discardDraft}
+                  className="w-full sm:w-auto"
                 >
                   Descartar rascunho
                 </Button>
               )}
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button
+                type="submit"
+                disabled={mutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 <Save className="size-4" />
                 {mutation.isPending ? "Salvando…" : "Salvar dieta"}
               </Button>
