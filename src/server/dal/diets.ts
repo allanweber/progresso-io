@@ -605,6 +605,56 @@ export async function createDiet(
   return { ok: true, id };
 }
 
+/** The " (cópia)" suffix, and the diet-name cap it has to fit inside. */
+const COPY_SUFFIX = " (cópia)";
+const NAME_MAX = 120;
+
+/** Appends " (cópia)", trimming the base name so the result fits `NAME_MAX`. */
+function copyName(name: string): string {
+  const base =
+    name.length + COPY_SUFFIX.length > NAME_MAX
+      ? name.slice(0, NAME_MAX - COPY_SUFFIX.length).trimEnd()
+      : name;
+  return `${base}${COPY_SUFFIX}`;
+}
+
+/**
+ * Creates an exact copy of a diet the clinic can see — a base template or one of
+ * its own — as a new **clinic-owned** diet named "<name> (cópia)". The whole
+ * tree (meals, items, measures and substitutes) is duplicated. Returns
+ * `not_found` when the source isn't visible to the clinic.
+ */
+export async function copyDiet(
+  ctx: TenantContext,
+  id: string,
+): Promise<DietWriteResult> {
+  const source = await getDiet(ctx, id);
+  if (!source) return { ok: false, reason: "not_found" };
+
+  const input: DietWriteInput = {
+    name: copyName(source.name),
+    notes: source.notes,
+    meals: source.meals.map((meal) => ({
+      name: meal.name,
+      time: meal.time,
+      items: meal.items.map((item) => ({
+        foodId: item.foodId,
+        grams: item.grams,
+        measureLabel: item.measureLabel,
+        measureGrams: item.measureGrams,
+        substitutes: item.substitutes.map((sub) => ({
+          foodId: sub.foodId,
+          grams: sub.grams,
+          measureLabel: sub.measureLabel,
+          measureGrams: sub.measureGrams,
+        })),
+      })),
+    })),
+  };
+
+  return createDiet(ctx, input);
+}
+
 /**
  * Updates one of this clinic's own diets, replacing its whole tree. Scoped to
  * `clinic_id = ctx.clinicId`, so a base template or another clinic's diet is

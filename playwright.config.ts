@@ -75,6 +75,16 @@ export default defineConfig({
         storageState: ALUNO_STORAGE,
       },
     },
+    {
+      name: "diets",
+      testMatch: /diets\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: COACH_STORAGE,
+      },
+    },
   ],
   webServer: {
     command: `npm run dev -- --port ${PORT}`,

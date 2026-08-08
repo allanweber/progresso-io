@@ -75,6 +75,10 @@ Every function takes a `TenantContext` and scopes by `ctx.clinicId`:
   Return `invalid_food` / `not_found` on the failure paths.
 - `archiveDiet` / `unarchiveDiet` — soft-delete toggles, scoped to the clinic's
   own diets (a base/other-clinic id is never matched).
+- `copyDiet` — duplicates any **visible** diet (a base template or the clinic's
+  own) into a new **clinic-owned** diet named `<name> (cópia)` (capped at 120
+  chars), copying the whole tree. Reuses `getDiet` + `createDiet`, so copying a
+  base template yields an editable clinic copy.
 
 ## API (`/api/diets`)
 
@@ -85,6 +89,8 @@ All coach-only, zod-validated, tenant via `getTenantContext()` + the DAL:
 - `GET /api/diets/[id]` — full detail.
 - `PUT /api/diets/[id]` — replace the whole tree.
 - `DELETE /api/diets/[id]` — archive. `PATCH /api/diets/[id]` — unarchive.
+- `POST /api/diets/[id]/copy` — duplicate the diet (no body); returns the new
+  `{ diet: { id } }` (201).
 
 The write payload is the whole tree, validated by the shared `dietFormSchema`
 (`src/lib/diets.ts`):
@@ -114,8 +120,9 @@ A **Dietas** entry in the coach sidebar. Routes (English segments, PT-BR copy):
   counts, total kcal, updated-at).
 - `/coach/diets/new` — the builder (create).
 - `/coach/diets/[id]` — read-only view (meals, items, equivalences, per-meal and
-  diet totals) with **Editar** / **Arquivar** / **Desarquivar** for the clinic's
-  own diets (a base template is read-only).
+  diet totals) with **Criar cópia** (any diet — lands on the fresh copy) and,
+  for the clinic's own diets, **Editar** / **Arquivar** / **Desarquivar** (a
+  base template is otherwise read-only).
 - `/coach/diets/[id]/edit` — the builder (edit).
 
 ### Builder (`src/components/diets/diet-builder.tsx`)

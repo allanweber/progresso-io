@@ -276,3 +276,93 @@ describe("diets DAL", () => {
     expect(await diets.archiveDiet(ctxA, base.id)).toBe(false);
   });
 });
+
+describe("copyDiet", () => {
+  it("copies a clinic diet exactly with a (cópia) suffix", async () => {
+    const src = await diets.createDiet(ctxA, sampleDiet());
+    expect(src.ok).toBe(true);
+    if (!src.ok) return;
+    const original = await diets.getDiet(ctxA, src.id);
+
+    const copy = await diets.copyDiet(ctxA, src.id);
+    expect(copy.ok).toBe(true);
+    if (!copy.ok) return;
+    expect(copy.id).not.toBe(src.id);
+
+    const dup = await diets.getDiet(ctxA, copy.id);
+    expect(dup!.name).toBe("Cutting 1800 (cópia)");
+    expect(dup!.origin).toBe("clinic");
+    expect(dup!.archived).toBe(false);
+    expect(dup!.notes).toBe(original!.notes);
+    // Same tree: meals, items and substitutes (food + grams), and totals.
+    expect(dup!.meals.map((m) => m.name)).toEqual(
+      original!.meals.map((m) => m.name),
+    );
+    expect(dup!.meals[0].items.map((i) => [i.foodId, i.grams])).toEqual(
+      original!.meals[0].items.map((i) => [i.foodId, i.grams]),
+    );
+    expect(
+      dup!.meals[0].items[0].substitutes.map((s) => [s.foodId, s.grams]),
+    ).toEqual(
+      original!.meals[0].items[0].substitutes.map((s) => [s.foodId, s.grams]),
+    );
+    expect(dup!.totals).toEqual(original!.totals);
+  });
+
+  it("copies a base template into an editable clinic-owned diet", async () => {
+    const [base] = await db
+      .insert(schema.diet)
+      .values({ clinicId: null, coachId: null, name: "Modelo base" })
+      .returning({ id: schema.diet.id });
+    const [meal] = await db
+      .insert(schema.dietMeal)
+      .values({ dietId: base.id, name: "Café", time: "07:00", position: 0 })
+      .returning({ id: schema.dietMeal.id });
+    await db.insert(schema.dietMealItem).values({
+      dietMealId: meal.id,
+      foodId: arrozId,
+      grams: 150,
+      position: 0,
+    });
+
+    const copy = await diets.copyDiet(ctxA, base.id);
+    expect(copy.ok).toBe(true);
+    if (!copy.ok) return;
+
+    const dup = await diets.getDiet(ctxA, copy.id);
+    expect(dup!.name).toBe("Modelo base (cópia)");
+    // The copy belongs to the clinic (unlike the base) and is editable.
+    expect(dup!.origin).toBe("clinic");
+    expect(dup!.meals[0].items[0].foodId).toBe(arrozId);
+    const upd = await diets.updateDiet(ctxA, copy.id, {
+      name: "Editada",
+      notes: null,
+      meals: [],
+    });
+    expect(upd.ok).toBe(true);
+  });
+
+  it("won't copy another clinic's diet", async () => {
+    const src = await diets.createDiet(ctxA, sampleDiet());
+    if (!src.ok) return;
+    expect(await diets.copyDiet(ctxB, src.id)).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
+  });
+
+  it("caps the copied name at 120 characters", async () => {
+    const src = await diets.createDiet(ctxA, {
+      name: "D".repeat(120),
+      notes: null,
+      meals: [],
+    });
+    if (!src.ok) return;
+    const copy = await diets.copyDiet(ctxA, src.id);
+    expect(copy.ok).toBe(true);
+    if (!copy.ok) return;
+    const dup = await diets.getDiet(ctxA, copy.id);
+    expect(dup!.name.length).toBeLessThanOrEqual(120);
+    expect(dup!.name.endsWith("(cópia)")).toBe(true);
+  });
+});
