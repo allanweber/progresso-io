@@ -8,6 +8,7 @@ import type {
 } from "@/lib/student-diets";
 import type { AlunoProfileDto, MyDietStateDto } from "@/lib/student-portal";
 import type { TenantContext } from "@/server/tenant";
+import { hydrateStructure } from "./student-diets";
 
 /**
  * Aluno-portal DAL. Everything here is read-only and **doubly scoped**: by
@@ -137,7 +138,7 @@ export async function getMyDietState(
         version: latest.version!,
         publishedAt: latest.publishedAt!.toISOString(),
         notes: latest.notes,
-        tree: latest.tree,
+        tree: await hydrateStructure(ctx, latest.tree),
       };
     }
   }
@@ -198,6 +199,6 @@ export async function getMyDietVersion(
     version: row.version.version!,
     publishedAt: row.version.publishedAt!.toISOString(),
     notes: row.version.notes,
-    tree: row.version.tree,
+    tree: await hydrateStructure(ctx, row.version.tree),
   };
 }

@@ -10,27 +10,32 @@ test.describe("aluno portal", () => {
   test("opens on the active diet with its meals", async ({ page }) => {
     await page.goto("/student");
 
-    // The tab opens on Dieta: the active diet, its badge, meals and foods.
+    // The tab opens on Dieta: the active diet, its badge, meals and foods (the
+    // seed references real catalog foods, so match on partial descriptions).
     await expect(
       page.getByRole("heading", { name: "Cutting" }),
     ).toBeVisible();
     await expect(page.getByText("v1 vigente")).toBeVisible();
     await expect(page.getByText("Café da manhã")).toBeVisible();
-    await expect(page.getByText("Pão, trigo, francês")).toBeVisible();
+    await expect(page.getByText(/Arroz/).first()).toBeVisible();
+    // Foods with swaps show a small indicator in the list (not the full list).
+    await expect(page.getByText(/substituiç(ão|ões)/).first()).toBeVisible();
   });
 
-  test("opens a food's macros + substitutions in a dialog", async ({
+  test("shows a food's catalog substitutions (live) in the dialog", async ({
     page,
   }) => {
     await page.goto("/student");
 
-    await page.getByRole("button", { name: /Arroz, tipo 1, cozido/ }).click();
+    // The seed gives arroz a base catalog substitute (batata doce), derived live
+    // — no snapshot. Open arroz and confirm the swap shows in the dialog.
+    await page.getByRole("button", { name: /Arroz/ }).first().click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Distribuição de macros")).toBeVisible();
     await expect(dialog.getByText("Substituições equivalentes")).toBeVisible();
-    await expect(dialog.getByText(/Batata, doce/)).toBeVisible();
+    await expect(dialog.getByText(/Batata/)).toBeVisible();
   });
 
   test("shows the read-only history and opens an archived version", async ({

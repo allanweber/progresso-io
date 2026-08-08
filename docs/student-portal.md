@@ -50,10 +50,11 @@ DAL, zod on the only param:
     (`queryClient.clear()`) so no data survives into the next account.
 - **Dieta tab**: a total macro bar (+ P/C/G ratio), then meal cards (per-meal
   macro footer, reusing `MacroSummary` from the coach's `diet-detail-view`).
-  Each food row is **clickable** → a **food-detail dialog** (macro cards +
-  distribution bar + equivalent substitutions), built entirely from the
-  embedded snapshot — no extra fetch. Food avatars from the design are
-  intentionally omitted.
+  Each food row shows a small "N substituições" indicator and is **clickable** →
+  a **food-detail dialog** (macro cards + distribution bar + the full,
+  portion-scaled swap list). Nutrition + substitutions are hydrated **live** from
+  the catalog on read (see `docs/student-diets.md`), not snapshotted. Food avatars
+  from the design are intentionally omitted.
 - **Dietas anteriores**: a flat, **read-only** list of past published versions
   (archived diets + older versions of the active one); opening one shows its
   meals → foods as a plain read (`somente leitura`), with no food dialog.

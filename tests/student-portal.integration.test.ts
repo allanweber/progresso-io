@@ -204,6 +204,29 @@ describe("student portal DAL (aluno-facing, read-only)", () => {
     expect(draft).toBeNull();
   });
 
+  it("shows catalog substitutes live — added after publish, no re-publish", async () => {
+    // Before: arroz has no catalog substitute.
+    let state = await studentPortal.getMyDietState(alunoCtxA);
+    expect(state!.current!.tree.meals[0].items[0].foodSubstitutes ?? []).toEqual(
+      [],
+    );
+
+    // The coach adds a base catalog substitution for arroz…
+    const batataId = await addFood({ description: "Batata doce", energyKcal: 77 });
+    await db.insert(schema.foodSubstitution).values({
+      clinicId: null,
+      foodId: arrozId,
+      substituteFoodId: batataId,
+      grams: 167,
+    });
+
+    // …and the aluno sees it immediately, with no re-publish of the diet.
+    state = await studentPortal.getMyDietState(alunoCtxA);
+    expect(state!.current!.tree.meals[0].items[0].foodSubstitutes).toEqual([
+      { foodId: batataId, description: "Batata doce", grams: 167 },
+    ]);
+  });
+
   it("never leaks another aluno's / clinic's diet", async () => {
     // Aluno B (clinic B) has no diet of their own.
     const stateB = await studentPortal.getMyDietState(alunoCtxB);
