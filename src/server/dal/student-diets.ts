@@ -19,18 +19,19 @@ import {
 import { createDiet, getDiet, type DietWriteInput } from "./diets";
 
 /**
- * Student-diet DAL. A student's diet is versioned and snapshotted: every read
- * and write is scoped by `ctx.clinicId` (+ the `studentId`), and each version
- * stores a self-contained `DietTree` built **here** from the food catalog — the
- * client never supplies macros. Publishing numbers a version (1..N) and freezes
- * it; the first publish of a new diet archives the student's previous one.
+ * Student-diet DAL. Every read and write is scoped by `ctx.clinicId` (+ the
+ * `studentId`). A version stores only the **prescription structure** (food +
+ * quantity refs); nutrition and catalog substitutions are derived live from the
+ * catalog on read (`hydrateStructure`), so a coach's catalog correction reaches
+ * every student without a re-publish. Publishing numbers a version (1..N); the
+ * first publish of a new diet archives the student's previous one.
  *
  * At most one draft version exists per student at a time (across all their
  * diets), so the Dieta tab is always in exactly one of: draft / current / empty.
  */
 
 /* -------------------------------------------------------------------------- */
-/*  Tree building (server-side snapshot from the catalog)                      */
+/*  Structure → live tree hydration (from the current catalog)                 */
 /* -------------------------------------------------------------------------- */
 
 type FoodRow = {
@@ -103,16 +104,33 @@ function lineFrom(
   };
 }
 
-/** Every distinct foodId referenced by a structure (items + substitutes). */
+/** Every distinct foodId referenced by a structure (item foods only). */
 function referencedFoodIds(structure: DietStructure): string[] {
   const ids = new Set<string>();
   for (const meal of structure.meals) {
-    for (const item of meal.items) {
-      ids.add(item.foodId);
-      for (const sub of item.substitutes) ids.add(sub.foodId);
-    }
+    for (const item of meal.items) ids.add(item.foodId);
   }
   return [...ids];
+}
+
+/**
+ * The persisted structure for a write payload — **food + quantity only**. Any
+ * per-item equivalences the builder may carry are dropped: a student diet stores
+ * just the prescription, and swaps are the food's catalog substitutes, live.
+ */
+function toStructure(input: DietWriteInput): DietStructure {
+  return {
+    meals: input.meals.map((m) => ({
+      name: m.name,
+      time: m.time,
+      items: m.items.map((it) => ({
+        foodId: it.foodId,
+        grams: it.grams,
+        measureLabel: it.measureLabel ?? null,
+        measureGrams: it.measureGrams ?? null,
+      })),
+    })),
+  };
 }
 
 /** Loads the given foods scoped to what this clinic can see (base + own). */
@@ -204,10 +222,12 @@ export async function hydrateStructure(
   };
 
   const meals = structure.meals.map((m) => {
-    const items = m.items.map((it) => ({
-      ...lineFor(it),
-      substitutes: it.substitutes.map(lineFor),
-      foodSubstitutes: catalogByFood.get(it.foodId) ?? [],
+    const items = m.items.map((ref) => ({
+      ...lineFor(ref),
+      // Student diets store no per-item equivalences — swaps come live from the
+      // food's catalog substitutes below.
+      substitutes: [],
+      foodSubstitutes: catalogByFood.get(ref.foodId) ?? [],
     }));
     return {
       name: m.name,
@@ -556,7 +576,7 @@ export async function createFromTemplate(
       })),
     })),
   };
-  const structure: DietStructure = { meals: input.meals };
+  const structure = toStructure(input);
   if (!(await allFoodsVisible(ctx, structure))) {
     return { ok: false, reason: "invalid_food" };
   }
@@ -644,7 +664,7 @@ export async function saveDraft(
   const draft = await findDraft(ctx, studentId);
   if (!draft) return { ok: false, reason: "not_found" };
 
-  const structure: DietStructure = { meals: input.meals };
+  const structure = toStructure(input);
   if (!(await allFoodsVisible(ctx, structure))) {
     return { ok: false, reason: "invalid_food" };
   }
@@ -676,7 +696,7 @@ export async function publishDraft(
   const draft = await findDraft(ctx, studentId);
   if (!draft) return { ok: false, reason: "not_found" };
 
-  const structure: DietStructure = { meals: input.meals };
+  const structure = toStructure(input);
   if (!(await allFoodsVisible(ctx, structure))) {
     return { ok: false, reason: "invalid_food" };
   }

@@ -82,10 +82,11 @@ export const EMPTY_TREE: DietTree = {
 /* -------------------------------------------------------------------------- */
 
 /**
- * A stored reference to a food line: which food, how much, and how the quantity
- * was entered. No macros/description — those are hydrated live from the catalog
- * on read (so a coach's catalog correction reaches every student without a
- * re-publish). Structurally a supertype of the write payload's item shape.
+ * A stored meal item — **only the food and the quantity**: which food, how much,
+ * and how the quantity was entered (medida caseira). Everything else (macros,
+ * description, and the available **substitutions**) is derived live from the
+ * catalog on read, so a coach's catalog correction reaches every student without
+ * a re-publish. Substitutions are never stored on the diet.
  */
 export type StructFoodRef = {
   foodId: string;
@@ -94,16 +95,17 @@ export type StructFoodRef = {
   measureGrams?: number | null;
 };
 
-/** A stored meal item: a food ref plus the coach's equivalence refs. */
-export type StructItem = StructFoodRef & { substitutes: StructFoodRef[] };
-
 /** A stored meal: name/time + its item refs. */
-export type StructMeal = { name: string; time: string | null; items: StructItem[] };
+export type StructMeal = {
+  name: string;
+  time: string | null;
+  items: StructFoodRef[];
+};
 
 /**
- * What a version persists — the **prescription structure** (references only).
- * The read DTOs (`DietTree`) are produced by hydrating this against the current
- * catalog in the DAL.
+ * What a version persists — the **prescription structure**: meals of
+ * food+quantity refs, nothing more. The read DTOs (`DietTree`) are produced by
+ * hydrating this against the current catalog in the DAL.
  */
 export type DietStructure = { meals: StructMeal[] };
 

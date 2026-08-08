@@ -29,17 +29,19 @@ the student profile (`/coach/students/[id]/diet`) and in the aluno portal
 ## Stored structure + live hydration (no snapshot)
 
 Each version stores only the **prescription structure** as one **`jsonb`
-document** (`DietStructure`, `src/lib/student-diets.ts`): the **references** —
-`foodId` + `grams` + measure per item, plus the coach's equivalence refs. It
-stores **no** macros or descriptions.
+document** (`DietStructure`, `src/lib/student-diets.ts`): per item just the
+**food + quantity** — `foodId` + `grams` (+ the medida caseira it was entered
+with). It stores **no** macros, descriptions, or substitutions.
 
 On every read the DAL **hydrates** that structure against the **current** catalog
 (`hydrateStructure`, `src/server/dal/student-diets.ts`): it loads the referenced
 foods (visibility-checked), computes the scaled `macros` + per-meal / diet
 `totals`, and attaches each food's live **catalog substitutes** (`foodSubstitutes`,
 `grams` per 100 g of the item's food) — producing the read `DietTree` the views
-already render. Writes only validate that every referenced food is visible
-(`invalid_food` otherwise) and store the structure.
+already render. The **swaps are always the food's catalog substitutes**, live;
+the diet holds no per-item equivalences of its own. Writes only validate that
+every referenced food is visible (`invalid_food` otherwise) and store the
+food+quantity structure.
 
 Because nutrition and substitutions are **derived live**, a coach's catalog
 correction (a food's macros, a new/changed substitution) reaches **every**

@@ -155,10 +155,15 @@ describe("student diets DAL", () => {
     const item = state!.draft!.tree.meals[0].items[0];
     expect(item.description).toBe("Arroz branco cozido");
     expect(item.origin).toBe("base");
-    // 200 g arroz (128/100) = 256 kcal, embedded/computed.
+    // 200 g arroz (128/100) = 256 kcal, computed live on read.
     expect(item.macros.energyKcal).toBeCloseTo(256);
     expect(item.per100.energyKcal).toBe(128);
-    expect(item.substitutes[0].description).toBe("Peito de frango grelhado");
+    // The diet stores no per-item equivalences; swaps are the food's catalog
+    // substitutes, live (arroz → batata from beforeAll).
+    expect(item.substitutes).toEqual([]);
+    expect(item.foodSubstitutes).toEqual([
+      { foodId: batataId, description: "Batata doce cozida", grams: 167 },
+    ]);
     expect(state!.draft!.tree.totals.energyKcal).toBeCloseTo(256);
 
     // Publish → v1 active, no draft.
