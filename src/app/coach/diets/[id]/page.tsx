@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, ArrowLeft, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, Copy, Pencil } from "lucide-react";
 
 import {
   DietMealsView,
@@ -56,6 +56,18 @@ export default function DietDetailPage() {
     },
   });
 
+  const copyMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ diet: { id: string } }>(`/api/diets/${id}/copy`, {
+        method: "POST",
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["diets"] });
+      // Land on the fresh copy so the coach can tweak it right away.
+      router.push(`/coach/diets/${res.diet.id}`);
+    },
+  });
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link
@@ -98,18 +110,30 @@ export default function DietDetailPage() {
               </p>
             </div>
 
-            {/* Edit / archive only for the clinic's own diets. */}
-            {data.origin === "clinic" && (
-              <div className="flex flex-wrap gap-2">
-                {!data.archived && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/coach/diets/${id}/edit`}>
-                      <Pencil className="size-4" />
-                      Editar
-                    </Link>
-                  </Button>
-                )}
-                {data.archived ? (
+            <div className="flex flex-wrap gap-2">
+              {/* Copy works for any visible diet — a base template becomes an
+                  editable clinic-owned copy; a clinic diet is duplicated. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyMutation.mutate()}
+                disabled={copyMutation.isPending}
+              >
+                <Copy className="size-4" />
+                {copyMutation.isPending ? "Copiando…" : "Criar cópia"}
+              </Button>
+
+              {/* Edit / archive only for the clinic's own diets. */}
+              {data.origin === "clinic" && !data.archived && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/coach/diets/${id}/edit`}>
+                    <Pencil className="size-4" />
+                    Editar
+                  </Link>
+                </Button>
+              )}
+              {data.origin === "clinic" &&
+                (data.archived ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -128,9 +152,8 @@ export default function DietDetailPage() {
                     <Archive className="size-4" />
                     Arquivar
                   </Button>
-                )}
-              </div>
-            )}
+                ))}
+            </div>
           </div>
 
           {data.notes && (

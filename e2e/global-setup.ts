@@ -20,6 +20,7 @@ const ROUTES = [
   "/coach",
   "/coach/students",
   "/coach/students/new",
+  "/coach/diets",
   "/student",
   "/dashboard",
 ];
