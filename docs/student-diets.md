@@ -1,9 +1,9 @@
 # Student diets (dieta do aluno)
 
-A **versioned, snapshotted** diet assigned to one student — distinct from the
+A **versioned, reference-based** diet assigned to one student — distinct from the
 reusable template `diet` (see `docs/diets.md`). It lives in the **Dieta** tab of
-the student profile (`/coach/students/[id]/diet`). Coach-only in this phase; the
-aluno-facing view is a later phase (publishing just makes a version available).
+the student profile (`/coach/students/[id]/diet`) and in the aluno portal
+(`/student`, see `docs/student-portal.md`).
 
 ## Concepts
 
@@ -11,8 +11,8 @@ aluno-facing view is a later phase (publishing just makes a version available).
   time (the current plan). Each diet is a named container with an incremental
   **version** chain (1..N).
 - A coach builds a **draft** (not visible to the aluno) and **publishes** it.
-  Each publish numbers a new **immutable** version. At most **one draft** exists
-  per student at a time.
+  Each publish numbers a new version (the record of *what was prescribed and
+  when*). At most **one draft** exists per student at a time.
 - Opening the tab always lands on a **read view** — the active diet and its
   history — never the builder. The builder is entered only by an explicit action
   (*Editar* / *Continuar editando* / *Nova dieta*); it is local UI state, so
@@ -26,18 +26,35 @@ aluno-facing view is a later phase (publishing just makes a version available).
 - Editing the active diet clones its latest published version into a new draft
   version on the same diet; publishing it adds the next version number.
 
-## Snapshot (self-contained JSON, embedded on the server)
+## Stored structure + live hydration (no snapshot)
 
-Each version stores its whole meal tree as one **`jsonb` document** (`DietTree`,
-`src/lib/student-diets.ts`) with the food **embedded** — description, code,
-origin, `per100` macros — and the scaled **`macros`** and per-meal / diet
-**totals** pre-computed. So a published version is **immutable**: editing or
-archiving a base food later never changes it (an integration test asserts this).
+Each version stores only the **prescription structure** as one **`jsonb`
+document** (`DietStructure`, `src/lib/student-diets.ts`): per item just the
+**food + quantity** — `foodId` + `grams` (+ the medida caseira it was entered
+with). It stores **no** macros, descriptions, or substitutions.
 
-The tree is always built on the **server** from the catalog (never trusted from
-the client): the client sends the same whole-tree payload the template builder
-emits (`foodId` + `grams` + measure + substitutes), and the DAL loads the
-referenced foods (visibility-checked) and embeds the snapshot.
+On every read the DAL **hydrates** that structure against the **current** catalog
+(`hydrateStructure`, `src/server/dal/student-diets.ts`): it loads the referenced
+foods (visibility-checked), computes the scaled `macros` + per-meal / diet
+`totals`, and attaches each food's live **catalog substitutes** (`foodSubstitutes`,
+`grams` per 100 g of the item's food) — producing the read `DietTree` the views
+already render. The **swaps are always the food's catalog substitutes**, live;
+the diet holds no per-item equivalences of its own. Writes only validate that
+every referenced food is visible (`invalid_food` otherwise) and store the
+food+quantity structure.
+
+Because nutrition and substitutions are **derived live**, a coach's catalog
+correction (a food's macros, a new/changed substitution) reaches **every**
+student immediately, with **no re-publish**. The trade-off: a version is no longer
+a frozen nutritional record — an archived version reflects the current catalog,
+and a **hard-deleted** food shows an "Alimento indisponível" placeholder (null
+macros). Versioning still records *which foods/quantities* were prescribed (the
+structure) and when. Legacy snapshot rows from before this change are **not
+migrated** (ignored).
+
+The aluno lists a small "N substituições" indicator per food and shows the full,
+portion-scaled swap list in the food-detail dialog; the coach's read view renders
+them via the shared `DietMealsView`.
 
 ## Schema
 
@@ -57,14 +74,17 @@ Two tables (`src/db/schema.ts`), migration `0010_student_diets`:
 Every function takes a `TenantContext` and scopes by `ctx.clinicId` +
 `studentId` (the student must belong to the clinic):
 
+- `hydrateStructure` — the core read helper: turns a stored `DietStructure` into
+  a live `DietTree` (macros + catalog substitutes from the current catalog).
 - `getStudentDietState` — one read for the tab: the aluno-visible `current`
   (active diet's latest published), the in-flight `draft`, and the `history`.
-- `getStudentDietVersion` — a single published version's tree (history view).
+  `current`/`draft` trees are hydrated live.
+- `getStudentDietVersion` — a single published version, hydrated live (history).
 - `createBlankDraft` / `createFromTemplate` — start a new diet (draft v1); the
-  template copy reuses `getDiet` and re-embeds the tree.
-- `editActive` — open a draft of the active diet (clones its latest tree).
-- `saveDraft` — save the draft's tree/name/notes (rebuilds the embedded tree).
-- `publishDraft` — save + number + freeze; a new diet's first publish archives
+  template copy reuses `getDiet` and stores its structure.
+- `editActive` — open a draft of the active diet (copies its stored structure).
+- `saveDraft` — save the draft's structure/name/notes (foods validated visible).
+- `publishDraft` — save + number the version; a new diet's first publish archives
   the previous active one. Requires ≥ 1 item (`empty` otherwise).
 - `discardDraft` — delete the draft; a brand-new diet with no published version
   is removed entirely.

@@ -25,7 +25,12 @@ import {
 } from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { formatGrams, formatKcal, type DietMacrosDto } from "@/lib/diets";
+import {
+  formatGrams,
+  formatKcal,
+  type DietFoodSubstituteDto,
+  type DietMacrosDto,
+} from "@/lib/diets";
 import type {
   StudentDietVersionDto,
   TreeItem,
@@ -90,6 +95,29 @@ function macroRatio(m: DietMacrosDto): { color: string; pct: number }[] {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+/**
+ * The food's catalog substitutes not already listed as a coach equivalence
+ * (deduped by food), each scaled to the item's portion (catalog grams are per
+ * 100 g of the item's food).
+ */
+function catalogSubs(
+  item: TreeItem,
+): { foodId: string; description: string; grams: number }[] {
+  const added = new Set(item.substitutes.map((s) => s.foodId));
+  return (item.foodSubstitutes ?? [])
+    .filter((s: DietFoodSubstituteDto) => !added.has(s.foodId))
+    .map((s: DietFoodSubstituteDto) => ({
+      foodId: s.foodId,
+      description: s.description,
+      grams: Math.round((item.grams / 100) * s.grams),
+    }));
+}
+
+/** How many distinct swaps a food offers (coach equivalences + catalog). */
+function subCount(item: TreeItem): number {
+  return item.substitutes.length + catalogSubs(item).length;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -476,26 +504,13 @@ function MealCard({
               <div className="font-semibold text-foreground">
                 {item.description}
               </div>
-              {item.substitutes.length > 0 ? (
-                <div className="mt-1.5 flex flex-col gap-1">
-                  {item.substitutes.map((s, si) => {
-                    const sq = quantity(
-                      s.grams,
-                      s.measureLabel,
-                      s.measureGrams,
-                    );
-                    return (
-                      <div
-                        key={si}
-                        className="flex items-center gap-1.5 text-[11.5px] text-amber-700"
-                      >
-                        <Repeat className="size-3 shrink-0" />
-                        <span className="truncate">
-                          ≈ {sq.main} {s.description}
-                        </span>
-                      </div>
-                    );
-                  })}
+              {subCount(item) > 0 ? (
+                <div className="mt-1 inline-flex items-center gap-1 text-[11.5px] font-medium text-amber-700">
+                  <Repeat className="size-3 shrink-0" />
+                  <span>
+                    {subCount(item)}{" "}
+                    {subCount(item) === 1 ? "substituição" : "substituições"}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -631,12 +646,13 @@ function FoodDetailDialog({
               </div>
             </div>
 
-            {item.substitutes.length > 0 ? (
+            {subCount(item) > 0 ? (
               <div>
                 <div className="mb-2 font-heading text-[15px] font-semibold">
                   Substituições equivalentes
                 </div>
                 <div className="overflow-hidden rounded-xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+                  {/* Coach-defined equivalences (already scaled, may use a measure). */}
                   {item.substitutes.map((s, si) => {
                     const sq = quantity(
                       s.grams,
@@ -645,7 +661,7 @@ function FoodDetailDialog({
                     );
                     return (
                       <div
-                        key={si}
+                        key={`e${si}`}
                         className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-[13px] text-amber-700 last:border-b-0 dark:border-border"
                       >
                         <Repeat className="size-3.5 shrink-0" />
@@ -655,6 +671,18 @@ function FoodDetailDialog({
                       </div>
                     );
                   })}
+                  {/* Catalog substitutes (scaled to the portion). */}
+                  {catalogSubs(item).map((s) => (
+                    <div
+                      key={`c${s.foodId}`}
+                      className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-[13px] text-amber-700 last:border-b-0 dark:border-border"
+                    >
+                      <Repeat className="size-3.5 shrink-0" />
+                      <span>
+                        ≈ {formatGrams(s.grams)} {s.description}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : null}

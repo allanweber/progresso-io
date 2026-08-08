@@ -17,6 +17,7 @@ let studentA: string; // a student in clinic A
 let studentB: string; // a student in clinic B
 let arrozId: string; // base food
 let frangoId: string; // clinic A food
+let batataId: string; // base food (a catalog substitute for arroz)
 
 function ctxFor(clinicId: string, userId: string): TenantContext {
   return { db: db as unknown as DB, clinicId, userId, role: "coach" };
@@ -100,6 +101,18 @@ beforeAll(async () => {
     energyKcal: 165,
     protein: 31,
   });
+  // A base catalog substitute for arroz, so buildTree can freeze it into trees.
+  batataId = await addFood({
+    description: "Batata doce cozida",
+    energyKcal: 77,
+    protein: 0.6,
+  });
+  await db.insert(schema.foodSubstitution).values({
+    clinicId: null,
+    foodId: arrozId,
+    substituteFoodId: batataId,
+    grams: 167,
+  });
 
   const [sa] = await db
     .insert(schema.students)
@@ -142,10 +155,15 @@ describe("student diets DAL", () => {
     const item = state!.draft!.tree.meals[0].items[0];
     expect(item.description).toBe("Arroz branco cozido");
     expect(item.origin).toBe("base");
-    // 200 g arroz (128/100) = 256 kcal, embedded/computed.
+    // 200 g arroz (128/100) = 256 kcal, computed live on read.
     expect(item.macros.energyKcal).toBeCloseTo(256);
     expect(item.per100.energyKcal).toBe(128);
-    expect(item.substitutes[0].description).toBe("Peito de frango grelhado");
+    // The diet stores no per-item equivalences; swaps are the food's catalog
+    // substitutes, live (arroz → batata from beforeAll).
+    expect(item.substitutes).toEqual([]);
+    expect(item.foodSubstitutes).toEqual([
+      { foodId: batataId, description: "Batata doce cozida", grams: 167 },
+    ]);
     expect(state!.draft!.tree.totals.energyKcal).toBeCloseTo(256);
 
     // Publish → v1 active, no draft.
@@ -160,18 +178,18 @@ describe("student diets DAL", () => {
     expect(state!.history[0].status).toBe("active");
   });
 
-  it("frozen snapshot does not change when the base food changes", async () => {
-    const before = await studentDiets.getStudentDietState(ctxA, studentA);
-    const kcalBefore = before!.current!.tree.meals[0].items[0].macros.energyKcal;
-
+  it("reflects a live base-food edit in the published version", async () => {
+    // The diet stores references, not a snapshot — a catalog edit propagates to
+    // the already-published version with no re-publish.
     await db
       .update(schema.food)
       .set({ energyKcal: 999 })
       .where(sql`${schema.food.id} = ${arrozId}`);
 
     const after = await studentDiets.getStudentDietState(ctxA, studentA);
-    expect(after!.current!.tree.meals[0].items[0].macros.energyKcal).toBe(
-      kcalBefore,
+    // 200 g arroz at 999/100 = 1998 kcal, derived live on read.
+    expect(after!.current!.tree.meals[0].items[0].macros.energyKcal).toBeCloseTo(
+      1998,
     );
 
     // restore for later tests
@@ -313,5 +331,53 @@ describe("student diets DAL", () => {
     });
     await diets.archiveDiet(ctxA, orphan.id);
     expect(await diets.deleteDiet(ctxA, orphan.id)).toEqual({ ok: true });
+  });
+});
+
+describe("catalog substitutes are derived live on read", () => {
+  it("shows a food's current catalog substitutes, reflecting later changes", async () => {
+    // A fresh student so this doesn't disturb the shared studentA state.
+    const [s] = await db
+      .insert(schema.students)
+      .values({
+        clinicId: ctxA.clinicId,
+        firstName: "Caio",
+        lastName: "Dias",
+        email: "caio@example.com",
+      })
+      .returning({ id: schema.students.id });
+    const student = s.id;
+
+    await studentDiets.createBlankDraft(ctxA, student, "Com subs");
+    const pub = await studentDiets.publishDraft(
+      ctxA,
+      student,
+      mealPayload(200, "Com subs"),
+    );
+    expect(pub).toMatchObject({ ok: true, version: 1 });
+
+    // The arroz item shows its catalog substitute (batata), per-100 g grams.
+    const state = await studentDiets.getStudentDietState(ctxA, student);
+    const item = state!.current!.tree.meals[0].items[0];
+    expect(item.foodSubstitutes).toEqual([
+      { foodId: batataId, description: "Batata doce cozida", grams: 167 },
+    ]);
+
+    // Live: changing the catalog substitution reflects in the published version
+    // with no re-publish.
+    await db
+      .update(schema.foodSubstitution)
+      .set({ grams: 200 })
+      .where(sql`${schema.foodSubstitution.foodId} = ${arrozId}`);
+    const after = await studentDiets.getStudentDietState(ctxA, student);
+    expect(after!.current!.tree.meals[0].items[0].foodSubstitutes).toEqual([
+      { foodId: batataId, description: "Batata doce cozida", grams: 200 },
+    ]);
+
+    // restore for any later tests
+    await db
+      .update(schema.foodSubstitution)
+      .set({ grams: 167 })
+      .where(sql`${schema.foodSubstitution.foodId} = ${arrozId}`);
   });
 });

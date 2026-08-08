@@ -1,10 +1,13 @@
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { schema } from "@/db";
+import type { DietFoodSubstituteDto } from "@/lib/diets";
 import type { TenantContext } from "@/server/tenant";
 import {
-  EMPTY_TREE,
+  EMPTY_STRUCTURE,
+  type DietStructure,
   type DietTree,
+  type StructFoodRef,
   type StudentDietDraftDto,
   type StudentDietHistoryDto,
   type StudentDietPublishedDto,
@@ -16,18 +19,19 @@ import {
 import { createDiet, getDiet, type DietWriteInput } from "./diets";
 
 /**
- * Student-diet DAL. A student's diet is versioned and snapshotted: every read
- * and write is scoped by `ctx.clinicId` (+ the `studentId`), and each version
- * stores a self-contained `DietTree` built **here** from the food catalog — the
- * client never supplies macros. Publishing numbers a version (1..N) and freezes
- * it; the first publish of a new diet archives the student's previous one.
+ * Student-diet DAL. Every read and write is scoped by `ctx.clinicId` (+ the
+ * `studentId`). A version stores only the **prescription structure** (food +
+ * quantity refs); nutrition and catalog substitutions are derived live from the
+ * catalog on read (`hydrateStructure`), so a coach's catalog correction reaches
+ * every student without a re-publish. Publishing numbers a version (1..N); the
+ * first publish of a new diet archives the student's previous one.
  *
  * At most one draft version exists per student at a time (across all their
  * diets), so the Dieta tab is always in exactly one of: draft / current / empty.
  */
 
 /* -------------------------------------------------------------------------- */
-/*  Tree building (server-side snapshot from the catalog)                      */
+/*  Structure → live tree hydration (from the current catalog)                 */
 /* -------------------------------------------------------------------------- */
 
 type FoodRow = {
@@ -100,27 +104,40 @@ function lineFrom(
   };
 }
 
-/** Every distinct foodId referenced by a write payload (items + substitutes). */
-function referencedFoodIds(input: DietWriteInput): string[] {
+/** Every distinct foodId referenced by a structure (item foods only). */
+function referencedFoodIds(structure: DietStructure): string[] {
   const ids = new Set<string>();
-  for (const meal of input.meals) {
-    for (const item of meal.items) {
-      ids.add(item.foodId);
-      for (const sub of item.substitutes) ids.add(sub.foodId);
-    }
+  for (const meal of structure.meals) {
+    for (const item of meal.items) ids.add(item.foodId);
   }
   return [...ids];
 }
 
 /**
- * Loads the referenced foods, scoped to what this clinic can see (base + own),
- * as a lookup. Returns null if any id is missing/invisible — so a tree can never
- * embed a food from another clinic.
+ * The persisted structure for a write payload — **food + quantity only**. Any
+ * per-item equivalences the builder may carry are dropped: a student diet stores
+ * just the prescription, and swaps are the food's catalog substitutes, live.
  */
-async function loadVisibleFoods(
+function toStructure(input: DietWriteInput): DietStructure {
+  return {
+    meals: input.meals.map((m) => ({
+      name: m.name,
+      time: m.time,
+      items: m.items.map((it) => ({
+        foodId: it.foodId,
+        grams: it.grams,
+        measureLabel: it.measureLabel ?? null,
+        measureGrams: it.measureGrams ?? null,
+      })),
+    })),
+  };
+}
+
+/** Loads the given foods scoped to what this clinic can see (base + own). */
+async function selectFoods(
   ctx: TenantContext,
   ids: string[],
-): Promise<Map<string, FoodRow> | null> {
+): Promise<Map<string, FoodRow>> {
   if (ids.length === 0) return new Map();
   const rows = await ctx.db
     .select({
@@ -140,33 +157,78 @@ async function loadVisibleFoods(
         or(isNull(schema.food.clinicId), eq(schema.food.clinicId, ctx.clinicId)),
       ),
     );
-  const map = new Map(rows.map((r) => [r.id, r]));
-  if (map.size !== ids.length) return null;
-  return map;
+  return new Map(rows.map((r) => [r.id, r]));
 }
 
 /**
- * Builds the self-contained `DietTree` from a write payload by embedding each
- * referenced food's description + per-100 g macros and pre-computing the scaled
- * macros and per-meal / diet totals. Returns null when a food isn't visible.
+ * The write-time `invalid_food` guard: every referenced food must be visible to
+ * the clinic (base or own), so a structure can never point at another clinic's
+ * data or a non-existent id.
  */
-async function buildTree(
+async function allFoodsVisible(
   ctx: TenantContext,
-  input: DietWriteInput,
-): Promise<DietTree | null> {
-  const foods = await loadVisibleFoods(ctx, referencedFoodIds(input));
-  if (!foods) return null;
+  structure: DietStructure,
+): Promise<boolean> {
+  const ids = referencedFoodIds(structure);
+  const map = await selectFoods(ctx, ids);
+  return map.size === ids.length;
+}
 
-  const meals = input.meals.map((m) => {
-    const items = m.items.map((it) => {
-      const f = foods.get(it.foodId)!;
-      return {
-        ...lineFrom(f, it.grams, it.measureLabel, it.measureGrams),
-        substitutes: it.substitutes.map((s) =>
-          lineFrom(foods.get(s.foodId)!, s.grams, s.measureLabel, s.measureGrams),
-        ),
-      };
-    });
+const NULL_MACROS: TreeMacros = {
+  energyKcal: null,
+  protein: null,
+  carbohydrate: null,
+  fat: null,
+};
+
+/** A placeholder line for a ref whose food is no longer visible (hard-deleted). */
+function missingLine(ref: StructFoodRef): TreeFoodLine {
+  return {
+    foodId: ref.foodId,
+    description: "Alimento indisponível",
+    code: null,
+    origin: "base",
+    grams: ref.grams,
+    measureLabel: ref.measureLabel ?? null,
+    measureGrams: ref.measureGrams ?? null,
+    per100: NULL_MACROS,
+    macros: NULL_MACROS,
+  };
+}
+
+/**
+ * Hydrates a stored **structure** into a read `DietTree` from the CURRENT
+ * catalog: embeds each food's description + macros (scaled to the portion),
+ * computes per-meal / diet totals, and attaches the food's live catalog
+ * substitutes. Because it reads live, a coach's catalog correction (macros,
+ * substitutions) reaches every student without a re-publish. A ref whose food is
+ * no longer visible becomes an "Alimento indisponível" placeholder (null macros).
+ */
+export async function hydrateStructure(
+  ctx: TenantContext,
+  structure: DietStructure,
+): Promise<DietTree> {
+  const foods = await selectFoods(ctx, referencedFoodIds(structure));
+  const itemFoodIds = [
+    ...new Set(structure.meals.flatMap((m) => m.items.map((it) => it.foodId))),
+  ];
+  const catalogByFood = await loadCatalogSubstitutes(ctx, itemFoodIds);
+
+  const lineFor = (ref: StructFoodRef): TreeFoodLine => {
+    const f = foods.get(ref.foodId);
+    return f
+      ? lineFrom(f, ref.grams, ref.measureLabel, ref.measureGrams)
+      : missingLine(ref);
+  };
+
+  const meals = structure.meals.map((m) => {
+    const items = m.items.map((ref) => ({
+      ...lineFor(ref),
+      // Student diets store no per-item equivalences — swaps come live from the
+      // food's catalog substitutes below.
+      substitutes: [],
+      foodSubstitutes: catalogByFood.get(ref.foodId) ?? [],
+    }));
     return {
       name: m.name,
       time: m.time,
@@ -177,9 +239,52 @@ async function buildTree(
   return { totals: sumMacros(meals.map((m) => m.totals)), meals };
 }
 
-/** Whether a tree has at least one food item (required to publish). */
-function treeHasItems(tree: DietTree): boolean {
-  return tree.meals.some((m) => m.items.length > 0);
+/**
+ * The catalog substitutes (base + this clinic's) for a set of item foods, keyed
+ * by the item foodId. `grams` is per 100 g of the item's food (as stored),
+ * scaled to the portion at render time.
+ */
+async function loadCatalogSubstitutes(
+  ctx: TenantContext,
+  foodIds: string[],
+): Promise<Map<string, DietFoodSubstituteDto[]>> {
+  const byFood = new Map<string, DietFoodSubstituteDto[]>();
+  if (foodIds.length === 0) return byFood;
+
+  const rows = await ctx.db
+    .select({
+      foodId: schema.foodSubstitution.foodId,
+      grams: schema.foodSubstitution.grams,
+      subFoodId: schema.food.id,
+      description: schema.food.description,
+    })
+    .from(schema.foodSubstitution)
+    .innerJoin(
+      schema.food,
+      eq(schema.foodSubstitution.substituteFoodId, schema.food.id),
+    )
+    .where(
+      and(
+        inArray(schema.foodSubstitution.foodId, foodIds),
+        or(
+          isNull(schema.foodSubstitution.clinicId),
+          eq(schema.foodSubstitution.clinicId, ctx.clinicId),
+        ),
+      ),
+    )
+    .orderBy(asc(schema.food.description));
+
+  for (const r of rows) {
+    const list = byFood.get(r.foodId) ?? [];
+    list.push({ foodId: r.subFoodId, description: r.description, grams: r.grams });
+    byFood.set(r.foodId, list);
+  }
+  return byFood;
+}
+
+/** Whether a structure has at least one food item (required to publish). */
+function structureHasItems(structure: DietStructure): boolean {
+  return structure.meals.some((m) => m.items.length > 0);
 }
 
 /** Rebuilds a `DietWriteInput` from a stored tree (for save-as-template). */
@@ -338,7 +443,7 @@ export async function getStudentDietState(
       versionId: draftVersion.id,
       isNewDiet: d.status === "draft",
       notes: draftVersion.notes,
-      tree: draftVersion.tree,
+      tree: await hydrateStructure(ctx, draftVersion.tree),
     };
   }
 
@@ -354,7 +459,7 @@ export async function getStudentDietState(
         version: latest.version!,
         publishedAt: latest.publishedAt!.toISOString(),
         notes: latest.notes,
-        tree: latest.tree,
+        tree: await hydrateStructure(ctx, latest.tree),
       };
     }
   }
@@ -404,7 +509,7 @@ export async function getStudentDietVersion(
     version: row.version.version!,
     publishedAt: row.version.publishedAt!.toISOString(),
     notes: row.version.notes,
-    tree: row.version.tree,
+    tree: await hydrateStructure(ctx, row.version.tree),
   };
 }
 
@@ -430,7 +535,7 @@ export async function createBlankDraft(
       .returning({ id: schema.studentDiet.id });
     const [v] = await tx
       .insert(schema.studentDietVersion)
-      .values({ studentDietId: d.id, status: "draft", tree: EMPTY_TREE })
+      .values({ studentDietId: d.id, status: "draft", tree: EMPTY_STRUCTURE })
       .returning({ id: schema.studentDietVersion.id });
     return { ok: true, dietId: d.id, versionId: v.id };
   });
@@ -471,8 +576,10 @@ export async function createFromTemplate(
       })),
     })),
   };
-  const tree = await buildTree(ctx, input);
-  if (!tree) return { ok: false, reason: "invalid_food" };
+  const structure = toStructure(input);
+  if (!(await allFoodsVisible(ctx, structure))) {
+    return { ok: false, reason: "invalid_food" };
+  }
 
   return ctx.db.transaction(async (tx) => {
     const [d] = await tx
@@ -490,7 +597,7 @@ export async function createFromTemplate(
       .values({
         studentDietId: d.id,
         status: "draft",
-        tree,
+        tree: structure,
         notes: detail.notes,
       })
       .returning({ id: schema.studentDietVersion.id });
@@ -541,7 +648,7 @@ export async function editActive(
     .values({
       studentDietId: active.id,
       status: "draft",
-      tree: latest?.tree ?? EMPTY_TREE,
+      tree: latest?.tree ?? EMPTY_STRUCTURE,
       notes: latest?.notes ?? null,
     })
     .returning({ id: schema.studentDietVersion.id });
@@ -557,8 +664,10 @@ export async function saveDraft(
   const draft = await findDraft(ctx, studentId);
   if (!draft) return { ok: false, reason: "not_found" };
 
-  const tree = await buildTree(ctx, input);
-  if (!tree) return { ok: false, reason: "invalid_food" };
+  const structure = toStructure(input);
+  if (!(await allFoodsVisible(ctx, structure))) {
+    return { ok: false, reason: "invalid_food" };
+  }
 
   await ctx.db.transaction(async (tx) => {
     await tx
@@ -567,7 +676,7 @@ export async function saveDraft(
       .where(eq(schema.studentDiet.id, draft.diet.id));
     await tx
       .update(schema.studentDietVersion)
-      .set({ tree, notes: input.notes, updatedAt: new Date() })
+      .set({ tree: structure, notes: input.notes, updatedAt: new Date() })
       .where(eq(schema.studentDietVersion.id, draft.version.id));
   });
   return { ok: true, dietId: draft.diet.id, versionId: draft.version.id };
@@ -587,9 +696,11 @@ export async function publishDraft(
   const draft = await findDraft(ctx, studentId);
   if (!draft) return { ok: false, reason: "not_found" };
 
-  const tree = await buildTree(ctx, input);
-  if (!tree) return { ok: false, reason: "invalid_food" };
-  if (!treeHasItems(tree)) return { ok: false, reason: "empty" };
+  const structure = toStructure(input);
+  if (!(await allFoodsVisible(ctx, structure))) {
+    return { ok: false, reason: "invalid_food" };
+  }
+  if (!structureHasItems(structure)) return { ok: false, reason: "empty" };
 
   return ctx.db.transaction(async (tx) => {
     const [{ max }] = await tx
@@ -608,7 +719,7 @@ export async function publishDraft(
     await tx
       .update(schema.studentDietVersion)
       .set({
-        tree,
+        tree: structure,
         notes: input.notes,
         status: "published",
         version: nextVersion,

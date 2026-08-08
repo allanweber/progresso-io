@@ -1,6 +1,7 @@
 import { z } from "@/lib/validation";
 import {
   type DietDetailDto,
+  type DietFoodSubstituteDto,
   type DietMacrosDto,
   type DietMealDto,
   type DietOrigin,
@@ -43,8 +44,18 @@ export type TreeFoodLine = {
   macros: TreeMacros;
 };
 
-/** A meal item: a food line plus its coach-defined equivalences. */
-export type TreeItem = TreeFoodLine & { substitutes: TreeFoodLine[] };
+/**
+ * A meal item in the **read** view: a food line, its coach-defined equivalences,
+ * and the food's **catalog** substitutes (base + clinic). Both the macros and
+ * `foodSubstitutes` are **derived live** from the catalog when the version's
+ * stored structure is hydrated — nothing here is persisted. `foodSubstitutes`
+ * `grams` is per 100 g of the item's food (scaled to the portion at render),
+ * matching the template `DietFoodSubstitute`.
+ */
+export type TreeItem = TreeFoodLine & {
+  substitutes: TreeFoodLine[];
+  foodSubstitutes?: DietFoodSubstituteDto[];
+};
 
 /** A meal within the tree, with its summed totals. */
 export type TreeMeal = {
@@ -60,11 +71,46 @@ export type DietTree = {
   meals: TreeMeal[];
 };
 
-/** An empty tree (a brand-new blank draft). */
+/** An empty tree — what an empty structure hydrates to (a blank draft). */
 export const EMPTY_TREE: DietTree = {
   totals: { energyKcal: null, protein: null, carbohydrate: null, fat: null },
   meals: [],
 };
+
+/* -------------------------------------------------------------------------- */
+/*  Stored structure (references only — nutrition is derived live on read)     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A stored meal item — **only the food and the quantity**: which food, how much,
+ * and how the quantity was entered (medida caseira). Everything else (macros,
+ * description, and the available **substitutions**) is derived live from the
+ * catalog on read, so a coach's catalog correction reaches every student without
+ * a re-publish. Substitutions are never stored on the diet.
+ */
+export type StructFoodRef = {
+  foodId: string;
+  grams: number;
+  measureLabel?: string | null;
+  measureGrams?: number | null;
+};
+
+/** A stored meal: name/time + its item refs. */
+export type StructMeal = {
+  name: string;
+  time: string | null;
+  items: StructFoodRef[];
+};
+
+/**
+ * What a version persists — the **prescription structure**: meals of
+ * food+quantity refs, nothing more. The read DTOs (`DietTree`) are produced by
+ * hydrating this against the current catalog in the DAL.
+ */
+export type DietStructure = { meals: StructMeal[] };
+
+/** An empty structure (a brand-new blank draft). */
+export const EMPTY_STRUCTURE: DietStructure = { meals: [] };
 
 /* -------------------------------------------------------------------------- */
 /*  Read DTOs                                                                  */
@@ -176,8 +222,8 @@ export const saveAsTemplateSchema = z.object({
 /**
  * Maps a stored `DietTree` to the `DietMealDto[]` the read-only `DietMealsView`
  * already renders. Ids are synthesized from indices (the tree has no row ids),
- * and `foodSubstitutes` (live catalog swaps) is empty — a snapshot only shows
- * what was frozen into it.
+ * and `foodSubstitutes` is the catalog swaps **frozen into the snapshot** at
+ * publish (empty for versions published before that field existed).
  */
 export function treeToMealDtos(tree: DietTree): DietMealDto[] {
   return tree.meals.map((meal, mi) => ({
@@ -207,7 +253,7 @@ export function treeToMealDtos(tree: DietTree): DietMealDto[] {
         measureGrams: s.measureGrams,
         macros: s.macros,
       })),
-      foodSubstitutes: [],
+      foodSubstitutes: it.foodSubstitutes ?? [],
     })),
   }));
 }

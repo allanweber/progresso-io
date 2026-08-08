@@ -15,7 +15,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import type { DietTree } from "@/lib/student-diets";
+import type { DietStructure } from "@/lib/student-diets";
 
 /**
  * Application roles.
@@ -787,9 +787,11 @@ export const studentDietVersion = pgTable(
       .$type<StudentDietVersionStatus>()
       .default("draft")
       .notNull(),
-    // The whole meal tree, self-contained (food + macros embedded). Built on the
-    // server from the catalog; a published tree is frozen and never recomputed.
-    tree: jsonb("tree").$type<DietTree>().notNull(),
+    // The prescription **structure** (references: foodId + grams + measure +
+    // coach equivalences). Nutrition and catalog substitutes are derived live
+    // from the catalog on read (see the DAL's `hydrateStructure`), so a coach's
+    // catalog correction reaches every student with no re-publish.
+    tree: jsonb("tree").$type<DietStructure>().notNull(),
     notes: text("notes"),
     publishedAt: timestamp("published_at"),
     publishedBy: text("published_by").references(() => user.id, {
