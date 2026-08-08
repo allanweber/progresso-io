@@ -11,11 +11,245 @@
  *   ALUNO  aluno@progresso.io  / progresso123
  *   ADMIN  admin@progresso.io  / progresso123
  */
+import { randomUUID } from "node:crypto";
+
 import { config } from "dotenv";
 import { and, eq } from "drizzle-orm";
 
+import type {
+  DietTree,
+  TreeItem,
+  TreeMacros,
+  TreeMeal,
+} from "@/lib/student-diets";
+
 config({ path: ".env.local" });
 config();
+
+type DbModule = typeof import("@/db");
+
+/** Scales per-100 g macros to `grams`. */
+function scaleMacros(per100: TreeMacros, grams: number): TreeMacros {
+  const s = (v: number | null) => (v === null ? null : (v * grams) / 100);
+  return {
+    energyKcal: s(per100.energyKcal),
+    protein: s(per100.protein),
+    carbohydrate: s(per100.carbohydrate),
+    fat: s(per100.fat),
+  };
+}
+
+/** Sums a list of macro rows (null + null stays null). */
+function sumMacros(rows: TreeMacros[]): TreeMacros {
+  const add = (a: number | null, b: number | null) =>
+    a === null && b === null ? null : (a ?? 0) + (b ?? 0);
+  return rows.reduce<TreeMacros>(
+    (acc, m) => ({
+      energyKcal: add(acc.energyKcal, m.energyKcal),
+      protein: add(acc.protein, m.protein),
+      carbohydrate: add(acc.carbohydrate, m.carbohydrate),
+      fat: add(acc.fat, m.fat),
+    }),
+    { energyKcal: null, protein: null, carbohydrate: null, fat: null },
+  );
+}
+
+type SeedLine = {
+  description: string;
+  grams: number;
+  per100: TreeMacros;
+  measureLabel?: string | null;
+  measureGrams?: number | null;
+  substitutes?: Omit<SeedLine, "substitutes">[];
+};
+
+function buildLine(o: SeedLine): TreeItem {
+  const line = (l: Omit<SeedLine, "substitutes">) => ({
+    foodId: randomUUID(),
+    description: l.description,
+    code: null,
+    origin: "base" as const,
+    grams: l.grams,
+    measureLabel: l.measureLabel ?? null,
+    measureGrams: l.measureGrams ?? null,
+    per100: l.per100,
+    macros: scaleMacros(l.per100, l.grams),
+  });
+  return { ...line(o), substitutes: (o.substitutes ?? []).map(line) };
+}
+
+/** A realistic "Cutting" tree (café / almoço / pré-treino / ceia). */
+function buildAlunoTree(): DietTree {
+  const meals: TreeMeal[] = [
+    {
+      name: "Café da manhã",
+      time: "08:00",
+      items: [
+        buildLine({
+          description: "Pão, trigo, francês",
+          grams: 100,
+          measureLabel: "unidade",
+          measureGrams: 50,
+          per100: { energyKcal: 300, protein: 8, carbohydrate: 58, fat: 3 },
+        }),
+        buildLine({
+          description: "Maçã, Fuji, com casca, crua",
+          grams: 130,
+          measureLabel: "unidade",
+          measureGrams: 130,
+          per100: {
+            energyKcal: 56,
+            protein: 0.2,
+            carbohydrate: 15.6,
+            fat: 0.1,
+          },
+          substitutes: [
+            {
+              description: "Banana, nanica, crua",
+              grams: 79,
+              per100: {
+                energyKcal: 92,
+                protein: 1.4,
+                carbohydrate: 23.8,
+                fat: 0.1,
+              },
+            },
+          ],
+        }),
+      ],
+      totals: { energyKcal: null, protein: null, carbohydrate: null, fat: null },
+    },
+    {
+      name: "Almoço",
+      time: "12:00",
+      items: [
+        buildLine({
+          description: "Arroz, tipo 1, cozido",
+          grams: 300,
+          measureLabel: "colher de sopa",
+          measureGrams: 25,
+          per100: {
+            energyKcal: 128,
+            protein: 2.3,
+            carbohydrate: 28.1,
+            fat: 0.2,
+          },
+          substitutes: [
+            {
+              description: "Batata, doce, cozida",
+              grams: 501,
+              per100: {
+                energyKcal: 77,
+                protein: 0.6,
+                carbohydrate: 18.4,
+                fat: 0.1,
+              },
+            },
+          ],
+        }),
+        buildLine({
+          description: "Frango, peito, sem pele, cozido",
+          grams: 200,
+          measureLabel: "filé",
+          measureGrams: 100,
+          per100: {
+            energyKcal: 163,
+            protein: 31.5,
+            carbohydrate: 0,
+            fat: 3.2,
+          },
+        }),
+      ],
+      totals: { energyKcal: null, protein: null, carbohydrate: null, fat: null },
+    },
+    {
+      name: "Ceia",
+      time: null,
+      items: [
+        buildLine({
+          description: "Iogurte, grego, natural, integral",
+          grams: 170,
+          measureLabel: "pote",
+          measureGrams: 170,
+          per100: {
+            energyKcal: 97,
+            protein: 9,
+            carbohydrate: 4,
+            fat: 5,
+          },
+        }),
+      ],
+      totals: { energyKcal: null, protein: null, carbohydrate: null, fat: null },
+    },
+  ];
+
+  for (const meal of meals) {
+    meal.totals = sumMacros(meal.items.map((i) => i.macros));
+  }
+  return {
+    totals: sumMacros(meals.map((m) => m.totals)),
+    meals,
+  };
+}
+
+/**
+ * Publishes a single active diet (v1) for the seeded aluno, if they don't have
+ * one yet. The version stores a frozen snapshot, so this needs no food catalog.
+ */
+async function seedAlunoDiet(
+  db: NonNullable<DbModule["db"]>,
+  schema: DbModule["schema"],
+  clinicId: string,
+  studentId: string,
+): Promise<void> {
+  const existing = await db
+    .select({ id: schema.studentDiet.id })
+    .from(schema.studentDiet)
+    .where(
+      and(
+        eq(schema.studentDiet.clinicId, clinicId),
+        eq(schema.studentDiet.studentId, studentId),
+      ),
+    );
+  if (existing.length > 0) return;
+
+  /** Inserts a diet + its single published v1. */
+  async function publish(
+    name: string,
+    status: "active" | "archived",
+    tree: DietTree,
+    publishedAt: Date,
+  ) {
+    const [row] = await db
+      .insert(schema.studentDiet)
+      .values({ clinicId, studentId, name, status })
+      .returning({ id: schema.studentDiet.id });
+    await db.insert(schema.studentDietVersion).values({
+      studentDietId: row.id,
+      version: 1,
+      status: "published",
+      tree,
+      notes: "Beber 3L de água por dia.",
+      publishedAt,
+    });
+  }
+
+  // An older, archived diet (shows under "Dietas anteriores"), then the active
+  // one the aluno currently sees.
+  await publish(
+    "Adaptação",
+    "archived",
+    buildAlunoTree(),
+    new Date("2026-07-01T12:00:00Z"),
+  );
+  await publish(
+    "Cutting",
+    "active",
+    buildAlunoTree(),
+    new Date("2026-08-08T12:00:00Z"),
+  );
+  console.info("✓ published aluno diets (Adaptação archived + Cutting v1)");
+}
 
 async function seed() {
   const { db, schema } = await import("@/db");
@@ -115,20 +349,30 @@ async function seed() {
         eq(schema.students.email, alunoEmail),
       ),
     );
-  if (link.length === 0) {
-    await db.insert(schema.students).values({
-      clinicId: coachClinic.id,
-      coachId: coach.id,
-      userId: aluno.id,
-      firstName: "Ana",
-      lastName: "Aluna",
-      email: alunoEmail,
-      goal: "Hipertrofia",
-      status: "active",
-      modality: "online",
-    });
+  let studentId = link[0]?.id;
+  if (!studentId) {
+    const [row] = await db
+      .insert(schema.students)
+      .values({
+        clinicId: coachClinic.id,
+        coachId: coach.id,
+        userId: aluno.id,
+        firstName: "Ana",
+        lastName: "Aluna",
+        email: alunoEmail,
+        goal: "Hipertrofia",
+        status: "active",
+        modality: "online",
+      })
+      .returning({ id: schema.students.id });
+    studentId = row.id;
     console.info("✓ linked aluno to coach");
   }
+
+  // A published diet for the aluno, so the /student portal has something to
+  // show. The version stores a self-contained snapshot (DietTree) — no catalog
+  // food rows required — mirroring how a real publish freezes the tree.
+  await seedAlunoDiet(db, schema, coachClinic.id, studentId);
 
   console.info("Seed complete.");
 }

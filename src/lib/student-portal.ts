@@ -1,0 +1,36 @@
+/**
+ * DTOs for the **aluno-facing** portal (`/student`). The aluno only ever reads
+ * their **own** data, and only what has been **published** — never a draft. The
+ * `studentId` is resolved from the session in the DAL, so the aluno never
+ * supplies an id (see `src/server/dal/student-portal.ts`).
+ */
+
+import type {
+  StudentDietHistoryDto,
+  StudentDietPublishedDto,
+} from "@/lib/student-diets";
+
+/** The aluno's header/sidebar identity, shown on every tab of the portal. */
+export type AlunoProfileDto = {
+  /** Full name of the student ("Mariana Alves"). */
+  name: string;
+  /** First name, for the mobile greeting ("Oi, Mariana!"). */
+  firstName: string;
+  /** The assigned coach's name, or null if none is assigned. */
+  coachName: string | null;
+  /** The clinic (tenant) the aluno belongs to. */
+  clinicName: string;
+  /** The training goal (objetivo), or null if unset — the badge is hidden then. */
+  goal: string | null;
+};
+
+/**
+ * Everything the Dieta tab needs, from the aluno's side: the active published
+ * diet (or null if the coach hasn't published one yet) and the read-only
+ * history. There is deliberately **no** `draft` field — drafts are invisible to
+ * the aluno and are never loaded by the portal DAL.
+ */
+export type MyDietStateDto = {
+  current: StudentDietPublishedDto | null;
+  history: StudentDietHistoryDto[];
+};
