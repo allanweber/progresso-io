@@ -97,6 +97,44 @@ type MealDraft = {
 
 type Draft = { name: string; notes: string; meals: MealDraft[] };
 
+/** The whole-tree payload the builder emits on save (matches `dietFormSchema`). */
+export type DietBuilderPayload = {
+  name: string;
+  notes: string;
+  meals: {
+    name: string;
+    time: string | null;
+    items: {
+      foodId: string;
+      grams: number;
+      measureLabel: string | null;
+      measureGrams: number | null;
+      substitutes: {
+        foodId: string;
+        grams: number;
+        measureLabel: string | null;
+        measureGrams: number | null;
+      }[];
+    }[];
+  }[];
+};
+
+/**
+ * Drives a server-persisted draft (a student's diet) instead of the default
+ * template create/edit flow. When present, the builder shows Salvar rascunho /
+ * Publicar / Descartar and delegates persistence to these callbacks (each
+ * throws to surface an error); the draft is NOT mirrored to localStorage since
+ * the server holds it.
+ */
+export type DietBuilderAdapter = {
+  onSave: (payload: DietBuilderPayload) => Promise<void>;
+  onPublish: (payload: DietBuilderPayload) => Promise<void>;
+  onDiscard: () => Promise<void>;
+  onCancel: () => void;
+  saveLabel?: string;
+  publishLabel?: string;
+};
+
 const newKey = () => crypto.randomUUID();
 
 /**
@@ -223,13 +261,20 @@ const shellSchema = z.object({
 export function DietBuilder({
   mode,
   diet,
+  adapter,
 }: {
   mode: "create" | "edit";
   diet?: DietDetailDto;
+  /** When set, drives a server-persisted draft (student diet) — see the type. */
+  adapter?: DietBuilderAdapter;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const storageKey = `diet-draft:${mode === "edit" ? diet!.id : "new"}`;
+  // The student draft lives on the server, so its local mirror is disabled.
+  const persistLocal = !adapter;
+  const storageKey = `diet-draft:${adapter ? "student" : mode === "edit" ? diet!.id : "new"}`;
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<null | "save" | "publish" | "discard">(null);
 
   const [meals, setMeals] = useState<MealDraft[]>(() => initialDraft(diet).meals);
   const [mealErrors, setMealErrors] = useState<Record<string, string>>({});
@@ -278,34 +323,14 @@ export function DietBuilder({
     },
     validators: { onChange: shellSchema },
     onSubmit: async ({ value }) => {
-      // Validate the tree that TanStack Form doesn't own.
-      const errs: Record<string, string> = {};
-      for (const m of meals) {
-        if (!m.name.trim()) errs[m.key] = "Informe o nome da refeição.";
+      // Enter/submit: the adapter (student diet) saves the draft; otherwise the
+      // template create/edit path runs.
+      if (adapter) {
+        await runAdapter("save");
+        return;
       }
-      setMealErrors(errs);
-      if (Object.keys(errs).length > 0) return;
-
-      const payload = {
-        name: value.name,
-        notes: value.notes,
-        meals: meals.map((m) => ({
-          name: m.name.trim(),
-          time: m.time.trim() === "" ? null : m.time.trim(),
-          items: m.items.map((it) => ({
-            foodId: it.foodId,
-            grams: it.grams,
-            measureLabel: it.measureLabel,
-            measureGrams: it.measureGrams,
-            substitutes: it.substitutes.map((s) => ({
-              foodId: s.foodId,
-              grams: s.grams,
-              measureLabel: s.measureLabel,
-              measureGrams: s.measureGrams,
-            })),
-          })),
-        })),
-      };
+      const payload = buildPayload(value);
+      if (!payload) return;
       // Belt-and-suspenders: the API validates the same schema.
       const parsed = dietFormSchema.safeParse(payload);
       if (!parsed.success) return;
@@ -317,8 +342,78 @@ export function DietBuilder({
     },
   });
 
+  /**
+   * Validates the meal names (which TanStack Form doesn't own) and returns the
+   * whole-tree payload, or null when a meal name is missing.
+   */
+  function buildPayload(value: {
+    name: string;
+    notes: string;
+  }): DietBuilderPayload | null {
+    const errs: Record<string, string> = {};
+    for (const m of meals) {
+      if (!m.name.trim()) errs[m.key] = "Informe o nome da refeição.";
+    }
+    setMealErrors(errs);
+    if (Object.keys(errs).length > 0) return null;
+    return {
+      name: value.name,
+      notes: value.notes,
+      meals: meals.map((m) => ({
+        name: m.name.trim(),
+        time: m.time.trim() === "" ? null : m.time.trim(),
+        items: m.items.map((it) => ({
+          foodId: it.foodId,
+          grams: it.grams,
+          measureLabel: it.measureLabel,
+          measureGrams: it.measureGrams,
+          substitutes: it.substitutes.map((s) => ({
+            foodId: s.foodId,
+            grams: s.grams,
+            measureLabel: s.measureLabel,
+            measureGrams: s.measureGrams,
+          })),
+        })),
+      })),
+    };
+  }
+
+  /** Runs a student-diet action (save/publish) through the adapter callbacks. */
+  async function runAdapter(kind: "save" | "publish") {
+    if (!adapter) return;
+    const payload = buildPayload(form.state.values);
+    if (!payload) return;
+    setBusy(kind);
+    setActionError(null);
+    try {
+      await (kind === "save" ? adapter.onSave : adapter.onPublish)(payload);
+    } catch (e) {
+      setActionError(
+        e instanceof ApiError ? e.message : "Não foi possível salvar.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runDiscard() {
+    if (!adapter) return;
+    setBusy("discard");
+    setActionError(null);
+    try {
+      await adapter.onDiscard();
+    } catch (e) {
+      setActionError(
+        e instanceof ApiError ? e.message : "Não foi possível descartar.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   // Recover a locally-saved draft on mount (client only — no SSR localStorage).
   useEffect(() => {
+    if (!persistLocal) return;
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
@@ -344,7 +439,7 @@ export function DietBuilder({
 
   // Persist the draft whenever anything changes (debounced by the render cadence).
   useEffect(() => {
-    if (!dirtyRef.current) return;
+    if (!persistLocal || !dirtyRef.current) return;
     try {
       const draft: Draft = {
         name: form.state.values.name,
@@ -453,6 +548,10 @@ export function DietBuilder({
       return;
     }
     dirtyRef.current = false;
+    if (adapter) {
+      adapter.onCancel();
+      return;
+    }
     router.push(mode === "edit" ? `/coach/diets/${diet!.id}` : "/coach/diets");
   }
 
@@ -480,15 +579,56 @@ export function DietBuilder({
           Cancelar
         </button>
         <div className="flex items-center gap-2">
-          {recovered && (
-            <Button type="button" variant="ghost" size="sm" onClick={discardDraft}>
-              Descartar rascunho
-            </Button>
+          {adapter ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={runDiscard}
+                disabled={busy !== null}
+              >
+                {busy === "discard" ? "Descartando…" : "Descartar"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => runAdapter("save")}
+                disabled={busy !== null}
+              >
+                <Save className="size-4" />
+                {busy === "save"
+                  ? "Salvando…"
+                  : (adapter.saveLabel ?? "Salvar rascunho")}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => runAdapter("publish")}
+                disabled={busy !== null}
+              >
+                {busy === "publish"
+                  ? "Publicando…"
+                  : (adapter.publishLabel ?? "Publicar")}
+              </Button>
+            </>
+          ) : (
+            <>
+              {recovered && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={discardDraft}
+                >
+                  Descartar rascunho
+                </Button>
+              )}
+              <Button type="submit" disabled={mutation.isPending}>
+                <Save className="size-4" />
+                {mutation.isPending ? "Salvando…" : "Salvar dieta"}
+              </Button>
+            </>
           )}
-          <Button type="submit" disabled={mutation.isPending}>
-            <Save className="size-4" />
-            {mutation.isPending ? "Salvando…" : "Salvar dieta"}
-          </Button>
         </div>
       </div>
 
@@ -497,9 +637,9 @@ export function DietBuilder({
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
-      {serverBanner && (
+      {(serverBanner || actionError) && (
         <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
-          {serverBanner}
+          {serverBanner ?? actionError}
         </div>
       )}
 

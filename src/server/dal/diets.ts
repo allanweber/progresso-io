@@ -666,3 +666,40 @@ export async function unarchiveDiet(
     .returning({ id: schema.diet.id });
   return rows.length > 0;
 }
+
+/** Why a hard-delete of a template diet was refused. */
+export type DietDeleteResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "not_archived" | "in_use" };
+
+/**
+ * Permanently deletes one of this clinic's template diets — allowed only when
+ * it is already **archived** and **no student diet references it** (via
+ * `source_diet_id`). A base template (clinic_id NULL) is never matched (scoped
+ * to `ctx.clinicId`). Student copies are independent, so a referenced template
+ * would only lose its provenance link on delete; we still refuse it here so the
+ * "baseada em X" reference stays meaningful.
+ */
+export async function deleteDiet(
+  ctx: TenantContext,
+  id: string,
+): Promise<DietDeleteResult> {
+  const [row] = await ctx.db
+    .select({ archived: schema.diet.archived })
+    .from(schema.diet)
+    .where(and(eq(schema.diet.id, id), eq(schema.diet.clinicId, ctx.clinicId)));
+  if (!row) return { ok: false, reason: "not_found" };
+  if (!row.archived) return { ok: false, reason: "not_archived" };
+
+  const [ref] = await ctx.db
+    .select({ id: schema.studentDiet.id })
+    .from(schema.studentDiet)
+    .where(eq(schema.studentDiet.sourceDietId, id))
+    .limit(1);
+  if (ref) return { ok: false, reason: "in_use" };
+
+  await ctx.db
+    .delete(schema.diet)
+    .where(and(eq(schema.diet.id, id), eq(schema.diet.clinicId, ctx.clinicId)));
+  return { ok: true };
+}

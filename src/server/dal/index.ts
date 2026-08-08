@@ -12,4 +12,5 @@ export * as exercises from "./exercises";
 export * as foods from "./foods";
 export * as invitations from "./invitations";
 export * as plans from "./plans";
+export * as studentDiets from "./student-diets";
 export * as students from "./students";
