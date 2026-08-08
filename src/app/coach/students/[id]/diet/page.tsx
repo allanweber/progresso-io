@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, Loader2, Pencil, Plus, Search } from "lucide-react";
 
@@ -46,7 +46,6 @@ function fmtDate(iso: string): string {
 
 export default function StudentDietPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const student = useQuery({
@@ -71,6 +70,10 @@ export default function StudentDietPage() {
   const [templateSearch, setTemplateSearch] = useState("");
   const [viewVersionId, setViewVersionId] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  // The tab always opens in a read/view; the builder is entered only by an
+  // explicit action (Editar / Continuar editando / Nova dieta). Local state, so
+  // it resets to the view every time the tab is (re)opened.
+  const [editing, setEditing] = useState(false);
 
   /* --- draft lifecycle (start / edit / new) ------------------------------ */
 
@@ -83,6 +86,7 @@ export default function StudentDietPage() {
     onSuccess: async () => {
       setDialog(null);
       setBlankName("");
+      setEditing(true);
       await invalidate();
     },
   });
@@ -96,6 +100,7 @@ export default function StudentDietPage() {
     onSuccess: async () => {
       setDialog(null);
       setTemplateSearch("");
+      setEditing(true);
       await invalidate();
     },
   });
@@ -106,7 +111,19 @@ export default function StudentDietPage() {
         method: "POST",
         body: JSON.stringify({ kind: "edit" }),
       }),
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      setEditing(true);
+      await invalidate();
+    },
+  });
+
+  const discardDraftMut = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/students/${id}/diet/draft`, { method: "DELETE" }),
+    onSuccess: async () => {
+      setEditing(false);
+      await invalidate();
+    },
   });
 
   const saveAsTemplate = useMutation({
@@ -123,7 +140,9 @@ export default function StudentDietPage() {
 
   /* --- builder adapter (save / publish / discard the server draft) -------- */
 
+  const current = state.data?.current ?? null;
   const draft = state.data?.draft ?? null;
+  const history = state.data?.history ?? [];
 
   async function saveDraft(payload: DietBuilderPayload) {
     await apiFetch(`/api/students/${id}/diet/draft`, {
@@ -137,10 +156,12 @@ export default function StudentDietPage() {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    setEditing(false);
     await invalidate();
   }
   async function discardDraft() {
     await apiFetch(`/api/students/${id}/diet/draft`, { method: "DELETE" });
+    setEditing(false);
     await invalidate();
   }
 
@@ -175,8 +196,8 @@ export default function StudentDietPage() {
         <p className="mt-8 text-sm text-destructive">
           {(state.error as Error).message}
         </p>
-      ) : draft ? (
-        /* --- State 3: a draft is in flight → the builder ------------------ */
+      ) : editing && draft ? (
+        /* --- Builder: entered only by an explicit edit/new action --------- */
         <div className="mt-6">
           <div className="mb-3 rounded-[10px] bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
             {draft.isNewDiet
@@ -195,25 +216,53 @@ export default function StudentDietPage() {
               onSave: saveDraft,
               onPublish: publishDraft,
               onDiscard: discardDraft,
-              onCancel: () => router.push(`/coach/students/${id}`),
+              onCancel: () => setEditing(false),
               publishLabel: draft.isNewDiet ? "Publicar (v1)" : "Publicar versão",
             }}
           />
         </div>
-      ) : state.data?.current ? (
-        /* --- State 2: an active published diet → read view + history ------ */
+      ) : current ? (
+        /* --- An active published diet → read view + history -------------- */
         <CurrentView
-          current={state.data.current}
-          history={state.data.history}
+          current={current}
+          draft={draft}
+          history={history}
           busy={edit.isPending || saveAsTemplate.isPending}
+          discarding={discardDraftMut.isPending}
           onEdit={() => edit.mutate()}
+          onContinueDraft={() => setEditing(true)}
+          onDiscardDraft={() => discardDraftMut.mutate()}
           onNewBlank={() => setDialog("blank")}
           onAssign={() => setDialog("assign")}
           onSaveAsTemplate={() => saveAsTemplate.mutate()}
           onViewVersion={setViewVersionId}
         />
+      ) : draft ? (
+        /* --- A first-ever diet still in draft (nothing published yet) ----- */
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <p className="font-heading text-base font-semibold text-foreground">
+            {draft.dietName}
+          </p>
+          <p className="mt-1 text-[13px] text-amber-700">
+            Rascunho não publicado — o aluno ainda não vê esta dieta. Publique
+            para deixá-la ativa.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+            <Button onClick={() => setEditing(true)}>
+              <Pencil className="size-4" />
+              Continuar editando
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => discardDraftMut.mutate()}
+              disabled={discardDraftMut.isPending}
+            >
+              {discardDraftMut.isPending ? "Descartando…" : "Descartar rascunho"}
+            </Button>
+          </div>
+        </div>
       ) : (
-        /* --- State 1: no diet yet ---------------------------------------- */
+        /* --- No diet yet ------------------------------------------------- */
         <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           <p className="text-sm text-muted-foreground">
             Este aluno ainda não tem uma dieta.
@@ -326,23 +375,32 @@ export default function StudentDietPage() {
 
 function CurrentView({
   current,
+  draft,
   history,
   busy,
+  discarding,
   onEdit,
+  onContinueDraft,
+  onDiscardDraft,
   onNewBlank,
   onAssign,
   onSaveAsTemplate,
   onViewVersion,
 }: {
   current: NonNullable<StudentDietStateDto["current"]>;
+  draft: StudentDietStateDto["draft"];
   history: StudentDietStateDto["history"];
   busy: boolean;
+  discarding: boolean;
   onEdit: () => void;
+  onContinueDraft: () => void;
+  onDiscardDraft: () => void;
   onNewBlank: () => void;
   onAssign: () => void;
   onSaveAsTemplate: () => void;
   onViewVersion: (versionId: string) => void;
 }) {
+  const hasDraft = draft !== null;
   const meals = treeToMealDtos(current.tree);
   // Past diets (archived) and older versions of the current diet.
   const olderOfCurrent = (
@@ -362,16 +420,40 @@ function CurrentView({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onEdit} disabled={busy}>
-            <Pencil className="size-4" />
-            Editar
-          </Button>
+          {hasDraft ? (
+            <Button onClick={onContinueDraft}>
+              <Pencil className="size-4" />
+              Continuar editando
+            </Button>
+          ) : (
+            <Button onClick={onEdit} disabled={busy}>
+              <Pencil className="size-4" />
+              Editar
+            </Button>
+          )}
           <Button variant="outline" onClick={onSaveAsTemplate} disabled={busy}>
             <FileText className="size-4" />
             Salvar como modelo
           </Button>
         </div>
       </div>
+
+      {hasDraft && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-[13px] font-medium text-amber-700">
+            Há um rascunho não publicado desta dieta. O aluno continua vendo a
+            versão {current.version} até você publicar.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDiscardDraft}
+            disabled={discarding}
+          >
+            {discarding ? "Descartando…" : "Descartar rascunho"}
+          </Button>
+        </div>
+      )}
 
       {current.notes && (
         <p className="rounded-2xl border border-border bg-white px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
@@ -389,16 +471,28 @@ function CurrentView({
       {/* Start a different diet */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         <span className="text-sm font-medium text-foreground">Nova dieta:</span>
-        <Button variant="outline" size="sm" onClick={onNewBlank} disabled={busy}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onNewBlank}
+          disabled={busy || hasDraft}
+        >
           <Plus className="size-4" />
           Em branco
         </Button>
-        <Button variant="outline" size="sm" onClick={onAssign} disabled={busy}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAssign}
+          disabled={busy || hasDraft}
+        >
           <FileText className="size-4" />
           Da minha lista
         </Button>
         <span className="text-xs text-muted-foreground">
-          Vira a dieta atual quando você publicar; a atual vai para o histórico.
+          {hasDraft
+            ? "Publique ou descarte o rascunho atual antes de começar outra dieta."
+            : "Vira a dieta atual quando você publicar; a atual vai para o histórico."}
         </span>
       </div>
 

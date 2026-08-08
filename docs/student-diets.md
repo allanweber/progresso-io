@@ -12,8 +12,13 @@ aluno-facing view is a later phase (publishing just makes a version available).
   **version** chain (1..N).
 - A coach builds a **draft** (not visible to the aluno) and **publishes** it.
   Each publish numbers a new **immutable** version. At most **one draft** exists
-  per student at a time, so the tab is always in exactly one state:
-  **draft** → builder; else **current** → read view; else **empty**.
+  per student at a time.
+- Opening the tab always lands on a **read view** — the active diet and its
+  history — never the builder. The builder is entered only by an explicit action
+  (*Editar* / *Continuar editando* / *Nova dieta*); it is local UI state, so
+  re-opening the tab returns to the read view with the draft intact. *Cancelar*
+  in the builder returns to the read view (the draft is kept); *Descartar*
+  deletes it.
 - Starting a **new diet** (blank or copied from a template) creates a fresh
   `draft` container. The student keeps seeing the previously-published diet until
   the new one's **first publish**, which archives the old diet and makes the new
@@ -100,7 +105,12 @@ both tab pages); route protection is the server layout
 - **Current** — read view (reuses `DietMealsView` + `MacroSummary`) with the
   version + published date, actions *Editar* / *Salvar como modelo* / *Nova
   dieta* (blank or from list), and a read-only **Histórico** (older versions of
-  the current diet + archived diets; a version opens in a dialog).
-- **Draft** — the reusable **`DietBuilder`** driven by an `adapter` prop
-  (server-persisted draft: *Salvar rascunho* / *Publicar* / *Descartar*); the
+  the current diet + archived diets; a version opens in a dialog). When a draft
+  is pending, *Editar* becomes *Continuar editando*, a banner offers *Descartar
+  rascunho*, and the *Nova dieta* actions are disabled until it is resolved.
+- **Pending draft, nothing published** — a first-ever diet still in draft shows a
+  read card (*Continuar editando* / *Descartar rascunho*), not the builder.
+- **Builder** — the reusable **`DietBuilder`** driven by an `adapter` prop, shown
+  only after an explicit edit/new action (server-persisted draft: *Salvar
+  rascunho* / *Publicar* / *Descartar*, *Cancelar* returns to the read view); the
   local-draft mirror is disabled since the server holds it.
