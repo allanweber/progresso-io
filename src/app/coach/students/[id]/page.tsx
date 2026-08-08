@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Mail, Pencil, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { StudentTabs } from "@/components/students/student-tabs";
 import { apiFetch } from "@/lib/api-client";
 import {
   ACCESS_LABELS,
@@ -175,6 +176,10 @@ export default function StudentProfilePage() {
           }
         </p>
       )}
+
+      <div className="mt-6">
+        <StudentTabs studentId={student.id} />
+      </div>
 
       <div className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         <h2 className="font-heading text-base font-semibold text-foreground">

@@ -6,6 +6,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -13,6 +14,8 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+
+import type { DietTree } from "@/lib/student-diets";
 
 /**
  * Application roles.
@@ -708,6 +711,102 @@ export const dietMealItemSubstitute = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Student diets (dieta do aluno — versioned, snapshotted meal plans)         */
+/*                                                                            */
+/*  A student's diet is distinct from the reusable template `diet`: it belongs */
+/*  to ONE student, is **versioned** (1..N), and each version stores its whole  */
+/*  meal tree as a self-contained JSON snapshot (food description + macros      */
+/*  embedded), so a published version never changes when a base food is later   */
+/*  edited. A coach builds a draft (not visible to the aluno) and **publishes**  */
+/*  it to make it available; each publish numbers a new immutable version.      */
+/*                                                                            */
+/*  A student accumulates a history of diets, but only one is `active` at a     */
+/*  time. Creating a new diet starts a fresh version chain; on its first        */
+/*  publish the previously-active diet is archived. Tenancy is by `clinic_id`    */
+/*  (+ `student_id`); versions inherit it through their FK to `student_diet`.   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Lifecycle of a student's diet (the named plan container).
+ *
+ * - `draft`    — a brand-new diet being built; it has no published version yet,
+ *   so the aluno still sees the previous active diet until this one is published.
+ * - `active`   — the current diet (has ≥ 1 published version). At most one per
+ *   student.
+ * - `archived` — a superseded diet kept in history (never destructive).
+ */
+export const STUDENT_DIET_STATUSES = ["draft", "active", "archived"] as const;
+export type StudentDietStatus = (typeof STUDENT_DIET_STATUSES)[number];
+
+/** A version is a `draft` (unpublished, editable) or an immutable `published`. */
+export const STUDENT_DIET_VERSION_STATUSES = ["draft", "published"] as const;
+export type StudentDietVersionStatus =
+  (typeof STUDENT_DIET_VERSION_STATUSES)[number];
+
+export const studentDiet = pgTable(
+  "student_diet",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Provenance: the template diet this was copied from (a loose reference). Set
+    // null if that template is later deleted — the student's copy is independent.
+    sourceDietId: uuid("source_diet_id").references(() => diet.id, {
+      onDelete: "set null",
+    }),
+    status: text("status")
+      .$type<StudentDietStatus>()
+      .default("draft")
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_diet_clinic_idx").on(t.clinicId),
+    index("student_diet_student_idx").on(t.studentId),
+  ],
+);
+
+export const studentDietVersion = pgTable(
+  "student_diet_version",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    studentDietId: uuid("student_diet_id")
+      .notNull()
+      .references(() => studentDiet.id, { onDelete: "cascade" }),
+    // Assigned on publish (1, 2, 3…); NULL while a draft. At most one draft
+    // (version = NULL) per diet, enforced in the DAL.
+    version: integer("version"),
+    status: text("status")
+      .$type<StudentDietVersionStatus>()
+      .default("draft")
+      .notNull(),
+    // The whole meal tree, self-contained (food + macros embedded). Built on the
+    // server from the catalog; a published tree is frozen and never recomputed.
+    tree: jsonb("tree").$type<DietTree>().notNull(),
+    notes: text("notes"),
+    publishedAt: timestamp("published_at"),
+    publishedBy: text("published_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_diet_version_diet_idx").on(t.studentDietId),
+    // Published version numbers are unique within a diet (NULLs — drafts — are
+    // distinct in Postgres, so this never blocks a draft).
+    unique("student_diet_version_number_uq").on(t.studentDietId, t.version),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Relations                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -757,6 +856,7 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
     references: [user.id],
   }),
   invitations: many(invitation),
+  diets: many(studentDiet),
 }));
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
@@ -934,6 +1034,39 @@ export const dietMealItemSubstituteRelations = relations(
   }),
 );
 
+export const studentDietRelations = relations(
+  studentDiet,
+  ({ one, many }) => ({
+    clinic: one(clinic, {
+      fields: [studentDiet.clinicId],
+      references: [clinic.id],
+    }),
+    student: one(students, {
+      fields: [studentDiet.studentId],
+      references: [students.id],
+    }),
+    sourceDiet: one(diet, {
+      fields: [studentDiet.sourceDietId],
+      references: [diet.id],
+    }),
+    versions: many(studentDietVersion),
+  }),
+);
+
+export const studentDietVersionRelations = relations(
+  studentDietVersion,
+  ({ one }) => ({
+    diet: one(studentDiet, {
+      fields: [studentDietVersion.studentDietId],
+      references: [studentDiet.id],
+    }),
+    publisher: one(user, {
+      fields: [studentDietVersion.publishedBy],
+      references: [user.id],
+    }),
+  }),
+);
+
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
@@ -976,3 +1109,7 @@ export type NewDietMealItem = typeof dietMealItem.$inferInsert;
 export type DietMealItemSubstitute = typeof dietMealItemSubstitute.$inferSelect;
 export type NewDietMealItemSubstitute =
   typeof dietMealItemSubstitute.$inferInsert;
+export type StudentDiet = typeof studentDiet.$inferSelect;
+export type NewStudentDiet = typeof studentDiet.$inferInsert;
+export type StudentDietVersion = typeof studentDietVersion.$inferSelect;
+export type NewStudentDietVersion = typeof studentDietVersion.$inferInsert;

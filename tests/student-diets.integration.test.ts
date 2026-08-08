@@ -1,0 +1,317 @@
+// @vitest-environment node
+import { sql } from "drizzle-orm";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import type { DB } from "@/db";
+import * as schema from "@/db/schema";
+import type { TenantContext } from "@/server/tenant";
+import { diets, studentDiets } from "@/server/dal";
+import type { DietWriteInput } from "@/server/dal/diets";
+
+import { createTestDb, type TestDb } from "./pglite";
+
+let db: TestDb;
+let ctxA: TenantContext;
+let ctxB: TenantContext;
+let studentA: string; // a student in clinic A
+let studentB: string; // a student in clinic B
+let arrozId: string; // base food
+let frangoId: string; // clinic A food
+
+function ctxFor(clinicId: string, userId: string): TenantContext {
+  return { db: db as unknown as DB, clinicId, userId, role: "coach" };
+}
+
+async function addFood(f: {
+  description: string;
+  clinicId?: string | null;
+  energyKcal?: number | null;
+  protein?: number | null;
+}) {
+  const [group] = await db
+    .select({ id: schema.foodGroup.id })
+    .from(schema.foodGroup)
+    .where(sql`${schema.foodGroup.slug} = 'cereais-e-derivados'`);
+  const [row] = await db
+    .insert(schema.food)
+    .values({
+      description: f.description,
+      searchText: sql`unaccent(lower(${f.description}))`,
+      groupId: group.id,
+      type: "ingrediente",
+      clinicId: f.clinicId ?? null,
+      energyKcal: f.energyKcal ?? null,
+      protein: f.protein ?? null,
+    })
+    .returning({ id: schema.food.id });
+  return row.id;
+}
+
+/** A one-meal payload: `grams` of arroz (base) with a frango equivalence. */
+function mealPayload(grams = 200, name = "Dieta do aluno"): DietWriteInput {
+  return {
+    name,
+    notes: "Beber água",
+    meals: [
+      {
+        name: "Café da manhã",
+        time: "08:00",
+        items: [
+          {
+            foodId: arrozId,
+            grams,
+            substitutes: [{ foodId: frangoId, grams: 120 }],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+beforeAll(async () => {
+  db = await createTestDb();
+
+  await db.insert(schema.user).values([
+    { id: "user-a", name: "Coach A", email: "a@example.com" },
+    { id: "user-b", name: "Coach B", email: "b@example.com" },
+  ]);
+  const [clinicA] = await db
+    .insert(schema.clinic)
+    .values({ name: "Clinic A", ownerUserId: "user-a" })
+    .returning();
+  const [clinicB] = await db
+    .insert(schema.clinic)
+    .values({ name: "Clinic B", ownerUserId: "user-b" })
+    .returning();
+  ctxA = ctxFor(clinicA.id, "user-a");
+  ctxB = ctxFor(clinicB.id, "user-b");
+
+  await db
+    .insert(schema.foodGroup)
+    .values([{ name: "Cereais e derivados", slug: "cereais-e-derivados" }]);
+  arrozId = await addFood({
+    description: "Arroz branco cozido",
+    energyKcal: 128,
+    protein: 2.5,
+  });
+  frangoId = await addFood({
+    description: "Peito de frango grelhado",
+    clinicId: clinicA.id,
+    energyKcal: 165,
+    protein: 31,
+  });
+
+  const [sa] = await db
+    .insert(schema.students)
+    .values({
+      clinicId: clinicA.id,
+      firstName: "Ana",
+      lastName: "Silva",
+      email: "ana@example.com",
+    })
+    .returning({ id: schema.students.id });
+  studentA = sa.id;
+  const [sb] = await db
+    .insert(schema.students)
+    .values({
+      clinicId: clinicB.id,
+      firstName: "Bruno",
+      lastName: "Costa",
+      email: "bruno@example.com",
+    })
+    .returning({ id: schema.students.id });
+  studentB = sb.id;
+});
+
+describe("student diets DAL", () => {
+  it("drafts, saves with an embedded snapshot, and publishes v1", async () => {
+    const created = await studentDiets.createBlankDraft(ctxA, studentA, "Cutting");
+    expect(created.ok).toBe(true);
+
+    // A brand-new diet's draft: no current yet.
+    let state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(state!.draft).not.toBeNull();
+    expect(state!.draft!.isNewDiet).toBe(true);
+    expect(state!.current).toBeNull();
+
+    // Save the tree — the DAL embeds description + macros.
+    const saved = await studentDiets.saveDraft(ctxA, studentA, mealPayload(200, "Cutting"));
+    expect(saved.ok).toBe(true);
+
+    state = await studentDiets.getStudentDietState(ctxA, studentA);
+    const item = state!.draft!.tree.meals[0].items[0];
+    expect(item.description).toBe("Arroz branco cozido");
+    expect(item.origin).toBe("base");
+    // 200 g arroz (128/100) = 256 kcal, embedded/computed.
+    expect(item.macros.energyKcal).toBeCloseTo(256);
+    expect(item.per100.energyKcal).toBe(128);
+    expect(item.substitutes[0].description).toBe("Peito de frango grelhado");
+    expect(state!.draft!.tree.totals.energyKcal).toBeCloseTo(256);
+
+    // Publish → v1 active, no draft.
+    const pub = await studentDiets.publishDraft(ctxA, studentA, mealPayload(200, "Cutting"));
+    expect(pub).toMatchObject({ ok: true, version: 1 });
+
+    state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(state!.draft).toBeNull();
+    expect(state!.current!.version).toBe(1);
+    expect(state!.activeDietId).toBe(state!.current!.dietId);
+    expect(state!.history).toHaveLength(1);
+    expect(state!.history[0].status).toBe("active");
+  });
+
+  it("frozen snapshot does not change when the base food changes", async () => {
+    const before = await studentDiets.getStudentDietState(ctxA, studentA);
+    const kcalBefore = before!.current!.tree.meals[0].items[0].macros.energyKcal;
+
+    await db
+      .update(schema.food)
+      .set({ energyKcal: 999 })
+      .where(sql`${schema.food.id} = ${arrozId}`);
+
+    const after = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(after!.current!.tree.meals[0].items[0].macros.energyKcal).toBe(
+      kcalBefore,
+    );
+
+    // restore for later tests
+    await db
+      .update(schema.food)
+      .set({ energyKcal: 128 })
+      .where(sql`${schema.food.id} = ${arrozId}`);
+  });
+
+  it("editing the active diet publishes a new version", async () => {
+    const edit = await studentDiets.editActive(ctxA, studentA);
+    expect(edit.ok).toBe(true);
+    // The draft clones the published tree.
+    const state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(state!.draft!.isNewDiet).toBe(false);
+    expect(state!.current!.version).toBe(1); // aluno still sees v1 while drafting
+
+    const pub = await studentDiets.publishDraft(ctxA, studentA, mealPayload(300, "Cutting"));
+    expect(pub).toMatchObject({ ok: true, version: 2 });
+
+    const after = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(after!.current!.version).toBe(2);
+    expect(after!.current!.tree.meals[0].items[0].macros.energyKcal).toBeCloseTo(
+      384,
+    ); // 300 g arroz
+    expect(after!.history[0].versions.map((v) => v.version)).toEqual([2, 1]);
+  });
+
+  it("only one draft at a time", async () => {
+    await studentDiets.editActive(ctxA, studentA);
+    const second = await studentDiets.editActive(ctxA, studentA);
+    expect(second).toEqual({ ok: false, reason: "has_draft" });
+    // clean up the draft
+    await studentDiets.discardDraft(ctxA, studentA);
+  });
+
+  it("refuses to publish an empty diet", async () => {
+    await studentDiets.editActive(ctxA, studentA);
+    const res = await studentDiets.publishDraft(ctxA, studentA, {
+      name: "Vazia",
+      notes: null,
+      meals: [],
+    });
+    expect(res).toEqual({ ok: false, reason: "empty" });
+    await studentDiets.discardDraft(ctxA, studentA);
+  });
+
+  it("a new diet's first publish archives the previous active one", async () => {
+    const created = await studentDiets.createBlankDraft(ctxA, studentA, "Bulking");
+    expect(created.ok).toBe(true);
+    // Old diet still active/current while the new one is a draft.
+    let state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(state!.current!.dietName).toBe("Cutting");
+    expect(state!.draft!.isNewDiet).toBe(true);
+
+    await studentDiets.publishDraft(ctxA, studentA, mealPayload(100, "Bulking"));
+    state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(state!.current!.dietName).toBe("Bulking");
+    expect(state!.current!.version).toBe(1);
+    // Two diets in history; the old one archived.
+    expect(state!.history).toHaveLength(2);
+    const cutting = state!.history.find((h) => h.dietName === "Cutting");
+    expect(cutting!.status).toBe("archived");
+  });
+
+  it("discarding a brand-new draft removes it entirely", async () => {
+    const before = await studentDiets.getStudentDietState(ctxA, studentA);
+    await studentDiets.createBlankDraft(ctxA, studentA, "Temporária");
+    expect(await studentDiets.discardDraft(ctxA, studentA)).toBe(true);
+    const after = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(after!.draft).toBeNull();
+    expect(after!.current!.dietName).toBe(before!.current!.dietName);
+    expect(after!.history).toHaveLength(before!.history.length);
+  });
+
+  it("saves the current diet as a reusable template", async () => {
+    const res = await studentDiets.saveAsTemplate(ctxA, studentA);
+    expect(res.ok).toBe(true);
+
+    const list = await diets.listDiets(ctxA);
+    expect(list.items.some((d) => d.name === "Bulking")).toBe(true);
+  });
+
+  it("is scoped to the clinic", async () => {
+    // ctxB can't see clinic A's student.
+    expect(await studentDiets.getStudentDietState(ctxB, studentA)).toBeNull();
+    // ctxB can't create a diet for clinic A's student.
+    const res = await studentDiets.createBlankDraft(ctxB, studentA, "hack");
+    expect(res).toEqual({ ok: false, reason: "not_found" });
+    // clinic B's own student starts empty.
+    const empty = await studentDiets.getStudentDietState(ctxB, studentB);
+    expect(empty).toEqual({
+      activeDietId: null,
+      current: null,
+      draft: null,
+      history: [],
+    });
+  });
+
+  it("hard-deletes only an archived, unreferenced template", async () => {
+    // A template referenced by a student diet (source) can't be deleted.
+    const fromTemplate = await diets.createDiet(ctxA, {
+      name: "Modelo referenciado",
+      notes: null,
+      meals: [
+        {
+          name: "R",
+          time: null,
+          items: [{ foodId: arrozId, grams: 50, substitutes: [] }],
+        },
+      ],
+    });
+    if (!fromTemplate.ok) throw new Error("setup failed");
+    // no draft in flight now; assign it to the student (new draft diet).
+    const assigned = await studentDiets.createFromTemplate(
+      ctxA,
+      studentA,
+      fromTemplate.id,
+    );
+    expect(assigned.ok).toBe(true);
+
+    await diets.archiveDiet(ctxA, fromTemplate.id);
+    expect(await diets.deleteDiet(ctxA, fromTemplate.id)).toEqual({
+      ok: false,
+      reason: "in_use",
+    });
+    await studentDiets.discardDraft(ctxA, studentA);
+
+    // An archived, unreferenced template deletes.
+    const orphan = await diets.createDiet(ctxA, {
+      name: "Órfã",
+      notes: null,
+      meals: [],
+    });
+    if (!orphan.ok) throw new Error("setup failed");
+    expect(await diets.deleteDiet(ctxA, orphan.id)).toEqual({
+      ok: false,
+      reason: "not_archived",
+    });
+    await diets.archiveDiet(ctxA, orphan.id);
+    expect(await diets.deleteDiet(ctxA, orphan.id)).toEqual({ ok: true });
+  });
+});
