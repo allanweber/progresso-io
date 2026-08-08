@@ -12,8 +12,9 @@ const SYSTEM_CHROMIUM = "/opt/pw-browsers/chromium";
 const executablePath = existsSync(SYSTEM_CHROMIUM) ? SYSTEM_CHROMIUM : undefined;
 const launchOptions = { executablePath };
 
-/** Saved coach session, produced by the setup project, reused by `coach`. */
+/** Saved sessions, produced by the setup project, reused by the auth'd projects. */
 const COACH_STORAGE = "e2e/.auth/coach.json";
+const ALUNO_STORAGE = "e2e/.auth/aluno.json";
 
 /**
  * E2E is split in three projects:
@@ -62,6 +63,16 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         launchOptions,
         storageState: COACH_STORAGE,
+      },
+    },
+    {
+      name: "student",
+      testMatch: /student\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: ALUNO_STORAGE,
       },
     },
   ],

@@ -18,6 +18,8 @@ const ROUTES = [
   "/privacy",
   "/invite/accept",
   "/coach",
+  "/coach/students",
+  "/coach/students/new",
   "/student",
   "/dashboard",
 ];
