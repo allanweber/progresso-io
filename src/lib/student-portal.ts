@@ -9,6 +9,10 @@ import type {
   StudentDietHistoryDto,
   StudentDietPublishedDto,
 } from "@/lib/student-diets";
+import type {
+  StudentWorkoutHistoryDto,
+  StudentWorkoutPublishedDto,
+} from "@/lib/student-workouts";
 
 /** The aluno's header/sidebar identity, shown on every tab of the portal. */
 export type AlunoProfileDto = {
@@ -33,4 +37,14 @@ export type AlunoProfileDto = {
 export type MyDietStateDto = {
   current: StudentDietPublishedDto | null;
   history: StudentDietHistoryDto[];
+};
+
+/**
+ * Everything the Treino tab needs, from the aluno's side: the active published
+ * workout (or null if the coach hasn't published one yet) and the read-only
+ * history. Like the diet state, there is deliberately **no** `draft` field.
+ */
+export type MyWorkoutStateDto = {
+  current: StudentWorkoutPublishedDto | null;
+  history: StudentWorkoutHistoryDto[];
 };

@@ -15,6 +15,8 @@ import { config } from "dotenv";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import type { DietWriteInput } from "@/server/dal/diets";
+import type { WorkoutWriteInput } from "@/server/dal/workouts";
+import type { WorkoutReps } from "@/lib/workouts";
 import type { TenantContext } from "@/server/tenant";
 
 config({ path: ".env.local" });
@@ -22,6 +24,7 @@ config();
 
 type DbModule = typeof import("@/db");
 type StudentDietsDal = typeof import("@/server/dal")["studentDiets"];
+type StudentWorkoutsDal = typeof import("@/server/dal")["studentWorkouts"];
 
 /**
  * Publishes two diets for the seeded aluno (an archived "Adaptação" + the active
@@ -168,11 +171,215 @@ async function seedAlunoDiet(
   console.info("✓ published aluno diets (Adaptação archived + Cutting active)");
 }
 
+/**
+ * Publishes two workouts for the seeded aluno (an archived "Adaptação" + the
+ * active "Hipertrofia") via the real DAL, referencing **real catalog exercises**
+ * by name. The exercise presentation and library substitutes are derived live on
+ * read, so this needs no hand-authored data. Demonstrates an advanced technique
+ * (drop set), a super-set block, and a per-item custom substitute. Idempotent.
+ */
+async function seedAlunoWorkout(
+  db: NonNullable<DbModule["db"]>,
+  schema: DbModule["schema"],
+  studentWorkouts: StudentWorkoutsDal,
+  ctx: TenantContext,
+  studentId: string,
+): Promise<void> {
+  const existing = await db
+    .select({ id: schema.studentWorkout.id })
+    .from(schema.studentWorkout)
+    .where(
+      and(
+        eq(schema.studentWorkout.clinicId, ctx.clinicId),
+        eq(schema.studentWorkout.studentId, studentId),
+      ),
+    );
+  if (existing.length > 0) return;
+
+  /** First non-archived base exercise whose name matches (shortest wins). */
+  async function ex(like: string): Promise<string | null> {
+    const [row] = await db
+      .select({ id: schema.exercise.id })
+      .from(schema.exercise)
+      .where(
+        and(
+          isNull(schema.exercise.clinicId),
+          eq(schema.exercise.archived, false),
+          sql`${schema.exercise.name} ILIKE ${like}`,
+        ),
+      )
+      .orderBy(sql`char_length(${schema.exercise.name})`)
+      .limit(1);
+    return row?.id ?? null;
+  }
+
+  const [
+    supino,
+    crucifixo,
+    triceps,
+    agacha,
+    legpress,
+    remada,
+    puxada,
+    rosca,
+    desenvolvimento,
+    abdominal,
+    cadeira,
+  ] = await Promise.all([
+    ex("%supino%"),
+    ex("%crucifixo%"),
+    ex("%tríceps%"),
+    ex("%agachamento%"),
+    ex("%leg press%"),
+    ex("%remada%"),
+    ex("%puxada%"),
+    ex("%rosca%"),
+    ex("%desenvolvimento%"),
+    ex("%abdominal%"),
+    ex("%cadeira%"),
+  ]);
+
+  /** Ensures a base exercise substitution exists, so the demo shows swaps live. */
+  async function ensureSub(exerciseId: string | null, subId: string | null) {
+    if (!exerciseId || !subId || exerciseId === subId) return;
+    const [row] = await db
+      .select({ id: schema.exerciseSubstitution.id })
+      .from(schema.exerciseSubstitution)
+      .where(
+        and(
+          isNull(schema.exerciseSubstitution.clinicId),
+          eq(schema.exerciseSubstitution.exerciseId, exerciseId),
+          eq(schema.exerciseSubstitution.substituteExerciseId, subId),
+        ),
+      );
+    if (!row) {
+      await db.insert(schema.exerciseSubstitution).values({
+        clinicId: null,
+        exerciseId,
+        substituteExerciseId: subId,
+      });
+    }
+  }
+  await ensureSub(supino, crucifixo);
+  await ensureSub(agacha, legpress);
+
+  const range = (min: number, max: number): WorkoutReps => ({
+    kind: "range",
+    min,
+    max,
+  });
+  const fixed = (value: number): WorkoutReps => ({ kind: "fixed", value });
+  const failure: WorkoutReps = { kind: "failure" };
+
+  type ExOpts = {
+    sets: number;
+    reps: WorkoutReps;
+    rest?: number;
+    load?: string | null;
+    technique?: WorkoutWriteInput["sessions"][number]["exercises"][number]["technique"];
+    groupId?: string | null;
+    customSubstitutes?: { exerciseId: string; note: string | null }[];
+  };
+  const item = (exerciseId: string | null, o: ExOpts) =>
+    exerciseId
+      ? {
+          exerciseId,
+          sets: o.sets,
+          reps: o.reps,
+          load: o.load ?? null,
+          rest: o.rest ?? 90,
+          technique: o.technique ?? null,
+          groupId: o.groupId ?? null,
+          customSubstitutes: o.customSubstitutes ?? [],
+        }
+      : null;
+
+  const nonNull = <T>(xs: (T | null)[]): T[] => xs.filter((x): x is T => x !== null);
+
+  // A demo that exercises the full technique catalogue (drop set, triple drop,
+  // super set, giant set, GVT, FS7, rest-pause, cluster) so the read views show
+  // every variety — the badge, the continuous super/giant rail, and the reps
+  // kinds (range / fixed / falha).
+  const hipertrofia: WorkoutWriteInput = {
+    name: "Hipertrofia · 4x semana",
+    notes: "Aquecer 5 min antes de cada ficha.",
+    sessions: [
+      {
+        name: "Ficha A · Peito e Tríceps",
+        exercises: nonNull([
+          item(supino, {
+            sets: 4,
+            reps: range(8, 10),
+            rest: 90,
+            load: "40 kg",
+            technique: "dropset",
+            customSubstitutes: crucifixo
+              ? [{ exerciseId: crucifixo, note: "ombro sensível" }]
+              : [],
+          }),
+          // A super-set pair (shared groupId).
+          item(crucifixo, { sets: 3, reps: range(10, 12), rest: 30, technique: "superset", groupId: "ssA" }),
+          item(triceps, { sets: 3, reps: range(12, 15), rest: 60, technique: "superset", groupId: "ssA" }),
+        ]),
+      },
+      {
+        name: "Ficha B · Costas, Bíceps e Ombros",
+        exercises: nonNull([
+          // A giant set of three (shared groupId).
+          item(remada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
+          item(puxada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
+          item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "giant", groupId: "gtB" }),
+          item(desenvolvimento, { sets: 4, reps: range(10, 12), rest: 75, technique: "cluster" }),
+          item(abdominal, { sets: 3, reps: failure, rest: 45, technique: "tripledrop" }),
+        ]),
+      },
+      {
+        name: "Ficha C · Pernas",
+        exercises: nonNull([
+          item(agacha, { sets: 10, reps: fixed(10), rest: 60, load: "60 kg", technique: "gvt" }),
+          item(legpress, { sets: 7, reps: range(10, 12), rest: 30, technique: "fs7" }),
+          item(cadeira, { sets: 3, reps: range(12, 15), rest: 45, technique: "restpause" }),
+        ]),
+      },
+    ],
+  };
+
+  const adaptacao: WorkoutWriteInput = {
+    name: "Adaptação inicial",
+    notes: null,
+    sessions: [
+      {
+        name: "Treino A",
+        exercises: nonNull([
+          item(supino, { sets: 3, reps: range(12, 15), rest: 60 }),
+          item(puxada, { sets: 3, reps: range(12, 15), rest: 60 }),
+          item(legpress, { sets: 3, reps: range(15, 15), rest: 60 }),
+        ]),
+      },
+    ],
+  };
+
+  const hasItems = (w: WorkoutWriteInput) =>
+    w.sessions.some((s) => s.exercises.length > 0);
+
+  if (hasItems(adaptacao)) {
+    await studentWorkouts.createBlankDraft(ctx, studentId, adaptacao.name);
+    await studentWorkouts.publishDraft(ctx, studentId, adaptacao);
+  }
+  if (hasItems(hipertrofia)) {
+    await studentWorkouts.createBlankDraft(ctx, studentId, hipertrofia.name);
+    await studentWorkouts.publishDraft(ctx, studentId, hipertrofia);
+  }
+  console.info(
+    "✓ published aluno workouts (Adaptação archived + Hipertrofia active)",
+  );
+}
+
 async function seed() {
   const { db, schema } = await import("@/db");
   const { createAuth } = await import("@/lib/auth");
   const { createClinicForOwner } = await import("@/server/dal/clinics");
-  const { studentDiets } = await import("@/server/dal");
+  const { studentDiets, studentWorkouts } = await import("@/server/dal");
 
   if (!db) throw new Error("DATABASE_URL is not set — cannot seed.");
 
@@ -297,6 +504,7 @@ async function seed() {
     role: "coach",
   };
   await seedAlunoDiet(db, schema, studentDiets, coachCtx, studentId);
+  await seedAlunoWorkout(db, schema, studentWorkouts, coachCtx, studentId);
 
   console.info("Seed complete.");
 }

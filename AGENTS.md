@@ -46,3 +46,13 @@ These apply to every feature, this one and the next. Existing auth pages predate
 - **Sign-out clears all caches.** The logout control calls `queryClient.clear()` so no tenant data survives into the next account (see `dashboard-shell.tsx`).
 - **All forms use TanStack Form** (`@tanstack/react-form`).
 - **All tables use TanStack Table** (`@tanstack/react-table`).
+
+# Screenshots: always from real, asserted tests — mobile and desktop
+
+When asked for screenshots, **never** capture them with a throwaway,
+assert-nothing spec. Screenshots must be a byproduct of a **real test in the
+suite** that makes assertions about what's on screen. If no such test exists for
+the screen, **write one and add it to the suite** (an e2e project / spec), then
+return the screenshots it produced.
+
+Every screenshot deliverable must cover **both mobile and desktop** viewports.

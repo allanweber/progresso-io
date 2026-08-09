@@ -78,6 +78,13 @@
       "when": 1786161238645,
       "tag": "0010_student_diets",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786251111506,
+      "tag": "0011_workouts",
+      "breakpoints": true
     }
   ]
 }

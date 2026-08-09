@@ -6,9 +6,19 @@ import type {
   StudentDietPublishedDto,
   StudentDietVersionDto,
 } from "@/lib/student-diets";
-import type { AlunoProfileDto, MyDietStateDto } from "@/lib/student-portal";
+import type {
+  StudentWorkoutHistoryDto,
+  StudentWorkoutPublishedDto,
+  StudentWorkoutVersionDto,
+} from "@/lib/student-workouts";
+import type {
+  AlunoProfileDto,
+  MyDietStateDto,
+  MyWorkoutStateDto,
+} from "@/lib/student-portal";
 import type { TenantContext } from "@/server/tenant";
 import { hydrateStructure } from "./student-diets";
+import { hydrateStructure as hydrateWorkoutStructure } from "./student-workouts";
 
 /**
  * Aluno-portal DAL. Everything here is read-only and **doubly scoped**: by
@@ -200,5 +210,142 @@ export async function getMyDietVersion(
     publishedAt: row.version.publishedAt!.toISOString(),
     notes: row.version.notes,
     tree: await hydrateStructure(ctx, row.version.tree),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Workout (treino)                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The aluno's workout state: the active published version (or null) and the
+ * read-only history. Returns `null` only when the user isn't a linked aluno; an
+ * aluno with no published workout yet gets `{ current: null, history: [] }`.
+ */
+export async function getMyWorkoutState(
+  ctx: TenantContext,
+): Promise<MyWorkoutStateDto | null> {
+  const studentId = await ownStudentId(ctx);
+  if (!studentId) return null;
+
+  const workouts = await ctx.db
+    .select()
+    .from(schema.studentWorkout)
+    .where(
+      and(
+        eq(schema.studentWorkout.clinicId, ctx.clinicId),
+        eq(schema.studentWorkout.studentId, studentId),
+      ),
+    );
+
+  if (workouts.length === 0) return { current: null, history: [] };
+
+  // Published versions only — drafts are never selected.
+  const rows = await ctx.db
+    .select({
+      workoutId: schema.studentWorkoutVersion.studentWorkoutId,
+      versionId: schema.studentWorkoutVersion.id,
+      version: schema.studentWorkoutVersion.version,
+      publishedAt: schema.studentWorkoutVersion.publishedAt,
+      notes: schema.studentWorkoutVersion.notes,
+      tree: schema.studentWorkoutVersion.tree,
+    })
+    .from(schema.studentWorkoutVersion)
+    .innerJoin(
+      schema.studentWorkout,
+      eq(schema.studentWorkoutVersion.studentWorkoutId, schema.studentWorkout.id),
+    )
+    .where(
+      and(
+        eq(schema.studentWorkout.clinicId, ctx.clinicId),
+        eq(schema.studentWorkout.studentId, studentId),
+        eq(schema.studentWorkoutVersion.status, "published"),
+      ),
+    );
+
+  const publishedByWorkout = new Map<string, (typeof rows)[number][]>();
+  for (const v of rows) {
+    const list = publishedByWorkout.get(v.workoutId) ?? [];
+    list.push(v);
+    publishedByWorkout.set(v.workoutId, list);
+  }
+  for (const list of publishedByWorkout.values()) {
+    list.sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+  }
+
+  const active = workouts.find((w) => w.status === "active") ?? null;
+  let current: StudentWorkoutPublishedDto | null = null;
+  if (active) {
+    const latest = publishedByWorkout.get(active.id)?.[0];
+    if (latest) {
+      current = {
+        workoutId: active.id,
+        workoutName: active.name,
+        version: latest.version!,
+        publishedAt: latest.publishedAt!.toISOString(),
+        notes: latest.notes,
+        sessions: await hydrateWorkoutStructure(ctx, latest.tree),
+      };
+    }
+  }
+
+  const history: StudentWorkoutHistoryDto[] = workouts
+    .filter((w) => (publishedByWorkout.get(w.id)?.length ?? 0) > 0)
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === "active" ? -1 : 1;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    })
+    .map((w) => ({
+      workoutId: w.id,
+      workoutName: w.name,
+      status: w.status === "archived" ? "archived" : "active",
+      versions: (publishedByWorkout.get(w.id) ?? []).map((v) => ({
+        versionId: v.versionId,
+        version: v.version!,
+        publishedAt: v.publishedAt!.toISOString(),
+      })),
+    }));
+
+  return { current, history };
+}
+
+/**
+ * A single published workout version's tree — scoped to the aluno's own student
+ * and `published` status, so an aluno can never open a draft or another
+ * student's version. Null when not found/allowed.
+ */
+export async function getMyWorkoutVersion(
+  ctx: TenantContext,
+  versionId: string,
+): Promise<StudentWorkoutVersionDto | null> {
+  const studentId = await ownStudentId(ctx);
+  if (!studentId) return null;
+
+  const [row] = await ctx.db
+    .select({
+      workout: schema.studentWorkout,
+      version: schema.studentWorkoutVersion,
+    })
+    .from(schema.studentWorkoutVersion)
+    .innerJoin(
+      schema.studentWorkout,
+      eq(schema.studentWorkoutVersion.studentWorkoutId, schema.studentWorkout.id),
+    )
+    .where(
+      and(
+        eq(schema.studentWorkoutVersion.id, versionId),
+        eq(schema.studentWorkout.clinicId, ctx.clinicId),
+        eq(schema.studentWorkout.studentId, studentId),
+        eq(schema.studentWorkoutVersion.status, "published"),
+      ),
+    );
+  if (!row) return null;
+  return {
+    workoutId: row.workout.id,
+    workoutName: row.workout.name,
+    version: row.version.version!,
+    publishedAt: row.version.publishedAt!.toISOString(),
+    notes: row.version.notes,
+    sessions: await hydrateWorkoutStructure(ctx, row.version.tree),
   };
 }

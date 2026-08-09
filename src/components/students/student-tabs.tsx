@@ -17,6 +17,11 @@ export function StudentTabs({ studentId }: { studentId: string }) {
       label: "Dieta",
       active: pathname.startsWith(`${base}/diet`),
     },
+    {
+      href: `${base}/workout`,
+      label: "Treino",
+      active: pathname.startsWith(`${base}/workout`),
+    },
   ];
   return (
     <div className="border-b border-border">

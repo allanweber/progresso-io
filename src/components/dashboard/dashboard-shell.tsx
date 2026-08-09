@@ -39,6 +39,7 @@ function navItems(role: string | null | undefined) {
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
     items.push({ href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed });
+    items.push({ href: "/coach/workouts", label: "Treinos", icon: Dumbbell });
     // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
     items.push({ href: "/coach/library", label: "Biblioteca", icon: BookOpen });
   }
