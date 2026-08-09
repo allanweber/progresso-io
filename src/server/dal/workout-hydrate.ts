@@ -64,6 +64,7 @@ export type ExercisePrescription = {
   reps: WorkoutReps;
   load: string | null;
   rest: number;
+  note: string | null;
   technique: WorkoutTechnique | null;
   groupId: string | null;
   customSubstitutes: { exerciseId: string; note: string | null }[];
@@ -176,6 +177,7 @@ function placeholder(p: ExercisePrescription): WorkoutExerciseDto {
     reps: p.reps,
     load: p.load,
     rest: p.rest,
+    note: p.note,
     technique: p.technique,
     groupId: p.groupId,
     substitutes: [],
@@ -236,6 +238,7 @@ export function buildExerciseDto(
     reps: p.reps,
     load: p.load,
     rest: p.rest,
+    note: p.note,
     technique: p.technique,
     groupId: p.groupId,
     substitutes: [...custom, ...library],

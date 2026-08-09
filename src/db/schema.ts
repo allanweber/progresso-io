@@ -887,6 +887,8 @@ export const workoutExercise = pgTable(
     load: text("load"),
     // Rest between sets, in seconds. Default 01:30; 0 = no rest.
     rest: integer("rest").notNull().default(90),
+    // A short free-text observation for this exercise (PT-BR), optional.
+    note: text("note"),
     // Advanced technique key (see lib/workout-techniques); NULL = simple.
     technique: text("technique").$type<WorkoutTechnique>(),
     // Shared by consecutive items forming a super-set / giant-set block.

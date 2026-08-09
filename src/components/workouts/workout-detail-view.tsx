@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Dumbbell, Repeat } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Dumbbell, Repeat } from "lucide-react";
 
 import {
   Dialog,
@@ -20,10 +20,24 @@ import {
   type WorkoutExerciseDto,
   type WorkoutSessionDto,
 } from "@/lib/workouts";
-import { techniqueInfo } from "@/lib/workout-techniques";
+import {
+  isGroupingTechnique,
+  techniqueInfo,
+  type WorkoutTechnique,
+} from "@/lib/workout-techniques";
 
-/** Grouping context for an exercise inside a super-set / giant-set block. */
-type GroupInfo = { position: number; total: number; nextName: string | null };
+/**
+ * Grouping context for an exercise inside a super-set / giant-set block. A block
+ * is a run of exercises sharing a `groupId`; only its **opening** member(s) carry
+ * the grouping technique (which "chains" into the following exercise), so the
+ * block's technique is resolved once here and shown on every member's rail.
+ */
+export type GroupInfo = {
+  position: number;
+  total: number;
+  nextName: string | null;
+  technique: WorkoutTechnique | null;
+};
 
 /** Computes the super-set/giant grouping of a session's exercises by `groupId`. */
 function groupInfoFor(
@@ -38,11 +52,15 @@ function groupInfoFor(
     runs.set(ex.groupId, list);
   }
   for (const list of runs.values()) {
+    // The block's technique is the first member carrying a grouping technique.
+    const technique =
+      list.find((ex) => isGroupingTechnique(ex.technique))?.technique ?? null;
     list.forEach((ex, i) => {
       map.set(ex.id, {
         position: i + 1,
         total: list.length,
         nextName: i < list.length - 1 ? list[i + 1].name : null,
+        technique,
       });
     });
   }
@@ -58,8 +76,12 @@ function ExerciseRow({
   group: GroupInfo | null;
   onClick?: () => void;
 }) {
-  const tech = techniqueInfo(exercise.technique);
   const inBlock = Boolean(group);
+  // A block member shows the block's technique (its opener's) on the rail/badge;
+  // a standalone exercise shows its own technique.
+  const tech = inBlock
+    ? techniqueInfo(group!.technique) ?? techniqueInfo(exercise.technique)
+    : techniqueInfo(exercise.technique);
   const color = tech?.color ?? "#059669";
   const first = group?.position === 1;
   const last = group ? group.position === group.total : false;
@@ -125,6 +147,11 @@ function ExerciseRow({
         {group && group.nextName && (
           <div className="mt-1 text-[11px] font-medium text-muted-foreground">
             ↳ sem descanso → {group.nextName}
+          </div>
+        )}
+        {exercise.note && (
+          <div className="mt-1 line-clamp-2 text-[11.5px] italic text-[#64748B]">
+            “{exercise.note}”
           </div>
         )}
         {/* Only a count indicator in the full view — the list is in the detail. */}
@@ -223,15 +250,31 @@ export function WorkoutSessionsView({
 }
 
 /**
- * The exercise's image carousel. Images that fail to load (e.g. the image CDN /
- * R2 isn't configured in a given environment) are dropped; when none remain a
- * dumbbell placeholder is shown instead of an empty gap. Keyed by exercise id by
- * the caller, so the failed-set resets when the exercise changes.
+ * The exercise's image **carousel** — a swipeable, scroll-snapped track with
+ * prev/next arrows and dot indicators. Free-exercise-db exercises usually ship a
+ * start- and end-position image, so this lets the aluno flip between them. Images
+ * that fail to load (e.g. the CDN / R2 isn't configured in a given environment)
+ * are dropped; when none remain a dumbbell placeholder is shown. Keyed by
+ * exercise id by the caller, so state resets when the exercise changes.
  */
 function ExerciseImages({ images }: { images: string[] }) {
   const [broken, setBroken] = useState<Set<string>>(() => new Set());
+  const [index, setIndex] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
   const onErr = (src: string) => setBroken((prev) => new Set(prev).add(src));
   const shown = images.filter((src) => !broken.has(src));
+
+  // Keep the active dot in sync as the user swipes/scrolls the track.
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const i = Math.round(el.scrollLeft / el.clientWidth);
+      setIndex((prev) => (prev === i ? prev : i));
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [shown.length]);
 
   if (shown.length === 0) {
     return (
@@ -240,29 +283,67 @@ function ExerciseImages({ images }: { images: string[] }) {
       </div>
     );
   }
-  const [main, ...rest] = shown;
+
+  const go = (i: number) => {
+    const el = trackRef.current;
+    const next = Math.max(0, Math.min(shown.length - 1, i));
+    if (el) el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+    setIndex(next);
+  };
+
   return (
-    <div className="space-y-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={main}
-        alt=""
-        onError={() => onErr(main)}
-        className="aspect-video w-full rounded-2xl bg-slate-900 object-cover"
-      />
-      {rest.length > 0 && (
-        <div className="flex gap-2">
-          {rest.map((src) => (
-            // eslint-disable-next-line @next/next/no-img-element
+    <div className="relative">
+      <div
+        ref={trackRef}
+        className="flex snap-x snap-mandatory overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {shown.map((src) => (
+          <div key={src} className="w-full shrink-0 snap-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              key={src}
               src={src}
               alt=""
               onError={() => onErr(src)}
-              className="h-16 flex-1 rounded-xl bg-slate-900 object-cover"
+              className="aspect-video w-full bg-slate-900 object-cover"
             />
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
+
+      {shown.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => go(index - 1)}
+            disabled={index === 0}
+            aria-label="Imagem anterior"
+            className="absolute left-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => go(index + 1)}
+            disabled={index === shown.length - 1}
+            aria-label="Próxima imagem"
+            className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+          <div className="pointer-events-none absolute inset-x-0 bottom-2.5 flex justify-center gap-1.5">
+            {shown.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => go(i)}
+                aria-label={`Ir para a imagem ${i + 1}`}
+                className={`pointer-events-auto h-1.5 rounded-full transition-all ${
+                  i === index ? "w-5 bg-white" : "w-1.5 bg-white/60"
+                }`}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -282,7 +363,11 @@ export function WorkoutExerciseDetail({
   group?: GroupInfo | null;
   onClose: () => void;
 }) {
-  const tech = techniqueInfo(exercise?.technique);
+  // Block members show the block's technique (the opener's) even when their own
+  // `technique` is null (they are the chained tail of the super-set / giant set).
+  const tech =
+    techniqueInfo(exercise?.technique) ??
+    (group ? techniqueInfo(group.technique) : null);
   const images = (exercise?.images ?? [])
     .map((k) => exerciseImageUrl(k))
     .filter((u): u is string => Boolean(u));
@@ -331,6 +416,18 @@ export function WorkoutExerciseDetail({
                   </div>
                 ))}
               </div>
+
+              {/* Coach's note for this exercise */}
+              {exercise.note && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                    Observação do treinador
+                  </div>
+                  <p className="text-[13px] leading-relaxed text-[#334155]">
+                    {exercise.note}
+                  </p>
+                </div>
+              )}
 
               {/* Technique explanation */}
               {tech && (

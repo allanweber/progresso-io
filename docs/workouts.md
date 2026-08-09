@@ -10,14 +10,22 @@ versioned `student_workout` (see `docs/student-workouts.md`).
 - A workout has **sessions** ("fichas", e.g. "Ficha A · Peito e Tríceps"), each
   with ordered **exercises**. An exercise references the shared **exercise
   catalog** (`docs/exercises.md`) plus its prescription.
-- A prescription is: `sets` (int), `reps` (**number** / **range** / **falha**),
-  optional `load` (free text — "40 kg", "peso corporal", "70% 1RM"), and `rest`
-  in seconds (**default 01:30**, `0` = no rest).
+- A prescription is: `sets` (int), `reps` (**número** / **intervalo** / **falha**),
+  optional `load` (free text — "40 kg", "peso corporal", "70% 1RM"), `rest`
+  in seconds (**default 01:30**, `0` = no rest), and an optional free-text
+  **observação** (`note`, ≤280 chars) shown to the aluno on the exercise.
+  The **intervalo** kind is a **sequence of 2+ values**, crescente ou decrescente
+  (e.g. `8-12`, or a pyramid `10-8-6-4`) — stored as `{ kind: "range", values: number[] }`.
 - An exercise may carry an **advanced technique** (`technique`): drop set, triple
   drop, super set, giant set, GVT, FS7, rest-pause, cluster. The technique's
   label/icon/**explanation** is static app content (`src/lib/workout-techniques.ts`),
   keyed by the enum — never stored per workout. Grouping techniques (super set /
-  giant set) link consecutive exercises via a shared `group_id`.
+  giant set) **chain forward**: marking an exercise links it — without rest —
+  into the **following** exercise, so a pair only needs its first item marked. The
+  block extends while consecutive items carry the same grouping technique and
+  closes on the first that doesn't (its tail). The builder assigns the shared
+  `group_id` (`assignGroupIds`, `src/lib/workout-grouping.ts`); the read views
+  draw the block as a continuous rail.
 - An exercise may have **custom substitutes** cadastrados no treino (a catalog
   exercise + optional note). These are stored on the item; the exercise's
   **library** substitutes (`exercise_substitution`) are merged in **live** on read.
@@ -47,7 +55,7 @@ Tables (`src/db/schema.ts`), migration `0011_workouts`:
 - **`workout_session`** — `workout_id`, `name`, `position`.
 - **`workout_exercise`** — `workout_session_id`, `exercise_id` (`on delete
   restrict`), `sets`, `reps` (`jsonb`), `load`, `rest` (default 90), `technique`,
-  `group_id`, `position`.
+  `note` (free-text observação, ≤280 chars), `group_id`, `position`.
 - **`workout_exercise_substitute`** — `workout_exercise_id`,
   `substitute_exercise_id`, `note`, `position`.
 

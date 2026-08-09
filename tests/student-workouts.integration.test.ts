@@ -29,7 +29,7 @@ let supino: string;
 let crucifixo: string;
 let triceps: string;
 
-const range = (min: number, max: number): WorkoutReps => ({ kind: "range", min, max });
+const range = (...values: number[]): WorkoutReps => ({ kind: "range", values });
 
 async function addExercise(name: string, clinicId?: string | null) {
   const [row] = await db
@@ -66,6 +66,7 @@ function wk(name: string, withCustomSub = false): WorkoutWriteInput {
             load: "40 kg",
             rest: 90,
             technique: "dropset",
+            note: null,
             groupId: null,
             customSubstitutes: withCustomSub
               ? [{ exerciseId: triceps, note: "ombro sensível" }]

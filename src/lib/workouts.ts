@@ -50,19 +50,25 @@ export const SESSION_SUGGESTIONS = [
 /*  Reps — number | range | failure                                           */
 /* -------------------------------------------------------------------------- */
 
-/** How an exercise's repetitions are prescribed. */
+/**
+ * How an exercise's repetitions are prescribed:
+ * - `fixed`   — a single number (e.g. 12);
+ * - `range`   — a **sequence** of 2+ values, crescente or decrescente (e.g.
+ *   `8-12`, or a pyramid like `10-8-6-4`);
+ * - `failure` — até a falha.
+ */
 export type WorkoutReps =
   | { kind: "fixed"; value: number }
-  | { kind: "range"; min: number; max: number }
+  | { kind: "range"; values: number[] }
   | { kind: "failure" };
 
-/** Renders reps for display: `12` / `8-10` / `Falha`. */
+/** Renders reps for display: `12` / `8-12` / `10-8-6-4` / `Falha`. */
 export function formatReps(reps: WorkoutReps): string {
   switch (reps.kind) {
     case "fixed":
       return String(reps.value);
     case "range":
-      return `${reps.min}-${reps.max}`;
+      return reps.values.join("-");
     case "failure":
       return "Falha";
   }
@@ -126,6 +132,8 @@ export type WorkoutExerciseDto = {
   load: string | null;
   /** Rest in seconds (0 = no rest, e.g. a super-set member). */
   rest: number;
+  /** A short free-text observation for this exercise, or null. */
+  note: string | null;
   technique: WorkoutTechnique | null;
   /** Shared by consecutive items forming a super-set / giant-set block. */
   groupId: string | null;
@@ -191,7 +199,11 @@ export const workoutListQuerySchema = z.object({
 });
 export type WorkoutListQuery = z.output<typeof workoutListQuerySchema>;
 
-/** Reps payload: `{kind:'fixed',value}` | `{kind:'range',min,max}` | `{kind:'failure'}`. */
+/**
+ * Reps payload: `{kind:'fixed',value}` | `{kind:'range',values}` |
+ * `{kind:'failure'}`. A range is a sequence of 2+ values (crescente or
+ * decrescente), e.g. `[8,12]` or `[10,8,6,4]`.
+ */
 export const repsSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("fixed"),
@@ -201,16 +213,19 @@ export const repsSchema = z.discriminatedUnion("kind", [
       .min(1, "Mínimo de 1 repetição.")
       .max(1000, "Valor muito alto."),
   }),
-  z
-    .object({
-      kind: z.literal("range"),
-      min: z.number().int().min(1, "Mínimo de 1 repetição.").max(1000),
-      max: z.number().int().min(1).max(1000),
-    })
-    .refine((r) => r.max >= r.min, {
-      error: "O máximo deve ser maior ou igual ao mínimo.",
-      path: ["max"],
-    }),
+  z.object({
+    kind: z.literal("range"),
+    values: z
+      .array(
+        z
+          .number()
+          .int("Informe números inteiros.")
+          .min(1, "Mínimo de 1 repetição.")
+          .max(1000, "Valor muito alto."),
+      )
+      .min(2, "Informe ao menos dois valores.")
+      .max(10, "Valores demais."),
+  }),
   z.object({ kind: z.literal("failure") }),
 ]);
 
@@ -246,6 +261,12 @@ const exerciseInputSchema = z.object({
     .min(0, "Descanso inválido.")
     .max(3600, "Descanso muito longo.")
     .default(90),
+  note: z
+    .string()
+    .trim()
+    .max(280, "Observação muito longa.")
+    .nullish()
+    .transform((v) => (v ? v : null)),
   technique: z
     .enum(WORKOUT_TECHNIQUES, { error: "Técnica inválida." })
     .nullish()

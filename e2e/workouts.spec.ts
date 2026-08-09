@@ -55,12 +55,19 @@ test.describe("workout copy", () => {
     // The exercise-image host (R2 / CDN) isn't reachable from the e2e browser,
     // so fulfil image requests with a stand-in so the detail's media area
     // renders (production serves the real catalog photos from R2).
-    await page.route(/\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i, (route) =>
+    await page.route(/\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i, (route) => {
+      // Distinguish the two catalog frames (…/0.jpg vs …/1.jpg) so the detail's
+      // image carousel shows visibly different slides between prev/next.
+      const url = route.request().url();
+      const second = /1\.(png|jpe?g|webp|gif|avif)/i.test(url);
+      const from = second ? "#0f172a" : "#334155";
+      const to = second ? "#1e293b" : "#0f172a";
+      const label = second ? "Posição final" : "Posição inicial";
       route.fulfill({
         contentType: "image/svg+xml",
-        body: `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs><rect width="320" height="180" fill="url(#g)"/><text x="50%" y="50%" fill="#94a3b8" font-family="sans-serif" font-size="15" text-anchor="middle" dominant-baseline="middle">Exercício</text></svg>`,
-      }),
-    );
+        body: `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="320" height="180" fill="url(#g)"/><text x="50%" y="50%" fill="#94a3b8" font-family="sans-serif" font-size="15" text-anchor="middle" dominant-baseline="middle">${label}</text></svg>`,
+      });
+    });
 
     const ex = async (q: string): Promise<string | null> => {
       const r = await page.request.get(
@@ -107,7 +114,7 @@ test.describe("workout copy", () => {
           }
         : null;
     const nn = <T,>(xs: (T | null)[]) => xs.filter((x): x is T => x !== null);
-    const range = (min: number, max: number) => ({ kind: "range", min, max });
+    const range = (...values: number[]) => ({ kind: "range", values });
 
     const res = await page.request.post("/api/workouts", {
       data: {
@@ -127,6 +134,9 @@ test.describe("workout copy", () => {
                   ? [{ exerciseId: crucifixo, note: "ombro sensível" }]
                   : [],
               }),
+              // A super set authored the intuitive way: only the FIRST item
+              // carries the technique; it chains (no rest) into the next, which
+              // is the block's tail (no technique, same groupId).
               item(crucifixo, {
                 sets: 3,
                 reps: range(10, 12),
@@ -138,7 +148,6 @@ test.describe("workout copy", () => {
                 sets: 3,
                 reps: range(12, 15),
                 rest: 60,
-                technique: "superset",
                 groupId: "ssA",
               }),
             ]),
@@ -191,6 +200,9 @@ test.describe("workout copy", () => {
       page.getByRole("heading", { name: /Programa completo/ }),
     ).toBeVisible();
     await expect(page.getByText(/Giant set/).first()).toBeVisible();
+    // The super set was authored by marking only the first item, yet chains into
+    // the next: the block spans both exercises (its opener labels it).
+    await expect(page.getByText(/Super set · 2 em sequência/)).toBeVisible();
     await expect(page.getByText(/substituiç/).first()).toBeVisible(); // the count indicator
     await page.screenshot({
       path: "test-results/screens/coach-workout-detail-desktop.png",
@@ -203,9 +215,14 @@ test.describe("workout copy", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/Técnica: Drop set/)).toBeVisible();
     await expect(dialog.getByText(/Substituições/)).toBeVisible();
+    // The image carousel: two frames with prev/next controls.
+    await expect(dialog.getByRole("button", { name: "Próxima imagem" })).toBeVisible();
     await dialog.screenshot({
       path: "test-results/screens/coach-exercise-detail-desktop.png",
     });
+    // Advance the carousel to the second frame.
+    await dialog.getByRole("button", { name: "Próxima imagem" }).click();
+    await expect(dialog.getByRole("button", { name: "Imagem anterior" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
 

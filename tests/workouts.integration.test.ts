@@ -54,7 +54,7 @@ async function addExercise(e: {
   return row.id;
 }
 
-const range = (min: number, max: number): WorkoutReps => ({ kind: "range", min, max });
+const range = (...values: number[]): WorkoutReps => ({ kind: "range", values });
 
 function payload(over?: Partial<WorkoutWriteInput>): WorkoutWriteInput {
   return {
@@ -71,6 +71,7 @@ function payload(over?: Partial<WorkoutWriteInput>): WorkoutWriteInput {
             load: "40 kg",
             rest: 90,
             technique: "dropset",
+            note: "Foco na fase excêntrica.",
             groupId: null,
             customSubstitutes: [{ exerciseId: triceps, note: "ombro sensível" }],
           },
@@ -131,8 +132,9 @@ describe("workout template DAL", () => {
     expect(ex.images).toEqual(["supino_reto/0.jpg"]);
     // Prescription.
     expect(ex.sets).toBe(4);
-    expect(ex.reps).toEqual({ kind: "range", min: 8, max: 10 });
+    expect(ex.reps).toEqual({ kind: "range", values: [8, 10] });
     expect(ex.technique).toBe("dropset");
+    expect(ex.note).toBe("Foco na fase excêntrica.");
     // Custom (first, with note) + library substitutes, merged.
     expect(ex.substitutes.map((s) => [s.source, s.name])).toEqual([
       ["custom", "Triceps corda"],
@@ -155,6 +157,7 @@ describe("workout template DAL", () => {
               load: null,
               rest: 60,
               technique: null,
+              note: null,
               groupId: null,
               customSubstitutes: [],
             },
@@ -190,6 +193,7 @@ describe("workout template DAL", () => {
               load: null,
               rest: 90,
               technique: null,
+              note: null,
               groupId: null,
               customSubstitutes: [],
             },

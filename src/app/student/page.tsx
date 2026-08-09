@@ -18,6 +18,7 @@ import { MacroSummary } from "@/components/diets/diet-detail-view";
 import {
   WorkoutExerciseDetail,
   WorkoutSessionsView,
+  type GroupInfo,
 } from "@/components/workouts/workout-detail-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -798,8 +799,6 @@ function HistoryVersionDialog({
 /* -------------------------------------------------------------------------- */
 /*  Treino tab                                                                  */
 /* -------------------------------------------------------------------------- */
-
-type GroupInfo = { position: number; total: number; nextName: string | null };
 
 function WorkoutTab() {
   const [detail, setDetail] = useState<{

@@ -9,6 +9,7 @@ import { Archive, ArchiveRestore, ArrowLeft, Copy, Pencil } from "lucide-react";
 import {
   WorkoutExerciseDetail,
   WorkoutSessionsView,
+  type GroupInfo,
 } from "@/components/workouts/workout-detail-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export default function WorkoutDetailPage() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [detail, setDetail] = useState<{
     exercise: WorkoutExerciseDto;
-    group: { position: number; total: number; nextName: string | null } | null;
+    group: GroupInfo | null;
   } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
