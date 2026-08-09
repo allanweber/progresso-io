@@ -1,9 +1,9 @@
 # Student portal (portal do aluno)
 
 The **aluno-facing** app at `/student` — where a student sees what their coach
-publishes. This first phase ships the **shell** (responsive chrome + tab nav)
-with the **Dieta** tab wired to real data; Treino, Check-in and Evolução are
-"em breve" placeholders until those features exist.
+publishes. The responsive shell (chrome + tab nav) ships with the **Dieta** and
+**Treino** tabs wired to real data; Check-in and Evolução remain "em breve"
+placeholders until those features exist.
 
 The aluno is **read-only** by nature: they never edit, and they only ever see
 what has been **published** — a coach's in-flight **draft is invisible** here
@@ -22,6 +22,8 @@ row that belongs to the authenticated user (`students.userId = ctx.userId`).
 - `getMyProfile` — name, coach, clinic and goal for the chrome.
 - `getMyDietState` — `{ current, history }` (no `draft` field exists on the DTO).
 - `getMyDietVersion` — one published version's tree, own-student + published only.
+- `getMyWorkoutState` / `getMyWorkoutVersion` — the same, for the active published
+  workout (see `docs/student-workouts.md`).
 
 A user with no linked student (a coach/admin, or an aluno not yet linked) gets
 `null`, which the API turns into a 404.
@@ -34,6 +36,8 @@ DAL, zod on the only param:
 - `GET /api/student/profile` — the chrome identity.
 - `GET /api/student/diet` — the active published diet + read-only history.
 - `GET /api/student/diet/versions/[versionId]` — a published version's tree.
+- `GET /api/student/workout` — the active published workout + read-only history.
+- `GET /api/student/workout/versions/[versionId]` — a published version's tree.
 
 ## UI (`/student`)
 

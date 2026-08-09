@@ -51,6 +51,72 @@ test.describe("aluno portal", () => {
     await expect(dialog.getByText("somente leitura")).toBeVisible();
   });
 
+  test("shows the active workout and an exercise's technique in the Treino tab (desktop + mobile)", async ({
+    page,
+  }) => {
+    // The exercise-image host isn't reachable from the e2e browser — fulfil
+    // image requests with a stand-in so the detail's media area renders (real
+    // catalog photos are served from R2 in production).
+    await page.route(/\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i, (route) =>
+      route.fulfill({
+        contentType: "image/svg+xml",
+        body: `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs><rect width="320" height="180" fill="url(#g)"/><text x="50%" y="50%" fill="#94a3b8" font-family="sans-serif" font-size="15" text-anchor="middle" dominant-baseline="middle">Exercício</text></svg>`,
+      }),
+    );
+
+    // --- Desktop ---
+    await page.goto("/student");
+    // Accept the app-wide cookie banner up front (unobstructed on desktop), so
+    // both the desktop and mobile shots are clean and the mobile bottom bar is
+    // never covered by it.
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    // The portal opens on Dieta — switch to Treino.
+    await page.getByRole("button", { name: "Treino" }).first().click();
+
+    // The seed publishes an active "Hipertrofia · 4x semana" with a drop set.
+    await expect(
+      page.getByRole("heading", { name: /Hipertrofia/ }),
+    ).toBeVisible();
+    await expect(page.getByText(/Ficha A/)).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/portal-treino-desktop.png",
+      fullPage: true,
+    });
+
+    // Open the drop-set exercise → its live técnica explanation shows.
+    await page.getByText(/Drop set/).first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/Técnica: Drop set/)).toBeVisible();
+    await expect(dialog.getByText(/Como executar/)).toBeVisible();
+    await dialog.screenshot({
+      path: "test-results/screens/portal-exercise-detail-desktop.png",
+    });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    // --- Mobile --- the Treino tab stays selected across the resize (local
+    // state, no re-navigation), so we don't tap the bottom bar — in dev the
+    // Next.js overlay sits over the bottom-left corner and would intercept it.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+      page.getByRole("heading", { name: /Hipertrofia/ }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/portal-treino-mobile.png",
+      fullPage: true,
+    });
+
+    // Mobile exercise detail (an exercise row is mid-page, not covered by the
+    // dev overlay).
+    await page.getByText(/Drop set/).first().click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/Técnica: Drop set/)).toBeVisible();
+    await dialog.screenshot({
+      path: "test-results/screens/portal-exercise-detail-mobile.png",
+    });
+  });
+
   test("renders the mobile chrome (bottom tab bar)", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/student");

@@ -85,6 +85,16 @@ export default defineConfig({
         storageState: COACH_STORAGE,
       },
     },
+    {
+      name: "workouts",
+      testMatch: /workouts\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: COACH_STORAGE,
+      },
+    },
   ],
   webServer: {
     command: `npm run dev -- --port ${PORT}`,

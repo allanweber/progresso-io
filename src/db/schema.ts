@@ -16,6 +16,9 @@ import {
 } from "drizzle-orm/pg-core";
 
 import type { DietStructure } from "@/lib/student-diets";
+import type { WorkoutStructure } from "@/lib/student-workouts";
+import type { WorkoutReps } from "@/lib/workouts";
+import type { WorkoutTechnique } from "@/lib/workout-techniques";
 
 /**
  * Application roles.
@@ -805,6 +808,211 @@ export const studentDietVersion = pgTable(
     // Published version numbers are unique within a diet (NULLs — drafts — are
     // distinct in Postgres, so this never blocks a draft).
     unique("student_diet_version_number_uq").on(t.studentDietId, t.version),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
+/*  Workouts (treinos — coach-authored training-program templates)             */
+/*                                                                            */
+/*  A workout is a generic, reusable training-program template — the exercise  */
+/*  analogue of a `diet`. `clinic_id = NULL` is a shared base template          */
+/*  (reserved for a future platform catalog); a set `clinic_id` is a clinic's   */
+/*  own workout, authored by a coach. The DAL reads                             */
+/*  `clinic_id IS NULL OR clinic_id = ctx.clinicId` and only writes clinic-owned */
+/*  rows. A workout has sessions ("fichas"), each with ordered exercise items.  */
+/*  Only the prescription (sets/reps/load/rest/technique) is stored; the        */
+/*  exercise's name, images, instructions and substitutes are a live reference  */
+/*  into the `exercise` catalog, resolved at read time. Assigning a workout to  */
+/*  a student (versioned) uses the `student_workout` tables below.              */
+/* -------------------------------------------------------------------------- */
+
+export const workout = pgTable(
+  "workout",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // NULL = shared base template; set = this clinic's own workout.
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    // The coach who authored it. NULL for base templates.
+    coachId: text("coach_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    // Free-text notes/observations (PT-BR), optional.
+    notes: text("notes"),
+    // Soft-delete: archived workouts drop out of listings but keep their rows.
+    archived: boolean("archived").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("workout_clinic_idx").on(t.clinicId)],
+);
+
+/** A session (ficha) within a workout (e.g. "Ficha A"), ordered by `position`. */
+export const workoutSession = pgTable(
+  "workout_session",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workoutId: uuid("workout_id")
+      .notNull()
+      .references(() => workout.id, { onDelete: "cascade" }),
+    // Free-text label (PT-BR), e.g. "Ficha A · Peito e Tríceps".
+    name: text("name").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("workout_session_workout_idx").on(t.workoutId)],
+);
+
+/**
+ * An exercise line within a session: a reference into the `exercise` catalog
+ * plus its prescription. `reps` is a small JSON discriminated value
+ * (`{kind:'fixed'|'range'|'failure', …}`); `rest` is in seconds (default 90 =
+ * 01:30, `0` allowed for super-set members); `technique` + `group_id` carry the
+ * advanced technique and its super-set/giant grouping.
+ */
+export const workoutExercise = pgTable(
+  "workout_exercise",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workoutSessionId: uuid("workout_session_id")
+      .notNull()
+      .references(() => workoutSession.id, { onDelete: "cascade" }),
+    exerciseId: uuid("exercise_id")
+      .notNull()
+      .references(() => exercise.id, { onDelete: "restrict" }),
+    sets: integer("sets").notNull(),
+    reps: jsonb("reps").$type<WorkoutReps>().notNull(),
+    // Free text (e.g. "40 kg", "peso corporal", "70% 1RM"). NULL = unspecified.
+    load: text("load"),
+    // Rest between sets, in seconds. Default 01:30; 0 = no rest.
+    rest: integer("rest").notNull().default(90),
+    // Advanced technique key (see lib/workout-techniques); NULL = simple.
+    technique: text("technique").$type<WorkoutTechnique>(),
+    // Shared by consecutive items forming a super-set / giant-set block.
+    groupId: text("group_id"),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [
+    index("workout_exercise_session_idx").on(t.workoutSessionId),
+    index("workout_exercise_exercise_idx").on(t.exerciseId),
+    check("workout_exercise_sets_positive", sql`${t.sets} > 0`),
+  ],
+);
+
+/**
+ * A custom substitute cadastrado no treino for a workout exercise:
+ * `substitute_exercise` may replace the item's exercise, with an optional note
+ * (the coach's reason). Independent of the catalog's `exercise_substitution`
+ * rules — those are merged in live on read; these are workout-specific.
+ */
+export const workoutExerciseSubstitute = pgTable(
+  "workout_exercise_substitute",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workoutExerciseId: uuid("workout_exercise_id")
+      .notNull()
+      .references(() => workoutExercise.id, { onDelete: "cascade" }),
+    substituteExerciseId: uuid("substitute_exercise_id")
+      .notNull()
+      .references(() => exercise.id, { onDelete: "restrict" }),
+    // The coach's reason for this swap (PT-BR), optional.
+    note: text("note"),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [
+    index("workout_ex_sub_item_idx").on(t.workoutExerciseId),
+    index("workout_ex_sub_exercise_idx").on(t.substituteExerciseId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
+/*  Student workouts (treino do aluno — versioned, reference-based programs)    */
+/*                                                                            */
+/*  A student's workout belongs to ONE student and is **versioned** (1..N).    */
+/*  Each version stores only the prescription **structure** (references +       */
+/*  sets/reps/load/rest/technique + custom substitutes) as one JSON document;   */
+/*  the exercise presentation is hydrated live from the catalog on read, so a   */
+/*  coach's catalog correction reaches every student with no re-publish. A      */
+/*  coach builds a draft (invisible to the aluno) and **publishes** it to make  */
+/*  it available; each publish numbers a new version. Only one workout is        */
+/*  `active` at a time; a new one's first publish archives the previous.        */
+/* -------------------------------------------------------------------------- */
+
+export const STUDENT_WORKOUT_STATUSES = [
+  "draft",
+  "active",
+  "archived",
+] as const;
+export type StudentWorkoutStatus = (typeof STUDENT_WORKOUT_STATUSES)[number];
+
+export const STUDENT_WORKOUT_VERSION_STATUSES = ["draft", "published"] as const;
+export type StudentWorkoutVersionStatus =
+  (typeof STUDENT_WORKOUT_VERSION_STATUSES)[number];
+
+export const studentWorkout = pgTable(
+  "student_workout",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Provenance: the template workout this was copied from (a loose reference).
+    // Set null if that template is later deleted — the copy is independent.
+    sourceWorkoutId: uuid("source_workout_id").references(() => workout.id, {
+      onDelete: "set null",
+    }),
+    status: text("status")
+      .$type<StudentWorkoutStatus>()
+      .default("draft")
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_workout_clinic_idx").on(t.clinicId),
+    index("student_workout_student_idx").on(t.studentId),
+  ],
+);
+
+export const studentWorkoutVersion = pgTable(
+  "student_workout_version",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    studentWorkoutId: uuid("student_workout_id")
+      .notNull()
+      .references(() => studentWorkout.id, { onDelete: "cascade" }),
+    // Assigned on publish (1, 2, 3…); NULL while a draft.
+    version: integer("version"),
+    status: text("status")
+      .$type<StudentWorkoutVersionStatus>()
+      .default("draft")
+      .notNull(),
+    // The prescription **structure** (references + prescription + custom subs).
+    // The exercise presentation and library substitutes are derived live from
+    // the catalog on read (see the DAL's `hydrateStructure`).
+    tree: jsonb("tree").$type<WorkoutStructure>().notNull(),
+    notes: text("notes"),
+    publishedAt: timestamp("published_at"),
+    publishedBy: text("published_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_workout_version_workout_idx").on(t.studentWorkoutId),
+    // Published version numbers are unique within a workout (NULL drafts are
+    // distinct in Postgres, so this never blocks a draft).
+    unique("student_workout_version_number_uq").on(
+      t.studentWorkoutId,
+      t.version,
+    ),
   ],
 );
 

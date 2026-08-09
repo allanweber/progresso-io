@@ -21,6 +21,8 @@ const ROUTES = [
   "/coach/students",
   "/coach/students/new",
   "/coach/diets",
+  "/coach/workouts",
+  "/coach/workouts/new",
   "/student",
   "/dashboard",
 ];

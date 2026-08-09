@@ -15,6 +15,10 @@ import {
 
 import { Logo } from "@/components/brand/logo";
 import { MacroSummary } from "@/components/diets/diet-detail-view";
+import {
+  WorkoutExerciseDetail,
+  WorkoutSessionsView,
+} from "@/components/workouts/workout-detail-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +40,13 @@ import type {
   TreeItem,
   TreeMeal,
 } from "@/lib/student-diets";
-import type { AlunoProfileDto, MyDietStateDto } from "@/lib/student-portal";
+import type { StudentWorkoutVersionDto } from "@/lib/student-workouts";
+import type { WorkoutExerciseDto } from "@/lib/workouts";
+import type {
+  AlunoProfileDto,
+  MyDietStateDto,
+  MyWorkoutStateDto,
+} from "@/lib/student-portal";
 
 /* -------------------------------------------------------------------------- */
 /*  Tabs                                                                        */
@@ -50,7 +60,7 @@ const TABS: {
   icon: typeof Dumbbell;
   ready: boolean;
 }[] = [
-  { id: "treino", label: "Treino", icon: Dumbbell, ready: false },
+  { id: "treino", label: "Treino", icon: Dumbbell, ready: true },
   { id: "dieta", label: "Dieta", icon: UtensilsCrossed, ready: true },
   { id: "checkin", label: "Check-in", icon: ListChecks, ready: false },
   { id: "evolucao", label: "Evolução", icon: LineChart, ready: false },
@@ -258,6 +268,8 @@ export default function StudentPortalPage() {
           <main className="min-w-0">
             {tab === "dieta" ? (
               <DietTab />
+            ) : tab === "treino" ? (
+              <WorkoutTab />
             ) : (
               <ComingSoon label={TABS.find((t) => t.id === tab)!.label} />
             )}
@@ -773,6 +785,199 @@ function HistoryVersionDialog({
                 })}
               </div>
             ))}
+            <p className="text-xs text-muted-foreground">
+              Versão arquivada · somente leitura.
+            </p>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Treino tab                                                                  */
+/* -------------------------------------------------------------------------- */
+
+type GroupInfo = { position: number; total: number; nextName: string | null };
+
+function WorkoutTab() {
+  const [detail, setDetail] = useState<{
+    exercise: WorkoutExerciseDto;
+    group: GroupInfo | null;
+  } | null>(null);
+  const [historyVersionId, setHistoryVersionId] = useState<string | null>(null);
+
+  const state = useQuery({
+    queryKey: ["student", "workout"],
+    queryFn: () => apiFetch<MyWorkoutStateDto>("/api/student/workout"),
+  });
+
+  if (state.isPending) {
+    return <p className="mt-8 text-sm text-muted-foreground">Carregando…</p>;
+  }
+  if (state.isError) {
+    return (
+      <p className="mt-8 text-sm text-red-600">
+        Não foi possível carregar seu treino. Tente novamente.
+      </p>
+    );
+  }
+
+  const { current, history } = state.data;
+
+  const historyRows = history
+    .flatMap((w) =>
+      w.versions.map((v) => ({
+        versionId: v.versionId,
+        version: v.version,
+        workoutId: w.workoutId,
+        workoutName: w.workoutName,
+        status: w.status,
+        publishedAt: v.publishedAt,
+      })),
+    )
+    .filter(
+      (r) =>
+        !(
+          current &&
+          r.workoutId === current.workoutId &&
+          r.version === current.version
+        ),
+    )
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+
+  if (!current && historyRows.length === 0) {
+    return (
+      <div className="mt-2">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Treino
+        </h1>
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+          <p className="text-sm text-muted-foreground">
+            Você ainda não tem um treino. Assim que seu coach publicar, ele
+            aparece aqui.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-w-0">
+      {current ? (
+        <>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2.5">
+            <div>
+              <h1 className="font-heading text-2xl font-semibold tracking-tight">
+                {current.workoutName}
+              </h1>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Versão {current.version} · publicada em{" "}
+                {formatDate(current.publishedAt)}
+              </p>
+            </div>
+            <Badge className="bg-primary-light font-semibold text-primary">
+              v{current.version} vigente
+            </Badge>
+          </div>
+
+          <WorkoutSessionsView
+            sessions={current.sessions}
+            onExerciseClick={(exercise, group) => setDetail({ exercise, group })}
+          />
+        </>
+      ) : (
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Treino
+        </h1>
+      )}
+
+      {historyRows.length > 0 ? (
+        <section className="mt-8 border-t border-border pt-5">
+          <h2 className="mb-3 font-heading text-[15px] font-semibold text-muted-foreground">
+            Treinos anteriores
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {historyRows.map((r) => (
+              <button
+                key={r.versionId}
+                onClick={() => setHistoryVersionId(r.versionId)}
+                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:bg-muted/40 dark:bg-card"
+              >
+                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-[12.5px] font-bold text-white">
+                  v{r.version}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold">
+                    {r.workoutName}
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {r.status === "archived" ? "Arquivado" : "Ativo"} · publicado
+                    em {formatDate(r.publishedAt)}
+                  </div>
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <WorkoutExerciseDetail
+        exercise={detail?.exercise ?? null}
+        group={detail?.group ?? null}
+        onClose={() => setDetail(null)}
+      />
+      <WorkoutHistoryDialog
+        versionId={historyVersionId}
+        onClose={() => setHistoryVersionId(null)}
+      />
+    </div>
+  );
+}
+
+function WorkoutHistoryDialog({
+  versionId,
+  onClose,
+}: {
+  versionId: string | null;
+  onClose: () => void;
+}) {
+  const version = useQuery({
+    queryKey: ["student", "workout", "version", versionId],
+    queryFn: () =>
+      apiFetch<StudentWorkoutVersionDto>(
+        `/api/student/workout/versions/${versionId}`,
+      ),
+    enabled: versionId !== null,
+  });
+
+  return (
+    <Dialog open={versionId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-lg">
+            {version.data
+              ? `${version.data.workoutName} · v${version.data.version}`
+              : "Treino"}
+          </DialogTitle>
+          {version.data ? (
+            <p className="text-[12.5px] text-muted-foreground">
+              Publicado em {formatDate(version.data.publishedAt)}
+            </p>
+          ) : null}
+        </DialogHeader>
+
+        {version.isPending && versionId ? (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        ) : version.isError ? (
+          <p className="text-sm text-red-600">
+            Não foi possível carregar esta versão.
+          </p>
+        ) : version.data ? (
+          <div className="flex flex-col gap-3.5">
+            <WorkoutSessionsView sessions={version.data.sessions} />
             <p className="text-xs text-muted-foreground">
               Versão arquivada · somente leitura.
             </p>
