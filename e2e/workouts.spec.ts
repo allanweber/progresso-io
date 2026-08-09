@@ -223,7 +223,17 @@ test.describe("workout copy", () => {
     // Advance the carousel to the second frame.
     await dialog.getByRole("button", { name: "Próxima imagem" }).click();
     await expect(dialog.getByRole("button", { name: "Imagem anterior" })).toBeVisible();
-    await page.keyboard.press("Escape");
+
+    // Tapping a substitution opens its own detail dialog (title + execution).
+    // The drop-set exercise carries a custom substitute noted "ombro sensível".
+    await dialog.getByText("ombro sensível").click();
+    const subDialog = page.getByRole("dialog").last();
+    await expect(subDialog.getByText(/Como executar/)).toBeVisible();
+    await subDialog.screenshot({
+      path: "test-results/screens/coach-substitute-detail-desktop.png",
+    });
+    await page.keyboard.press("Escape"); // close substitute detail
+    await page.keyboard.press("Escape"); // close exercise detail
     await expect(dialog).toBeHidden();
 
     // --- Workout detail + exercise detail (mobile) ---

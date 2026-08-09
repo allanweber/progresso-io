@@ -31,6 +31,9 @@ versioned `student_workout` (see `docs/student-workouts.md`).
 - An exercise may have **custom substitutes** cadastrados no treino (a catalog
   exercise + optional note). These are stored on the item; the exercise's
   **library** substitutes (`exercise_substitution`) are merged in **live** on read.
+  Each substitute is hydrated with its own catalog detail (title, images,
+  execution steps, muscles), so tapping one in any view (coach or aluno) opens its
+  detail modal with no extra request.
 
 ## Live reference (no snapshot)
 
