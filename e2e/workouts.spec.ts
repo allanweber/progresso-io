@@ -243,3 +243,64 @@ test.describe("workout copy", () => {
     });
   });
 });
+
+test.describe("workout builder", () => {
+  test("prescribes an exercise at insertion — steppers + Pirâmide reps (desktop + mobile)", async ({
+    page,
+  }) => {
+    // The exercise-image host isn't reachable from the e2e browser; fulfil image
+    // requests so search rows and the panel render instead of hanging.
+    await page.route(/\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i, (route) =>
+      route.fulfill({
+        contentType: "image/svg+xml",
+        body: `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#334155"/></svg>`,
+      }),
+    );
+
+    await page.goto("/coach/workouts/new");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+
+    await page
+      .getByPlaceholder("Ex.: Hipertrofia · 4x semana")
+      .fill("Treino pirâmide");
+
+    // Add a ficha, then open the exercise picker.
+    await page.getByRole("button", { name: "Nova ficha" }).click();
+    await page
+      .getByPlaceholder(/Nome da ficha/)
+      .fill("Ficha A · Pernas");
+    await page.getByRole("button", { name: "Adicionar exercício" }).click();
+
+    // Search and select an exercise → the full prescription panel opens.
+    await page
+      .getByPlaceholder(/Buscar exercício/)
+      .fill("agachamento");
+    await page
+      .getByRole("button")
+      .filter({ hasText: /agachamento/i })
+      .first()
+      .click();
+
+    // The prescription is set at insertion time: séries stepper + the reps kinds
+    // (Número / Intervalo / Pirâmide / Falha) are all present.
+    await expect(page.getByRole("button", { name: "Aumentar Séries" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Diminuir Séries" })).toBeVisible();
+
+    // Choose the pyramid reps type; its load-progression hint appears.
+    await page.getByRole("button", { name: "Pirâmide", exact: true }).click();
+    await expect(
+      page.getByText(/o peso aumenta e as repetições diminuem/).first(),
+    ).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-prescription-desktop.png",
+      fullPage: true,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-prescription-mobile.png",
+      fullPage: true,
+    });
+  });
+});
