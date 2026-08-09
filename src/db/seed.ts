@@ -517,6 +517,13 @@ async function seed() {
   await seedAlunoDiet(db, schema, studentDiets, coachCtx, studentId);
   await seedAlunoWorkout(db, schema, studentWorkouts, coachCtx, studentId);
 
+  // The clinic's own copy of the starter anamneses (idempotent).
+  const { seedClinicAnamneses } = await import("@/server/dal/anamneses");
+  const seededAnamneses = await seedClinicAnamneses(db, coachClinic.id, coach.id);
+  if (seededAnamneses > 0) {
+    console.info(`✓ seeded ${seededAnamneses} anamneses for the clinic`);
+  }
+
   console.info("Seed complete.");
 }
 

@@ -17,6 +17,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
+    "db:backfill-anamneses": "tsx src/db/backfill-anamneses.ts",
     "db:transform-taco": "node scripts/transform-taco.mjs",
     "db:build-substitutions": "node scripts/build-substitutions.mjs",
     "db:transform-exercises": "node scripts/transform-exercises.mjs",
