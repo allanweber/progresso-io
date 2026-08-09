@@ -60,15 +60,14 @@ truth) and is imported by `src/server/anamneses/starter-templates.ts`.
 
 ## Backfilling existing clinics
 
-New clinics get their anamneses at creation. Clinics created **before** this
-feature have none — run the one-off backfill once to seed them:
-
-```
-DATABASE_URL=… npm run db:backfill-anamneses
-```
-
-It iterates every clinic and calls the idempotent `seedClinicAnamneses`, so it
-only ever touches clinics that have no anamneses yet (safe to re-run).
+New clinics get their anamneses at creation (the sign-up hook). Clinics created
+**before** this feature have none — the **data migration `0014_backfill_anamneses`**
+seeds them. Because the migrator applies each migration exactly once (tracked in
+the journal), this runs **once, at the next deploy**, and never again — no manual
+command. It inserts the starter set only for clinics that have **no** anamnese
+yet (a `WHERE NOT EXISTS` guard), so a clinic already seeded by the hook is left
+untouched. The migration's contents are generated from the same
+`drizzle/data/anamneses/*.json` starter files.
 
 ## API (`/api/anamneses`)
 

@@ -131,12 +131,12 @@ describe("anamnesis DAL", () => {
     expect(copyDetail!.sections[0].questions).toHaveLength(2);
   });
 
-  it("backfills an existing clinic that has no anamneses yet", async () => {
-    // Clinic B was never seeded (an existing clinic from before the feature).
+  it("seeds a clinic that has no anamneses yet, and only then (idempotent)", async () => {
+    // Clinic B has no anamneses (the sign-up hook seeds new clinics; the 0014
+    // data migration seeds pre-existing ones — both call this seeder).
     const before = await anamneses.listAnamneses(ctxB);
     expect(before.total).toBe(0);
 
-    // The backfill loop calls the same idempotent seeder per clinic.
     const n = await anamneses.seedClinicAnamneses(
       ctxB.db,
       ctxB.clinicId,
@@ -146,7 +146,7 @@ describe("anamnesis DAL", () => {
     const after = await anamneses.listAnamneses(ctxB);
     expect(after.total).toBe(n);
 
-    // Re-running the backfill leaves it untouched (idempotent).
+    // Re-running leaves it untouched (idempotent).
     expect(
       await anamneses.seedClinicAnamneses(ctxB.db, ctxB.clinicId, ctxB.userId),
     ).toBe(0);
