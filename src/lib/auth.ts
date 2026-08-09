@@ -115,6 +115,12 @@ export function createAuth({
               name: `Clínica de ${firstName}`,
             });
             await attachUserToClinic(database, u.id, clinic.id);
+            // Give the new clinic its own copy of the starter anamneses; it owns
+            // and edits them freely from here on.
+            const { seedClinicAnamneses } = await import(
+              "@/server/dal/anamneses"
+            );
+            await seedClinicAnamneses(database, clinic.id, u.id);
           },
         },
       },

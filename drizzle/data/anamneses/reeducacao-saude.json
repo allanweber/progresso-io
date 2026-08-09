@@ -1,0 +1,85 @@
+{
+  "key": "reeducacao-saude",
+  "name": "Anamnese — Saúde e reeducação alimentar",
+  "description": "Perfil generalista: hábitos, rotina e relação com a comida. Sem foco estético ou clínico.",
+  "objective": "health",
+  "modality": "any",
+  "sections": [
+    {
+      "key": "identificacao",
+      "title": "Identificação",
+      "questions": [
+        { "key": "data_nascimento", "type": "short_text", "label": "Data de nascimento" },
+        { "key": "sexo", "type": "short_text", "label": "Sexo" },
+        { "key": "profissao", "type": "short_text", "label": "Profissão / ocupação" },
+        { "key": "peso", "type": "short_text", "label": "Peso atual aproximado (kg)" },
+        { "key": "altura", "type": "short_text", "label": "Altura (cm)" }
+      ]
+    },
+    {
+      "key": "objetivo",
+      "title": "Motivação",
+      "questions": [
+        { "key": "objetivo_principal", "type": "long_text", "label": "O que te motivou a buscar acompanhamento nutricional?" },
+        { "key": "expectativa", "type": "long_text", "label": "O que espera alcançar nos próximos meses?" }
+      ]
+    },
+    {
+      "key": "rotina_alimentar",
+      "title": "Rotina alimentar",
+      "questions": [
+        { "key": "recordatorio", "type": "long_text", "label": "Descreva o que você comeu ontem, refeição por refeição (com horários e quantidades aproximadas)" },
+        { "key": "refeicoes_dia", "type": "short_text", "label": "Quantas refeições faz por dia?" },
+        { "key": "come_fora", "type": "short_text", "label": "Com que frequência come fora de casa?" },
+        { "key": "pula_refeicao", "type": "long_text", "label": "Costuma pular refeições? Quais?" },
+        { "key": "agua", "type": "short_text", "label": "Quanta água bebe por dia? (L)" }
+      ]
+    },
+    {
+      "key": "relacao_comida",
+      "title": "Relação com a comida",
+      "questions": [
+        { "key": "fome_emocional", "type": "long_text", "label": "Come por ansiedade ou emoção? Em que situações?" },
+        { "key": "doces", "type": "short_text", "label": "Com que frequência tem vontade de doces?" },
+        { "key": "saciedade", "type": "short_text", "label": "Consegue perceber sua fome e saciedade?" }
+      ]
+    },
+    {
+      "key": "historia_clinica",
+      "title": "Saúde",
+      "questions": [
+        { "key": "doencas", "type": "long_text", "label": "Possui alguma condição de saúde? Quais?" },
+        { "key": "medicamentos", "type": "long_text", "label": "Usa medicamentos de uso contínuo? Quais?" },
+        { "key": "alergias", "type": "long_text", "label": "Alergias ou intolerâncias alimentares?" },
+        { "key": "restricao", "type": "short_text", "label": "Segue alguma restrição alimentar? (vegetariano, sem lactose, religiosa…)" }
+      ]
+    },
+    {
+      "key": "habito_intestinal",
+      "title": "Funcionamento intestinal",
+      "questions": [
+        { "key": "evacuacao", "type": "short_text", "label": "Frequência de evacuação" },
+        { "key": "sintomas_gi", "type": "long_text", "label": "Sintomas gastrointestinais frequentes (gases, inchaço, constipação…)" }
+      ]
+    },
+    {
+      "key": "estilo_vida",
+      "title": "Estilo de vida",
+      "questions": [
+        { "key": "atividade", "type": "long_text", "label": "Pratica atividade física? Qual e quantas vezes por semana?" },
+        { "key": "sono", "type": "short_text", "label": "Quantas horas dorme por noite?" },
+        { "key": "estresse", "type": "short_text", "label": "Como está seu nível de estresse?" },
+        { "key": "alcool", "type": "short_text", "label": "Consumo de álcool" },
+        { "key": "fuma", "type": "short_text", "label": "Tabagismo (não, sim, ex-fumante)" }
+      ]
+    },
+    {
+      "key": "consentimento",
+      "title": "Consentimento",
+      "questions": [
+        { "key": "lgpd", "type": "boolean", "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional." },
+        { "key": "observacoes", "type": "long_text", "label": "Algo mais que gostaria de compartilhar?" }
+      ]
+    }
+  ]
+}

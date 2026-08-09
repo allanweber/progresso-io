@@ -15,6 +15,11 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import type {
+  AnamnesisModality,
+  AnamnesisObjective,
+  AnamnesisSection,
+} from "@/lib/anamneses";
 import type { DietStructure } from "@/lib/student-diets";
 import type { WorkoutStructure } from "@/lib/student-workouts";
 import type { WorkoutReps } from "@/lib/workouts";
@@ -1280,6 +1285,42 @@ export const studentDietVersionRelations = relations(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Anamneses (anamnese — coach-authored intake questionnaires)                */
+/*                                                                            */
+/*  Unlike diets/workouts there is NO shared base template: every clinic gets  */
+/*  its own copy of a starter set when it is created (see the seed) and owns    */
+/*  them outright. `clinic_id` is therefore NOT NULL. The whole questionnaire   */
+/*  (sections → questions) is stored as one JSON document; a question is just   */
+/*  a label + a basic type (short_text / long_text / boolean). Nothing          */
+/*  references the catalog, so there is no live hydration.                      */
+/* -------------------------------------------------------------------------- */
+
+export const anamnesis = pgTable(
+  "anamnesis",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Always a clinic's own — never a shared base template.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // The coach who authored/last-owns it. NULL if the author was removed.
+    coachId: text("coach_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    description: text("description"),
+    // Profile tags (see lib/anamneses): objective + intended modality.
+    objective: text("objective").$type<AnamnesisObjective>().notNull(),
+    modality: text("modality").$type<AnamnesisModality>().notNull(),
+    // The whole questionnaire: sections → questions, as one JSON document.
+    sections: jsonb("sections").$type<AnamnesisSection[]>().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("anamnesis_clinic_idx").on(t.clinicId)],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -1325,3 +1366,5 @@ export type StudentDiet = typeof studentDiet.$inferSelect;
 export type NewStudentDiet = typeof studentDiet.$inferInsert;
 export type StudentDietVersion = typeof studentDietVersion.$inferSelect;
 export type NewStudentDietVersion = typeof studentDietVersion.$inferInsert;
+export type Anamnesis = typeof anamnesis.$inferSelect;
+export type NewAnamnesis = typeof anamnesis.$inferInsert;

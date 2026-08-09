@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
+  ClipboardList,
   Dumbbell,
   LayoutDashboard,
   LogOut,
@@ -40,6 +41,11 @@ function navItems(role: string | null | undefined) {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
     items.push({ href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed });
     items.push({ href: "/coach/workouts", label: "Treinos", icon: Dumbbell });
+    items.push({
+      href: "/coach/anamneses",
+      label: "Anamneses",
+      icon: ClipboardList,
+    });
     // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
     items.push({ href: "/coach/library", label: "Biblioteca", icon: BookOpen });
   }
