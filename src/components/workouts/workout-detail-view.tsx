@@ -18,6 +18,7 @@ import {
   formatRest,
   formatReps,
   type WorkoutExerciseDto,
+  type WorkoutExerciseSubstituteDto,
   type WorkoutSessionDto,
 } from "@/lib/workouts";
 import {
@@ -372,7 +373,11 @@ export function WorkoutExerciseDetail({
     .map((k) => exerciseImageUrl(k))
     .filter((u): u is string => Boolean(u));
 
+  // A substitute the athlete tapped, shown in its own detail dialog on top.
+  const [sub, setSub] = useState<WorkoutExerciseSubstituteDto | null>(null);
+
   return (
+    <>
     <Dialog open={Boolean(exercise)} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-lg">
         {exercise && (
@@ -496,30 +501,52 @@ export function WorkoutExerciseDetail({
                 </div>
               )}
 
-              {/* Substitutions */}
+              {/* Substitutions — tap one to see its own detail */}
               {exercise.substitutes.length > 0 && (
                 <div>
                   <h3 className="mb-3 font-heading text-[15px] font-semibold">
                     Substituições
                   </h3>
                   <ul className="overflow-hidden rounded-xl border border-border">
-                    {exercise.substitutes.map((s) => (
-                      <li
-                        key={`${s.source}-${s.exerciseId}`}
-                        className="flex items-center gap-2.5 border-b border-[#F4F6FA] px-4 py-3 text-[13px] last:border-b-0"
-                      >
-                        <span className="text-amber-700">⇄</span>
-                        <span className="min-w-0 flex-1">
-                          {s.name}
-                          {s.note && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · {s.note}
+                    {exercise.substitutes.map((s) => {
+                      const thumb = exerciseImageUrl(s.thumbnail);
+                      return (
+                        <li
+                          key={`${s.source}-${s.exerciseId}`}
+                          className="border-b border-[#F4F6FA] last:border-b-0"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSub(s)}
+                            className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13px] transition-colors hover:bg-surface-light"
+                          >
+                            {thumb ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={thumb}
+                                alt=""
+                                className="size-9 shrink-0 rounded-md object-cover"
+                              />
+                            ) : (
+                              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-light text-amber-700">
+                                ⇄
+                              </span>
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="block font-medium text-foreground">
+                                {s.name}
+                              </span>
+                              {s.note && (
+                                <span className="block truncate text-muted-foreground">
+                                  {s.note}
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                      </li>
-                    ))}
+                            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -534,6 +561,98 @@ export function WorkoutExerciseDetail({
                     {exercise.primaryMuscles
                       .map((m) => MUSCLE_LABELS[m])
                       .join(", ")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+
+    <SubstituteDetail sub={sub} onClose={() => setSub(null)} />
+    </>
+  );
+}
+
+/**
+ * A substitute exercise's own detail, shown in a dialog stacked on top of the
+ * exercise detail: title, image carousel, execution steps and worked muscles —
+ * so the athlete can decide whether the swap works for them. Rendered from the
+ * data already hydrated onto the substitute (no extra request), so it works the
+ * same in the coach and aluno views.
+ */
+function SubstituteDetail({
+  sub,
+  onClose,
+}: {
+  sub: WorkoutExerciseSubstituteDto | null;
+  onClose: () => void;
+}) {
+  const images = (sub?.images ?? [])
+    .map((k) => exerciseImageUrl(k))
+    .filter((u): u is string => Boolean(u));
+
+  return (
+    <Dialog open={Boolean(sub)} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-lg">
+        {sub && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span className="text-amber-700">⇄</span>
+                {sub.name}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-5 pt-1">
+              <ExerciseImages key={sub.exerciseId} images={images} />
+
+              {sub.note && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                    Por que substituir
+                  </div>
+                  <p className="text-[13px] leading-relaxed text-[#334155]">
+                    {sub.note}
+                  </p>
+                </div>
+              )}
+
+              {sub.instructions.length > 0 ? (
+                <div>
+                  <h3 className="mb-3 font-heading text-[15px] font-semibold">
+                    Como executar
+                  </h3>
+                  <ol className="space-y-2.5">
+                    {sub.instructions.map((step, i) => (
+                      <li
+                        key={i}
+                        className="flex gap-3 rounded-xl bg-surface-light p-3.5"
+                      >
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <span className="text-[13px] leading-relaxed text-[#334155]">
+                          {step}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">
+                  Sem passos de execução cadastrados para este exercício.
+                </p>
+              )}
+
+              {sub.primaryMuscles.length > 0 && (
+                <div>
+                  <h3 className="mb-2 font-heading text-[15px] font-semibold">
+                    Músculos trabalhados
+                  </h3>
+                  <p className="text-[13px] text-[#334155]">
+                    {sub.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
                   </p>
                 </div>
               )}

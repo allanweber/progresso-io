@@ -132,6 +132,12 @@ export type WorkoutExerciseSubstituteDto = {
   origin: WorkoutOrigin;
   /** First image key; resolve with `exerciseImageUrl`. */
   thumbnail: string | null;
+  /** All image keys, for the substitute's own detail view. */
+  images: string[];
+  /** Ordered execution steps (PT-BR), for the substitute's detail view. */
+  instructions: string[];
+  /** Primary muscles worked. */
+  primaryMuscles: Muscle[];
   source: "library" | "custom";
   /** The coach's reason, for a custom substitute; null for library ones. */
   note: string | null;

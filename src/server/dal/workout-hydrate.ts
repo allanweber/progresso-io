@@ -50,6 +50,9 @@ export type ExerciseCatalog = {
     code: string | null;
     origin: ExerciseOrigin;
     thumbnail: string | null;
+    images: string[];
+    instructions: string[];
+    primaryMuscles: Muscle[];
   }[];
 };
 
@@ -103,6 +106,8 @@ export async function loadExerciseCatalog(
       subName: subEx.name,
       subCode: subEx.code,
       subImages: subEx.images,
+      subInstructions: subEx.instructions,
+      subPrimaryMuscles: subEx.primaryMuscles,
       subClinicId: subEx.clinicId,
     })
     .from(e)
@@ -153,6 +158,9 @@ export async function loadExerciseCatalog(
           code: r.subCode,
           origin: r.subClinicId === null ? "base" : "clinic",
           thumbnail: r.subImages?.[0] ?? null,
+          images: r.subImages ?? [],
+          instructions: r.subInstructions ?? [],
+          primaryMuscles: r.subPrimaryMuscles ?? NONE_MUSCLES,
         });
       }
     }
@@ -206,6 +214,9 @@ export function buildExerciseDto(
       code: sc?.code ?? null,
       origin: sc?.origin ?? "base",
       thumbnail: sc?.images[0] ?? null,
+      images: sc?.images ?? [],
+      instructions: sc?.instructions ?? [],
+      primaryMuscles: sc?.primaryMuscles ?? NONE_MUSCLES,
       source: "custom" as const,
       note: cs.note,
     };
@@ -219,6 +230,9 @@ export function buildExerciseDto(
       code: s.code,
       origin: s.origin,
       thumbnail: s.thumbnail,
+      images: s.images,
+      instructions: s.instructions,
+      primaryMuscles: s.primaryMuscles,
       source: "library" as const,
       note: null,
     }));

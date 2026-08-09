@@ -104,7 +104,11 @@ beforeAll(async () => {
     instructions: ["Deite no banco", "Empurre a barra"],
     images: ["supino_reto/0.jpg"],
   });
-  crucifixo = await addExercise({ name: "Crucifixo" });
+  crucifixo = await addExercise({
+    name: "Crucifixo",
+    instructions: ["Abra os braços", "Contraia o peito"],
+    images: ["crucifixo/0.jpg", "crucifixo/1.jpg"],
+  });
   triceps = await addExercise({ name: "Triceps corda" });
   ownB = await addExercise({ name: "Exercicio B", clinicId: clinicB.id });
 
@@ -141,6 +145,11 @@ describe("workout template DAL", () => {
       ["library", "Crucifixo"],
     ]);
     expect(ex.substitutes[0].note).toBe("ombro sensível");
+    // A substitute carries its own catalog detail (title, images, execution),
+    // so its detail modal renders with no extra request.
+    const libSub = ex.substitutes[1];
+    expect(libSub.images).toEqual(["crucifixo/0.jpg", "crucifixo/1.jpg"]);
+    expect(libSub.instructions).toEqual(["Abra os braços", "Contraia o peito"]);
   });
 
   it("reflects a library substitution added AFTER creation (live)", async () => {
