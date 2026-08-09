@@ -56,6 +56,7 @@ function toStructure(input: WorkoutWriteInput): WorkoutStructure {
         reps: x.reps,
         load: x.load,
         rest: x.rest,
+        note: x.note,
         technique: x.technique,
         groupId: x.groupId,
         customSubstitutes: x.customSubstitutes.map((cs) => ({
@@ -97,6 +98,7 @@ function hydrateWith(
           reps: it.reps,
           load: it.load,
           rest: it.rest,
+          note: it.note ?? null,
           technique: it.technique,
           groupId: it.groupId,
           customSubstitutes: it.customSubstitutes,

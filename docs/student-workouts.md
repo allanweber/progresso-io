@@ -24,9 +24,11 @@ aluno portal (`/student`, see `docs/student-portal.md`). It mirrors the student
 
 Each version stores only the **prescription structure** as one `jsonb` document
 (`WorkoutStructure`, `src/lib/student-workouts.ts`): per item the `exerciseId` +
-`sets`/`reps`/`load`/`rest`/`technique`/`groupId`, plus the item's **custom
-substitutes** (`exerciseId` + note). It stores **no** exercise names, images,
-instructions or library substitutions.
+`sets`/`reps`/`load`/`rest`/`technique`/`note`/`groupId`, plus the item's **custom
+substitutes** (`exerciseId` + note). `reps` covers número / intervalo-sequência
+(`{ kind: "range", values }`, e.g. `10-8-6-4`) / falha, and `note` is an optional
+free-text observação. It stores **no** exercise names, images, instructions or
+library substitutions.
 
 On every read the DAL **hydrates** that structure against the current catalog
 (`hydrateStructure`, `src/server/dal/student-workouts.ts`, reusing

@@ -43,6 +43,8 @@ export type StructExerciseRef = {
   reps: WorkoutReps;
   load: string | null;
   rest: number;
+  /** A short free-text observation for this exercise, or null. */
+  note: string | null;
   technique: WorkoutTechnique | null;
   groupId: string | null;
   customSubstitutes: StructCustomSubstitute[];

@@ -1,11 +1,14 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
+
 import type { WorkoutReps } from "@/lib/workouts";
 
 /**
- * Edits an exercise's repetitions — one of number / range / failure. A segmented
- * control picks the kind; number/range reveal small numeric inputs. Emits a
- * `WorkoutReps` value the builder stores and the API validates.
+ * Edits an exercise's repetitions — number / interval / falha. A segmented
+ * control picks the kind. **Interval** is a sequence of 2+ values, crescente or
+ * decrescente (e.g. `8-12`, or a pyramid `10-8-6-4`): positions can be added or
+ * removed. Emits a `WorkoutReps` value the builder stores and the API validates.
  */
 export function RepsInput({
   value,
@@ -34,7 +37,7 @@ export function RepsInput({
               if (kind === value.kind) return;
               if (kind === "fixed") onChange({ kind: "fixed", value: 10 });
               else if (kind === "range")
-                onChange({ kind: "range", min: 8, max: 12 });
+                onChange({ kind: "range", values: [8, 12] });
               else onChange({ kind: "failure" });
             }}
             className={`flex-1 px-2 py-1.5 ${
@@ -59,26 +62,58 @@ export function RepsInput({
       )}
 
       {value.kind === "range" && (
-        <div className="flex items-center gap-2">
-          <input
-            inputMode="numeric"
-            value={value.min}
-            onChange={(e) =>
-              onChange({ kind: "range", min: parse(e.target.value), max: value.max })
-            }
-            aria-label="Repetições mínimas"
-            className="w-full min-w-0 rounded-lg border border-border bg-white px-2 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
-          />
-          <span className="text-muted-foreground">–</span>
-          <input
-            inputMode="numeric"
-            value={value.max}
-            onChange={(e) =>
-              onChange({ kind: "range", min: value.min, max: parse(e.target.value) })
-            }
-            aria-label="Repetições máximas"
-            className="w-full min-w-0 rounded-lg border border-border bg-white px-2 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
-          />
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {value.values.map((v, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-muted-foreground">–</span>}
+                <input
+                  inputMode="numeric"
+                  value={v}
+                  onChange={(e) => {
+                    const next = value.values.slice();
+                    next[i] = parse(e.target.value);
+                    onChange({ kind: "range", values: next });
+                  }}
+                  aria-label={`Posição ${i + 1}`}
+                  className="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              aria-label="Adicionar posição"
+              title="Adicionar posição"
+              onClick={() =>
+                onChange({
+                  kind: "range",
+                  values: [
+                    ...value.values,
+                    value.values[value.values.length - 1] ?? 8,
+                  ],
+                })
+              }
+              className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-primary hover:text-primary"
+            >
+              <Plus className="size-4" />
+            </button>
+            {value.values.length > 2 && (
+              <button
+                type="button"
+                aria-label="Remover posição"
+                title="Remover posição"
+                onClick={() =>
+                  onChange({ kind: "range", values: value.values.slice(0, -1) })
+                }
+                className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
+              >
+                <Minus className="size-4" />
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Ex.: 8-12, ou pirâmide 10-8-6-4.
+          </p>
         </div>
       )}
 

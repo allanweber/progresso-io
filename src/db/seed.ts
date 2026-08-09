@@ -263,10 +263,9 @@ async function seedAlunoWorkout(
   await ensureSub(supino, crucifixo);
   await ensureSub(agacha, legpress);
 
-  const range = (min: number, max: number): WorkoutReps => ({
+  const range = (...values: number[]): WorkoutReps => ({
     kind: "range",
-    min,
-    max,
+    values,
   });
   const fixed = (value: number): WorkoutReps => ({ kind: "fixed", value });
   const failure: WorkoutReps = { kind: "failure" };
@@ -277,6 +276,7 @@ async function seedAlunoWorkout(
     rest?: number;
     load?: string | null;
     technique?: WorkoutWriteInput["sessions"][number]["exercises"][number]["technique"];
+    note?: string | null;
     groupId?: string | null;
     customSubstitutes?: { exerciseId: string; note: string | null }[];
   };
@@ -289,6 +289,7 @@ async function seedAlunoWorkout(
           load: o.load ?? null,
           rest: o.rest ?? 90,
           technique: o.technique ?? null,
+          note: o.note ?? null,
           groupId: o.groupId ?? null,
           customSubstitutes: o.customSubstitutes ?? [],
         }
@@ -313,6 +314,7 @@ async function seedAlunoWorkout(
             rest: 90,
             load: "40 kg",
             technique: "dropset",
+            note: "Desça a barra até o peito, sem quicar.",
             customSubstitutes: crucifixo
               ? [{ exerciseId: crucifixo, note: "ombro sensível" }]
               : [],
@@ -329,7 +331,13 @@ async function seedAlunoWorkout(
           item(remada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
           item(puxada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
           item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "giant", groupId: "gtB" }),
-          item(desenvolvimento, { sets: 4, reps: range(10, 12), rest: 75, technique: "cluster" }),
+          item(desenvolvimento, {
+            sets: 4,
+            reps: range(12, 10, 8, 6),
+            rest: 75,
+            technique: "cluster",
+            note: "Pirâmide decrescente: aumente a carga a cada série.",
+          }),
           item(abdominal, { sets: 3, reps: failure, rest: 45, technique: "tripledrop" }),
         ]),
       },

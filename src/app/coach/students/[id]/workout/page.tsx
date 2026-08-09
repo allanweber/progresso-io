@@ -9,6 +9,7 @@ import { Dumbbell, FileText, Loader2, Pencil, Plus, Search } from "lucide-react"
 import {
   WorkoutExerciseDetail,
   WorkoutSessionsView,
+  type GroupInfo,
 } from "@/components/workouts/workout-detail-view";
 import {
   WorkoutBuilder,
@@ -60,8 +61,6 @@ function draftToDetail(
     sessions: draft.sessions,
   };
 }
-
-type GroupInfo = { position: number; total: number; nextName: string | null };
 
 export default function StudentWorkoutPage() {
   const { id } = useParams<{ id: string }>();

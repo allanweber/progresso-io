@@ -88,6 +88,7 @@ export type WorkoutExerciseInput = {
   reps: WorkoutReps;
   load: string | null;
   rest: number;
+  note: string | null;
   technique: WorkoutTechnique | null;
   groupId: string | null;
   customSubstitutes: WorkoutCustomSubstituteInput[];
@@ -289,6 +290,7 @@ export async function getWorkout(
       reps: x.reps,
       load: x.load,
       rest: x.rest,
+      note: x.note,
       technique: x.technique,
       groupId: x.groupId,
       customSubstitutes: subsByExercise.get(x.id) ?? [],
@@ -349,6 +351,7 @@ async function insertTree(
           reps: ex.reps,
           load: ex.load,
           rest: ex.rest,
+          note: ex.note,
           technique: ex.technique,
           groupId: ex.groupId,
           position: xPos,
@@ -429,6 +432,7 @@ export function detailToWriteInput(
         reps: x.reps,
         load: x.load,
         rest: x.rest,
+        note: x.note,
         technique: x.technique,
         groupId: x.groupId,
         // Only the custom substitutes are the workout's own; library ones are

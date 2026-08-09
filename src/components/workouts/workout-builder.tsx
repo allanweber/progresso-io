@@ -32,7 +32,11 @@ import {
   ExercisePicker,
   type PickedExercise,
 } from "@/components/workouts/exercise-picker";
-import { RepsInput } from "@/components/workouts/reps-input";
+import {
+  ExercisePrescriptionFields,
+  type CustomSubDraft,
+  type PrescriptionDraft,
+} from "@/components/workouts/exercise-prescription-fields";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import { CATEGORY_LABELS, exerciseImageUrl } from "@/lib/exercises";
@@ -46,25 +50,16 @@ import {
   type WorkoutReps,
 } from "@/lib/workouts";
 import {
-  WORKOUT_TECHNIQUE_OPTIONS,
   isGroupingTechnique,
   techniqueInfo,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
+import { assignGroupIds } from "@/lib/workout-grouping";
 import { z } from "@/lib/validation";
 
 /* -------------------------------------------------------------------------- */
 /*  Draft model (client state)                                                 */
 /* -------------------------------------------------------------------------- */
-
-type CustomSubDraft = {
-  key: string;
-  exerciseId: string;
-  name: string;
-  code: string | null;
-  thumbnail: string | null;
-  note: string;
-};
 
 type ExerciseDraft = {
   key: string;
@@ -78,6 +73,7 @@ type ExerciseDraft = {
   load: string;
   rest: number;
   technique: WorkoutTechnique | null;
+  note: string;
   customSubstitutes: CustomSubDraft[];
 };
 
@@ -97,6 +93,7 @@ export type WorkoutBuilderPayload = {
       load: string | null;
       rest: number;
       technique: WorkoutTechnique | null;
+      note: string | null;
       groupId: string | null;
       customSubstitutes: { exerciseId: string; note: string | null }[];
     }[];
@@ -139,6 +136,7 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
         load: x.load ?? "",
         rest: x.rest,
         technique: x.technique,
+        note: x.note ?? "",
         // Only the custom substitutes are editable; library ones are live.
         customSubstitutes: x.substitutes
           .filter((sub) => sub.source === "custom")
@@ -155,31 +153,8 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
   };
 }
 
-/**
- * Assigns `groupId` to runs of consecutive exercises sharing the same grouping
- * technique (super set / giant set), matching how the read views draw the block.
- */
-function withGroupIds(
-  exercises: ExerciseDraft[],
-): { exercise: ExerciseDraft; groupId: string | null }[] {
-  const out: { exercise: ExerciseDraft; groupId: string | null }[] = [];
-  let runTech: WorkoutTechnique | null = null;
-  let runId: string | null = null;
-  for (const ex of exercises) {
-    if (isGroupingTechnique(ex.technique)) {
-      if (ex.technique !== runTech) {
-        runTech = ex.technique;
-        runId = newKey();
-      }
-      out.push({ exercise: ex, groupId: runId });
-    } else {
-      runTech = null;
-      runId = null;
-      out.push({ exercise: ex, groupId: null });
-    }
-  }
-  return out;
-}
+const withGroupIds = (exercises: ExerciseDraft[]) =>
+  assignGroupIds(exercises, newKey);
 
 const shellSchema = z.object({
   name: z
@@ -289,6 +264,7 @@ export function WorkoutBuilder({
           load: x.load.trim() === "" ? null : x.load.trim(),
           rest: x.rest,
           technique: x.technique,
+          note: x.note.trim() === "" ? null : x.note.trim(),
           groupId,
           customSubstitutes: x.customSubstitutes.map((cs) => ({
             exerciseId: cs.exerciseId,
@@ -628,7 +604,7 @@ function SortableSession({
   };
   const [adding, setAdding] = useState(false);
 
-  function addExercise(picked: PickedExercise, sets: number, reps: WorkoutReps, rest: number) {
+  function addExercise(picked: PickedExercise, prescription: PrescriptionDraft) {
     onExercises((ex) => [
       ...ex,
       {
@@ -638,12 +614,13 @@ function SortableSession({
         code: picked.code,
         category: CATEGORY_LABELS[picked.category],
         thumbnail: picked.thumbnail,
-        sets,
-        reps,
-        load: "",
-        rest,
-        technique: null,
-        customSubstitutes: [],
+        sets: prescription.sets,
+        reps: prescription.reps,
+        load: prescription.load,
+        rest: prescription.rest,
+        technique: prescription.technique,
+        note: prescription.note,
+        customSubstitutes: prescription.customSubstitutes,
       },
     ]);
     setAdding(false);
@@ -741,8 +718,8 @@ function SortableSession({
         {adding ? (
           <ExercisePicker
             excludeIds={session.exercises.map((e) => e.exerciseId)}
-            onPick={({ exercise, sets, reps, rest }) =>
-              addExercise(exercise, sets, reps, rest)
+            onPick={({ exercise, prescription }) =>
+              addExercise(exercise, prescription)
             }
             onClose={() => setAdding(false)}
           />
@@ -785,26 +762,8 @@ function SortableExercise({
     zIndex: isDragging ? 10 : undefined,
   };
   const [editing, setEditing] = useState(false);
-  const [addingSub, setAddingSub] = useState(false);
   const tech = techniqueInfo(exercise.technique);
   const thumb = exerciseImageUrl(exercise.thumbnail);
-
-  function addCustomSub(picked: PickedExercise) {
-    onPatch({
-      customSubstitutes: [
-        ...exercise.customSubstitutes,
-        {
-          key: newKey(),
-          exerciseId: picked.id,
-          name: picked.name,
-          code: picked.code,
-          thumbnail: picked.thumbnail,
-          note: "",
-        },
-      ],
-    });
-    setAddingSub(false);
-  }
 
   return (
     <div
@@ -851,6 +810,14 @@ function SortableExercise({
             {exercise.sets}× {formatReps(exercise.reps)}
             {exercise.load ? ` · ${exercise.load}` : ""} · {formatRest(exercise.rest)}
           </span>
+          {isGroupingTechnique(exercise.technique) && (
+            <span
+              className="mt-0.5 block text-[11px] font-medium"
+              style={{ color: tech?.color }}
+            >
+              ↓ sem descanso — encadeia com o próximo exercício
+            </span>
+          )}
         </button>
         <button
           type="button"
@@ -873,152 +840,19 @@ function SortableExercise({
 
       {editing && (
         <div className="mt-3 space-y-3 border-t border-border pt-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Séries
-              </Label>
-              <Input
-                inputMode="numeric"
-                value={exercise.sets}
-                onChange={(e) =>
-                  onPatch({
-                    sets: Math.max(
-                      1,
-                      Math.min(50, parseInt(e.target.value.replace(/\D/g, ""), 10) || 1),
-                    ),
-                  })
-                }
-              />
-            </div>
-            <div>
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Repetições
-              </Label>
-              <RepsInput value={exercise.reps} onChange={(reps) => onPatch({ reps })} />
-            </div>
-            <div>
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Carga (opcional)
-              </Label>
-              <Input
-                value={exercise.load}
-                onChange={(e) => onPatch({ load: e.target.value })}
-                placeholder="Ex.: 40 kg, peso corporal"
-              />
-            </div>
-            <div>
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Descanso (s)
-              </Label>
-              <Input
-                inputMode="numeric"
-                value={exercise.rest}
-                onChange={(e) =>
-                  onPatch({
-                    rest: Math.max(
-                      0,
-                      Math.min(3600, parseInt(e.target.value.replace(/\D/g, ""), 10) || 0),
-                    ),
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Técnica avançada
-            </Label>
-            <select
-              value={exercise.technique ?? ""}
-              onChange={(e) =>
-                onPatch({
-                  technique: e.target.value ? (e.target.value as WorkoutTechnique) : null,
-                })
-              }
-              className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-            >
-              <option value="">Nenhuma técnica</option>
-              {WORKOUT_TECHNIQUE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            {isGroupingTechnique(exercise.technique) && (
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Exercícios consecutivos com esta técnica formam um bloco (sem descanso
-                entre eles).
-              </p>
-            )}
-          </div>
-
-          {/* Custom substitutes */}
-          <div>
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Substituições cadastradas
-            </Label>
-            {exercise.customSubstitutes.length > 0 && (
-              <ul className="mt-1 space-y-1.5">
-                {exercise.customSubstitutes.map((cs) => (
-                  <li key={cs.key} className="flex items-center gap-2">
-                    <span className="text-amber-600">⇄</span>
-                    <span className="min-w-0 flex-1 truncate text-sm">{cs.name}</span>
-                    <Input
-                      value={cs.note}
-                      onChange={(e) =>
-                        onPatch({
-                          customSubstitutes: exercise.customSubstitutes.map((c) =>
-                            c.key === cs.key ? { ...c, note: e.target.value } : c,
-                          ),
-                        })
-                      }
-                      placeholder="Motivo (opcional)"
-                      className="h-8 w-40 text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onPatch({
-                          customSubstitutes: exercise.customSubstitutes.filter(
-                            (c) => c.key !== cs.key,
-                          ),
-                        })
-                      }
-                      aria-label="Remover substituição"
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="mt-2">
-              {addingSub ? (
-                <ExercisePicker
-                  mode="pick"
-                  excludeIds={[
-                    exercise.exerciseId,
-                    ...sessionExerciseIds,
-                    ...exercise.customSubstitutes.map((c) => c.exerciseId),
-                  ]}
-                  onPick={({ exercise: picked }) => addCustomSub(picked)}
-                  onClose={() => setAddingSub(false)}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setAddingSub(true)}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
-                >
-                  <Plus className="size-3.5" />
-                  Substituição
-                </button>
-              )}
-            </div>
-          </div>
+          <ExercisePrescriptionFields
+            exerciseId={exercise.exerciseId}
+            excludeIds={sessionExerciseIds}
+            value={exercise}
+            onPatch={onPatch}
+          />
+          <Button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="w-full"
+          >
+            Atualizar
+          </Button>
         </div>
       )}
     </div>
