@@ -8,10 +8,11 @@ import type {
   ExerciseOrigin,
   Muscle,
 } from "@/lib/exercises";
-import type {
-  WorkoutExerciseDto,
-  WorkoutExerciseSubstituteDto,
-  WorkoutReps,
+import {
+  normalizeReps,
+  type WorkoutExerciseDto,
+  type WorkoutExerciseSubstituteDto,
+  type WorkoutReps,
 } from "@/lib/workouts";
 import type { WorkoutTechnique } from "@/lib/workout-techniques";
 import type { TenantContext } from "@/server/tenant";
@@ -174,7 +175,7 @@ function placeholder(p: ExercisePrescription): WorkoutExerciseDto {
     instructions: [],
     available: false,
     sets: p.sets,
-    reps: p.reps,
+    reps: normalizeReps(p.reps),
     load: p.load,
     rest: p.rest,
     note: p.note,
@@ -235,7 +236,7 @@ export function buildExerciseDto(
     instructions: cat.instructions,
     available: true,
     sets: p.sets,
-    reps: p.reps,
+    reps: normalizeReps(p.reps),
     load: p.load,
     rest: p.rest,
     note: p.note,

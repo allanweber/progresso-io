@@ -7,6 +7,7 @@ import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { NumberField } from "@/components/workouts/number-field";
 import { RepsInput } from "@/components/workouts/reps-input";
 import {
   ExerciseSearch,
@@ -114,18 +115,18 @@ export function ExercisePrescriptionFields({
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
             Séries
           </Label>
-          <Input
-            inputMode="numeric"
-            value={value.sets}
-            onChange={(e) =>
-              onPatch({
-                sets: Math.max(
-                  1,
-                  Math.min(50, parseInt(e.target.value.replace(/\D/g, ""), 10) || 1),
-                ),
-              })
-            }
-          />
+          <div className="mt-1">
+            <NumberField
+              value={value.sets}
+              onCommit={(sets) => onPatch({ sets })}
+              min={1}
+              max={50}
+              maxDigits={2}
+              stepper
+              ariaLabel="Séries"
+              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+            />
+          </div>
         </div>
         <div>
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -147,18 +148,19 @@ export function ExercisePrescriptionFields({
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
             Descanso (s)
           </Label>
-          <Input
-            inputMode="numeric"
-            value={value.rest}
-            onChange={(e) =>
-              onPatch({
-                rest: Math.max(
-                  0,
-                  Math.min(3600, parseInt(e.target.value.replace(/\D/g, ""), 10) || 0),
-                ),
-              })
-            }
-          />
+          <div className="mt-1">
+            <NumberField
+              value={value.rest}
+              onCommit={(rest) => onPatch({ rest })}
+              min={0}
+              max={3600}
+              step={15}
+              maxDigits={4}
+              stepper
+              ariaLabel="Descanso"
+              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+            />
+          </div>
         </div>
       </div>
 

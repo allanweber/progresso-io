@@ -2,7 +2,8 @@
 
 import { Minus, Plus } from "lucide-react";
 
-import type { WorkoutReps } from "@/lib/workouts";
+import { NumberField } from "@/components/workouts/number-field";
+import { normalizeReps, type WorkoutReps } from "@/lib/workouts";
 
 /**
  * Edits an exercise's repetitions — number / interval / falha. A segmented
@@ -11,14 +12,14 @@ import type { WorkoutReps } from "@/lib/workouts";
  * removed. Emits a `WorkoutReps` value the builder stores and the API validates.
  */
 export function RepsInput({
-  value,
+  value: rawValue,
   onChange,
 }: {
   value: WorkoutReps;
   onChange: (reps: WorkoutReps) => void;
 }) {
-  const clampRep = (n: number) => Math.max(1, Math.min(1000, n));
-  const parse = (raw: string) => clampRep(parseInt(raw.replace(/\D/g, ""), 10) || 1);
+  // Tolerate a legacy stored shape when editing an older workout.
+  const value = normalizeReps(rawValue);
 
   return (
     <div className="space-y-1.5">
@@ -52,12 +53,14 @@ export function RepsInput({
       </div>
 
       {value.kind === "fixed" && (
-        <input
-          inputMode="numeric"
+        <NumberField
           value={value.value}
-          onChange={(e) => onChange({ kind: "fixed", value: parse(e.target.value) })}
-          aria-label="Repetições"
-          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
+          onCommit={(n) => onChange({ kind: "fixed", value: n })}
+          min={1}
+          max={1000}
+          stepper
+          ariaLabel="Repetições"
+          inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
         />
       )}
 
@@ -67,16 +70,17 @@ export function RepsInput({
             {value.values.map((v, i) => (
               <div key={i} className="flex items-center gap-1.5">
                 {i > 0 && <span className="text-muted-foreground">–</span>}
-                <input
-                  inputMode="numeric"
+                <NumberField
                   value={v}
-                  onChange={(e) => {
+                  onCommit={(n) => {
                     const next = value.values.slice();
-                    next[i] = parse(e.target.value);
+                    next[i] = n;
                     onChange({ kind: "range", values: next });
                   }}
-                  aria-label={`Posição ${i + 1}`}
-                  className="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
+                  min={1}
+                  max={1000}
+                  ariaLabel={`Posição ${i + 1}`}
+                  inputClassName="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
                 />
               </div>
             ))}

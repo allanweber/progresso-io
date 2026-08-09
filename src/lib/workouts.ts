@@ -62,13 +62,41 @@ export type WorkoutReps =
   | { kind: "range"; values: number[] }
   | { kind: "failure" };
 
+/**
+ * Coerces a stored/unknown reps value into the current `WorkoutReps` shape.
+ * Tolerates the **legacy** range shape (`{ kind: "range", min, max }`, before
+ * reps became a sequence) so workouts saved by an earlier version still read —
+ * no data migration needed. Anything unrecognisable degrades to `Falha`.
+ */
+export function normalizeReps(reps: unknown): WorkoutReps {
+  if (reps && typeof reps === "object") {
+    const r = reps as Record<string, unknown>;
+    if (r.kind === "fixed" && typeof r.value === "number") {
+      return { kind: "fixed", value: r.value };
+    }
+    if (r.kind === "range") {
+      if (Array.isArray(r.values) && r.values.every((v) => typeof v === "number")) {
+        const values = r.values as number[];
+        if (values.length >= 1) return { kind: "range", values };
+      }
+      // Legacy min/max pair → a two-position sequence.
+      if (typeof r.min === "number" && typeof r.max === "number") {
+        return { kind: "range", values: [r.min, r.max] };
+      }
+    }
+    if (r.kind === "failure") return { kind: "failure" };
+  }
+  return { kind: "failure" };
+}
+
 /** Renders reps for display: `12` / `8-12` / `10-8-6-4` / `Falha`. */
 export function formatReps(reps: WorkoutReps): string {
-  switch (reps.kind) {
+  const r = normalizeReps(reps);
+  switch (r.kind) {
     case "fixed":
-      return String(reps.value);
+      return String(r.value);
     case "range":
-      return reps.values.join("-");
+      return r.values.join("-");
     case "failure":
       return "Falha";
   }
