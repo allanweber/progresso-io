@@ -60,6 +60,7 @@ export const SESSION_SUGGESTIONS = [
 export type WorkoutReps =
   | { kind: "fixed"; value: number }
   | { kind: "range"; values: number[] }
+  | { kind: "pyramid"; values: number[] }
   | { kind: "failure" };
 
 /**
@@ -74,14 +75,15 @@ export function normalizeReps(reps: unknown): WorkoutReps {
     if (r.kind === "fixed" && typeof r.value === "number") {
       return { kind: "fixed", value: r.value };
     }
-    if (r.kind === "range") {
+    if (r.kind === "range" || r.kind === "pyramid") {
+      const kind = r.kind;
       if (Array.isArray(r.values) && r.values.every((v) => typeof v === "number")) {
         const values = r.values as number[];
-        if (values.length >= 1) return { kind: "range", values };
+        if (values.length >= 1) return { kind, values };
       }
       // Legacy min/max pair → a two-position sequence.
       if (typeof r.min === "number" && typeof r.max === "number") {
-        return { kind: "range", values: [r.min, r.max] };
+        return { kind, values: [r.min, r.max] };
       }
     }
     if (r.kind === "failure") return { kind: "failure" };
@@ -96,6 +98,7 @@ export function formatReps(reps: WorkoutReps): string {
     case "fixed":
       return String(r.value);
     case "range":
+    case "pyramid":
       return r.values.join("-");
     case "failure":
       return "Falha";
@@ -229,9 +232,21 @@ export type WorkoutListQuery = z.output<typeof workoutListQuerySchema>;
 
 /**
  * Reps payload: `{kind:'fixed',value}` | `{kind:'range',values}` |
- * `{kind:'failure'}`. A range is a sequence of 2+ values (crescente or
- * decrescente), e.g. `[8,12]` or `[10,8,6,4]`.
+ * `{kind:'pyramid',values}` | `{kind:'failure'}`. A range and a pyramid are both
+ * a sequence of 2+ values (crescente or decrescente), e.g. `[8,12]` or
+ * `[12,10,8,6]`; the pyramid additionally implies the load rises each set.
  */
+const repsSequenceSchema = z
+  .array(
+    z
+      .number()
+      .int("Informe números inteiros.")
+      .min(1, "Mínimo de 1 repetição.")
+      .max(1000, "Valor muito alto."),
+  )
+  .min(2, "Informe ao menos dois valores.")
+  .max(10, "Valores demais.");
+
 export const repsSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("fixed"),
@@ -241,19 +256,8 @@ export const repsSchema = z.discriminatedUnion("kind", [
       .min(1, "Mínimo de 1 repetição.")
       .max(1000, "Valor muito alto."),
   }),
-  z.object({
-    kind: z.literal("range"),
-    values: z
-      .array(
-        z
-          .number()
-          .int("Informe números inteiros.")
-          .min(1, "Mínimo de 1 repetição.")
-          .max(1000, "Valor muito alto."),
-      )
-      .min(2, "Informe ao menos dois valores.")
-      .max(10, "Valores demais."),
-  }),
+  z.object({ kind: z.literal("range"), values: repsSequenceSchema }),
+  z.object({ kind: z.literal("pyramid"), values: repsSequenceSchema }),
   z.object({ kind: z.literal("failure") }),
 ]);
 

@@ -267,6 +267,10 @@ async function seedAlunoWorkout(
     kind: "range",
     values,
   });
+  const pyramid = (...values: number[]): WorkoutReps => ({
+    kind: "pyramid",
+    values,
+  });
   const fixed = (value: number): WorkoutReps => ({ kind: "fixed", value });
   const failure: WorkoutReps = { kind: "failure" };
 
@@ -333,10 +337,9 @@ async function seedAlunoWorkout(
           item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "giant", groupId: "gtB" }),
           item(desenvolvimento, {
             sets: 4,
-            reps: range(12, 10, 8, 6),
+            reps: pyramid(12, 10, 8, 6),
             rest: 75,
-            technique: "cluster",
-            note: "Pirâmide decrescente: aumente a carga a cada série.",
+            note: "Aumente a carga a cada série.",
           }),
           item(abdominal, { sets: 3, reps: failure, rest: 45, technique: "tripledrop" }),
         ]),

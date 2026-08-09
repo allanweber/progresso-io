@@ -13,6 +13,16 @@ describe("normalizeReps (backward compatibility)", () => {
       values: [10, 8, 6, 4],
     });
     expect(normalizeReps({ kind: "failure" })).toEqual({ kind: "failure" });
+    expect(normalizeReps({ kind: "pyramid", values: [12, 10, 8, 6] })).toEqual({
+      kind: "pyramid",
+      values: [12, 10, 8, 6],
+    });
+  });
+
+  it("formats a pyramid as its rep sequence", () => {
+    expect(formatReps({ kind: "pyramid", values: [12, 10, 8, 6] })).toBe(
+      "12-10-8-6",
+    );
   });
 
   it("upgrades the legacy range shape { min, max } to a sequence", () => {

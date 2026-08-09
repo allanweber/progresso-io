@@ -10,12 +10,14 @@ versioned `student_workout` (see `docs/student-workouts.md`).
 - A workout has **sessions** ("fichas", e.g. "Ficha A · Peito e Tríceps"), each
   with ordered **exercises**. An exercise references the shared **exercise
   catalog** (`docs/exercises.md`) plus its prescription.
-- A prescription is: `sets` (int), `reps` (**número** / **intervalo** / **falha**),
-  optional `load` (free text — "40 kg", "peso corporal", "70% 1RM"), `rest`
-  in seconds (**default 01:30**, `0` = no rest), and an optional free-text
-  **observação** (`note`, ≤280 chars) shown to the aluno on the exercise.
-  The **intervalo** kind is a **sequence of 2+ values**, crescente ou decrescente
-  (e.g. `8-12`, or a pyramid `10-8-6-4`) — stored as `{ kind: "range", values: number[] }`.
+- A prescription is: `sets` (int), `reps` (**número** / **intervalo** /
+  **pirâmide** / **falha**), optional `load` (free text — "40 kg", "peso
+  corporal", "70% 1RM"), `rest` in seconds (**default 01:30**, `0` = no rest),
+  and an optional free-text **observação** (`note`, ≤280 chars) shown to the aluno.
+  The **intervalo** and **pirâmide** kinds are both a **sequence of 2+ values**,
+  crescente ou decrescente (e.g. `8-12`, or `12-10-8-6`) — stored as
+  `{ kind: "range" | "pyramid", values: number[] }`; a **pirâmide** additionally
+  signals that the load rises each set (the reps typically fall).
 - An exercise may carry an **advanced technique** (`technique`): drop set, triple
   drop, super set, giant set, GVT, FS7, rest-pause, cluster. The technique's
   label/icon/**explanation** is static app content (`src/lib/workout-techniques.ts`),

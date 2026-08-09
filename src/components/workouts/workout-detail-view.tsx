@@ -417,6 +417,13 @@ export function WorkoutExerciseDetail({
                 ))}
               </div>
 
+              {/* Pyramid hint — the load rises as reps fall each set */}
+              {exercise.reps.kind === "pyramid" && (
+                <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2 text-[13px] font-medium text-primary">
+                  🔺 Pirâmide — aumente a carga a cada série, reduzindo as repetições.
+                </div>
+              )}
+
               {/* Coach's note for this exercise */}
               {exercise.note && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
