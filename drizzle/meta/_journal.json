@@ -120,6 +120,13 @@
       "when": 1786350070954,
       "tag": "0016_anamnesis_source_key",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786369528868,
+      "tag": "0017_admin_invitations",
+      "breakpoints": true
     }
   ]
 }

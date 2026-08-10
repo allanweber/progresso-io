@@ -339,6 +339,29 @@ export const invitation = pgTable("invitation", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/**
+ * A pending invite for a NEW platform admin to activate their account. Unlike
+ * the student `invitation`, it is tied to NO clinic and NO student — an admin
+ * belongs to no tenant. Carries the invitee's name + e-mail; the user row is
+ * created only when they accept and set a password. The raw token lives only in
+ * the e-mailed link (we store its SHA-256 hash). One live invite per e-mail is
+ * enforced in the DAL (previous unaccepted ones are superseded).
+ */
+export const adminInvitation = pgTable("admin_invitation", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  // SHA-256 of the raw token. The raw token is never persisted.
+  tokenHash: text("token_hash").notNull().unique(),
+  // The admin who sent the invite (audit). Nulled if that admin is later removed.
+  invitedByUserId: text("invited_by_user_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 /* -------------------------------------------------------------------------- */
 /*  Food catalog (reference data — mostly NOT tenant-scoped, like plan_limit)  */
 /*                                                                            */
@@ -1497,6 +1520,7 @@ export type Student = typeof students.$inferSelect;
 export type NewStudent = typeof students.$inferInsert;
 export type PlanLimit = typeof planLimit.$inferSelect;
 export type Invitation = typeof invitation.$inferSelect;
+export type AdminInvitation = typeof adminInvitation.$inferSelect;
 export type NewInvitation = typeof invitation.$inferInsert;
 export type FoodGroup = typeof foodGroup.$inferSelect;
 export type NewFoodGroup = typeof foodGroup.$inferInsert;
