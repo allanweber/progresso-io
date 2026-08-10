@@ -218,7 +218,7 @@ test.describe("student anamneses", () => {
       fullPage: true,
     });
 
-    // Notification bell (opened).
+    // Notification bell (opened) — desktop.
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/coach");
     await page.getByRole("button", { name: /Notificações/ }).click();
@@ -227,6 +227,24 @@ test.describe("student anamneses", () => {
     ).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-notifications-desktop.png",
+    });
+
+    // Notification bell (opened) — mobile. The panel must sit fully inside the
+    // viewport (regression: the 320px dropdown overflowed the left edge because
+    // the bell sits mid-header).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/coach");
+    await page.getByRole("button", { name: /Notificações/ }).click();
+    const panelRow = page
+      .getByText("Notificações", { exact: true })
+      .locator("xpath=..");
+    await expect(panelRow).toBeVisible();
+    const box = await panelRow.boundingBox();
+    expect(box).toBeTruthy();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    await page.screenshot({
+      path: "test-results/screens/coach-notifications-mobile.png",
     });
 
     // Public fill page.
