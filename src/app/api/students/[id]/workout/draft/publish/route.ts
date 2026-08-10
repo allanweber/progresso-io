@@ -12,13 +12,15 @@ import {
   validationError,
 } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
+import { sendPortalInviteOnFirstPrescription } from "@/server/onboarding";
 import { getTenantContext } from "@/server/tenant";
 
 /**
  * Publishes the in-flight draft: saves the payload, numbers the version and
  * freezes it (making it available to the aluno). The first publish of a new
  * workout archives the student's previous one. Requires at least one exercise.
- * Coach-only.
+ * Coach-only. The first diet/workout published also sends the student their
+ * portal access link (see onboarding.ts) — the moment there's something to see.
  */
 type Params = { params: Promise<{ id: string }> };
 
@@ -56,6 +58,11 @@ export const POST = withRoute<Params>(
       workoutId: result.workoutId,
       version: result.version,
     });
+
+    // First prescription → grant portal access (best-effort; never fails publish).
+    const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
+    await sendPortalInviteOnFirstPrescription(ctx, id, base);
+
     return NextResponse.json({
       workoutId: result.workoutId,
       version: result.version,

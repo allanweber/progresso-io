@@ -29,10 +29,10 @@ import { studentRegistrationSchema, type StudentDto } from "@/lib/students";
 /**
  * The merged "Convidar novo aluno" screen. One action: it creates the student,
  * assigns (snapshots) the chosen anamnese, and — for an ONLINE student — sends
- * the WhatsApp onboarding (portal + anamnese links); an OFFLINE student is
- * created and the coach is taken straight to fill the anamnese. Built on
- * TanStack Form + TanStack Query, validated with the same zod schema the API
- * uses.
+ * the WhatsApp anamnese fill link (portal access follows on the first published
+ * diet/workout); an OFFLINE student is created and the coach is taken straight to
+ * fill the anamnese. Built on TanStack Form + TanStack Query, validated with the
+ * same zod schema the API uses.
  */
 
 type RegisterValues = {
@@ -299,7 +299,7 @@ export function StudentRegisterForm() {
         {(modality) => (
           <div className="rounded-[10px] bg-[#EFF6FF] px-4 py-3 text-[13px] text-[#1D4ED8]">
             {modality === "online"
-              ? "O aluno receberá uma mensagem no WhatsApp com o link de acesso e o formulário de anamnese."
+              ? "O aluno receberá no WhatsApp o link para preencher a anamnese. O acesso ao portal é enviado quando você publicar a primeira dieta ou treino."
               : "O aluno não recebe acesso ao portal. Após registrar, você preenche a anamnese dele."}
           </div>
         )}

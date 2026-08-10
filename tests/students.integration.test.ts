@@ -6,7 +6,17 @@ import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import type { TenantContext } from "@/server/tenant";
-import { invitations, plans, students as studentsDal } from "@/server/dal";
+import {
+  invitations,
+  plans,
+  students as studentsDal,
+  studentAnamneses,
+} from "@/server/dal";
+import {
+  sendAnamnesisInvite,
+  sendPortalInvite,
+  sendPortalInviteOnFirstPrescription,
+} from "@/server/onboarding";
 
 import { createTestDb, type TestDb } from "./pglite";
 
@@ -258,5 +268,91 @@ describe("invite accept provisioning", () => {
       body: { email: "fabio@example.com", password },
     });
     expect(signIn.token).toBeTruthy();
+  });
+});
+
+describe("onboarding: anamnese invite vs portal access", () => {
+  const base = "http://test.local";
+
+  /** The clinic already has starter anamneses (seeded on coach sign-up). */
+  async function anyAnamnesisId(): Promise<string> {
+    const [row] = await db
+      .select({ id: schema.anamnesis.id })
+      .from(schema.anamnesis)
+      .where(eq(schema.anamnesis.clinicId, ctx.clinicId))
+      .limit(1);
+    return row.id;
+  }
+
+  /** Creates an online student with a pending anamnese assigned. */
+  async function onlineStudentWithAnamnesis(email: string) {
+    const student = await studentsDal.createStudent(ctx, {
+      firstName: "Portal",
+      lastName: "Test",
+      email,
+      phone: `1198${Math.floor(Math.random() * 1e6)}`,
+      modality: "online",
+    });
+    const assign = await studentAnamneses.assignAnamnesis(
+      ctx,
+      student.id,
+      await anyAnamnesisId(),
+    );
+    expect(assign.ok).toBe(true);
+    return student;
+  }
+
+  it("registration invite sends the anamnese link and creates NO portal invite", async () => {
+    const student = await onlineStudentWithAnamnesis("anamnese-only@example.com");
+
+    const result = await sendAnamnesisInvite(ctx, student.id, base);
+    expect(result.ok).toBe(true);
+    // No account-activation invitation is minted at this stage.
+    expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
+  });
+
+  it("the first prescription sends the portal invite exactly once", async () => {
+    const student = await onlineStudentWithAnamnesis("first-publish@example.com");
+    expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
+
+    // First diet/workout publish → portal invite goes out.
+    await sendPortalInviteOnFirstPrescription(ctx, student.id, base);
+    expect(await invitations.hasInvitation(ctx, student.id)).toBe(true);
+
+    // A second prescription must not mint another invite.
+    await sendPortalInviteOnFirstPrescription(ctx, student.id, base);
+    const rows = await db
+      .select({ id: schema.invitation.id })
+      .from(schema.invitation)
+      .where(
+        and(
+          eq(schema.invitation.clinicId, ctx.clinicId),
+          eq(schema.invitation.studentId, student.id),
+        ),
+      );
+    expect(rows).toHaveLength(1);
+  });
+
+  it("offline students never get a portal invite on publish", async () => {
+    const student = await studentsDal.createStudent(ctx, {
+      firstName: "Offline",
+      lastName: "Only",
+      phone: "1197000000",
+      modality: "in_person",
+    });
+    await sendPortalInviteOnFirstPrescription(ctx, student.id, base);
+    expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
+  });
+
+  it("the manual portal invite is skipped once the aluno has activated", async () => {
+    const student = await onlineStudentWithAnamnesis("already-active@example.com");
+    // Simulate an activated login.
+    await db
+      .update(schema.students)
+      .set({ userId: ctx.userId })
+      .where(eq(schema.students.id, student.id));
+
+    const result = await sendPortalInvite(ctx, student.id, base);
+    expect(result).toEqual({ ok: false, reason: "already_active" });
   });
 });

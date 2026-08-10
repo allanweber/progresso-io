@@ -24,10 +24,21 @@ the diet/workout **live** model, and the correct choice for a filled form.
 `/coach/students/new` ("Convidar novo aluno") creates the student, assigns the
 chosen anamnese, and then branches on the **access type** (= `modality`):
 
-- **Online** → button "Enviar convite": sends the WhatsApp onboarding (portal
-  access link + anamnese fill link) and lands on the profile.
+- **Online** → button "Enviar convite": sends the WhatsApp **anamnese fill link**
+  and lands on the profile. The student is only being invited to fill their
+  anamnese — no portal account is created yet (there's nothing to log into).
 - **Offline / presencial** → button "Registrar aluno": creates the student and
   takes the coach straight to fill the anamnese (`/coach/students/[id]/anamnesis`).
+
+### Portal access is granted on the first prescription
+
+The account-activation (portal login) link is **not** sent at registration. It
+goes out the first time the coach **publishes a diet or a workout** for the
+student — the moment there's something worth logging in to see
+(`sendPortalInviteOnFirstPrescription`, called from the two publish routes). It
+fires exactly once: only for online students who haven't activated and haven't
+already been sent an invite (any `invitation` row). The coach can also send it on
+demand from the profile's header "Enviar convite" button.
 
 ### Conditional identity
 
@@ -54,10 +65,15 @@ notification (see `docs/notifications.md`).
 `@/lib/whatsapp` is a small port (`sendWhatsApp`) mirroring the e-mail helper:
 with no provider configured it logs the message and captures its links in the
 test outbox (so e2e can drive the flow); a real vendor (Meta Cloud API / Twilio /
-Z-API) is wired later behind the same interface. `sendStudentOnboarding`
-(`@/server/onboarding`) composes the portal link (also e-mailed) + the anamnese
-link into one message, and backs both the registration flow and the profile's
-"Enviar convite" button (used e.g. after switching an offline student to online).
+Z-API) is wired later behind the same interface. `@/server/onboarding` splits the
+two sends by moment:
+
+- `sendAnamnesisInvite` — the anamnese fill link (WhatsApp). Sent at registration
+  and by the profile Anamnese card's "Reenviar" action.
+- `sendPortalInvite` — the portal access link (also e-mailed). Sent on demand from
+  the "Enviar convite" button.
+- `sendPortalInviteOnFirstPrescription` — a best-effort, fire-once wrapper around
+  `sendPortalInvite`, called from the diet/workout publish routes.
 
 ## Profile — "Dados & anamnese"
 
@@ -83,9 +99,12 @@ The first profile tab shows two cards:
 
 ## API
 
-- `POST /api/students` — merged registration (create + assign + online send).
+- `POST /api/students` — merged registration (create + assign + online anamnese
+  invite).
 - `PUT /api/students/[id]` — edit (conditional identity rules).
-- `POST /api/students/[id]/invite` — (re)send the WhatsApp onboarding.
+- `POST /api/students/[id]/invite` — (re)send the WhatsApp **portal access** link.
+- `POST /api/students/[id]/anamnesis/invite` — (re)send the WhatsApp **anamnese
+  fill** link (while the anamnese is still pending).
 - `GET/PUT /api/students/[id]/anamnesis` — read / coach-save the answers.
 - `PUT /api/students/[id]/anamnesis/template` — swap the template.
 - `GET/POST /api/anamnesis/fill` — public: load the questionnaire / submit with

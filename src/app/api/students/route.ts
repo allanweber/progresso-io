@@ -11,14 +11,16 @@ import {
   validationError,
 } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
-import { sendStudentOnboarding } from "@/server/onboarding";
+import { sendAnamnesisInvite } from "@/server/onboarding";
 import { getTenantContext } from "@/server/tenant";
 
 /**
  * Students collection. The roster reads this via TanStack Query; the merged
  * registration screen posts to it. Registration is one action: it creates the
  * student, assigns (snapshots) the chosen anamnese, and — for ONLINE students —
- * sends the WhatsApp onboarding (portal access link + anamnese fill link).
+ * sends the WhatsApp anamnese fill link. Portal access is NOT sent here: the
+ * student is only being invited to fill their anamnese; the account-activation
+ * link goes out later, on the first diet/workout published (see onboarding.ts).
  * OFFLINE students are just created + assigned (the coach fills the anamnese
  * next). Tenant-scoped through the DAL; input validated with zod; plan cap and
  * per-clinic phone/e-mail uniqueness enforced here.
@@ -85,12 +87,12 @@ export const POST = withRoute("students.register", async (request) => {
   );
   if (!assign.ok) return apiError("Anamnese selecionada não encontrada.", 422);
 
-  // Online students receive their links now; offline students don't (the coach
-  // fills the anamnese next, and can send access later from the profile).
+  // Online students are invited to fill their anamnese now; offline students
+  // aren't (the coach fills it next). Portal access follows on first publish.
   let sent = false;
   if (data.modality === "online") {
     const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
-    const result = await sendStudentOnboarding(ctx, created.id, base);
+    const result = await sendAnamnesisInvite(ctx, created.id, base);
     sent = result.ok;
   }
 
