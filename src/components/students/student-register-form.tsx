@@ -199,7 +199,7 @@ export function StudentRegisterForm() {
           <div className="space-y-1.5">
             <Label htmlFor="anamnesisId">Anamnese a enviar</Label>
             <Select
-              value={field.state.value || undefined}
+              value={field.state.value}
               onValueChange={(v) => field.handleChange(v)}
               disabled={templates.isLoading || items.length === 0}
             >

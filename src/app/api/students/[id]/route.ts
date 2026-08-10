@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { studentFormSchema, studentStatusSchema } from "@/lib/students";
 import { students } from "@/server/dal";
 import {
-  apiError,
+  fieldConflict,
   isUuid,
   notFound,
   readJson,
@@ -45,17 +45,20 @@ export const PUT = withRoute<Params>("students.update", async (request, { params
   const data = parsed.data;
 
   // E-mail and WhatsApp must stay unique within the clinic (ignoring this same
-  // student), and only when present.
+  // student), and only when present. Field-scoped so the message renders under
+  // the offending input.
   if (data.email) {
     const clash = await students.findStudentByEmail(ctx, data.email);
     if (clash && clash.id !== id) {
-      return apiError("Já existe um aluno com este e-mail.", 409);
+      const m = "Já existe um aluno com este e-mail.";
+      return fieldConflict(m, { email: m });
     }
   }
   if (data.phone) {
     const clash = await students.findStudentByPhone(ctx, data.phone);
     if (clash && clash.id !== id) {
-      return apiError("Já existe um aluno com este WhatsApp.", 409);
+      const m = "Já existe um aluno com este WhatsApp.";
+      return fieldConflict(m, { phone: m });
     }
   }
 

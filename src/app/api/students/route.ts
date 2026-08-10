@@ -4,6 +4,7 @@ import { isAtStudentLimit, studentRegistrationSchema } from "@/lib/students";
 import { plans, students, studentAnamneses } from "@/server/dal";
 import {
   apiError,
+  fieldConflict,
   forbidden,
   readJson,
   unauthorized,
@@ -42,12 +43,15 @@ export const POST = withRoute("students.register", async (request) => {
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 
-  // Per-clinic uniqueness (only for the identifiers that are present).
+  // Per-clinic uniqueness (only for the identifiers that are present). The
+  // message is scoped to its field so it renders under that input.
   if (data.email && (await students.findStudentByEmail(ctx, data.email))) {
-    return apiError("Já existe um aluno com este e-mail.", 409);
+    const m = "Já existe um aluno com este e-mail.";
+    return fieldConflict(m, { email: m });
   }
   if (data.phone && (await students.findStudentByPhone(ctx, data.phone))) {
-    return apiError("Já existe um aluno com este WhatsApp.", 409);
+    const m = "Já existe um aluno com este WhatsApp.";
+    return fieldConflict(m, { phone: m });
   }
 
   // Plan cap (archived students don't count — they've freed their slot).

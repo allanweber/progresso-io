@@ -96,6 +96,25 @@ test.describe("student anamneses", () => {
     expect(notifs.unread).toBeGreaterThanOrEqual(1);
   });
 
+  test("a duplicate e-mail shows under the E-mail field, not just a banner", async ({
+    page,
+  }) => {
+    await page.goto("/coach/students/new");
+    await page.getByLabel("Nome", { exact: true }).fill("Dup");
+    await page.getByLabel("Sobrenome").fill("Email");
+    await page.getByLabel("WhatsApp").fill(uniquePhone());
+    await page.getByLabel("E-mail", { exact: true }).fill("aluno@progresso.io");
+    // Wait for the anamnese default so the client-side form is submittable.
+    await expect(page.locator("#anamnesisId")).toContainText("Anamnese");
+    await page.getByRole("button", { name: "Enviar convite" }).click();
+
+    // The conflict renders in the E-mail field's inline error slot (#email-error),
+    // not only in the top banner.
+    await expect(page.locator("#email-error")).toHaveText(
+      "Já existe um aluno com este e-mail.",
+    );
+  });
+
   test("captures the anamnese + notification screens (desktop + mobile)", async ({
     page,
     request,

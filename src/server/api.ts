@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fieldErrors, z } from "@/lib/validation";
+import { fieldErrors, type FieldErrors, z } from "@/lib/validation";
 
 /**
  * Small helpers for JSON API route handlers so responses stay consistent:
@@ -28,6 +28,18 @@ export function forbidden(
 /** 404 for a resource missing in this clinic (or a hidden test route). */
 export function notFound(message = "Não encontrado."): NextResponse {
   return apiError(message, 404);
+}
+
+/**
+ * 409 conflict that also carries per-field messages, so a duplicate-value error
+ * (e.g. an e-mail/WhatsApp already used) renders under the offending field
+ * instead of only in a generic banner.
+ */
+export function fieldConflict(
+  message: string,
+  fields: FieldErrors,
+): NextResponse {
+  return NextResponse.json({ error: message, fieldErrors: fields }, { status: 409 });
 }
 
 /** 422 with per-field messages from a failed zod parse. */

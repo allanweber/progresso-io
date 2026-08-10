@@ -364,7 +364,7 @@ export default function StudentProfilePage() {
             Escolha outro template. As respostas atuais serão descartadas e a
             anamnese voltará a ficar pendente.
           </p>
-          <Select value={templateId || undefined} onValueChange={setTemplateId}>
+          <Select value={templateId} onValueChange={setTemplateId}>
             <SelectTrigger>
               <SelectValue
                 placeholder={
