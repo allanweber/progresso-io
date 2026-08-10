@@ -133,7 +133,11 @@ test.describe("mobile navigation", () => {
 
   test("opens the side nav from the header drawer", async ({ page }) => {
     await page.goto("/coach");
-    await expect(page.getByRole("link", { name: "Alunos" })).toBeHidden();
+    // exact: the dashboard header has a "Ver todos os alunos" link too, so match
+    // only the sidebar's "Alunos" nav link (hidden until the drawer opens).
+    await expect(
+      page.getByRole("link", { name: "Alunos", exact: true }),
+    ).toBeHidden();
 
     await page.getByRole("button", { name: "Abrir menu" }).click();
 

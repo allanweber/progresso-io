@@ -51,13 +51,18 @@ test.describe("coach dashboard", () => {
     ).toBeVisible();
     await expect(page.getByText("Em breve").first()).toBeVisible();
 
-    // The one real list surfaces the plan-less student with both badges.
+    // The one real list surfaces the plan-less student with both badges. Scope
+    // to this student's row — parallel tests add other plan-less students, so a
+    // bare "sem treino" would match several badges.
     await expect(
       page.getByRole("heading", { name: "Sem treino ou dieta" }),
     ).toBeVisible();
-    await expect(page.getByText(`${first} Teste`)).toBeVisible();
-    await expect(page.getByText("sem treino", { exact: true })).toBeVisible();
-    await expect(page.getByText("sem dieta", { exact: true })).toBeVisible();
+    const row = page
+      .getByRole("listitem")
+      .filter({ hasText: `${first} Teste` });
+    await expect(row).toBeVisible();
+    await expect(row.getByText("sem treino", { exact: true })).toBeVisible();
+    await expect(row.getByText("sem dieta", { exact: true })).toBeVisible();
 
     await page.screenshot({
       path: "test-results/screens/coach-dashboard-desktop.png",
