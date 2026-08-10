@@ -52,6 +52,26 @@ export const PLANS = ["free", "solo", "clinica", "enterprise"] as const;
 export type Plan = (typeof PLANS)[number];
 
 /**
+ * A clinic's default check-in cadence for its students (a clinic-wide feedback
+ * preference). Stored on {@link clinic}; the check-in engine that consumes it is
+ * a later feature.
+ */
+export const FEEDBACK_FREQUENCIES = ["semanal", "quinzenal", "mensal"] as const;
+export type FeedbackFrequency = (typeof FEEDBACK_FREQUENCIES)[number];
+
+/** Days of the week, for the clinic's preferred check-in day. */
+export const WEEKDAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+export type Weekday = (typeof WEEKDAYS)[number];
+
+/**
  * Lifecycle of a student within a clinic.
  *
  * - `active`   — a current student (the default on creation).
@@ -245,18 +265,46 @@ export const verification = pgTable("verification", {
  * multiple coaches to share one clinic. `clinicId` is THE tenant key: every
  * domain query is scoped by it (enforced through the Data Access Layer).
  */
-export const clinic = pgTable("clinic", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  plan: text("plan").$type<Plan>().default("free").notNull(),
-  // The coach who created the clinic. Not cascaded, so removing an owner never
-  // silently drops a whole clinic's data.
-  ownerUserId: text("owner_user_id")
-    .notNull()
-    .references((): AnyPgColumn => user.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const clinic = pgTable(
+  "clinic",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    plan: text("plan").$type<Plan>().default("free").notNull(),
+    // The coach who created the clinic. Not cascaded, so removing an owner never
+    // silently drops a whole clinic's data.
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references((): AnyPgColumn => user.id),
+    // Portal subdomain (app.progresso.io/<slug>). Optional; globally unique when
+    // present. Nothing routes on it yet — it's stored from the settings screen so
+    // the future portal-subdomain feature has it. Validated (slug) at the zod layer.
+    portalSubdomain: text("portal_subdomain"),
+    // Clinic-wide feedback preferences (the "Preferências de feedback" settings
+    // section). Persisted now; the check-in engine that consumes them is a later
+    // feature.
+    feedbackFrequency: text("feedback_frequency")
+      .$type<FeedbackFrequency>()
+      .default("semanal")
+      .notNull(),
+    feedbackPreferredDay: text("feedback_preferred_day")
+      .$type<Weekday>()
+      .default("monday")
+      .notNull(),
+    feedbackWhatsappReminder: boolean("feedback_whatsapp_reminder")
+      .default(true)
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // Subdomain is unique across the platform, but only when set (blank clinics
+    // don't collide) — same partial-unique shape as the students email/phone keys.
+    uniqueIndex("clinic_portal_subdomain_uq")
+      .on(t.portalSubdomain)
+      .where(sql`${t.portalSubdomain} is not null`),
+  ],
+);
 
 /* -------------------------------------------------------------------------- */
 /*  Domain tables (all tenant-scoped by clinicId)                             */
