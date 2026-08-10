@@ -660,6 +660,28 @@ async function seed() {
     }
   }
 
+  // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec
+  // deletes/imports anamneses here, so it must never touch the demo coach's
+  // clinic that the coach/student specs read. Sign-up auto-seeds its starters
+  // (with source_key); we just rename it and ensure the set is present.
+  const e2eOwner = await ensureUser("Admin E2E Coach", "admin-e2e@progresso.io");
+  const [e2eClinic] = await db
+    .select()
+    .from(schema.clinic)
+    .where(eq(schema.clinic.ownerUserId, e2eOwner.id));
+  if (e2eClinic) {
+    await db
+      .update(schema.user)
+      .set({ emailVerified: true, role: "coach", clinicId: e2eClinic.id })
+      .where(eq(schema.user.id, e2eOwner.id));
+    await db
+      .update(schema.clinic)
+      .set({ name: "Clínica Admin E2E", plan: "clinica" })
+      .where(eq(schema.clinic.id, e2eClinic.id));
+    await seedClinicAnamneses(db, e2eClinic.id, e2eOwner.id);
+    console.info("✓ seeded isolated admin-e2e clinic");
+  }
+
   console.info("Seed complete.");
 }
 
