@@ -41,6 +41,7 @@ import {
   ADMIN_ANAMNESIS_ORIGIN_LABELS,
   type AdminAnamnesisListItemDto,
   type AdminAnamnesisListResponse,
+  type AdminClinicDto,
   type AdminImportResult,
   type AdminStarterDto,
   type ClinicOption,
@@ -70,9 +71,13 @@ export default function AdminMaintenancePage() {
       <Tabs defaultValue="anamneses" className="mt-6">
         <TabsList>
           <TabsTrigger value="anamneses">Anamneses</TabsTrigger>
+          <TabsTrigger value="clinics">Clínicas</TabsTrigger>
         </TabsList>
         <TabsContent value="anamneses" className="mt-4">
           <AnamnesesMaintenance />
+        </TabsContent>
+        <TabsContent value="clinics" className="mt-4">
+          <ClinicsMaintenance />
         </TabsContent>
       </Tabs>
     </div>
@@ -328,6 +333,224 @@ function AnamnesesMaintenance() {
           queryClient.invalidateQueries({ queryKey: ["admin-anamneses"] })
         }
       />
+    </div>
+  );
+}
+
+function ClinicsMaintenance() {
+  const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<AdminClinicDto | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+
+  const list = useQuery({
+    queryKey: ["admin-clinics"],
+    queryFn: () =>
+      apiFetch<{ clinics: AdminClinicDto[] }>("/api/admin/clinics").then(
+        (r) => r.clinics,
+      ),
+  });
+
+  const del = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ ok: true; deletedUsers: number }>(`/api/admin/clinics/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-clinics"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-anamneses"] });
+      setDeleteTarget(null);
+      setConfirmText("");
+    },
+  });
+
+  const clinics = list.data ?? [];
+  const canDelete =
+    deleteTarget !== null && confirmText.trim() === deleteTarget.name;
+
+  function openDelete(c: AdminClinicDto) {
+    setConfirmText("");
+    del.reset();
+    setDeleteTarget(c);
+  }
+
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground">
+        Todas as clínicas da plataforma. Excluir uma clínica é permanente e
+        remove seus coaches, alunos e todos os dados (dietas, treinos, anamneses e
+        catálogo próprio).
+      </p>
+
+      {list.isError && (
+        <p className="mt-4 text-sm text-destructive">
+          {(list.error as Error).message}
+        </p>
+      )}
+
+      {/* Desktop table */}
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Clínica</TableHead>
+              <TableHead>Responsável</TableHead>
+              <TableHead>Coaches</TableHead>
+              <TableHead>Alunos</TableHead>
+              <TableHead>Criada</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {clinics.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell>
+                  <div className="font-medium text-foreground">{c.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Plano {c.plan}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-foreground">{c.ownerName ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.ownerEmail ?? "—"}
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {c.coachCount}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {c.studentCount}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(c.createdAt)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openDelete(c)}
+                    aria-label={`Excluir ${c.name}`}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!list.isLoading && clinics.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Nenhuma clínica.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile cards */}
+      <ul className="mt-4 space-y-2.5 md:hidden">
+        {clinics.map((c) => (
+          <li
+            key={c.id}
+            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium text-foreground">{c.name}</div>
+                <div className="text-[13px] text-muted-foreground">
+                  {c.ownerEmail ?? "—"} · Plano {c.plan}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openDelete(c)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {c.coachCount} coach(es) · {c.studentCount} aluno(s) ·{" "}
+              {formatDate(c.createdAt)}
+            </div>
+          </li>
+        ))}
+        {!list.isLoading && clinics.length === 0 && (
+          <li className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
+            Nenhuma clínica.
+          </li>
+        )}
+      </ul>
+
+      {/* Delete confirm — type-to-confirm the clinic name. */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => {
+          if (!o && !del.isPending) {
+            setDeleteTarget(null);
+            setConfirmText("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir clínica</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <>
+              <p className="text-[13px] text-muted-foreground">
+                A clínica{" "}
+                <strong className="text-foreground">{deleteTarget.name}</strong> e
+                TODOS os seus dados serão excluídos permanentemente:{" "}
+                <strong className="text-foreground">
+                  {deleteTarget.coachCount}
+                </strong>{" "}
+                coach(es),{" "}
+                <strong className="text-foreground">
+                  {deleteTarget.studentCount}
+                </strong>{" "}
+                aluno(s), além de dietas, treinos, anamneses e catálogo próprio.
+                Esta ação não pode ser desfeita.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm-clinic">
+                  Digite{" "}
+                  <strong className="text-foreground">{deleteTarget.name}</strong>{" "}
+                  para confirmar
+                </Label>
+                <Input
+                  id="confirm-clinic"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  autoComplete="off"
+                  placeholder={deleteTarget.name}
+                />
+              </div>
+            </>
+          )}
+          {del.isError && (
+            <p className="text-[13px] font-medium text-destructive">
+              {(del.error as Error).message}
+            </p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={del.isPending}>
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && del.mutate(deleteTarget.id)}
+              disabled={!canDelete || del.isPending}
+            >
+              {del.isPending ? "Excluindo…" : "Excluir clínica"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

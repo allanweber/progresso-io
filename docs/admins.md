@@ -59,6 +59,20 @@ the button in the UI):
 All `/api/admin/*` routes gate on `getAdminSession()`; the accept endpoints are
 public (the token is the credential), like the student invite-accept.
 
+## Clinic manager (hard-delete a tenant)
+
+The admin **Manutenção** page has a **Clínicas** tab listing every clinic with its
+owner and coach/student counts. An admin can **hard-delete** a clinic — the whole
+tenant. `admin.hardDeleteClinic` runs in one transaction: deleting the `clinic`
+row cascades every clinic-scoped table (students, invitations, diets, workouts,
+anamneses, the clinic's own foods/exercises + rules, notifications) via their
+`clinic_id` FKs, then its user accounts (coaches + activated alunos) are removed,
+cascading their sessions + accounts. Platform admins have no clinic, so this can
+never touch one. It's irreversible, so the UI requires **typing the clinic name**
+to confirm. `GET /api/admin/clinics` returns the enriched list (the other admin
+screens' clinic filters read just id+name off it); `DELETE /api/admin/clinics/[id]`
+performs the delete.
+
 ## DAL
 
 - `src/server/dal/admin-invitations.ts` — `createAdminInvitation` (supersede),
