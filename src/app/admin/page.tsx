@@ -54,13 +54,21 @@ export default async function AdminDashboardPage() {
             Curar o catálogo base e ver os alimentos próprios de cada clínica.
           </div>
         </Link>
-      </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center">
-        <p className="text-sm text-muted-foreground">
-          Mais ferramentas de administração (promover e banir usuários)
-          aparecerão aqui.
-        </p>
+        <Link
+          href="/admin/admins"
+          className="group rounded-2xl border border-border bg-white p-5 shadow-[0_2px_16px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+        >
+          <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-light">
+            <ShieldCheck className="size-5 text-primary" strokeWidth={2} />
+          </div>
+          <div className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
+            Administradores
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Convidar novos administradores por e-mail e remover acessos.
+          </div>
+        </Link>
       </div>
     </div>
   );

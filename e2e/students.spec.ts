@@ -87,7 +87,21 @@ test.describe("student management", () => {
     await page.getByRole("button", { name: "Enviar convite" }).click();
     await page.waitForURL(/\/coach\/students\/[0-9a-f-]{36}$/);
 
-    // Registration sent the portal access link (captured for the email channel).
+    // Registration sends the anamnese fill link — NOT the portal invite yet.
+    const afterRegister = (await (await request.get("/api/test/outbox")).json()) as {
+      messages: { to: string; kind: string; url?: string }[];
+    };
+    expect(
+      afterRegister.messages.some((m) => m.kind === "anamnesis_fill"),
+    ).toBe(true);
+    expect(afterRegister.messages.some((m) => m.kind === "invite")).toBe(false);
+
+    // Portal access is sent on the first diet/workout published, or on demand via
+    // the profile's "Enviar convite" button — used here to get the invite link.
+    await request.delete("/api/test/outbox");
+    await page.getByRole("button", { name: "Enviar convite" }).click();
+    await expect(page.getByText(/Convite enviado por WhatsApp/)).toBeVisible();
+
     const { messages } = (await (await request.get("/api/test/outbox")).json()) as {
       messages: { to: string; kind: string; url?: string }[];
     };

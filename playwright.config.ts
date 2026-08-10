@@ -118,7 +118,7 @@ export default defineConfig({
     },
     {
       name: "admin",
-      testMatch: /admin-maintenance\.spec\.ts/,
+      testMatch: /admin-(maintenance|admins)\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

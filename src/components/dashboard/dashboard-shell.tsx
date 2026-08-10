@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  ShieldCheck,
   UtensilsCrossed,
   Users,
   X,
@@ -56,6 +57,7 @@ function navItems(role: string | null | undefined) {
     items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
     items.push({ href: "/admin/exercises", label: "Exercícios", icon: Dumbbell });
     items.push({ href: "/admin/maintenance", label: "Manutenção", icon: Database });
+    items.push({ href: "/admin/admins", label: "Admins", icon: ShieldCheck });
   }
   return items;
 }

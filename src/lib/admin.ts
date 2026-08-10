@@ -46,6 +46,57 @@ export const adminStudentFilterSchema = z.object({
 export type AdminStudentFilterValues = z.output<typeof adminStudentFilterSchema>;
 
 /* -------------------------------------------------------------------------- */
+/*  Platform admins (create / list / remove)                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Invite a new platform admin. Only a name + e-mail: they set their own
+ * password from the e-mailed link. Validated on the server before the DAL.
+ */
+export const adminInviteSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome.").max(120),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Informe um e-mail válido.")
+    .max(200),
+});
+export type AdminInviteValues = z.output<typeof adminInviteSchema>;
+
+/** An activated platform admin, as the Admins list renders it. */
+export type AdminAccountDto = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  /** The signed-in admin's own row — never deletable. */
+  isSelf: boolean;
+  /** The env-seeded bootstrap admin (ADMIN_EMAIL) — never deletable. */
+  isBootstrap: boolean;
+};
+
+/** A pending (not-yet-accepted) admin invite. */
+export type AdminInviteDto = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+/**
+ * The Admins page payload: activated admins and outstanding invites. `total`
+ * counts activated admins only — the UI disables every delete when it's 1 (the
+ * last admin can't be removed).
+ */
+export type AdminListResponse = {
+  admins: AdminAccountDto[];
+  invites: AdminInviteDto[];
+  total: number;
+};
+
+/* -------------------------------------------------------------------------- */
 /*  Food catalog — platform admin (phase 3)                                    */
 /* -------------------------------------------------------------------------- */
 

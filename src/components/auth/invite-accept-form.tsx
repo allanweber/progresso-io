@@ -24,31 +24,62 @@ const passwordSchema = z
   });
 
 /**
+ * Which invite this set-password screen activates. Both are token-based accept
+ * flows that create a login and set a password, differing only in endpoint and
+ * copy: `student` activates an aluno (the default), `admin` a platform admin.
+ */
+type InviteKind = "student" | "admin";
+
+const INVITE_CONFIG: Record<
+  InviteKind,
+  { endpoint: string; queryKey: string; roleLabel: string }
+> = {
+  student: {
+    endpoint: "/api/invite/accept",
+    queryKey: "invite",
+    roleLabel: "aluno",
+  },
+  admin: {
+    endpoint: "/api/admin-invitations/accept",
+    queryKey: "admin-invite",
+    roleLabel: "administrador",
+  },
+};
+
+/**
  * Client island for the invite-accept page. The token is read on the server
  * (the page is a dynamic Server Component) and passed in as a prop — so the
  * route renders fresh per request instead of being a statically-cached shell
- * that only says "Carregando…" until client JS hydrates.
+ * that only says "Carregando…" until client JS hydrates. `kind` selects the
+ * student (default) or admin accept flow.
  */
-export function InviteAcceptForm({ token }: { token: string }) {
+export function InviteAcceptForm({
+  token,
+  kind = "student",
+}: {
+  token: string;
+  kind?: InviteKind;
+}) {
+  const config = INVITE_CONFIG[kind];
   const check = useQuery({
-    queryKey: ["invite", token],
+    queryKey: [config.queryKey, token],
     queryFn: () =>
       apiFetch<InviteCheck>(
-        `/api/invite/accept?token=${encodeURIComponent(token)}`,
+        `${config.endpoint}?token=${encodeURIComponent(token)}`,
       ),
     enabled: token.length > 0,
     retry: false,
   });
 
   const accept = useMutation({
-    // Provision the aluno account only — no session is ever established.
+    // Provision the account only — no session is ever established.
     mutationFn: (password: string) =>
-      apiFetch<{ ok: boolean }>("/api/invite/accept", {
+      apiFetch<{ ok: boolean }>(config.endpoint, {
         method: "POST",
         body: JSON.stringify({ token, password }),
       }),
     onSuccess: () => {
-      // Activating the account never signs the aluno in (no session, no forged
+      // Activating the account never signs the user in (no session, no forged
       // cookie) — send them to /login to sign in themselves, mirroring the
       // e-mail OTP flow.
       window.location.assign("/login?activated=1");
@@ -123,7 +154,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Olá{check.data?.firstName ? `, ${check.data.firstName}` : ""}! Defina
-            uma senha para entrar como aluno
+            uma senha para entrar como {config.roleLabel}
             {check.data?.email ? ` (${check.data.email})` : ""}.
           </p>
 

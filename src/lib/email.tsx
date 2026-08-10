@@ -2,6 +2,10 @@ import { render } from "@react-email/render";
 import { Resend } from "resend";
 
 import {
+  ADMIN_INVITE_EMAIL_SUBJECT,
+  AdminInviteEmail,
+} from "@/components/emails/admin-invite-email";
+import {
   INVITE_EMAIL_SUBJECT,
   InviteEmail,
 } from "@/components/emails/invite-email";
@@ -124,6 +128,63 @@ export async function sendInviteEmail({
 }
 
 export type SendInvite = typeof sendInviteEmail;
+
+type SendAdminInviteArgs = {
+  email: string;
+  firstName: string;
+  acceptUrl: string;
+  expiresInDays: number;
+};
+
+/**
+ * Sends a new platform admin their invite e-mail (a link to set a password and
+ * activate their admin login). Falls back to a console log when Resend isn't
+ * configured (local dev), and always records the accept URL in the test outbox
+ * so e2e can drive the accept flow without a real inbox.
+ */
+export async function sendAdminInviteEmail({
+  email,
+  firstName,
+  acceptUrl,
+  expiresInDays,
+}: SendAdminInviteArgs): Promise<void> {
+  captureOutbox({
+    to: email,
+    subject: ADMIN_INVITE_EMAIL_SUBJECT,
+    kind: "admin_invite",
+    url: acceptUrl,
+  });
+
+  if (!resend) {
+    console.info(`[email:dev] admin invite for ${email}: ${acceptUrl}`);
+    return;
+  }
+
+  const element = (
+    <AdminInviteEmail
+      firstName={firstName}
+      acceptUrl={acceptUrl}
+      expiresInDays={expiresInDays}
+    />
+  );
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: ADMIN_INVITE_EMAIL_SUBJECT,
+      html,
+      text,
+    });
+    logger.info("email.sent", { template: "admin_invite" });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "admin_invite" });
+    throw error;
+  }
+}
 
 /** Where contact-form messages are delivered. Kept server-side (not exposed). */
 const CONTACT_TO = process.env.CONTACT_EMAIL;

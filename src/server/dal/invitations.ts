@@ -66,6 +66,29 @@ export async function createInvitation(
 }
 
 /**
+ * Whether this student has ever been sent a portal invite (accepted or not).
+ * Since only `createInvitation` (portal sends) writes to this table, an existing
+ * row means "portal access was already offered" — used to make the first-publish
+ * portal invite fire exactly once.
+ */
+export async function hasInvitation(
+  ctx: TenantContext,
+  studentId: string,
+): Promise<boolean> {
+  const [row] = await ctx.db
+    .select({ id: schema.invitation.id })
+    .from(schema.invitation)
+    .where(
+      and(
+        eq(schema.invitation.clinicId, ctx.clinicId),
+        eq(schema.invitation.studentId, studentId),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
+/**
  * Resolves a raw token to its still-valid, unaccepted invite and the student it
  * belongs to. Returns null when the token is unknown, already accepted, or
  * expired. No tenant context: the accept flow has no session yet — the token is

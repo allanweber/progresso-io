@@ -126,6 +126,10 @@ export default function StudentProfilePage() {
       setTemplateId("");
     },
   });
+  const resendAnamnesis = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/students/${id}/anamnesis/invite`, { method: "POST" }),
+  });
 
   if (isLoading) {
     return (
@@ -348,7 +352,33 @@ export default function StudentProfilePage() {
                   <RefreshCw className="size-4" />
                   Trocar template
                 </Button>
+                {am.status !== "completed" &&
+                  student.modality === "online" &&
+                  student.phone &&
+                  student.status !== "archived" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resendAnamnesis.mutate()}
+                      disabled={resendAnamnesis.isPending}
+                    >
+                      <Send className="size-4" />
+                      {resendAnamnesis.isPending
+                        ? "Enviando…"
+                        : "Reenviar anamnese"}
+                    </Button>
+                  )}
               </div>
+              {resendAnamnesis.isSuccess && (
+                <p className="mt-3 text-[13px] font-medium text-primary">
+                  Link da anamnese enviado por WhatsApp.
+                </p>
+              )}
+              {resendAnamnesis.isError && (
+                <p className="mt-3 text-[13px] font-medium text-destructive">
+                  {(resendAnamnesis.error as ApiError).message}
+                </p>
+              )}
             </>
           )}
         </div>
