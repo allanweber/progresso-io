@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { validateAnswers } from "@/lib/anamneses";
 import { editAnswersSchema } from "@/lib/student-anamneses";
 import { students, studentAnamneses } from "@/server/dal";
 import { toStudentAnamnesisDto } from "@/server/dal/student-anamneses";
@@ -57,6 +58,17 @@ export const PUT = withRoute<Params>(
     if (!body.ok) return body.response;
     const parsed = editAnswersSchema.safeParse(body.data);
     if (!parsed.success) return validationError(parsed.error);
+
+    // Enforce the questions' masks against the student's snapshot.
+    const current = await studentAnamneses.getStudentAnamnesis(ctx, id);
+    if (!current) return notFound("Este aluno não tem uma anamnese.");
+    const invalid = validateAnswers(current.sections, parsed.data.answers);
+    if (Object.keys(invalid).length > 0) {
+      return NextResponse.json(
+        { error: "Verifique os campos informados.", fieldErrors: invalid },
+        { status: 422 },
+      );
+    }
 
     const row = await studentAnamneses.saveAnswers(ctx, id, parsed.data.answers, "coach");
     if (!row) return notFound("Este aluno não tem uma anamnese.");

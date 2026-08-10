@@ -396,19 +396,50 @@ async function seedAlunoWorkout(
  * else is left blank (the cards only show answered questions).
  */
 function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
-  const canonical: Record<string, string> = {
-    idade: "29 anos",
-    altura: "168",
+  // Values respect each question's mask so the demo answers are valid.
+  const INT: Record<string, number> = {
+    idade: 29,
+    altura: 168,
+    refeicoes_dia: 4,
+    frequencia: 4,
+    freq_treino: 4,
+    sono: 7,
+    semanas_gestacao: 28,
+  };
+  const DEC: Record<string, string> = {
     peso_atual: "71,4",
-    experiencia: "Intermediária · 3 anos",
-    frequencia: "4x por semana",
+    peso_meta: "68",
+    peso_habitual: "70",
+    agua: "2,5",
   };
   const answers: AnamnesisAnswers = {};
   let extra = 0;
   for (const section of sections) {
     for (const q of section.questions) {
-      if (q.key in canonical) {
-        answers[q.key] = canonical[q.key];
+      if (q.type === "boolean") {
+        if (/lgpd/i.test(q.key)) answers[q.key] = true; // consent granted
+        continue;
+      }
+      if (q.mask === "date") {
+        answers[q.key] = "10/05/1996";
+        continue;
+      }
+      if (q.mask === "pressure") {
+        answers[q.key] = "120/80";
+        continue;
+      }
+      if (q.mask === "integer") {
+        const v = INT[q.key] ?? Math.max(q.min ?? 1, Math.min(q.max ?? 4, 4));
+        answers[q.key] = String(v);
+        continue;
+      }
+      if (q.mask === "decimal") {
+        answers[q.key] = DEC[q.key] ?? "2";
+        continue;
+      }
+      // Unmasked free text.
+      if (q.key === "experiencia") {
+        answers[q.key] = "Intermediária · 3 anos";
         continue;
       }
       const k = q.key.toLowerCase();
@@ -419,7 +450,7 @@ function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
       else if (/(rotina|sono)/.test(k))
         answers[q.key] = "Trabalho sentado, ~6h de sono, melhorando";
       else if (extra < 4) {
-        answers[q.key] = q.type === "boolean" ? false : "Sem observações relevantes.";
+        answers[q.key] = "Sem observações relevantes.";
         extra++;
       }
     }

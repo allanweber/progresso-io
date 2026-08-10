@@ -12,7 +12,10 @@
         {
           "key": "idade",
           "type": "short_text",
-          "label": "Idade"
+          "label": "Idade",
+          "mask": "integer",
+          "min": 0,
+          "max": 120
         },
         {
           "key": "experiencia",
@@ -22,12 +25,16 @@
         {
           "key": "frequencia",
           "type": "short_text",
-          "label": "Frequência de treino (x por semana)"
+          "label": "Frequência de treino (x por semana)",
+          "mask": "integer",
+          "min": 0,
+          "max": 14
         },
         {
           "key": "data_nascimento",
           "type": "short_text",
-          "label": "Data de nascimento"
+          "label": "Data de nascimento",
+          "mask": "date"
         },
         {
           "key": "sexo",
@@ -58,7 +65,10 @@
         {
           "key": "peso_meta",
           "type": "short_text",
-          "label": "Peso que gostaria de alcançar (kg)"
+          "label": "Peso que gostaria de alcançar (kg)",
+          "mask": "decimal",
+          "min": 20,
+          "max": 400
         },
         {
           "key": "dietas_anteriores",
@@ -74,12 +84,18 @@
         {
           "key": "peso_atual",
           "type": "short_text",
-          "label": "Peso atual, medido pela manhã em jejum (kg)"
+          "label": "Peso atual, medido pela manhã em jejum (kg)",
+          "mask": "decimal",
+          "min": 20,
+          "max": 400
         },
         {
           "key": "altura",
           "type": "short_text",
-          "label": "Altura (cm)"
+          "label": "Altura (cm)",
+          "mask": "integer",
+          "min": 100,
+          "max": 250
         },
         {
           "key": "circunferencias",
@@ -121,7 +137,10 @@
         {
           "key": "refeicoes_dia",
           "type": "short_text",
-          "label": "Quantas refeições faz por dia?"
+          "label": "Quantas refeições faz por dia?",
+          "mask": "integer",
+          "min": 1,
+          "max": 12
         },
         {
           "key": "quem_cozinha",
@@ -141,7 +160,10 @@
         {
           "key": "agua",
           "type": "short_text",
-          "label": "Quanta água bebe por dia? (L)"
+          "label": "Quanta água bebe por dia? (L)",
+          "mask": "decimal",
+          "min": 0,
+          "max": 20
         },
         {
           "key": "alcool",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
+import { validateAnswers } from "@/lib/anamneses";
 import { normalizePhone } from "@/lib/phone";
 import { fillSubmitSchema, type FillPageState } from "@/lib/student-anamneses";
 import { z } from "@/lib/validation";
@@ -106,6 +107,15 @@ export const POST = withRoute("anamneseFill.submit", async (request) => {
   const clean = Object.fromEntries(
     Object.entries(answers).filter(([k]) => validKeys.has(k)),
   );
+
+  // Enforce the questions' masks (date / number / pressure) server-side.
+  const invalid = validateAnswers(found.studentAnamnesis.sections, clean);
+  if (Object.keys(invalid).length > 0) {
+    return NextResponse.json(
+      { error: "Verifique os campos informados.", fieldErrors: invalid },
+      { status: 422 },
+    );
+  }
 
   const result = await studentAnamneses.submitFill(db, found.studentAnamnesis.id, clean);
   if (!result) {

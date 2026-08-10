@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnamnesisFillForm } from "@/components/anamneses/anamnesis-fill-form";
 import { Button } from "@/components/ui/button";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { validateAnswers } from "@/lib/anamneses";
 import type {
   AnamnesisAnswers,
   AnamnesisAnswerValue,
@@ -26,6 +27,7 @@ export default function CoachFillAnamnesisPage() {
   // Local edits override the loaded snapshot; null means "not edited yet", so we
   // render the fetched answers until the coach touches a field (no effect needed).
   const [edited, setEdited] = useState<AnamnesisAnswers | null>(null);
+  const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["student-anamnesis", id],
@@ -53,6 +55,12 @@ export default function CoachFillAnamnesisPage() {
 
   function onAnswer(key: string, value: AnamnesisAnswerValue) {
     setEdited((prev) => ({ ...(prev ?? data?.answers ?? {}), [key]: value }));
+    setClientErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }
 
   if (isLoading) {
@@ -106,7 +114,9 @@ export default function CoachFillAnamnesisPage() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate();
+          const errs = validateAnswers(data.sections, answers);
+          setClientErrors(errs);
+          if (Object.keys(errs).length === 0) save.mutate();
         }}
         className="mt-6 space-y-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
       >
@@ -115,6 +125,10 @@ export default function CoachFillAnamnesisPage() {
           answers={answers}
           onAnswer={onAnswer}
           disabled={save.isPending}
+          errors={{
+            ...(save.error instanceof ApiError ? (save.error.fieldErrors ?? {}) : {}),
+            ...clientErrors,
+          }}
         />
         <div className="flex items-center gap-3 border-t border-border pt-5">
           <Button type="submit" disabled={save.isPending}>

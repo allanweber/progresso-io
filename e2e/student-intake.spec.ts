@@ -115,6 +115,51 @@ test.describe("student anamneses", () => {
     );
   });
 
+  test("the fill page blocks an invalid masked value (date)", async ({
+    request,
+    browser,
+  }) => {
+    const { items } = (await (
+      await request.get("/api/anamneses?pageSize=100")
+    ).json()) as { items: { id: string }[] };
+    const phone = uniquePhone();
+
+    await request.delete("/api/test/outbox");
+    await request.post("/api/students", {
+      data: {
+        firstName: "Mask",
+        lastName: "Date",
+        phone,
+        email: uniqueEmail("mask"),
+        goal: "",
+        modality: "online",
+        anamnesisId: items[0].id,
+      },
+    });
+    const { messages } = (await (
+      await request.get("/api/test/outbox")
+    ).json()) as { messages: { kind: string; url?: string }[] };
+    const fill = messages.find((m) => m.kind === "anamnesis_fill");
+
+    const ctx = await browser.newContext();
+    try {
+      const p = await ctx.newPage();
+      await p.goto(fill!.url!);
+      await p.getByLabel("Seu WhatsApp").fill(phone);
+      // Every starter template asks 'Data de nascimento' with a date mask; a
+      // malformed value is blocked with the format message.
+      await p.getByLabel("Data de nascimento").fill("31-02-2020");
+      await p.getByRole("button", { name: "Enviar anamnese" }).click();
+
+      await expect(
+        p.getByText("Informe uma data válida (dd/mm/aaaa)."),
+      ).toBeVisible();
+      await expect(p.getByText("Anamnese enviada!")).toBeHidden();
+    } finally {
+      await ctx.close();
+    }
+  });
+
   test("captures the anamnese + notification screens (desktop + mobile)", async ({
     page,
     request,
