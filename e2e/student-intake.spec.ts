@@ -96,14 +96,22 @@ test.describe("student anamneses", () => {
       const p = await ctx.newPage();
       await p.goto(fill!.url!);
       await expect(p.getByLabel("Seu WhatsApp")).toBeVisible();
+      // The questionnaire stays hidden until the number is confirmed.
+      await expect(
+        p.getByRole("button", { name: "Enviar anamnese" }),
+      ).toBeHidden();
 
-      // Wrong number → rejected.
+      // Wrong number → rejected at the confirm step.
       await p.getByLabel("Seu WhatsApp").fill("11 00000-0000");
-      await p.getByRole("button", { name: "Enviar anamnese" }).click();
+      await p.getByRole("button", { name: "Confirmar WhatsApp" }).click();
       await expect(p.getByText(/não confere/)).toBeVisible();
 
-      // Correct number → submitted.
+      // Correct number → questionnaire unlocked, then submitted.
       await p.getByLabel("Seu WhatsApp").fill(phone);
+      await p.getByRole("button", { name: "Confirmar WhatsApp" }).click();
+      await expect(
+        p.getByRole("button", { name: "Enviar anamnese" }),
+      ).toBeVisible();
       await p.getByRole("button", { name: "Enviar anamnese" }).click();
       await expect(p.getByText("Anamnese enviada!")).toBeVisible();
     } finally {
@@ -168,7 +176,9 @@ test.describe("student anamneses", () => {
     try {
       const p = await ctx.newPage();
       await p.goto(fill!.url!);
+      // Confirm the WhatsApp to unlock the questionnaire.
       await p.getByLabel("Seu WhatsApp").fill(phone);
+      await p.getByRole("button", { name: "Confirmar WhatsApp" }).click();
       // Every starter template asks 'Data de nascimento' with a date mask; a
       // malformed value is blocked with the format message.
       await p.getByLabel("Data de nascimento").fill("31-02-2020");

@@ -6,6 +6,7 @@ import { normalizePhone } from "@/lib/phone";
 import { fillSubmitSchema, type FillPageState } from "@/lib/student-anamneses";
 import { z } from "@/lib/validation";
 import { notifications, studentAnamneses } from "@/server/dal";
+import { recordFailure, tooManyAttempts } from "@/server/anamnesis-fill-attempts";
 import { apiError, readJson, validationError } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
 
@@ -17,37 +18,14 @@ import { logger, withRoute } from "@/server/observability";
  * GET  ?token=…            → the questionnaire + who it's for (or {valid:false}).
  * POST { token, phone, answers } → submits the answers once the confirmed number
  *   matches the one on file; raises the clinic's `anamnesis_completed`
- *   notification. Number-confirm attempts are rate-limited per token.
+ *   notification. Number-confirm attempts are rate-limited per token (shared with
+ *   the /confirm endpoint that gates the questionnaire).
  */
 
 /** Last 4 digits of a normalized number, to hint the confirm field. */
 function phoneHintOf(phone: string | null): string {
   const d = (phone ?? "").replace(/\D/g, "");
   return d.length >= 4 ? d.slice(-4) : "";
-}
-
-/* --- tiny in-memory rate limiter for the number-confirm step -------------- */
-const ATTEMPT_LIMIT = 8;
-const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function tooManyAttempts(key: string): boolean {
-  const now = Date.now();
-  const rec = attempts.get(key);
-  if (!rec || rec.resetAt < now) {
-    attempts.set(key, { count: 0, resetAt: now + ATTEMPT_WINDOW_MS });
-    return false;
-  }
-  return rec.count >= ATTEMPT_LIMIT;
-}
-
-function recordFailure(key: string): void {
-  const rec = attempts.get(key) ?? {
-    count: 0,
-    resetAt: Date.now() + ATTEMPT_WINDOW_MS,
-  };
-  rec.count += 1;
-  attempts.set(key, rec);
 }
 
 export const GET = withRoute("anamneseFill.check", async (request) => {
