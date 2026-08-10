@@ -9,68 +9,187 @@
       "key": "identificacao",
       "title": "Identificação",
       "questions": [
-        { "key": "data_nascimento", "type": "short_text", "label": "Data de nascimento" },
-        { "key": "sexo", "type": "short_text", "label": "Sexo" },
-        { "key": "profissao", "type": "short_text", "label": "Profissão / ocupação" },
-        { "key": "peso", "type": "short_text", "label": "Peso atual (kg)" },
-        { "key": "altura", "type": "short_text", "label": "Altura (cm)" }
+        {
+          "key": "idade",
+          "type": "short_text",
+          "label": "Idade"
+        },
+        {
+          "key": "experiencia",
+          "type": "short_text",
+          "label": "Experiência (nível / tempo de treino)"
+        },
+        {
+          "key": "frequencia",
+          "type": "short_text",
+          "label": "Frequência de treino (x por semana)"
+        },
+        {
+          "key": "data_nascimento",
+          "type": "short_text",
+          "label": "Data de nascimento"
+        },
+        {
+          "key": "sexo",
+          "type": "short_text",
+          "label": "Sexo"
+        },
+        {
+          "key": "profissao",
+          "type": "short_text",
+          "label": "Profissão / ocupação"
+        },
+        {
+          "key": "peso_atual",
+          "type": "short_text",
+          "label": "Peso atual (kg)"
+        },
+        {
+          "key": "altura",
+          "type": "short_text",
+          "label": "Altura (cm)"
+        }
       ]
     },
     {
       "key": "objetivo",
       "title": "Objetivo",
       "questions": [
-        { "key": "objetivo_principal", "type": "long_text", "label": "Qual seu objetivo com o ganho de massa?" },
-        { "key": "peso_meta", "type": "short_text", "label": "Peso/objetivo que deseja alcançar (kg)" },
-        { "key": "facilidade", "type": "short_text", "label": "Tem facilidade ou dificuldade para ganhar peso?" }
+        {
+          "key": "objetivo_principal",
+          "type": "long_text",
+          "label": "Qual seu objetivo com o ganho de massa?"
+        },
+        {
+          "key": "peso_meta",
+          "type": "short_text",
+          "label": "Peso/objetivo que deseja alcançar (kg)"
+        },
+        {
+          "key": "facilidade",
+          "type": "short_text",
+          "label": "Tem facilidade ou dificuldade para ganhar peso?"
+        }
       ]
     },
     {
       "key": "treino",
       "title": "Treino e rotina",
       "questions": [
-        { "key": "tempo_treino", "type": "short_text", "label": "Há quanto tempo treina de forma consistente?" },
-        { "key": "freq_treino", "type": "short_text", "label": "Quantos dias por semana treina?" },
-        { "key": "tipo_treino", "type": "long_text", "label": "Quais tipos de treino pratica? (musculação, cardio, esporte…)" },
-        { "key": "horario_treino", "type": "short_text", "label": "Em que horário costuma treinar?" },
-        { "key": "ergogenico", "type": "long_text", "label": "Faz ou já fez uso de recursos ergogênicos / hormonais? Quais?" }
+        {
+          "key": "tempo_treino",
+          "type": "short_text",
+          "label": "Há quanto tempo treina de forma consistente?"
+        },
+        {
+          "key": "freq_treino",
+          "type": "short_text",
+          "label": "Quantos dias por semana treina?"
+        },
+        {
+          "key": "tipo_treino",
+          "type": "long_text",
+          "label": "Quais tipos de treino pratica? (musculação, cardio, esporte…)"
+        },
+        {
+          "key": "horario_treino",
+          "type": "short_text",
+          "label": "Em que horário costuma treinar?"
+        },
+        {
+          "key": "ergogenico",
+          "type": "long_text",
+          "label": "Faz ou já fez uso de recursos ergogênicos / hormonais? Quais?"
+        }
       ]
     },
     {
       "key": "nutricao",
       "title": "Alimentação e treino",
       "questions": [
-        { "key": "refeicoes_dia", "type": "short_text", "label": "Quantas refeições faz por dia?" },
-        { "key": "pre_treino", "type": "long_text", "label": "Costuma comer antes de treinar? O quê?" },
-        { "key": "pos_treino", "type": "long_text", "label": "Costuma comer após treinar? O quê?" },
-        { "key": "proteina", "type": "long_text", "label": "Principais fontes de proteína que consome" },
-        { "key": "apetite", "type": "short_text", "label": "Como está seu apetite no dia a dia?" },
-        { "key": "agua", "type": "short_text", "label": "Quanta água bebe por dia? (L)" }
+        {
+          "key": "refeicoes_dia",
+          "type": "short_text",
+          "label": "Quantas refeições faz por dia?"
+        },
+        {
+          "key": "pre_treino",
+          "type": "long_text",
+          "label": "Costuma comer antes de treinar? O quê?"
+        },
+        {
+          "key": "pos_treino",
+          "type": "long_text",
+          "label": "Costuma comer após treinar? O quê?"
+        },
+        {
+          "key": "proteina",
+          "type": "long_text",
+          "label": "Principais fontes de proteína que consome"
+        },
+        {
+          "key": "apetite",
+          "type": "short_text",
+          "label": "Como está seu apetite no dia a dia?"
+        },
+        {
+          "key": "agua",
+          "type": "short_text",
+          "label": "Quanta água bebe por dia? (L)"
+        }
       ]
     },
     {
       "key": "suplementacao",
       "title": "Suplementação",
       "questions": [
-        { "key": "suplementos", "type": "long_text", "label": "Usa suplementos? Quais, doses e horários?" }
+        {
+          "key": "suplementos",
+          "type": "long_text",
+          "label": "Usa suplementos? Quais, doses e horários?"
+        }
       ]
     },
     {
       "key": "saude_recuperacao",
       "title": "Saúde e recuperação",
       "questions": [
-        { "key": "doencas", "type": "long_text", "label": "Possui alguma condição de saúde ou lesão? Quais?" },
-        { "key": "medicamentos", "type": "long_text", "label": "Usa medicamentos de uso contínuo? Quais?" },
-        { "key": "sono", "type": "short_text", "label": "Quantas horas dorme por noite e como é a qualidade do sono?" },
-        { "key": "recuperacao", "type": "short_text", "label": "Como sente sua recuperação entre os treinos?" }
+        {
+          "key": "doencas",
+          "type": "long_text",
+          "label": "Possui alguma condição de saúde ou lesão? Quais?"
+        },
+        {
+          "key": "medicamentos",
+          "type": "long_text",
+          "label": "Usa medicamentos de uso contínuo? Quais?"
+        },
+        {
+          "key": "sono",
+          "type": "short_text",
+          "label": "Quantas horas dorme por noite e como é a qualidade do sono?"
+        },
+        {
+          "key": "recuperacao",
+          "type": "short_text",
+          "label": "Como sente sua recuperação entre os treinos?"
+        }
       ]
     },
     {
       "key": "consentimento",
       "title": "Consentimento",
       "questions": [
-        { "key": "lgpd", "type": "boolean", "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional." },
-        { "key": "observacoes", "type": "long_text", "label": "Algo mais que gostaria de compartilhar?" }
+        {
+          "key": "lgpd",
+          "type": "boolean",
+          "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional."
+        },
+        {
+          "key": "observacoes",
+          "type": "long_text",
+          "label": "Algo mais que gostaria de compartilhar?"
+        }
       ]
     }
   ]

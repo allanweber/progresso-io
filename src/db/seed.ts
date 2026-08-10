@@ -17,6 +17,9 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { DietWriteInput } from "@/server/dal/diets";
 import type { WorkoutWriteInput } from "@/server/dal/workouts";
 import type { WorkoutReps } from "@/lib/workouts";
+import type { AnamnesisSection } from "@/lib/anamneses";
+import type { AnamnesisAnswers } from "@/lib/student-anamneses";
+import { normalizePhone } from "@/lib/phone";
 import type { TenantContext } from "@/server/tenant";
 
 config({ path: ".env.local" });
@@ -386,6 +389,44 @@ async function seedAlunoWorkout(
   );
 }
 
+/**
+ * Builds a believable set of answers for the seeded aluno's anamnese so the
+ * profile's Perfil + Anamnese cards (and a completed status) have real content.
+ * Fills the canonical metric keys plus a handful of common questions; anything
+ * else is left blank (the cards only show answered questions).
+ */
+function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
+  const canonical: Record<string, string> = {
+    idade: "29 anos",
+    altura: "168",
+    peso_atual: "71,4",
+    experiencia: "Intermediária · 3 anos",
+    frequencia: "4x por semana",
+  };
+  const answers: AnamnesisAnswers = {};
+  let extra = 0;
+  for (const section of sections) {
+    for (const q of section.questions) {
+      if (q.key in canonical) {
+        answers[q.key] = canonical[q.key];
+        continue;
+      }
+      const k = q.key.toLowerCase();
+      if (/alerg/.test(k)) answers[q.key] = "Lactose (intolerância)";
+      else if (/medic/.test(k)) answers[q.key] = "Nenhuma";
+      else if (/(les|restri|dor)/.test(k))
+        answers[q.key] = "Condromalácia leve no joelho direito — evitar impacto";
+      else if (/(rotina|sono)/.test(k))
+        answers[q.key] = "Trabalho sentado, ~6h de sono, melhorando";
+      else if (extra < 4) {
+        answers[q.key] = q.type === "boolean" ? false : "Sem observações relevantes.";
+        extra++;
+      }
+    }
+  }
+  return answers;
+}
+
 async function seed() {
   const { db, schema } = await import("@/db");
   const { createAuth } = await import("@/lib/auth");
@@ -522,6 +563,70 @@ async function seed() {
   const seededAnamneses = await seedClinicAnamneses(db, coachClinic.id, coach.id);
   if (seededAnamneses > 0) {
     console.info(`✓ seeded ${seededAnamneses} anamneses for the clinic`);
+  }
+
+  // Give the aluno a WhatsApp number (the primary identifier), then a completed
+  // anamnese (filled by the aluno) + the resulting clinic notification — so the
+  // profile cards and the bell have real content. Idempotent: skipped once the
+  // aluno already has a completed anamnese.
+  await db
+    .update(schema.students)
+    .set({ phone: normalizePhone("11999990000") })
+    .where(and(eq(schema.students.id, studentId), isNull(schema.students.phone)));
+
+  const studentAnamneses = await import("@/server/dal/student-anamneses");
+  const notificationsDal = await import("@/server/dal/notifications");
+  const existingAnamnesis = await studentAnamneses.getStudentAnamnesis(
+    coachCtx,
+    studentId,
+  );
+  if (!existingAnamnesis || existingAnamnesis.status !== "completed") {
+    // Prefer the hypertrophy starter (matches Ana's goal), else the first one.
+    const [tpl] = await db
+      .select({ id: schema.anamnesis.id })
+      .from(schema.anamnesis)
+      .where(
+        and(
+          eq(schema.anamnesis.clinicId, coachClinic.id),
+          eq(schema.anamnesis.objective, "hypertrophy"),
+        ),
+      )
+      .limit(1);
+    const [fallback] = tpl
+      ? [tpl]
+      : await db
+          .select({ id: schema.anamnesis.id })
+          .from(schema.anamnesis)
+          .where(eq(schema.anamnesis.clinicId, coachClinic.id))
+          .limit(1);
+    const templateId = (tpl ?? fallback)?.id;
+    if (templateId) {
+      const assigned = await studentAnamneses.assignAnamnesis(
+        coachCtx,
+        studentId,
+        templateId,
+      );
+      if (assigned.ok) {
+        const sa = assigned.studentAnamnesis;
+        const filled = await studentAnamneses.submitFill(
+          db,
+          sa.id,
+          demoAnamnesisAnswers(sa.sections),
+        );
+        if (filled) {
+          await notificationsDal.createNotification(db, {
+            clinicId: coachClinic.id,
+            type: "anamnesis_completed",
+            data: {
+              studentId,
+              studentName: filled.studentName,
+              anamnesisName: filled.anamnesisName,
+            },
+          });
+          console.info("✓ seeded aluno anamnese (completed) + notification");
+        }
+      }
+    }
   }
 
   console.info("Seed complete.");

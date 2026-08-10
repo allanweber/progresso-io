@@ -44,10 +44,19 @@ export const PUT = withRoute<Params>("students.update", async (request, { params
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 
-  // E-mail must stay unique within the clinic (ignoring this same student).
-  const clash = await students.findStudentByEmail(ctx, data.email);
-  if (clash && clash.id !== id) {
-    return apiError("Já existe um aluno com este e-mail.", 409);
+  // E-mail and WhatsApp must stay unique within the clinic (ignoring this same
+  // student), and only when present.
+  if (data.email) {
+    const clash = await students.findStudentByEmail(ctx, data.email);
+    if (clash && clash.id !== id) {
+      return apiError("Já existe um aluno com este e-mail.", 409);
+    }
+  }
+  if (data.phone) {
+    const clash = await students.findStudentByPhone(ctx, data.phone);
+    if (clash && clash.id !== id) {
+      return apiError("Já existe um aluno com este WhatsApp.", 409);
+    }
   }
 
   const updated = await students.updateStudent(ctx, id, data);

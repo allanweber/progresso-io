@@ -11,7 +11,7 @@ export function StudentTabs({ studentId }: { studentId: string }) {
   const pathname = usePathname();
   const base = `/coach/students/${studentId}`;
   const tabs = [
-    { href: base, label: "Dados", active: pathname === base },
+    { href: base, label: "Dados & anamnese", active: pathname === base },
     {
       href: `${base}/diet`,
       label: "Dieta",

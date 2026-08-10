@@ -1,13 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Mail, Pencil, RotateCcw } from "lucide-react";
+import {
+  Archive,
+  MessageCircle,
+  Pencil,
+  RefreshCw,
+  RotateCcw,
+  Send,
+} from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StudentTabs } from "@/components/students/student-tabs";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, ApiError } from "@/lib/api-client";
+import { formatPhone, whatsappHref } from "@/lib/phone";
+import {
+  ANAMNESIS_OBJECTIVE_LABELS,
+  ANAMNESIS_MODALITY_LABELS,
+  type AnamnesisListResponse,
+} from "@/lib/anamneses";
+import {
+  extractProfileMetrics,
+  PROFILE_METRIC_KEYS,
+  type AnamnesisAnswerValue,
+  type StudentAnamnesisDto,
+} from "@/lib/student-anamneses";
+
+/** Canonical metric keys live in the Perfil card — skip them in the answers list. */
+const METRIC_KEY_SET = new Set<string>(PROFILE_METRIC_KEYS);
 import {
   ACCESS_LABELS,
   avatarColor,
@@ -19,9 +58,18 @@ import {
   type StudentRosterDto,
 } from "@/lib/students";
 
+/** Renders an answer value for display (booleans → Sim/Não). */
+function answerText(v: AnamnesisAnswerValue): string {
+  if (v === true) return "Sim";
+  if (v === false) return "Não";
+  return typeof v === "string" ? v.trim() : "";
+}
+
 export default function StudentProfilePage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateId, setTemplateId] = useState("");
 
   const { data: student, isLoading, isError, error } = useQuery({
     queryKey: ["student", id],
@@ -31,22 +79,33 @@ export default function StudentProfilePage() {
       ),
   });
 
+  const anamnesis = useQuery({
+    queryKey: ["student-anamnesis", id],
+    queryFn: () =>
+      apiFetch<{ anamnesis: StudentAnamnesisDto | null }>(
+        `/api/students/${id}/anamnesis`,
+      ).then((r) => r.anamnesis),
+  });
+
+  const templates = useQuery({
+    queryKey: ["anamneses", "templates"],
+    queryFn: () => apiFetch<AnamnesisListResponse>("/api/anamneses?pageSize=100"),
+    enabled: templateOpen,
+  });
+
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["student", id] });
     queryClient.invalidateQueries({ queryKey: ["students"] });
   }
 
   const invite = useMutation({
-    mutationFn: () =>
-      apiFetch(`/api/students/${id}/invite`, { method: "POST" }),
+    mutationFn: () => apiFetch(`/api/students/${id}/invite`, { method: "POST" }),
     onSuccess: invalidate,
   });
-
   const archive = useMutation({
     mutationFn: () => apiFetch(`/api/students/${id}`, { method: "DELETE" }),
     onSuccess: invalidate,
   });
-
   const reactivate = useMutation({
     mutationFn: () =>
       apiFetch(`/api/students/${id}`, {
@@ -54,6 +113,18 @@ export default function StudentProfilePage() {
         body: JSON.stringify({ status: "active" }),
       }),
     onSuccess: invalidate,
+  });
+  const replaceTemplate = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/students/${id}/anamnesis/template`, {
+        method: "PUT",
+        body: JSON.stringify({ anamnesisId: templateId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student-anamnesis", id] });
+      setTemplateOpen(false);
+      setTemplateId("");
+    },
   });
 
   if (isLoading) {
@@ -81,15 +152,17 @@ export default function StudentProfilePage() {
 
   const state = deriveStudentState(student);
   const style = STUDENT_STATE_STYLES[state.key];
-  const details = [
-    { label: "E-mail", value: student.email },
-    { label: "Telefone", value: student.phone ?? "—" },
-    { label: "Objetivo", value: student.goal ?? "—" },
-    { label: "Modalidade", value: MODALITY_LABELS[student.modality] },
-    { label: "Acesso", value: ACCESS_LABELS[deriveAccess(student)] },
-  ];
-
   const busy = invite.isPending || archive.isPending || reactivate.isPending;
+  const wa = whatsappHref(student.phone);
+
+  const am = anamnesis.data;
+  const metrics = extractProfileMetrics(am?.answers);
+  const filledLabel =
+    am?.status === "completed"
+      ? am.filledBy === "aluno"
+        ? "Preenchida pelo aluno"
+        : "Preenchida pelo coach"
+      : "Pendente";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -119,7 +192,11 @@ export default function StudentProfilePage() {
               {state.label}
             </span>
           </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">{student.email}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {student.goal ?? MODALITY_LABELS[student.modality]}
+            {" · "}
+            {student.email ?? formatPhone(student.phone) ?? "—"}
+          </p>
         </div>
       </div>
 
@@ -131,32 +208,35 @@ export default function StudentProfilePage() {
           </Link>
         </Button>
 
-        {!student.hasAccount && student.status !== "archived" && (
-          <Button onClick={() => invite.mutate()} disabled={busy}>
-            <Mail className="size-4" />
-            {invite.isPending
-              ? "Enviando…"
-              : student.pendingInvite
-                ? "Reenviar convite"
-                : "Convidar"}
+        {wa && (
+          <Button asChild variant="outline">
+            <a href={wa} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="size-4" />
+              WhatsApp
+            </a>
           </Button>
         )}
 
+        {student.modality === "online" &&
+          !student.hasAccount &&
+          student.status !== "archived" && (
+            <Button onClick={() => invite.mutate()} disabled={busy}>
+              <Send className="size-4" />
+              {invite.isPending
+                ? "Enviando…"
+                : student.pendingInvite
+                  ? "Reenviar convite"
+                  : "Enviar convite"}
+            </Button>
+          )}
+
         {student.status === "archived" ? (
-          <Button
-            variant="outline"
-            onClick={() => reactivate.mutate()}
-            disabled={busy}
-          >
+          <Button variant="outline" onClick={() => reactivate.mutate()} disabled={busy}>
             <RotateCcw className="size-4" />
             Reativar
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            onClick={() => archive.mutate()}
-            disabled={busy}
-          >
+          <Button variant="outline" onClick={() => archive.mutate()} disabled={busy}>
             <Archive className="size-4" />
             Arquivar
           </Button>
@@ -165,13 +245,14 @@ export default function StudentProfilePage() {
 
       {invite.isSuccess && (
         <p className="mt-3 text-[13px] font-medium text-primary">
-          Convite enviado para {student.email}.
+          Convite enviado por WhatsApp
+          {student.email ? " e e-mail" : ""}.
         </p>
       )}
       {(invite.isError || archive.isError || reactivate.isError) && (
         <p className="mt-3 text-[13px] font-medium text-destructive">
           {
-            ((invite.error ?? archive.error ?? reactivate.error) as Error)
+            ((invite.error ?? archive.error ?? reactivate.error) as ApiError)
               .message
           }
         </p>
@@ -181,19 +262,143 @@ export default function StudentProfilePage() {
         <StudentTabs studentId={student.id} />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
-        <h2 className="font-heading text-base font-semibold text-foreground">
-          Dados
-        </h2>
-        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
-          {details.map((d) => (
-            <div key={d.label} className="contents">
-              <dt className="text-[#94A3B8]">{d.label}</dt>
-              <dd className="font-medium text-foreground">{d.value}</dd>
-            </div>
-          ))}
-        </dl>
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Perfil */}
+        <div className="rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <h2 className="font-heading text-base font-semibold text-foreground">
+            Perfil
+          </h2>
+          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
+            {[
+              { label: "Objetivo", value: student.goal ?? "—" },
+              { label: "Modalidade", value: MODALITY_LABELS[student.modality] },
+              { label: "Acesso", value: ACCESS_LABELS[deriveAccess(student)] },
+              ...metrics.map((m) => ({ label: m.label, value: m.value })),
+              { label: "E-mail", value: student.email ?? "—" },
+              { label: "WhatsApp", value: formatPhone(student.phone) || "—" },
+            ].map((d) => (
+              <div key={d.label} className="contents">
+                <dt className="text-[#94A3B8]">{d.label}</dt>
+                <dd className="font-medium text-foreground">{d.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        {/* Anamnese */}
+        <div className="rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-heading text-base font-semibold text-foreground">
+              Anamnese
+            </h2>
+            <Badge variant={am?.status === "completed" ? "clinic" : "warn"}>
+              {filledLabel}
+            </Badge>
+          </div>
+
+          {anamnesis.isLoading ? (
+            <p className="mt-4 text-sm text-muted-foreground">Carregando…</p>
+          ) : !am ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Nenhuma anamnese atribuída.
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-[13px] text-muted-foreground">{am.name}</p>
+              {am.status === "completed" ? (
+                <dl className="mt-4 space-y-3 text-sm">
+                  {am.sections.flatMap((s) =>
+                    s.questions
+                      .filter(
+                        (q) =>
+                          !METRIC_KEY_SET.has(q.key) &&
+                          answerText(am.answers[q.key]),
+                      )
+                      .map((q) => (
+                        <div key={q.key}>
+                          <dt className="text-[#94A3B8]">{q.label}</dt>
+                          <dd className="font-medium text-foreground">
+                            {answerText(am.answers[q.key])}
+                          </dd>
+                        </div>
+                      )),
+                  )}
+                </dl>
+              ) : (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  A anamnese ainda não foi preenchida.
+                </p>
+              )}
+
+              <div className="mt-5 flex flex-wrap gap-2.5 border-t border-border pt-4">
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/coach/students/${student.id}/anamnesis`}>
+                    <Pencil className="size-4" />
+                    {am.status === "completed" ? "Editar" : "Preencher"}
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setTemplateId("");
+                    setTemplateOpen(true);
+                  }}
+                >
+                  <RefreshCw className="size-4" />
+                  Trocar template
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Trocar template */}
+      <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trocar template da anamnese</DialogTitle>
+          </DialogHeader>
+          <p className="text-[13px] text-muted-foreground">
+            Escolha outro template. As respostas atuais serão descartadas e a
+            anamnese voltará a ficar pendente.
+          </p>
+          <Select value={templateId || undefined} onValueChange={setTemplateId}>
+            <SelectTrigger>
+              <SelectValue
+                placeholder={
+                  templates.isLoading ? "Carregando…" : "Selecione uma anamnese"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {(templates.data?.items ?? []).map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name} · {ANAMNESIS_OBJECTIVE_LABELS[a.objective]} ·{" "}
+                  {ANAMNESIS_MODALITY_LABELS[a.modality]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {replaceTemplate.isError && (
+            <p className="text-[13px] font-medium text-destructive">
+              {(replaceTemplate.error as Error).message}
+            </p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              onClick={() => replaceTemplate.mutate()}
+              disabled={!templateId || replaceTemplate.isPending}
+            >
+              {replaceTemplate.isPending ? "Trocando…" : "Trocar template"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

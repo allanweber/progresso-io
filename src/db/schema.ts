@@ -12,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -20,6 +21,12 @@ import type {
   AnamnesisObjective,
   AnamnesisSection,
 } from "@/lib/anamneses";
+import type {
+  AnamnesisAnswers,
+  AnamnesisFilledBy,
+  StudentAnamnesisStatus,
+} from "@/lib/student-anamneses";
+import type { NotificationData, NotificationType } from "@/lib/notifications";
 import type { DietStructure } from "@/lib/student-diets";
 import type { WorkoutStructure } from "@/lib/student-workouts";
 import type { WorkoutReps } from "@/lib/workouts";
@@ -277,7 +284,12 @@ export const students = pgTable(
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
-    email: text("email").notNull(),
+    // Contact + identity. Both are conditional: an ONLINE student must have a
+    // WhatsApp (phone) AND an e-mail (the portal login); an OFFLINE student may
+    // have either or neither. The requiredness is enforced at the zod layer;
+    // the columns are nullable so offline students are representable. Phone is
+    // stored normalized (see @/lib/phone) so the uniqueness index is canonical.
+    email: text("email"),
     phone: text("phone"),
     goal: text("goal"),
     status: text("status").$type<StudentStatus>().default("active").notNull(),
@@ -285,7 +297,16 @@ export const students = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.clinicId, table.email)],
+  (table) => [
+    // WhatsApp is the primary identifier — unique per clinic when present.
+    uniqueIndex("students_clinic_phone_uq")
+      .on(table.clinicId, table.phone)
+      .where(sql`${table.phone} is not null`),
+    // E-mail stays unique per clinic, but only when present (nullable now).
+    uniqueIndex("students_clinic_email_uq")
+      .on(table.clinicId, table.email)
+      .where(sql`${table.email} is not null`),
+  ],
 );
 
 /**
@@ -1321,6 +1342,138 @@ export const anamnesis = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Student anamnese (the filled questionnaire on a student's profile)         */
+/*                                                                            */
+/*  Distinct from the reusable `anamnesis` template: it belongs to ONE student */
+/*  and stores a **frozen snapshot** of the template's sections/questions plus */
+/*  the collected `answers` (keyed by question key). Editing the template later */
+/*  never touches this row. One current record per student (edited in place;    */
+/*  "usar outro template" replaces the snapshot). Online students fill it via a */
+/*  public link gated by a hashed token + a WhatsApp-number confirm; the coach  */
+/*  fills it for offline students. Tenant key is `clinic_id`.                   */
+/* -------------------------------------------------------------------------- */
+
+export const studentAnamnesis = pgTable(
+  "student_anamnesis",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    // Provenance: the template this was snapshotted from (loose reference).
+    sourceAnamnesisId: uuid("source_anamnesis_id").references(
+      () => anamnesis.id,
+      { onDelete: "set null" },
+    ),
+    name: text("name").notNull(),
+    // Frozen snapshot of the template's sections → questions at assign time.
+    sections: jsonb("sections").$type<AnamnesisSection[]>().notNull(),
+    // Answers keyed by question key. Empty object until filled.
+    answers: jsonb("answers").$type<AnamnesisAnswers>().notNull().default({}),
+    status: text("status")
+      .$type<StudentAnamnesisStatus>()
+      .default("pending")
+      .notNull(),
+    filledBy: text("filled_by").$type<AnamnesisFilledBy>(),
+    filledAt: timestamp("filled_at"),
+    // Public fill link (online): SHA-256 of the raw token + its expiry. The raw
+    // token lives only in the WhatsApp message; regenerated on resend.
+    fillTokenHash: text("fill_token_hash").unique(),
+    fillTokenExpiresAt: timestamp("fill_token_expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_anamnesis_clinic_idx").on(t.clinicId),
+    unique("student_anamnesis_student_uq").on(t.studentId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
+/*  Notifications (clinic-scoped, per-coach read state)                        */
+/*                                                                            */
+/*  A generic in-app notification: a `type` + a denormalized `data` payload,    */
+/*  scoped to the clinic (every coach sees it). Read-state is per coach in      */
+/*  `notification_read`, so each coach has their own unread count. Only one      */
+/*  event is raised today: `anamnesis_completed` (an online aluno submitted).    */
+/* -------------------------------------------------------------------------- */
+
+export const notification = pgTable(
+  "notification",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    type: text("type").$type<NotificationType>().notNull(),
+    data: jsonb("data").$type<NotificationData>().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("notification_clinic_idx").on(t.clinicId)],
+);
+
+/** One row per (notification, coach) that has read it. Absence = unread. */
+export const notificationRead = pgTable(
+  "notification_read",
+  {
+    notificationId: uuid("notification_id")
+      .notNull()
+      .references(() => notification.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at").defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.notificationId, t.userId] })],
+);
+
+export const studentAnamnesisRelations = relations(
+  studentAnamnesis,
+  ({ one }) => ({
+    clinic: one(clinic, {
+      fields: [studentAnamnesis.clinicId],
+      references: [clinic.id],
+    }),
+    student: one(students, {
+      fields: [studentAnamnesis.studentId],
+      references: [students.id],
+    }),
+    source: one(anamnesis, {
+      fields: [studentAnamnesis.sourceAnamnesisId],
+      references: [anamnesis.id],
+    }),
+  }),
+);
+
+export const notificationRelations = relations(
+  notification,
+  ({ one, many }) => ({
+    clinic: one(clinic, {
+      fields: [notification.clinicId],
+      references: [clinic.id],
+    }),
+    reads: many(notificationRead),
+  }),
+);
+
+export const notificationReadRelations = relations(
+  notificationRead,
+  ({ one }) => ({
+    notification: one(notification, {
+      fields: [notificationRead.notificationId],
+      references: [notification.id],
+    }),
+    user: one(user, {
+      fields: [notificationRead.userId],
+      references: [user.id],
+    }),
+  }),
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -1368,3 +1521,9 @@ export type StudentDietVersion = typeof studentDietVersion.$inferSelect;
 export type NewStudentDietVersion = typeof studentDietVersion.$inferInsert;
 export type Anamnesis = typeof anamnesis.$inferSelect;
 export type NewAnamnesis = typeof anamnesis.$inferInsert;
+export type StudentAnamnesis = typeof studentAnamnesis.$inferSelect;
+export type NewStudentAnamnesis = typeof studentAnamnesis.$inferInsert;
+export type Notification = typeof notification.$inferSelect;
+export type NewNotification = typeof notification.$inferInsert;
+export type NotificationRead = typeof notificationRead.$inferSelect;
+export type NewNotificationRead = typeof notificationRead.$inferInsert;

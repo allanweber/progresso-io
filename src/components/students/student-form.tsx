@@ -53,7 +53,7 @@ function toValues(student: StudentDto): StudentFormValues {
   return {
     firstName: student.firstName,
     lastName: student.lastName,
-    email: student.email,
+    email: student.email ?? "",
     phone: student.phone ?? "",
     goal: student.goal ?? "",
     modality: student.modality,
