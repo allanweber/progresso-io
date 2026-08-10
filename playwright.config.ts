@@ -15,6 +15,7 @@ const launchOptions = { executablePath };
 /** Saved sessions, produced by the setup project, reused by the auth'd projects. */
 const COACH_STORAGE = "e2e/.auth/coach.json";
 const ALUNO_STORAGE = "e2e/.auth/aluno.json";
+const ADMIN_STORAGE = "e2e/.auth/admin.json";
 
 /**
  * E2E is split in three projects:
@@ -113,6 +114,16 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         launchOptions,
         storageState: COACH_STORAGE,
+      },
+    },
+    {
+      name: "admin",
+      testMatch: /admin-maintenance\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: ADMIN_STORAGE,
       },
     },
   ],

@@ -41,11 +41,14 @@ import {
   ANAMNESIS_MODALITY_VALUES,
   ANAMNESIS_MODALITY_LABELS,
   ANAMNESIS_OBJECTIVE_VALUES,
+  ANAMNESIS_MASK_LABELS,
+  ANAMNESIS_MASK_VALUES,
   ANAMNESIS_OBJECTIVE_LABELS,
   ANAMNESIS_QUESTION_TYPE_VALUES,
   ANAMNESIS_QUESTION_TYPE_LABELS,
   anamnesisFormSchema,
   type AnamnesisDetailDto,
+  type AnamnesisMask,
   type AnamnesisModality,
   type AnamnesisMutationResponse,
   type AnamnesisObjective,
@@ -57,7 +60,14 @@ import { z } from "@/lib/validation";
 /*  Draft model (client state)                                                 */
 /* -------------------------------------------------------------------------- */
 
-type QuestionDraft = { key: string; type: AnamnesisQuestionType; label: string };
+type QuestionDraft = {
+  key: string;
+  type: AnamnesisQuestionType;
+  label: string;
+  mask?: AnamnesisMask;
+  min?: number;
+  max?: number;
+};
 type SectionDraft = { key: string; title: string; questions: QuestionDraft[] };
 type Draft = {
   name: string;
@@ -101,6 +111,9 @@ function initialDraft(anamnesis?: AnamnesisDetailDto): Draft {
         key: newKey(),
         type: q.type,
         label: q.label,
+        mask: q.mask,
+        min: q.min,
+        max: q.max,
       })),
     })),
   };
@@ -214,11 +227,17 @@ export function AnamnesisBuilder({
       sections: sections.map((s) => ({
         key: s.key,
         title: s.title.trim(),
-        questions: s.questions.map((q) => ({
-          key: q.key,
-          type: q.type,
-          label: q.label.trim(),
-        })),
+        questions: s.questions.map((q) => {
+          const base = { key: q.key, type: q.type, label: q.label.trim() };
+          // Masks only apply to short-text questions; drop them otherwise.
+          if (q.type !== "short_text" || !q.mask) return base;
+          return {
+            ...base,
+            mask: q.mask,
+            ...(q.min != null ? { min: q.min } : {}),
+            ...(q.max != null ? { max: q.max } : {}),
+          };
+        }),
       })),
     };
   }
@@ -671,8 +690,43 @@ function SortableSection({
                     onTypeChange={(type) =>
                       onQuestions((qs) =>
                         qs.map((q) =>
-                          q.key === question.key ? { ...q, type } : q,
+                          q.key === question.key
+                            ? {
+                                ...q,
+                                type,
+                                // Masks only apply to short text — drop otherwise.
+                                ...(type !== "short_text"
+                                  ? { mask: undefined, min: undefined, max: undefined }
+                                  : {}),
+                              }
+                            : q,
                         ),
+                      )
+                    }
+                    onMaskChange={(mask) =>
+                      onQuestions((qs) =>
+                        qs.map((q) =>
+                          q.key === question.key
+                            ? {
+                                ...q,
+                                mask,
+                                // Only integer/decimal keep min/max.
+                                ...(mask === "integer" || mask === "decimal"
+                                  ? {}
+                                  : { min: undefined, max: undefined }),
+                              }
+                            : q,
+                        ),
+                      )
+                    }
+                    onMinChange={(min) =>
+                      onQuestions((qs) =>
+                        qs.map((q) => (q.key === question.key ? { ...q, min } : q)),
+                      )
+                    }
+                    onMaxChange={(max) =>
+                      onQuestions((qs) =>
+                        qs.map((q) => (q.key === question.key ? { ...q, max } : q)),
                       )
                     }
                     onRemove={() =>
@@ -707,12 +761,18 @@ function SortableQuestion({
   error,
   onLabelChange,
   onTypeChange,
+  onMaskChange,
+  onMinChange,
+  onMaxChange,
   onRemove,
 }: {
   question: QuestionDraft;
   error?: string;
   onLabelChange: (label: string) => void;
   onTypeChange: (type: AnamnesisQuestionType) => void;
+  onMaskChange: (mask: AnamnesisMask | undefined) => void;
+  onMinChange: (min: number | undefined) => void;
+  onMaxChange: (max: number | undefined) => void;
   onRemove: () => void;
 }) {
   const {
@@ -782,6 +842,58 @@ function SortableQuestion({
           <X className="size-4" />
         </button>
       </div>
+
+      {/* Mask + range (short-text questions only). */}
+      {question.type === "short_text" && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
+          <span className="text-xs text-muted-foreground">Máscara</span>
+          <Select
+            value={question.mask ?? "none"}
+            onValueChange={(v) =>
+              onMaskChange(v === "none" ? undefined : (v as AnamnesisMask))
+            }
+          >
+            <SelectTrigger aria-label="Máscara da resposta" className="h-8 w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhuma</SelectItem>
+              {ANAMNESIS_MASK_VALUES.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {ANAMNESIS_MASK_LABELS[m]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(question.mask === "integer" || question.mask === "decimal") && (
+            <>
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="mín"
+                aria-label="Valor mínimo"
+                value={question.min ?? ""}
+                onChange={(e) =>
+                  onMinChange(e.target.value === "" ? undefined : Number(e.target.value))
+                }
+                className="h-8 w-20"
+              />
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="máx"
+                aria-label="Valor máximo"
+                value={question.max ?? ""}
+                onChange={(e) =>
+                  onMaxChange(e.target.value === "" ? undefined : Number(e.target.value))
+                }
+                className="h-8 w-20"
+              />
+            </>
+          )}
+        </div>
+      )}
+
       {error && <p className="mt-1 pl-6 text-[13px] text-destructive">{error}</p>}
     </div>
   );

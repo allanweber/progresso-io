@@ -95,3 +95,45 @@ All pages are `"use client"` and talk to the API via TanStack Query.
   question is a label + a type select. The draft is persisted to `localStorage`
   (recovered on return) with a beforeunload guard; the whole tree saves in one
   `POST`/`PUT`.
+
+## Input masks (structured answers)
+
+A **short-text** question may carry an optional `mask` (a small named catalog,
+not raw regex) plus optional `min`/`max` for numeric masks:
+
+- `date` — `dd/mm/aaaa`, validated as a real, non-future date.
+- `integer` — whole number within `[min, max]` (e.g. idade 0–120, refeições
+  1–12, treino 0–14, sono 0–24).
+- `decimal` — number with an optional 1-place comma decimal, within `[min, max]`
+  (e.g. peso 20–400 kg → `71,4`; água 0–20 L → `2,5`).
+- `pressure` — `120/80` (2–3 digits each side).
+
+## Provenance + admin data maintenance
+
+Each anamnese row carries a nullable **`source_key`**: the starter JSON key
+(e.g. `hipertrofia`) when it was seeded/imported from the system starter set,
+NULL when a coach authored it. The sign-up hook + seed stamp it; a coach
+"Duplicar" clears it (the copy is clinic-owned) and an edit keeps it.
+
+Platform admins get a cross-clinic view at **`/admin/maintenance` → Anamneses**
+(table on desktop / cards on mobile): every clinic's anamneses tagged
+**Sistema / Clínica**, filterable by clinic / origin / name. An admin can
+**hard-delete** any of them (confirm shows the student-usage count; filled
+student snapshots survive — `student_anamnesis.source_anamnesis_id` nulls), and
+**import** selected system starters into one clinic — idempotent by `source_key`
+(starters the clinic already has are skipped). See `docs/admin-maintenance.md`.
+
+The one-time backfill migration (`0014`) that seeded existing clinics is
+**blanked to a no-op**: new clinics get starters from the sign-up hook, and an
+admin provisions/repairs any clinic from the maintenance page instead.
+
+Validation lives in `@/lib/anamneses` (`validateAnswer` / `validateAnswers`,
+client-safe). It's enforced **on both fill surfaces** — the coach fill page and
+the public aluno page validate before submit and the API routes
+(`/api/anamnesis/fill`, `/api/students/[id]/anamnesis`) re-validate against the
+snapshot, returning field-scoped `422` errors. Empty answers stay valid (answers
+are optional); only masks are enforced. The builder exposes a **Máscara** select
+(+ min/máx for number masks) per short-text question. The starter templates seed
+masks for the fields above; `semanas_gestacao` was split into a masked integer
+plus a `gestacao_risco` boolean. Compound clinical fields (`glicemia`,
+`lipidios`) stay free text.

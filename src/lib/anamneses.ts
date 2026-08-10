@@ -55,15 +55,41 @@ export const ANAMNESIS_QUESTION_TYPE_LABELS: Record<AnamnesisQuestionType, strin
   boolean: "Sim / Não",
 };
 
+/**
+ * Optional input masks for short-text questions. A small named catalog (rather
+ * than raw regex per question) so validation, PT-BR messages and placeholders
+ * stay consistent and the builder can offer a dropdown. `integer`/`decimal`
+ * honour the question's optional `min`/`max`.
+ */
+export const ANAMNESIS_MASK_VALUES = [
+  "date",
+  "integer",
+  "decimal",
+  "pressure",
+] as const;
+export type AnamnesisMask = (typeof ANAMNESIS_MASK_VALUES)[number];
+
+export const ANAMNESIS_MASK_LABELS: Record<AnamnesisMask, string> = {
+  date: "Data (dd/mm/aaaa)",
+  integer: "Número inteiro",
+  decimal: "Número decimal",
+  pressure: "Pressão (120/80)",
+};
+
 /* -------------------------------------------------------------------------- */
 /*  Stored tree (jsonb) + DTOs                                                 */
 /* -------------------------------------------------------------------------- */
 
-/** A single question: a label plus a basic input type. */
+/** A single question: a label plus a basic input type, and an optional mask. */
 export type AnamnesisQuestion = {
   key: string;
   type: AnamnesisQuestionType;
   label: string;
+  /** Input mask for a short-text answer (date / number / pressure). */
+  mask?: AnamnesisMask;
+  /** Inclusive bounds for `integer`/`decimal` masks. */
+  min?: number;
+  max?: number;
 };
 
 /** A group of questions shown under one heading. */
@@ -146,6 +172,9 @@ const questionSchema = z.object({
     .trim()
     .min(1, "Informe a pergunta.")
     .max(300, "Pergunta muito longa."),
+  mask: z.enum(ANAMNESIS_MASK_VALUES).optional(),
+  min: z.number().finite().optional(),
+  max: z.number().finite().optional(),
 });
 
 const sectionSchema = z.object({
@@ -186,4 +215,110 @@ export type AnamnesisFormValues = z.output<typeof anamnesisFormSchema>;
 /** Total number of questions across every section. */
 export function countQuestions(sections: AnamnesisSection[]): number {
   return sections.reduce((n, s) => n + s.questions.length, 0);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Mask validation + input hints                                              */
+/* -------------------------------------------------------------------------- */
+
+/** Placeholder that hints a masked field's expected format. */
+export function maskPlaceholder(q: AnamnesisQuestion): string | undefined {
+  switch (q.mask) {
+    case "date":
+      return "dd/mm/aaaa";
+    case "pressure":
+      return "120/80";
+    case "integer":
+      return "somente números";
+    case "decimal":
+      return "ex.: 0,0";
+    default:
+      return undefined;
+  }
+}
+
+/** The mobile keyboard hint for a masked field. */
+export function maskInputMode(
+  q: AnamnesisQuestion,
+): "numeric" | "decimal" | undefined {
+  switch (q.mask) {
+    case "integer":
+    case "date":
+    case "pressure":
+      return "numeric";
+    case "decimal":
+      return "decimal";
+    default:
+      return undefined;
+  }
+}
+
+function fmtBound(n: number): string {
+  return String(n).replace(".", ",");
+}
+
+function rangeError(n: number, q: AnamnesisQuestion): string | null {
+  if (q.min != null && n < q.min) return `Valor mínimo: ${fmtBound(q.min)}.`;
+  if (q.max != null && n > q.max) return `Valor máximo: ${fmtBound(q.max)}.`;
+  return null;
+}
+
+function validateDate(v: string): string | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
+  if (!m) return "Informe uma data válida (dd/mm/aaaa).";
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  if (year < 1900) return "Informe uma data válida (dd/mm/aaaa).";
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return "Data inexistente.";
+  }
+  if (date.getTime() > Date.now()) return "A data não pode estar no futuro.";
+  return null;
+}
+
+/**
+ * Validates one answer against its question's mask. Returns a PT-BR error
+ * message, or null when valid. Empty/absent values are considered valid here
+ * (answers are optional); only masks are enforced, and only on string answers.
+ */
+export function validateAnswer(q: AnamnesisQuestion, value: unknown): string | null {
+  if (!q.mask) return null;
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  if (v === "") return null;
+  switch (q.mask) {
+    case "date":
+      return validateDate(v);
+    case "pressure":
+      return /^\d{2,3}\/\d{2,3}$/.test(v) ? null : "Informe no formato 120/80.";
+    case "integer":
+      if (!/^\d+$/.test(v)) return "Informe um número inteiro.";
+      return rangeError(Number(v), q);
+    case "decimal":
+      if (!/^\d+(,\d)?$/.test(v)) return "Informe um número (ex.: 71,4).";
+      return rangeError(Number(v.replace(",", ".")), q);
+    default:
+      return null;
+  }
+}
+
+/** Validates every masked answer against a questionnaire; returns key → message. */
+export function validateAnswers(
+  sections: AnamnesisSection[],
+  answers: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const section of sections) {
+    for (const q of section.questions) {
+      const message = validateAnswer(q, answers?.[q.key]);
+      if (message) errors[q.key] = message;
+    }
+  }
+  return errors;
 }

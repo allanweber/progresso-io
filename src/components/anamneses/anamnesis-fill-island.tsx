@@ -9,6 +9,7 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { validateAnswers } from "@/lib/anamneses";
 import type {
   AnamnesisAnswers,
   AnamnesisAnswerValue,
@@ -24,6 +25,7 @@ import type {
 export function AnamnesisFillIsland({ token }: { token: string }) {
   const [answers, setAnswers] = useState<AnamnesisAnswers>({});
   const [phone, setPhone] = useState("");
+  const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
 
   const state = useQuery({
     queryKey: ["anamnesis-fill", token],
@@ -95,7 +97,9 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        submit.mutate();
+        const errs = validateAnswers(s.sections, answers);
+        setClientErrors(errs);
+        if (Object.keys(errs).length === 0) submit.mutate();
       }}
       className={card}
     >
@@ -126,10 +130,22 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
           <AnamnesisFillForm
             sections={s.sections}
             answers={answers}
-            onAnswer={(key: string, value: AnamnesisAnswerValue) =>
-              setAnswers((prev) => ({ ...prev, [key]: value }))
-            }
+            onAnswer={(key: string, value: AnamnesisAnswerValue) => {
+              setAnswers((prev) => ({ ...prev, [key]: value }));
+              setClientErrors((prev) => {
+                if (!(key in prev)) return prev;
+                const next = { ...prev };
+                delete next[key];
+                return next;
+              });
+            }}
             disabled={submit.isPending}
+            errors={{
+              ...(submit.error instanceof ApiError
+                ? (submit.error.fieldErrors ?? {})
+                : {}),
+              ...clientErrors,
+            }}
           />
         </div>
 

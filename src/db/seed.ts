@@ -396,19 +396,50 @@ async function seedAlunoWorkout(
  * else is left blank (the cards only show answered questions).
  */
 function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
-  const canonical: Record<string, string> = {
-    idade: "29 anos",
-    altura: "168",
+  // Values respect each question's mask so the demo answers are valid.
+  const INT: Record<string, number> = {
+    idade: 29,
+    altura: 168,
+    refeicoes_dia: 4,
+    frequencia: 4,
+    freq_treino: 4,
+    sono: 7,
+    semanas_gestacao: 28,
+  };
+  const DEC: Record<string, string> = {
     peso_atual: "71,4",
-    experiencia: "Intermediária · 3 anos",
-    frequencia: "4x por semana",
+    peso_meta: "68",
+    peso_habitual: "70",
+    agua: "2,5",
   };
   const answers: AnamnesisAnswers = {};
   let extra = 0;
   for (const section of sections) {
     for (const q of section.questions) {
-      if (q.key in canonical) {
-        answers[q.key] = canonical[q.key];
+      if (q.type === "boolean") {
+        if (/lgpd/i.test(q.key)) answers[q.key] = true; // consent granted
+        continue;
+      }
+      if (q.mask === "date") {
+        answers[q.key] = "10/05/1996";
+        continue;
+      }
+      if (q.mask === "pressure") {
+        answers[q.key] = "120/80";
+        continue;
+      }
+      if (q.mask === "integer") {
+        const v = INT[q.key] ?? Math.max(q.min ?? 1, Math.min(q.max ?? 4, 4));
+        answers[q.key] = String(v);
+        continue;
+      }
+      if (q.mask === "decimal") {
+        answers[q.key] = DEC[q.key] ?? "2";
+        continue;
+      }
+      // Unmasked free text.
+      if (q.key === "experiencia") {
+        answers[q.key] = "Intermediária · 3 anos";
         continue;
       }
       const k = q.key.toLowerCase();
@@ -419,7 +450,7 @@ function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
       else if (/(rotina|sono)/.test(k))
         answers[q.key] = "Trabalho sentado, ~6h de sono, melhorando";
       else if (extra < 4) {
-        answers[q.key] = q.type === "boolean" ? false : "Sem observações relevantes.";
+        answers[q.key] = "Sem observações relevantes.";
         extra++;
       }
     }
@@ -627,6 +658,28 @@ async function seed() {
         }
       }
     }
+  }
+
+  // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec
+  // deletes/imports anamneses here, so it must never touch the demo coach's
+  // clinic that the coach/student specs read. Sign-up auto-seeds its starters
+  // (with source_key); we just rename it and ensure the set is present.
+  const e2eOwner = await ensureUser("Admin E2E Coach", "admin-e2e@progresso.io");
+  const [e2eClinic] = await db
+    .select()
+    .from(schema.clinic)
+    .where(eq(schema.clinic.ownerUserId, e2eOwner.id));
+  if (e2eClinic) {
+    await db
+      .update(schema.user)
+      .set({ emailVerified: true, role: "coach", clinicId: e2eClinic.id })
+      .where(eq(schema.user.id, e2eOwner.id));
+    await db
+      .update(schema.clinic)
+      .set({ name: "Clínica Admin E2E", plan: "clinica" })
+      .where(eq(schema.clinic.id, e2eClinic.id));
+    await seedClinicAnamneses(db, e2eClinic.id, e2eOwner.id);
+    console.info("✓ seeded isolated admin-e2e clinic");
   }
 
   console.info("Seed complete.");

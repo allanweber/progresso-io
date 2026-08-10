@@ -18,6 +18,27 @@ function uniquePhone(): string {
 }
 
 type StudentList = { students: { id: string; firstName: string }[] };
+type AnamnesisItems = { items: { id: string; name: string }[] };
+
+/**
+ * A stable system starter. Every starter carries a date-masked "Data de
+ * nascimento"; a coach-authored template (created by the concurrent `anamneses`
+ * project, most-recent-first ⇒ items[0]) may not — so mask tests select a
+ * starter by name instead of trusting list order.
+ */
+const STARTER_WITH_DATE_MASK = "Anamnese — Emagrecimento (online)";
+
+async function pickDateMaskedAnamnesisId(
+  request: import("@playwright/test").APIRequestContext,
+): Promise<string> {
+  const { items } = (await (
+    await request.get("/api/anamneses?pageSize=100")
+  ).json()) as AnamnesisItems;
+  const starter =
+    items.find((i) => i.name === STARTER_WITH_DATE_MASK) ?? items[0];
+  expect(starter, "a seeded starter anamnese").toBeTruthy();
+  return starter.id;
+}
 
 async function anaId(request: import("@playwright/test").APIRequestContext) {
   const { students } = (await (await request.get("/api/students")).json()) as StudentList;
@@ -94,6 +115,72 @@ test.describe("student anamneses", () => {
       unread: number;
     };
     expect(notifs.unread).toBeGreaterThanOrEqual(1);
+  });
+
+  test("a duplicate e-mail shows under the E-mail field, not just a banner", async ({
+    page,
+  }) => {
+    await page.goto("/coach/students/new");
+    await page.getByLabel("Nome", { exact: true }).fill("Dup");
+    await page.getByLabel("Sobrenome").fill("Email");
+    await page.getByLabel("WhatsApp").fill(uniquePhone());
+    await page.getByLabel("E-mail", { exact: true }).fill("aluno@progresso.io");
+    // Wait for the anamnese default so the client-side form is submittable.
+    await expect(page.locator("#anamnesisId")).toContainText("Anamnese");
+    await page.getByRole("button", { name: "Enviar convite" }).click();
+
+    // The conflict renders in the E-mail field's inline error slot (#email-error),
+    // not only in the top banner.
+    await expect(page.locator("#email-error")).toHaveText(
+      "Já existe um aluno com este e-mail.",
+    );
+  });
+
+  test("the fill page blocks an invalid masked value (date)", async ({
+    request,
+    browser,
+  }) => {
+    // Pick a starter (date-masked) rather than items[0], which the concurrent
+    // `anamneses` project can turn into a maskless coach template.
+    const anamnesisId = await pickDateMaskedAnamnesisId(request);
+    const phone = uniquePhone();
+
+    await request.delete("/api/test/outbox");
+    const reg = await request.post("/api/students", {
+      data: {
+        firstName: "Mask",
+        lastName: "Date",
+        phone,
+        email: uniqueEmail("mask"),
+        goal: "",
+        modality: "online",
+        anamnesisId,
+      },
+    });
+    expect(reg.ok()).toBeTruthy();
+    const { messages } = (await (
+      await request.get("/api/test/outbox")
+    ).json()) as { messages: { kind: string; url?: string }[] };
+    const fill = messages.find((m) => m.kind === "anamnesis_fill");
+    expect(fill?.url).toBeTruthy();
+
+    const ctx = await browser.newContext();
+    try {
+      const p = await ctx.newPage();
+      await p.goto(fill!.url!);
+      await p.getByLabel("Seu WhatsApp").fill(phone);
+      // Every starter template asks 'Data de nascimento' with a date mask; a
+      // malformed value is blocked with the format message.
+      await p.getByLabel("Data de nascimento").fill("31-02-2020");
+      await p.getByRole("button", { name: "Enviar anamnese" }).click();
+
+      await expect(
+        p.getByText("Informe uma data válida (dd/mm/aaaa)."),
+      ).toBeVisible();
+      await expect(p.getByText("Anamnese enviada!")).toBeHidden();
+    } finally {
+      await ctx.close();
+    }
   });
 
   test("captures the anamnese + notification screens (desktop + mobile)", async ({

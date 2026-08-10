@@ -30,7 +30,10 @@ function SelectTrigger({
       )}
       {...props}
     >
-      {children}
+      {/* Keep the collapsed trigger to a single truncated line — long options
+          (e.g. "Anamnese — … · Emagrecimento · Presencial") show in full only
+          when the dropdown is open, where items wrap. */}
+      <span className="min-w-0 flex-1 truncate text-left">{children}</span>
       <SelectPrimitive.Icon asChild>
         <ChevronDown className="size-4 text-[#94A3B8]" />
       </SelectPrimitive.Icon>

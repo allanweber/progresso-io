@@ -199,7 +199,7 @@ export function StudentRegisterForm() {
           <div className="space-y-1.5">
             <Label htmlFor="anamnesisId">Anamnese a enviar</Label>
             <Select
-              value={field.state.value || undefined}
+              value={field.state.value}
               onValueChange={(v) => field.handleChange(v)}
               disabled={templates.isLoading || items.length === 0}
             >
@@ -305,10 +305,20 @@ export function StudentRegisterForm() {
         )}
       </form.Subscribe>
 
-      <form.Subscribe selector={(s) => s.values.modality}>
-        {(modality) => (
+      <form.Subscribe
+        selector={(s) => ({
+          modality: s.values.modality,
+          anamnesisId: s.values.anamnesisId,
+        })}
+      >
+        {({ modality, anamnesisId }) => (
           <div className="flex items-center gap-3 pt-1">
-            <Button type="submit" disabled={mutation.isPending}>
+            {/* Disabled until an anamnese is chosen (its default is set once the
+                templates load) — prevents a premature submit that would 422. */}
+            <Button
+              type="submit"
+              disabled={mutation.isPending || !anamnesisId}
+            >
               {mutation.isPending
                 ? "Enviando…"
                 : modality === "online"

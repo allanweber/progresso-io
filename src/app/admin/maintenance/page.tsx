@@ -1,0 +1,478 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, Trash2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ApiError, apiFetch } from "@/lib/api-client";
+import {
+  ANAMNESIS_MODALITY_LABELS,
+  ANAMNESIS_OBJECTIVE_LABELS,
+} from "@/lib/anamneses";
+import {
+  ADMIN_ANAMNESIS_ORIGIN_LABELS,
+  type AdminAnamnesisListItemDto,
+  type AdminAnamnesisListResponse,
+  type AdminImportResult,
+  type AdminStarterDto,
+  type ClinicOption,
+} from "@/lib/admin";
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+function OriginBadge({ origin }: { origin: "system" | "clinic" }) {
+  return (
+    <Badge variant={origin === "system" ? "base" : "neutral"}>
+      {ADMIN_ANAMNESIS_ORIGIN_LABELS[origin]}
+    </Badge>
+  );
+}
+
+export default function AdminMaintenancePage() {
+  return (
+    <div className="mx-auto max-w-6xl">
+      <h1 className="font-heading text-2xl font-bold text-foreground">
+        Manutenção de dados
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Ferramentas administrativas de dados da plataforma.
+      </p>
+      <Tabs defaultValue="anamneses" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="anamneses">Anamneses</TabsTrigger>
+        </TabsList>
+        <TabsContent value="anamneses" className="mt-4">
+          <AnamnesesMaintenance />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function AnamnesesMaintenance() {
+  const queryClient = useQueryClient();
+  const [clinic, setClinic] = useState("all");
+  const [origin, setOrigin] = useState("all");
+  const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] =
+    useState<AdminAnamnesisListItemDto | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const clinics = useQuery({
+    queryKey: ["admin-clinics"],
+    queryFn: () =>
+      apiFetch<{ clinics: ClinicOption[] }>("/api/admin/clinics").then(
+        (r) => r.clinics,
+      ),
+  });
+
+  const query = useMemo(() => {
+    const p = new URLSearchParams();
+    if (clinic !== "all") p.set("clinic", clinic);
+    if (origin !== "all") p.set("origin", origin);
+    if (search.trim()) p.set("search", search.trim());
+    p.set("pageSize", "100");
+    return p.toString();
+  }, [clinic, origin, search]);
+
+  const list = useQuery({
+    queryKey: ["admin-anamneses", query],
+    queryFn: () =>
+      apiFetch<AdminAnamnesisListResponse>(`/api/admin/anamneses?${query}`),
+  });
+
+  const del = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/admin/anamneses/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-anamneses"] });
+      setDeleteTarget(null);
+    },
+  });
+
+  const items = list.data?.items ?? [];
+
+  return (
+    <div>
+      {/* Filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1 space-y-1.5">
+          <Label htmlFor="mnt-search">Buscar</Label>
+          <Input
+            id="mnt-search"
+            placeholder="Nome da anamnese…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="mnt-clinic">Clínica</Label>
+          <Select value={clinic} onValueChange={setClinic}>
+            <SelectTrigger id="mnt-clinic" className="w-full sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as clínicas</SelectItem>
+              {(clinics.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="mnt-origin">Origem</Label>
+          <Select value={origin} onValueChange={setOrigin}>
+            <SelectTrigger id="mnt-origin" className="w-full sm:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="system">Sistema</SelectItem>
+              <SelectItem value="clinic">Clínica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="button" onClick={() => setImportOpen(true)}>
+          <Download className="size-4" />
+          Importar starters
+        </Button>
+      </div>
+
+      {list.isError && (
+        <p className="mt-4 text-sm text-destructive">
+          {(list.error as Error).message}
+        </p>
+      )}
+
+      {/* Desktop table */}
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Clínica</TableHead>
+              <TableHead>Anamnese</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Atualizada</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell className="font-medium text-foreground">
+                  {a.clinicName}
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium text-foreground">{a.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {ANAMNESIS_OBJECTIVE_LABELS[a.objective]} ·{" "}
+                    {ANAMNESIS_MODALITY_LABELS[a.modality]}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <OriginBadge origin={a.origin} />
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(a.updatedAt)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteTarget(a)}
+                    aria-label={`Excluir ${a.name}`}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!list.isLoading && items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  Nenhuma anamnese encontrada.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile cards */}
+      <ul className="mt-4 space-y-2.5 md:hidden">
+        {items.map((a) => (
+          <li
+            key={a.id}
+            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium text-foreground">{a.name}</div>
+                <div className="text-[13px] text-muted-foreground">
+                  {a.clinicName}
+                </div>
+              </div>
+              <OriginBadge origin={a.origin} />
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {ANAMNESIS_OBJECTIVE_LABELS[a.objective]} ·{" "}
+                {ANAMNESIS_MODALITY_LABELS[a.modality]} · {formatDate(a.updatedAt)}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeleteTarget(a)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+                Excluir
+              </Button>
+            </div>
+          </li>
+        ))}
+        {!list.isLoading && items.length === 0 && (
+          <li className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
+            Nenhuma anamnese encontrada.
+          </li>
+        )}
+      </ul>
+
+      {/* Delete confirm */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir anamnese</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <p className="text-[13px] text-muted-foreground">
+              A anamnese “{deleteTarget.name}” da clínica{" "}
+              <strong className="text-foreground">
+                {deleteTarget.clinicName}
+              </strong>{" "}
+              será excluída permanentemente.{" "}
+              {deleteTarget.studentUsageCount > 0 ? (
+                <>
+                  Está atribuída a{" "}
+                  <strong className="text-foreground">
+                    {deleteTarget.studentUsageCount}
+                  </strong>{" "}
+                  aluno(s) — as respostas já preenchidas são preservadas.
+                </>
+              ) : (
+                "Nenhum aluno foi atribuído a partir dela."
+              )}
+            </p>
+          )}
+          {del.isError && (
+            <p className="text-[13px] font-medium text-destructive">
+              {(del.error as Error).message}
+            </p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && del.mutate(deleteTarget.id)}
+              disabled={del.isPending}
+            >
+              {del.isPending ? "Excluindo…" : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        clinics={clinics.data ?? []}
+        onImported={() =>
+          queryClient.invalidateQueries({ queryKey: ["admin-anamneses"] })
+        }
+      />
+    </div>
+  );
+}
+
+function ImportDialog({
+  open,
+  onOpenChange,
+  clinics,
+  onImported,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  clinics: ClinicOption[];
+  onImported: () => void;
+}) {
+  const [clinicId, setClinicId] = useState("");
+  const [keys, setKeys] = useState<Set<string>>(new Set());
+
+  const starters = useQuery({
+    queryKey: ["admin-starters"],
+    queryFn: () =>
+      apiFetch<{ starters: AdminStarterDto[] }>(
+        "/api/admin/anamneses/starters",
+      ).then((r) => r.starters),
+    enabled: open,
+  });
+
+  const importMut = useMutation({
+    mutationFn: () =>
+      apiFetch<AdminImportResult>("/api/admin/anamneses/import", {
+        method: "POST",
+        body: JSON.stringify({ clinicId, keys: [...keys] }),
+      }),
+    onSuccess: onImported,
+  });
+
+  const all = starters.data ?? [];
+  const allSelected = all.length > 0 && keys.size === all.length;
+
+  function toggle(key: string) {
+    setKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  const banner = importMut.error instanceof ApiError ? importMut.error.message : undefined;
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) {
+          setClinicId("");
+          setKeys(new Set());
+          importMut.reset();
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Importar anamneses do sistema</DialogTitle>
+        </DialogHeader>
+        <p className="text-[13px] text-muted-foreground">
+          Copia as anamneses selecionadas para a clínica. As que a clínica já
+          possui são ignoradas.
+        </p>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="import-clinic">Clínica de destino</Label>
+          <Select value={clinicId} onValueChange={setClinicId}>
+            <SelectTrigger id="import-clinic">
+              <SelectValue placeholder="Selecione uma clínica" />
+            </SelectTrigger>
+            <SelectContent>
+              {clinics.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Anamneses do sistema</Label>
+            <button
+              type="button"
+              className="text-[13px] font-medium text-primary hover:underline"
+              onClick={() =>
+                setKeys(allSelected ? new Set() : new Set(all.map((s) => s.key)))
+              }
+            >
+              {allSelected ? "Limpar" : "Selecionar todas"}
+            </button>
+          </div>
+          <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-[10px] border border-border p-2">
+            {all.map((s) => (
+              <label
+                key={s.key}
+                className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-secondary"
+              >
+                <input
+                  type="checkbox"
+                  checked={keys.has(s.key)}
+                  onChange={() => toggle(s.key)}
+                  className="size-4 accent-primary"
+                />
+                <span className="text-sm text-foreground">{s.name}</span>
+              </label>
+            ))}
+            {starters.isLoading && (
+              <p className="px-2 py-1.5 text-[13px] text-muted-foreground">
+                Carregando…
+              </p>
+            )}
+          </div>
+        </div>
+
+        {importMut.isSuccess && importMut.data && (
+          <p className="text-[13px] font-medium text-primary">
+            {importMut.data.imported.length} importada(s),{" "}
+            {importMut.data.skipped.length} já existiam.
+          </p>
+        )}
+        {banner && (
+          <p className="text-[13px] font-medium text-destructive">{banner}</p>
+        )}
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Fechar</Button>
+          </DialogClose>
+          <Button
+            onClick={() => importMut.mutate()}
+            disabled={!clinicId || keys.size === 0 || importMut.isPending}
+          >
+            {importMut.isPending ? "Importando…" : "Importar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

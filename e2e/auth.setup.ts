@@ -7,6 +7,7 @@ import { expect, test as setup } from "@playwright/test";
  */
 const COACH_STORAGE = "e2e/.auth/coach.json";
 const ALUNO_STORAGE = "e2e/.auth/aluno.json";
+const ADMIN_STORAGE = "e2e/.auth/admin.json";
 
 setup("authenticate as coach", async ({ page }) => {
   await page.goto("/login");
@@ -30,4 +31,16 @@ setup("authenticate as aluno", async ({ page }) => {
   await expect(page).toHaveURL(/\/student$/);
 
   await page.context().storageState({ path: ALUNO_STORAGE });
+});
+
+setup("authenticate as admin", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill("admin@progresso.io");
+  await page.getByLabel("Senha").fill("progresso123");
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+
+  await page.waitForURL("**/admin");
+  await expect(page).toHaveURL(/\/admin$/);
+
+  await page.context().storageState({ path: ADMIN_STORAGE });
 });

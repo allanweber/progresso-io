@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   ClipboardList,
+  Database,
   Dumbbell,
   LayoutDashboard,
   LogOut,
@@ -54,6 +55,7 @@ function navItems(role: string | null | undefined) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });
     items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
     items.push({ href: "/admin/exercises", label: "Exercícios", icon: Dumbbell });
+    items.push({ href: "/admin/maintenance", label: "Manutenção", icon: Database });
   }
   return items;
 }

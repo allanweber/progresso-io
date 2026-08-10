@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   ilike,
+  inArray,
   isNotNull,
   isNull,
   type SQL,
@@ -12,6 +13,8 @@ import {
 } from "drizzle-orm";
 
 import { type DB, schema } from "@/db";
+import type { AnamnesisModality, AnamnesisObjective } from "@/lib/anamneses";
+import { STARTER_ANAMNESES } from "@/server/anamneses/starter-templates";
 import type {
   Exercise,
   ExerciseCategory,
@@ -1057,4 +1060,167 @@ export async function removeBaseExerciseSubstitution(
     )
     .returning({ id: schema.exerciseSubstitution.id });
   return deleted.length > 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Anamneses (data maintenance — cross-clinic)                                */
+/*                                                                            */
+/*  The admin sees EVERY clinic's anamneses, tagged by provenance             */
+/*  (`source_key` non-null ⇒ seeded/imported from the system starter set;      */
+/*  null ⇒ coach-authored). Admin can hard-delete any of them, and import the  */
+/*  system starters into a chosen clinic (idempotent by `source_key`).         */
+/* -------------------------------------------------------------------------- */
+
+export type AdminAnamnesisOrigin = "system" | "clinic";
+
+export type AdminAnamnesisRow = {
+  id: string;
+  name: string;
+  clinicId: string;
+  clinicName: string;
+  sourceKey: string | null;
+  objective: AnamnesisObjective;
+  modality: AnamnesisModality;
+  updatedAt: Date;
+  /** How many students were assigned from this anamnese (snapshots survive delete). */
+  studentUsageCount: number;
+};
+
+export type AdminAnamnesisListParams = {
+  clinicId?: string;
+  origin?: AdminAnamnesisOrigin;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminAnamnesisListResult = {
+  items: AdminAnamnesisRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+function adminAnamnesisWhere(params: AdminAnamnesisListParams) {
+  const conds: SQL[] = [];
+  if (params.clinicId) conds.push(eq(schema.anamnesis.clinicId, params.clinicId));
+  if (params.origin === "system") conds.push(isNotNull(schema.anamnesis.sourceKey));
+  if (params.origin === "clinic") conds.push(isNull(schema.anamnesis.sourceKey));
+  const term = params.search?.trim();
+  if (term) {
+    conds.push(
+      sql`unaccent(lower(${schema.anamnesis.name})) like '%' || unaccent(lower(${term})) || '%'`,
+    );
+  }
+  return conds.length ? and(...conds) : undefined;
+}
+
+/**
+ * A page of every clinic's anamneses (ordered by clinic then name), each with
+ * its clinic name, provenance and student-usage count. Cross-tenant — admin only.
+ */
+export async function listAnamnesesAcrossClinics(
+  db: DB,
+  params: AdminAnamnesisListParams = {},
+): Promise<AdminAnamnesisListResult> {
+  const page = Math.max(1, Math.trunc(params.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.trunc(params.pageSize ?? 25)));
+  const where = adminAnamnesisWhere(params);
+
+  const usage = sql<number>`(select count(*)::int from student_anamnesis sa where sa.source_anamnesis_id = ${schema.anamnesis.id})`;
+
+  const rows = await db
+    .select({
+      id: schema.anamnesis.id,
+      name: schema.anamnesis.name,
+      clinicId: schema.anamnesis.clinicId,
+      clinicName: schema.clinic.name,
+      sourceKey: schema.anamnesis.sourceKey,
+      objective: schema.anamnesis.objective,
+      modality: schema.anamnesis.modality,
+      updatedAt: schema.anamnesis.updatedAt,
+      studentUsageCount: usage,
+    })
+    .from(schema.anamnesis)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.anamnesis.clinicId))
+    .where(where)
+    .orderBy(asc(schema.clinic.name), asc(schema.anamnesis.name))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(schema.anamnesis)
+    .where(where);
+
+  return { items: rows, total, page, pageSize };
+}
+
+/** Hard-deletes any anamnese (cross-tenant). Returns false when the id is unknown. */
+export async function hardDeleteAnamnesis(db: DB, id: string): Promise<boolean> {
+  const rows = await db
+    .delete(schema.anamnesis)
+    .where(eq(schema.anamnesis.id, id))
+    .returning({ id: schema.anamnesis.id });
+  return rows.length > 0;
+}
+
+export type ImportStartersResult =
+  | { ok: true; imported: string[]; skipped: string[] }
+  | { ok: false; reason: "clinic_not_found" | "no_valid_keys" };
+
+/**
+ * Imports the selected system starters into a clinic, idempotently: starters the
+ * clinic already has (matched by `source_key`) are skipped. Imported rows carry
+ * the CURRENT starter JSON (masks/keys) and `coach_id = clinic.owner`.
+ */
+export async function importStartersToClinic(
+  db: DB,
+  clinicId: string,
+  keys: string[],
+): Promise<ImportStartersResult> {
+  const [clinicRow] = await db
+    .select({ ownerUserId: schema.clinic.ownerUserId })
+    .from(schema.clinic)
+    .where(eq(schema.clinic.id, clinicId));
+  if (!clinicRow) return { ok: false, reason: "clinic_not_found" };
+
+  const wanted = STARTER_ANAMNESES.filter((s) => keys.includes(s.key));
+  if (wanted.length === 0) return { ok: false, reason: "no_valid_keys" };
+
+  const existing = await db
+    .select({ sourceKey: schema.anamnesis.sourceKey })
+    .from(schema.anamnesis)
+    .where(
+      and(
+        eq(schema.anamnesis.clinicId, clinicId),
+        inArray(
+          schema.anamnesis.sourceKey,
+          wanted.map((s) => s.key),
+        ),
+      ),
+    );
+  const have = new Set(existing.map((e) => e.sourceKey));
+  const toImport = wanted.filter((s) => !have.has(s.key));
+
+  if (toImport.length > 0) {
+    await db.insert(schema.anamnesis).values(
+      toImport.map((s) => ({
+        clinicId,
+        coachId: clinicRow.ownerUserId,
+        sourceKey: s.key,
+        name: s.name,
+        description: s.description,
+        objective: s.objective,
+        modality: s.modality,
+        sections: s.sections,
+      })),
+    );
+  }
+
+  return {
+    ok: true,
+    imported: toImport.map((s) => s.key),
+    skipped: wanted.filter((s) => have.has(s.key)).map((s) => s.key),
+  };
 }
