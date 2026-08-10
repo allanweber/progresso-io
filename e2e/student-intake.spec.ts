@@ -18,6 +18,27 @@ function uniquePhone(): string {
 }
 
 type StudentList = { students: { id: string; firstName: string }[] };
+type AnamnesisItems = { items: { id: string; name: string }[] };
+
+/**
+ * A stable system starter. Every starter carries a date-masked "Data de
+ * nascimento"; a coach-authored template (created by the concurrent `anamneses`
+ * project, most-recent-first ⇒ items[0]) may not — so mask tests select a
+ * starter by name instead of trusting list order.
+ */
+const STARTER_WITH_DATE_MASK = "Anamnese — Emagrecimento (online)";
+
+async function pickDateMaskedAnamnesisId(
+  request: import("@playwright/test").APIRequestContext,
+): Promise<string> {
+  const { items } = (await (
+    await request.get("/api/anamneses?pageSize=100")
+  ).json()) as AnamnesisItems;
+  const starter =
+    items.find((i) => i.name === STARTER_WITH_DATE_MASK) ?? items[0];
+  expect(starter, "a seeded starter anamnese").toBeTruthy();
+  return starter.id;
+}
 
 async function anaId(request: import("@playwright/test").APIRequestContext) {
   const { students } = (await (await request.get("/api/students")).json()) as StudentList;
@@ -119,13 +140,13 @@ test.describe("student anamneses", () => {
     request,
     browser,
   }) => {
-    const { items } = (await (
-      await request.get("/api/anamneses?pageSize=100")
-    ).json()) as { items: { id: string }[] };
+    // Pick a starter (date-masked) rather than items[0], which the concurrent
+    // `anamneses` project can turn into a maskless coach template.
+    const anamnesisId = await pickDateMaskedAnamnesisId(request);
     const phone = uniquePhone();
 
     await request.delete("/api/test/outbox");
-    await request.post("/api/students", {
+    const reg = await request.post("/api/students", {
       data: {
         firstName: "Mask",
         lastName: "Date",
@@ -133,13 +154,15 @@ test.describe("student anamneses", () => {
         email: uniqueEmail("mask"),
         goal: "",
         modality: "online",
-        anamnesisId: items[0].id,
+        anamnesisId,
       },
     });
+    expect(reg.ok()).toBeTruthy();
     const { messages } = (await (
       await request.get("/api/test/outbox")
     ).json()) as { messages: { kind: string; url?: string }[] };
     const fill = messages.find((m) => m.kind === "anamnesis_fill");
+    expect(fill?.url).toBeTruthy();
 
     const ctx = await browser.newContext();
     try {
