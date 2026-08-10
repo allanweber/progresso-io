@@ -1,0 +1,2 @@
+ALTER TABLE "anamnesis" ADD COLUMN "source_key" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "anamnesis_clinic_source_uq" ON "anamnesis" USING btree ("clinic_id","source_key") WHERE "anamnesis"."source_key" is not null;

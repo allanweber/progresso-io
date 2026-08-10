@@ -296,6 +296,7 @@ export async function seedClinicAnamneses(
     STARTER_ANAMNESES.map((t) => ({
       clinicId,
       coachId,
+      sourceKey: t.key, // provenance: seeded from the system starter set
       name: t.name,
       description: t.description,
       objective: t.objective,

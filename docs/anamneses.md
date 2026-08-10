@@ -108,6 +108,25 @@ not raw regex) plus optional `min`/`max` for numeric masks:
   (e.g. peso 20–400 kg → `71,4`; água 0–20 L → `2,5`).
 - `pressure` — `120/80` (2–3 digits each side).
 
+## Provenance + admin data maintenance
+
+Each anamnese row carries a nullable **`source_key`**: the starter JSON key
+(e.g. `hipertrofia`) when it was seeded/imported from the system starter set,
+NULL when a coach authored it. The sign-up hook + seed stamp it; a coach
+"Duplicar" clears it (the copy is clinic-owned) and an edit keeps it.
+
+Platform admins get a cross-clinic view at **`/admin/maintenance` → Anamneses**
+(table on desktop / cards on mobile): every clinic's anamneses tagged
+**Sistema / Clínica**, filterable by clinic / origin / name. An admin can
+**hard-delete** any of them (confirm shows the student-usage count; filled
+student snapshots survive — `student_anamnesis.source_anamnesis_id` nulls), and
+**import** selected system starters into one clinic — idempotent by `source_key`
+(starters the clinic already has are skipped). See `docs/admin-maintenance.md`.
+
+The one-time backfill migration (`0014`) that seeded existing clinics is
+**blanked to a no-op**: new clinics get starters from the sign-up hook, and an
+admin provisions/repairs any clinic from the maintenance page instead.
+
 Validation lives in `@/lib/anamneses` (`validateAnswer` / `validateAnswers`,
 client-safe). It's enforced **on both fill surfaces** — the coach fill page and
 the public aluno page validate before submit and the API routes

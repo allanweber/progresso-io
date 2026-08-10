@@ -1328,6 +1328,10 @@ export const anamnesis = pgTable(
     coachId: text("coach_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    // Provenance: the starter template key (e.g. "hipertrofia") when this row was
+    // seeded/imported from the system's starter set; NULL when a coach authored
+    // it. Drives the admin "Sistema/Clínica" badge and idempotent re-import.
+    sourceKey: text("source_key"),
     name: text("name").notNull(),
     description: text("description"),
     // Profile tags (see lib/anamneses): objective + intended modality.
@@ -1338,7 +1342,13 @@ export const anamnesis = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [index("anamnesis_clinic_idx").on(t.clinicId)],
+  (t) => [
+    index("anamnesis_clinic_idx").on(t.clinicId),
+    // At most one copy of a given starter per clinic (import is idempotent).
+    uniqueIndex("anamnesis_clinic_source_uq")
+      .on(t.clinicId, t.sourceKey)
+      .where(sql`${t.sourceKey} is not null`),
+  ],
 );
 
 /* -------------------------------------------------------------------------- */

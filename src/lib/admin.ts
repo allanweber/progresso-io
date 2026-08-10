@@ -14,6 +14,7 @@ import {
   type FoodSubstituteDto,
   type FoodType,
 } from "@/lib/foods";
+import type { AnamnesisModality, AnamnesisObjective } from "@/lib/anamneses";
 import type { StudentDto } from "@/lib/students";
 import { z } from "@/lib/validation";
 
@@ -230,3 +231,61 @@ export type AdminExerciseDetailDto = {
   archived: boolean;
   substitutes: ExerciseSubstituteDto[];
 };
+
+/* -------------------------------------------------------------------------- */
+/*  Anamneses (data maintenance)                                               */
+/* -------------------------------------------------------------------------- */
+
+export type AdminAnamnesisOrigin = "system" | "clinic";
+
+export const ADMIN_ANAMNESIS_ORIGIN_LABELS: Record<AdminAnamnesisOrigin, string> = {
+  system: "Sistema",
+  clinic: "Clínica",
+};
+
+/** Query for the admin's cross-clinic anamneses listing. Validated before the DAL. */
+export const adminAnamnesisListQuerySchema = z.object({
+  clinic: z.string().uuid().optional(),
+  origin: z.enum(["system", "clinic"]).optional(),
+  search: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).max(100_000).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type AdminAnamnesisListQuery = z.output<typeof adminAnamnesisListQuerySchema>;
+
+export type AdminAnamnesisListItemDto = {
+  id: string;
+  name: string;
+  clinicId: string;
+  clinicName: string;
+  origin: AdminAnamnesisOrigin;
+  sourceKey: string | null;
+  objective: AnamnesisObjective;
+  modality: AnamnesisModality;
+  updatedAt: string;
+  studentUsageCount: number;
+};
+
+export type AdminAnamnesisListResponse = {
+  items: AdminAnamnesisListItemDto[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** A system starter offered in the "Importar starters" dialog. */
+export type AdminStarterDto = {
+  key: string;
+  name: string;
+  objective: AnamnesisObjective;
+  modality: AnamnesisModality;
+};
+
+/** Import selected starters into a clinic. */
+export const adminImportStartersSchema = z.object({
+  clinicId: z.string().uuid("Selecione uma clínica."),
+  keys: z.array(z.string().min(1)).min(1, "Selecione ao menos uma anamnese."),
+});
+export type AdminImportStartersInput = z.output<typeof adminImportStartersSchema>;
+
+export type AdminImportResult = { imported: string[]; skipped: string[] };
