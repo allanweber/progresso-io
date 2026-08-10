@@ -14,7 +14,7 @@ import type { TenantContext } from "@/server/tenant";
 export type StudentInput = {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   goal?: string | null;
   modality?: Modality;
@@ -124,6 +124,27 @@ export async function findStudentByEmail(
 }
 
 /**
+ * Finds a student in this clinic by their normalized WhatsApp number — the new
+ * primary identifier. Used to enforce the per-clinic phone uniqueness on
+ * create/edit before the DB index would reject it.
+ */
+export async function findStudentByPhone(
+  ctx: TenantContext,
+  phone: string,
+): Promise<Student | null> {
+  const [student] = await ctx.db
+    .select()
+    .from(schema.students)
+    .where(
+      and(
+        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.students.phone, phone),
+      ),
+    );
+  return student ?? null;
+}
+
+/**
  * Number of student "seats" used by the clinic. Archived students don't count —
  * archiving frees a slot — so this is what the plan limit is measured against.
  */
@@ -151,7 +172,7 @@ export async function createStudent(
       clinicId: ctx.clinicId,
       firstName: input.firstName,
       lastName: input.lastName,
-      email: input.email,
+      email: input.email ?? null,
       phone: input.phone ?? null,
       goal: input.goal ?? null,
       modality: input.modality ?? "online",

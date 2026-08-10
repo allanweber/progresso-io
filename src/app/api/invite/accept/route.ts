@@ -50,6 +50,15 @@ export const POST = withRoute("invite.accept", async (request) => {
   }
   const { invitation, student } = pending;
 
+  // An online student always has an e-mail (the portal login) — but guard the
+  // nullable column so a mis-provisioned student can't crash the accept flow.
+  if (!student.email) {
+    return apiError(
+      "Este aluno não tem e-mail para ativar o acesso. Fale com seu coach.",
+      409,
+    );
+  }
+
   // Create the login. Sign-up auto-bootstraps a clinic for any new user; we
   // then move the aluno into the inviting clinic and drop that throwaway one —
   // the same provisioning the seed performs for its aluno.

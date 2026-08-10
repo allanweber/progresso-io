@@ -12,13 +12,15 @@ import {
 } from "@/lib/students";
 
 describe("studentFormSchema", () => {
+  // Base fixture is OFFLINE (in_person), so e-mail/WhatsApp are optional and the
+  // "empty → null" behaviour is exercisable; the online rule is tested below.
   const valid = {
     firstName: "Ana",
     lastName: "Aluna",
     email: "ANA@Email.com ",
     phone: "",
     goal: "",
-    modality: "online",
+    modality: "in_person",
   };
 
   it("accepts a valid student and normalizes the e-mail", () => {
@@ -33,14 +35,40 @@ describe("studentFormSchema", () => {
     expect(result.goal).toBeNull();
   });
 
-  it("keeps provided optional text", () => {
+  it("normalizes the WhatsApp number (BR +55 assumed)", () => {
     const result = studentFormSchema.parse({
       ...valid,
-      phone: " 11999 ",
+      phone: "(11) 99999-0000",
       goal: "Hipertrofia",
     });
-    expect(result.phone).toBe("11999");
+    expect(result.phone).toBe("5511999990000");
     expect(result.goal).toBe("Hipertrofia");
+  });
+
+  it("requires WhatsApp and e-mail for online students", () => {
+    // Online + missing phone → invalid.
+    expect(
+      studentFormSchema.safeParse({ ...valid, modality: "online", email: "a@b.com" })
+        .success,
+    ).toBe(false);
+    // Online + missing e-mail → invalid.
+    expect(
+      studentFormSchema.safeParse({
+        ...valid,
+        modality: "online",
+        phone: "11999990000",
+        email: "",
+      }).success,
+    ).toBe(false);
+    // Online + both present → valid.
+    expect(
+      studentFormSchema.safeParse({
+        ...valid,
+        modality: "online",
+        phone: "11999990000",
+        email: "a@b.com",
+      }).success,
+    ).toBe(true);
   });
 
   it("requires first and last name", () => {

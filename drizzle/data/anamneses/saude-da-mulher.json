@@ -9,84 +9,219 @@
       "key": "identificacao",
       "title": "Identificação",
       "questions": [
-        { "key": "data_nascimento", "type": "short_text", "label": "Data de nascimento" },
-        { "key": "profissao", "type": "short_text", "label": "Profissão / ocupação" },
-        { "key": "peso", "type": "short_text", "label": "Peso atual (kg)" },
-        { "key": "peso_habitual", "type": "short_text", "label": "Peso habitual antes deste momento (kg)" },
-        { "key": "altura", "type": "short_text", "label": "Altura (cm)" }
+        {
+          "key": "idade",
+          "type": "short_text",
+          "label": "Idade"
+        },
+        {
+          "key": "experiencia",
+          "type": "short_text",
+          "label": "Experiência (nível / tempo de treino)"
+        },
+        {
+          "key": "frequencia",
+          "type": "short_text",
+          "label": "Frequência de treino (x por semana)"
+        },
+        {
+          "key": "data_nascimento",
+          "type": "short_text",
+          "label": "Data de nascimento"
+        },
+        {
+          "key": "profissao",
+          "type": "short_text",
+          "label": "Profissão / ocupação"
+        },
+        {
+          "key": "peso_atual",
+          "type": "short_text",
+          "label": "Peso atual (kg)"
+        },
+        {
+          "key": "peso_habitual",
+          "type": "short_text",
+          "label": "Peso habitual antes deste momento (kg)"
+        },
+        {
+          "key": "altura",
+          "type": "short_text",
+          "label": "Altura (cm)"
+        }
       ]
     },
     {
       "key": "momento_vida",
       "title": "Momento de vida",
       "questions": [
-        { "key": "fase", "type": "short_text", "label": "Fase atual (tentando engravidar, gestante, amamentando, ciclo regular, climatério/menopausa)" }
+        {
+          "key": "fase",
+          "type": "short_text",
+          "label": "Fase atual (tentando engravidar, gestante, amamentando, ciclo regular, climatério/menopausa)"
+        }
       ]
     },
     {
       "key": "gestacao_lactacao",
       "title": "Gestação e amamentação",
       "questions": [
-        { "key": "semanas_gestacao", "type": "short_text", "label": "Se gestante, quantas semanas? É gestação de risco?" },
-        { "key": "enjoos", "type": "long_text", "label": "Se gestante, tem enjoos, aversões ou desejos alimentares?" },
-        { "key": "amamentacao", "type": "long_text", "label": "Se amamentando, como está a amamentação e a produção de leite?" }
+        {
+          "key": "semanas_gestacao",
+          "type": "short_text",
+          "label": "Se gestante, quantas semanas? É gestação de risco?"
+        },
+        {
+          "key": "enjoos",
+          "type": "long_text",
+          "label": "Se gestante, tem enjoos, aversões ou desejos alimentares?"
+        },
+        {
+          "key": "amamentacao",
+          "type": "long_text",
+          "label": "Se amamentando, como está a amamentação e a produção de leite?"
+        }
       ]
     },
     {
       "key": "ciclo",
       "title": "Ciclo e hormônios",
       "questions": [
-        { "key": "ciclo_menstrual", "type": "short_text", "label": "Como é seu ciclo menstrual? (regular, irregular, ausente)" },
-        { "key": "tpm", "type": "long_text", "label": "Tem compulsão alimentar ou sintomas na TPM?" },
-        { "key": "hormonal", "type": "short_text", "label": "Usa anticoncepcional ou reposição hormonal?" },
-        { "key": "sop", "type": "boolean", "label": "Tem diagnóstico de ovário policístico (SOP)?" },
-        { "key": "climaterio", "type": "long_text", "label": "Se no climatério, quais sintomas? (calor, insônia, humor, ganho de peso…)" }
+        {
+          "key": "ciclo_menstrual",
+          "type": "short_text",
+          "label": "Como é seu ciclo menstrual? (regular, irregular, ausente)"
+        },
+        {
+          "key": "tpm",
+          "type": "long_text",
+          "label": "Tem compulsão alimentar ou sintomas na TPM?"
+        },
+        {
+          "key": "hormonal",
+          "type": "short_text",
+          "label": "Usa anticoncepcional ou reposição hormonal?"
+        },
+        {
+          "key": "sop",
+          "type": "boolean",
+          "label": "Tem diagnóstico de ovário policístico (SOP)?"
+        },
+        {
+          "key": "climaterio",
+          "type": "long_text",
+          "label": "Se no climatério, quais sintomas? (calor, insônia, humor, ganho de peso…)"
+        }
       ]
     },
     {
       "key": "historia_clinica",
       "title": "História clínica",
       "questions": [
-        { "key": "doencas", "type": "long_text", "label": "Condições de saúde (anemia, hipertensão, diabetes, tireoide…)" },
-        { "key": "medicamentos", "type": "long_text", "label": "Usa medicamentos de uso contínuo? Quais?" },
-        { "key": "suplementos", "type": "long_text", "label": "Usa suplementos? (ácido fólico, ferro, vitamina D…)" },
-        { "key": "alergias", "type": "long_text", "label": "Alergias ou intolerâncias alimentares" }
+        {
+          "key": "doencas",
+          "type": "long_text",
+          "label": "Condições de saúde (anemia, hipertensão, diabetes, tireoide…)"
+        },
+        {
+          "key": "medicamentos",
+          "type": "long_text",
+          "label": "Usa medicamentos de uso contínuo? Quais?"
+        },
+        {
+          "key": "suplementos",
+          "type": "long_text",
+          "label": "Usa suplementos? (ácido fólico, ferro, vitamina D…)"
+        },
+        {
+          "key": "alergias",
+          "type": "long_text",
+          "label": "Alergias ou intolerâncias alimentares"
+        }
       ]
     },
     {
       "key": "habitos_alimentares",
       "title": "Hábitos alimentares",
       "questions": [
-        { "key": "refeicoes_dia", "type": "short_text", "label": "Quantas refeições faz por dia?" },
-        { "key": "agua", "type": "short_text", "label": "Quanta água bebe por dia? (L)" },
-        { "key": "cafeina", "type": "short_text", "label": "Consumo de café / cafeína" },
-        { "key": "restricao", "type": "short_text", "label": "Restrições alimentares" },
-        { "key": "aversoes", "type": "long_text", "label": "Alimentos que não gosta ou não tolera" }
+        {
+          "key": "refeicoes_dia",
+          "type": "short_text",
+          "label": "Quantas refeições faz por dia?"
+        },
+        {
+          "key": "agua",
+          "type": "short_text",
+          "label": "Quanta água bebe por dia? (L)"
+        },
+        {
+          "key": "cafeina",
+          "type": "short_text",
+          "label": "Consumo de café / cafeína"
+        },
+        {
+          "key": "restricao",
+          "type": "short_text",
+          "label": "Restrições alimentares"
+        },
+        {
+          "key": "aversoes",
+          "type": "long_text",
+          "label": "Alimentos que não gosta ou não tolera"
+        }
       ]
     },
     {
       "key": "habito_intestinal",
       "title": "Funcionamento intestinal",
       "questions": [
-        { "key": "evacuacao", "type": "short_text", "label": "Frequência de evacuação" },
-        { "key": "sintomas_gi", "type": "long_text", "label": "Sintomas gastrointestinais (gases, inchaço, azia, constipação…)" }
+        {
+          "key": "evacuacao",
+          "type": "short_text",
+          "label": "Frequência de evacuação"
+        },
+        {
+          "key": "sintomas_gi",
+          "type": "long_text",
+          "label": "Sintomas gastrointestinais (gases, inchaço, azia, constipação…)"
+        }
       ]
     },
     {
       "key": "estilo_vida",
       "title": "Estilo de vida",
       "questions": [
-        { "key": "atividade", "type": "long_text", "label": "Pratica atividade física? Qual e quantas vezes por semana?" },
-        { "key": "sono", "type": "short_text", "label": "Quantas horas dorme por noite e como é a qualidade do sono?" },
-        { "key": "estresse", "type": "short_text", "label": "Como está seu nível de estresse?" }
+        {
+          "key": "atividade",
+          "type": "long_text",
+          "label": "Pratica atividade física? Qual e quantas vezes por semana?"
+        },
+        {
+          "key": "sono",
+          "type": "short_text",
+          "label": "Quantas horas dorme por noite e como é a qualidade do sono?"
+        },
+        {
+          "key": "estresse",
+          "type": "short_text",
+          "label": "Como está seu nível de estresse?"
+        }
       ]
     },
     {
       "key": "consentimento",
       "title": "Consentimento",
       "questions": [
-        { "key": "lgpd", "type": "boolean", "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional." },
-        { "key": "observacoes", "type": "long_text", "label": "Algo mais que gostaria de compartilhar?" }
+        {
+          "key": "lgpd",
+          "type": "boolean",
+          "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional."
+        },
+        {
+          "key": "observacoes",
+          "type": "long_text",
+          "label": "Algo mais que gostaria de compartilhar?"
+        }
       ]
     }
   ]

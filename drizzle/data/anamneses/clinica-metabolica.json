@@ -9,85 +9,224 @@
       "key": "identificacao",
       "title": "Identificação",
       "questions": [
-        { "key": "data_nascimento", "type": "short_text", "label": "Data de nascimento" },
-        { "key": "sexo", "type": "short_text", "label": "Sexo" },
-        { "key": "peso", "type": "short_text", "label": "Peso atual (kg)" },
-        { "key": "altura", "type": "short_text", "label": "Altura (cm)" },
-        { "key": "encaminhado", "type": "boolean", "label": "Foi encaminhado por um médico?" }
+        {
+          "key": "idade",
+          "type": "short_text",
+          "label": "Idade"
+        },
+        {
+          "key": "experiencia",
+          "type": "short_text",
+          "label": "Experiência (nível / tempo de treino)"
+        },
+        {
+          "key": "frequencia",
+          "type": "short_text",
+          "label": "Frequência de treino (x por semana)"
+        },
+        {
+          "key": "data_nascimento",
+          "type": "short_text",
+          "label": "Data de nascimento"
+        },
+        {
+          "key": "sexo",
+          "type": "short_text",
+          "label": "Sexo"
+        },
+        {
+          "key": "peso_atual",
+          "type": "short_text",
+          "label": "Peso atual (kg)"
+        },
+        {
+          "key": "altura",
+          "type": "short_text",
+          "label": "Altura (cm)"
+        },
+        {
+          "key": "encaminhado",
+          "type": "boolean",
+          "label": "Foi encaminhado por um médico?"
+        }
       ]
     },
     {
       "key": "diagnosticos",
       "title": "Diagnósticos",
       "questions": [
-        { "key": "condicoes", "type": "long_text", "label": "Condições diagnosticadas (diabetes, hipertensão, dislipidemia, doença renal, tireoide…)" },
-        { "key": "tempo_diagnostico", "type": "short_text", "label": "Há quanto tempo convive com essa(s) condição(ões)?" },
-        { "key": "historico_familiar", "type": "long_text", "label": "Histórico familiar de doenças" }
+        {
+          "key": "condicoes",
+          "type": "long_text",
+          "label": "Condições diagnosticadas (diabetes, hipertensão, dislipidemia, doença renal, tireoide…)"
+        },
+        {
+          "key": "tempo_diagnostico",
+          "type": "short_text",
+          "label": "Há quanto tempo convive com essa(s) condição(ões)?"
+        },
+        {
+          "key": "historico_familiar",
+          "type": "long_text",
+          "label": "Histórico familiar de doenças"
+        }
       ]
     },
     {
       "key": "medicacao",
       "title": "Medicamentos e suplementos",
       "questions": [
-        { "key": "medicamentos", "type": "long_text", "label": "Medicamentos em uso, doses e horários" },
-        { "key": "insulina", "type": "short_text", "label": "Usa insulina? (se aplicável)" },
-        { "key": "suplementos", "type": "long_text", "label": "Usa vitaminas ou suplementos? Quais?" }
+        {
+          "key": "medicamentos",
+          "type": "long_text",
+          "label": "Medicamentos em uso, doses e horários"
+        },
+        {
+          "key": "insulina",
+          "type": "short_text",
+          "label": "Usa insulina? (se aplicável)"
+        },
+        {
+          "key": "suplementos",
+          "type": "long_text",
+          "label": "Usa vitaminas ou suplementos? Quais?"
+        }
       ]
     },
     {
       "key": "exames",
       "title": "Exames laboratoriais",
       "questions": [
-        { "key": "glicemia", "type": "short_text", "label": "Glicemia de jejum e/ou hemoglobina glicada (HbA1c)" },
-        { "key": "lipidios", "type": "short_text", "label": "Colesterol total, HDL, LDL e triglicerídeos" },
-        { "key": "pressao", "type": "short_text", "label": "Pressão arterial habitual (ex.: 120/80)" },
-        { "key": "outros_exames", "type": "long_text", "label": "Outros exames relevantes e data" }
+        {
+          "key": "glicemia",
+          "type": "short_text",
+          "label": "Glicemia de jejum e/ou hemoglobina glicada (HbA1c)"
+        },
+        {
+          "key": "lipidios",
+          "type": "short_text",
+          "label": "Colesterol total, HDL, LDL e triglicerídeos"
+        },
+        {
+          "key": "pressao",
+          "type": "short_text",
+          "label": "Pressão arterial habitual (ex.: 120/80)"
+        },
+        {
+          "key": "outros_exames",
+          "type": "long_text",
+          "label": "Outros exames relevantes e data"
+        }
       ]
     },
     {
       "key": "sintomas",
       "title": "Sintomas e sinais",
       "questions": [
-        { "key": "sintomas_atuais", "type": "long_text", "label": "Sente algum sintoma com frequência? (cansaço, sede, tontura, inchaço, formigamento…)" },
-        { "key": "hipoglicemia", "type": "short_text", "label": "Já teve episódios de hipoglicemia? (se aplicável)" }
+        {
+          "key": "sintomas_atuais",
+          "type": "long_text",
+          "label": "Sente algum sintoma com frequência? (cansaço, sede, tontura, inchaço, formigamento…)"
+        },
+        {
+          "key": "hipoglicemia",
+          "type": "short_text",
+          "label": "Já teve episódios de hipoglicemia? (se aplicável)"
+        }
       ]
     },
     {
       "key": "habitos_alimentares",
       "title": "Hábitos alimentares",
       "questions": [
-        { "key": "refeicoes_dia", "type": "short_text", "label": "Quantas refeições faz por dia?" },
-        { "key": "sal_industrializados", "type": "short_text", "label": "Consumo de sal e industrializados (baixo, moderado, alto)" },
-        { "key": "acucar", "type": "short_text", "label": "Consumo de açúcar e doces (baixo, moderado, alto)" },
-        { "key": "alcool", "type": "short_text", "label": "Consumo de álcool" },
-        { "key": "restricao", "type": "short_text", "label": "Restrições alimentares" },
-        { "key": "alergias", "type": "long_text", "label": "Alergias ou intolerâncias" }
+        {
+          "key": "refeicoes_dia",
+          "type": "short_text",
+          "label": "Quantas refeições faz por dia?"
+        },
+        {
+          "key": "sal_industrializados",
+          "type": "short_text",
+          "label": "Consumo de sal e industrializados (baixo, moderado, alto)"
+        },
+        {
+          "key": "acucar",
+          "type": "short_text",
+          "label": "Consumo de açúcar e doces (baixo, moderado, alto)"
+        },
+        {
+          "key": "alcool",
+          "type": "short_text",
+          "label": "Consumo de álcool"
+        },
+        {
+          "key": "restricao",
+          "type": "short_text",
+          "label": "Restrições alimentares"
+        },
+        {
+          "key": "alergias",
+          "type": "long_text",
+          "label": "Alergias ou intolerâncias"
+        }
       ]
     },
     {
       "key": "habito_intestinal",
       "title": "Funcionamento intestinal",
       "questions": [
-        { "key": "evacuacao", "type": "short_text", "label": "Frequência de evacuação" },
-        { "key": "sintomas_gi", "type": "long_text", "label": "Sintomas gastrointestinais (gases, inchaço, constipação, diarreia…)" }
+        {
+          "key": "evacuacao",
+          "type": "short_text",
+          "label": "Frequência de evacuação"
+        },
+        {
+          "key": "sintomas_gi",
+          "type": "long_text",
+          "label": "Sintomas gastrointestinais (gases, inchaço, constipação, diarreia…)"
+        }
       ]
     },
     {
       "key": "estilo_vida",
       "title": "Estilo de vida",
       "questions": [
-        { "key": "atividade", "type": "long_text", "label": "Pratica atividade física? Qual e com liberação médica?" },
-        { "key": "sono", "type": "short_text", "label": "Quantas horas dorme por noite?" },
-        { "key": "estresse", "type": "short_text", "label": "Como está seu nível de estresse?" },
-        { "key": "fuma", "type": "short_text", "label": "Tabagismo (não, sim, ex-fumante)" }
+        {
+          "key": "atividade",
+          "type": "long_text",
+          "label": "Pratica atividade física? Qual e com liberação médica?"
+        },
+        {
+          "key": "sono",
+          "type": "short_text",
+          "label": "Quantas horas dorme por noite?"
+        },
+        {
+          "key": "estresse",
+          "type": "short_text",
+          "label": "Como está seu nível de estresse?"
+        },
+        {
+          "key": "fuma",
+          "type": "short_text",
+          "label": "Tabagismo (não, sim, ex-fumante)"
+        }
       ]
     },
     {
       "key": "consentimento",
       "title": "Consentimento",
       "questions": [
-        { "key": "lgpd", "type": "boolean", "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional." },
-        { "key": "observacoes", "type": "long_text", "label": "Algo mais que seu nutricionista deva saber?" }
+        {
+          "key": "lgpd",
+          "type": "boolean",
+          "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional."
+        },
+        {
+          "key": "observacoes",
+          "type": "long_text",
+          "label": "Algo mais que seu nutricionista deva saber?"
+        }
       ]
     }
   ]

@@ -9,78 +9,213 @@
       "key": "identificacao",
       "title": "Identificação",
       "questions": [
-        { "key": "data_nascimento", "type": "short_text", "label": "Data de nascimento" },
-        { "key": "sexo", "type": "short_text", "label": "Sexo" },
-        { "key": "profissao", "type": "short_text", "label": "Profissão / ocupação" },
-        { "key": "rotina_trabalho", "type": "short_text", "label": "Rotina de trabalho (comercial, turnos, home office…)" }
+        {
+          "key": "idade",
+          "type": "short_text",
+          "label": "Idade"
+        },
+        {
+          "key": "experiencia",
+          "type": "short_text",
+          "label": "Experiência (nível / tempo de treino)"
+        },
+        {
+          "key": "frequencia",
+          "type": "short_text",
+          "label": "Frequência de treino (x por semana)"
+        },
+        {
+          "key": "data_nascimento",
+          "type": "short_text",
+          "label": "Data de nascimento"
+        },
+        {
+          "key": "sexo",
+          "type": "short_text",
+          "label": "Sexo"
+        },
+        {
+          "key": "profissao",
+          "type": "short_text",
+          "label": "Profissão / ocupação"
+        },
+        {
+          "key": "rotina_trabalho",
+          "type": "short_text",
+          "label": "Rotina de trabalho (comercial, turnos, home office…)"
+        }
       ]
     },
     {
       "key": "objetivo",
       "title": "Objetivo e histórico",
       "questions": [
-        { "key": "objetivo_principal", "type": "long_text", "label": "Qual seu principal objetivo e por quê?" },
-        { "key": "peso_meta", "type": "short_text", "label": "Peso que gostaria de alcançar (kg)" },
-        { "key": "dietas_anteriores", "type": "long_text", "label": "Já fez dieta antes? Quais e como foi a experiência?" }
+        {
+          "key": "objetivo_principal",
+          "type": "long_text",
+          "label": "Qual seu principal objetivo e por quê?"
+        },
+        {
+          "key": "peso_meta",
+          "type": "short_text",
+          "label": "Peso que gostaria de alcançar (kg)"
+        },
+        {
+          "key": "dietas_anteriores",
+          "type": "long_text",
+          "label": "Já fez dieta antes? Quais e como foi a experiência?"
+        }
       ]
     },
     {
       "key": "medidas_autorrelato",
       "title": "Medidas (auto-relato)",
       "questions": [
-        { "key": "peso", "type": "short_text", "label": "Peso atual, medido pela manhã em jejum (kg)" },
-        { "key": "altura", "type": "short_text", "label": "Altura (cm)" },
-        { "key": "circunferencias", "type": "long_text", "label": "Circunferências que conseguir medir com fita: cintura, quadril, abdômen (cm)" }
+        {
+          "key": "peso_atual",
+          "type": "short_text",
+          "label": "Peso atual, medido pela manhã em jejum (kg)"
+        },
+        {
+          "key": "altura",
+          "type": "short_text",
+          "label": "Altura (cm)"
+        },
+        {
+          "key": "circunferencias",
+          "type": "long_text",
+          "label": "Circunferências que conseguir medir com fita: cintura, quadril, abdômen (cm)"
+        }
       ]
     },
     {
       "key": "historia_clinica",
       "title": "História clínica",
       "questions": [
-        { "key": "doencas", "type": "long_text", "label": "Possui alguma condição de saúde? Quais?" },
-        { "key": "medicamentos", "type": "long_text", "label": "Usa medicamentos de uso contínuo? Quais e doses?" },
-        { "key": "alergias", "type": "long_text", "label": "Possui alergias ou intolerâncias alimentares? Quais?" },
-        { "key": "ciclo_menstrual", "type": "short_text", "label": "Como está seu ciclo menstrual? (se aplicável)" }
+        {
+          "key": "doencas",
+          "type": "long_text",
+          "label": "Possui alguma condição de saúde? Quais?"
+        },
+        {
+          "key": "medicamentos",
+          "type": "long_text",
+          "label": "Usa medicamentos de uso contínuo? Quais e doses?"
+        },
+        {
+          "key": "alergias",
+          "type": "long_text",
+          "label": "Possui alergias ou intolerâncias alimentares? Quais?"
+        },
+        {
+          "key": "ciclo_menstrual",
+          "type": "short_text",
+          "label": "Como está seu ciclo menstrual? (se aplicável)"
+        }
       ]
     },
     {
       "key": "habitos_alimentares",
       "title": "Hábitos alimentares",
       "questions": [
-        { "key": "refeicoes_dia", "type": "short_text", "label": "Quantas refeições faz por dia?" },
-        { "key": "quem_cozinha", "type": "short_text", "label": "Quem prepara suas refeições?" },
-        { "key": "belisca", "type": "short_text", "label": "Costuma beliscar entre as refeições?" },
-        { "key": "compulsao", "type": "long_text", "label": "Sente que perde o controle ao comer? Com que frequência?" },
-        { "key": "agua", "type": "short_text", "label": "Quanta água bebe por dia? (L)" },
-        { "key": "alcool", "type": "short_text", "label": "Consumo de álcool" },
-        { "key": "preferencias", "type": "long_text", "label": "Alimentos que ama e não abre mão" },
-        { "key": "aversoes", "type": "long_text", "label": "Alimentos que não gosta ou não pode comer" }
+        {
+          "key": "refeicoes_dia",
+          "type": "short_text",
+          "label": "Quantas refeições faz por dia?"
+        },
+        {
+          "key": "quem_cozinha",
+          "type": "short_text",
+          "label": "Quem prepara suas refeições?"
+        },
+        {
+          "key": "belisca",
+          "type": "short_text",
+          "label": "Costuma beliscar entre as refeições?"
+        },
+        {
+          "key": "compulsao",
+          "type": "long_text",
+          "label": "Sente que perde o controle ao comer? Com que frequência?"
+        },
+        {
+          "key": "agua",
+          "type": "short_text",
+          "label": "Quanta água bebe por dia? (L)"
+        },
+        {
+          "key": "alcool",
+          "type": "short_text",
+          "label": "Consumo de álcool"
+        },
+        {
+          "key": "preferencias",
+          "type": "long_text",
+          "label": "Alimentos que ama e não abre mão"
+        },
+        {
+          "key": "aversoes",
+          "type": "long_text",
+          "label": "Alimentos que não gosta ou não pode comer"
+        }
       ]
     },
     {
       "key": "habito_intestinal",
       "title": "Funcionamento intestinal",
       "questions": [
-        { "key": "evacuacao", "type": "short_text", "label": "Frequência de evacuação" },
-        { "key": "sintomas_gi", "type": "long_text", "label": "Sintomas gastrointestinais frequentes (gases, inchaço, azia…)" }
+        {
+          "key": "evacuacao",
+          "type": "short_text",
+          "label": "Frequência de evacuação"
+        },
+        {
+          "key": "sintomas_gi",
+          "type": "long_text",
+          "label": "Sintomas gastrointestinais frequentes (gases, inchaço, azia…)"
+        }
       ]
     },
     {
       "key": "estilo_vida",
       "title": "Estilo de vida",
       "questions": [
-        { "key": "atividade", "type": "long_text", "label": "Pratica atividade física? Qual, quantas vezes por semana e há quanto tempo?" },
-        { "key": "sono", "type": "short_text", "label": "Quantas horas dorme por noite e como é a qualidade do sono?" },
-        { "key": "estresse", "type": "short_text", "label": "Como está seu nível de estresse?" },
-        { "key": "fuma", "type": "short_text", "label": "Tabagismo (não, sim, ex-fumante)" }
+        {
+          "key": "atividade",
+          "type": "long_text",
+          "label": "Pratica atividade física? Qual, quantas vezes por semana e há quanto tempo?"
+        },
+        {
+          "key": "sono",
+          "type": "short_text",
+          "label": "Quantas horas dorme por noite e como é a qualidade do sono?"
+        },
+        {
+          "key": "estresse",
+          "type": "short_text",
+          "label": "Como está seu nível de estresse?"
+        },
+        {
+          "key": "fuma",
+          "type": "short_text",
+          "label": "Tabagismo (não, sim, ex-fumante)"
+        }
       ]
     },
     {
       "key": "consentimento",
       "title": "Consentimento",
       "questions": [
-        { "key": "lgpd", "type": "boolean", "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional." },
-        { "key": "observacoes", "type": "long_text", "label": "Algo mais que gostaria de compartilhar?" }
+        {
+          "key": "lgpd",
+          "type": "boolean",
+          "label": "Autorizo o uso dos meus dados de saúde para elaboração e acompanhamento do meu plano nutricional."
+        },
+        {
+          "key": "observacoes",
+          "type": "long_text",
+          "label": "Algo mais que gostaria de compartilhar?"
+        }
       ]
     }
   ]

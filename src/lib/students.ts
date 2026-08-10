@@ -1,5 +1,6 @@
 import type { Modality, StudentStatus } from "@/db/schema";
 import { z } from "@/lib/validation";
+import { normalizePhone } from "@/lib/phone";
 
 /**
  * Client-safe student domain: enum values, PT-BR labels, and the zod schemas
@@ -112,7 +113,7 @@ export type StudentDto = {
   userId: string | null;
   firstName: string;
   lastName: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   goal: string | null;
   status: StudentStatus;
@@ -128,14 +129,28 @@ export type StudentRosterDto = StudentDto & {
 };
 
 /**
- * The e-mail rule: always required (for communication) even when the student
- * never logs in. Normalized to lowercase.
+ * E-mail is now **conditional**: required for online students (the portal
+ * login) and optional for offline ones. The field always accepts a string
+ * (the form sends one); an empty value becomes null, a non-empty one must be a
+ * valid e-mail. The online requirement is enforced by the form's superRefine.
  */
-const emailSchema = z
+const optionalEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .pipe(z.email("Informe um e-mail válido."));
+  .transform((v) => (v === "" ? null : v))
+  .pipe(z.union([z.null(), z.email("Informe um e-mail válido.")]));
+
+/**
+ * WhatsApp: the form sends a free-typed string; we normalize it to canonical
+ * digits (Brazil +55 assumed) or null. The normalized form is the per-clinic
+ * uniqueness key. The online requirement is enforced by the superRefine.
+ */
+const phoneSchema = z
+  .string()
+  .trim()
+  .max(30, "Telefone muito longo.")
+  .transform((v) => normalizePhone(v));
 
 /**
  * A text field that's semantically optional: the form always sends a string
@@ -149,26 +164,69 @@ const optionalText = (max: number, tooLong: string) =>
     .max(max, tooLong)
     .transform((v) => (v.length ? v : null));
 
-/**
- * Create + edit both post this exact shape — one form component drives both, so
- * one schema validates both (see the "one form" decision). `status` is never
- * set here; it changes through the dedicated status/archive endpoints.
- */
-export const studentFormSchema = z.object({
+/** The fields common to create + edit. Registration adds `anamnesisId`. */
+const studentBaseObject = z.object({
   firstName: z.string().trim().min(1, "Informe o nome.").max(80, "Nome muito longo."),
   lastName: z
     .string()
     .trim()
     .min(1, "Informe o sobrenome.")
     .max(80, "Sobrenome muito longo."),
-  email: emailSchema,
-  phone: optionalText(30, "Telefone muito longo."),
+  email: optionalEmailSchema,
+  phone: phoneSchema,
   goal: optionalText(200, "Objetivo muito longo."),
   modality: z.enum(MODALITY_VALUES),
 });
 
+/**
+ * Online students need both identifiers (WhatsApp for the links, e-mail for the
+ * portal login); offline students may have either or neither.
+ */
+function requireOnlineContact(
+  val: { modality: Modality; email: string | null; phone: string | null },
+  ctx: z.RefinementCtx,
+) {
+  if (val.modality !== "online") return;
+  if (!val.email) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["email"],
+      message: "E-mail é obrigatório para alunos online.",
+    });
+  }
+  if (!val.phone) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["phone"],
+      message: "WhatsApp é obrigatório para alunos online.",
+    });
+  }
+}
+
+/**
+ * Edit (PUT) posts this shape — the profile edit form drives it. `status` is
+ * never set here; it changes through the dedicated status/archive endpoints.
+ */
+export const studentFormSchema = studentBaseObject.superRefine(
+  requireOnlineContact,
+);
+
 export type StudentFormInput = z.input<typeof studentFormSchema>;
 export type StudentFormValues = z.output<typeof studentFormSchema>;
+
+/**
+ * Registration (the merged "Convidar novo aluno" screen) posts the base fields
+ * plus the anamnese to assign (always required — the clinic always has a starter
+ * set). The same online/offline contact rule applies.
+ */
+export const studentRegistrationSchema = studentBaseObject
+  .extend({
+    anamnesisId: z.string().uuid("Selecione uma anamnese."),
+  })
+  .superRefine(requireOnlineContact);
+
+export type StudentRegistrationInput = z.input<typeof studentRegistrationSchema>;
+export type StudentRegistrationValues = z.output<typeof studentRegistrationSchema>;
 
 /** Lifecycle change (reactivate / mark inactive). Archive has its own route. */
 export const studentStatusSchema = z.object({

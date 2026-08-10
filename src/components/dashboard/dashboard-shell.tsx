@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 import {
   Sheet,
   SheetClose,
@@ -176,6 +177,7 @@ export function DashboardShell({
             <Logo markOnly />
           </div>
           <div className="ml-auto flex items-center gap-4">
+            {user.role === "coach" && <NotificationBell />}
             <div className="text-right">
               <div className="text-sm font-semibold text-foreground">
                 {user.name}
