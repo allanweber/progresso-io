@@ -58,45 +58,56 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
       }),
   });
 
-  const card =
-    "w-full max-w-2xl rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-8";
+  // Short states (loading / invalid / success / confirm) sit in a compact,
+  // vertically-centered card — no dead space. The long questionnaire uses a
+  // wider, top-anchored layout that scrolls.
+  const centered =
+    "flex min-h-screen items-center justify-center px-4 py-10";
+  const shortCard =
+    "w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-8";
 
   if (state.isLoading) {
     return (
-      <div className={card}>
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+      <div className={centered}>
+        <div className={shortCard}>
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        </div>
       </div>
     );
   }
 
   if (!state.data || state.data.valid === false) {
     return (
-      <div className={card}>
-        <Logo />
-        <h1 className="mt-6 font-heading text-xl font-bold text-foreground">
-          Link inválido ou expirado
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Este link de anamnese não é mais válido. Peça um novo ao seu coach.
-        </p>
+      <div className={centered}>
+        <div className={shortCard}>
+          <Logo />
+          <h1 className="mt-6 font-heading text-xl font-bold text-foreground">
+            Link inválido ou expirado
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Este link de anamnese não é mais válido. Peça um novo ao seu coach.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (submit.isSuccess) {
     return (
-      <div className={card}>
-        <Logo />
-        <div className="mt-6 flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-primary" />
-          <div>
-            <h1 className="font-heading text-xl font-bold text-foreground">
-              Anamnese enviada!
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Obrigado, {state.data.studentFirstName}. Suas respostas foram
-              enviadas para {state.data.clinicName}.
-            </p>
+      <div className={centered}>
+        <div className={shortCard}>
+          <Logo />
+          <div className="mt-6 flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-primary" />
+            <div>
+              <h1 className="font-heading text-xl font-bold text-foreground">
+                Anamnese enviada!
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Obrigado, {state.data.studentFirstName}. Suas respostas foram
+                enviadas para {state.data.clinicName}.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -106,51 +117,56 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
   const s = state.data;
 
   // Step 1 — confirm the WhatsApp number. The questionnaire stays hidden until
-  // the number matches the one on file.
+  // the number matches the one on file. Centered compact card (little content).
   if (!confirmed) {
     const confirmError =
       confirm.error instanceof ApiError ? confirm.error.message : undefined;
     return (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (phone.trim()) confirm.mutate();
-        }}
-        className={card}
-      >
-        <Logo />
-        <h1 className="mt-6 font-heading text-2xl font-bold text-foreground">
-          {s.name}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Olá, {s.studentFirstName}! {s.clinicName} pediu que você preencha esta
-          anamnese. Confirme seu WhatsApp para começar.
-        </p>
+      <div className={centered}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (phone.trim()) confirm.mutate();
+          }}
+          className={shortCard}
+        >
+          <Logo />
+          <h1 className="mt-6 font-heading text-xl font-bold text-foreground">
+            {s.name}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Olá, {s.studentFirstName}! {s.clinicName} pediu que você preencha
+            esta anamnese. Confirme seu WhatsApp para começar.
+          </p>
 
-        <div className="mt-6 space-y-6">
-          <Field
-            id="confirm-phone"
-            label="Seu WhatsApp"
-            inputMode="tel"
-            placeholder={s.phoneHint ? `•••• ${s.phoneHint}` : "+55 11 99999-0000"}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            error={confirmError}
-          />
+          <div className="mt-6 space-y-5">
+            <Field
+              id="confirm-phone"
+              label="Seu WhatsApp"
+              inputMode="tel"
+              placeholder={
+                s.phoneHint ? `•••• ${s.phoneHint}` : "+55 11 99999-0000"
+              }
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              error={confirmError}
+            />
 
-          <Button
-            type="submit"
-            disabled={confirm.isPending || phone.trim().length === 0}
-            className="w-full sm:w-auto"
-          >
-            {confirm.isPending ? "Confirmando…" : "Confirmar WhatsApp"}
-          </Button>
-        </div>
-      </form>
+            <Button
+              type="submit"
+              disabled={confirm.isPending || phone.trim().length === 0}
+              className="w-full"
+            >
+              {confirm.isPending ? "Confirmando…" : "Confirmar WhatsApp"}
+            </Button>
+          </div>
+        </form>
+      </div>
     );
   }
 
-  // Step 2 — the questionnaire (revealed only after confirmation).
+  // Step 2 — the questionnaire (revealed only after confirmation). Wider, top-
+  // anchored so a long form scrolls naturally.
   const banner = submit.error instanceof ApiError ? submit.error.message : undefined;
 
   return (
@@ -161,7 +177,7 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
         setClientErrors(errs);
         if (Object.keys(errs).length === 0) submit.mutate();
       }}
-      className={card}
+      className="mx-auto my-10 w-full max-w-2xl rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-8"
     >
       <Logo />
       <h1 className="mt-6 font-heading text-2xl font-bold text-foreground">
