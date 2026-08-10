@@ -93,3 +93,32 @@ test.describe("admin: anamnese maintenance", () => {
     await expect(dialog.getByText(/5 já existiam/)).toBeVisible();
   });
 });
+
+test.describe("admin: clinic maintenance", () => {
+  // Non-destructive: only exercises the type-to-confirm gate, then cancels — the
+  // isolated clinic the other tests rely on must survive.
+  test("Clínicas tab lists clinics and gates delete behind type-to-confirm", async ({
+    page,
+  }) => {
+    await page.goto("/admin/maintenance");
+    await page.getByRole("tab", { name: "Clínicas" }).click();
+
+    const row = page.getByRole("row", { name: new RegExp(CLINIC) });
+    await expect(row).toBeVisible();
+
+    await row.getByRole("button", { name: `Excluir ${CLINIC}` }).click();
+    const dialog = page.getByRole("dialog");
+    const confirmBtn = dialog.getByRole("button", { name: "Excluir clínica" });
+
+    // Disabled until the exact clinic name is typed.
+    await expect(confirmBtn).toBeDisabled();
+    await dialog.getByLabel(/para confirmar/).fill("errado");
+    await expect(confirmBtn).toBeDisabled();
+    await dialog.getByLabel(/para confirmar/).fill(CLINIC);
+    await expect(confirmBtn).toBeEnabled();
+
+    // Cancel — do NOT delete the shared isolated clinic.
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await expect(dialog).toBeHidden();
+  });
+});

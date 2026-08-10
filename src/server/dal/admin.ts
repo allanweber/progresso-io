@@ -23,6 +23,7 @@ import type {
   Food,
   FoodType,
   Muscle,
+  Plan,
   Student,
   User,
 } from "@/db/schema";
@@ -67,6 +68,94 @@ export async function listClinics(
     .select({ id: schema.clinic.id, name: schema.clinic.name })
     .from(schema.clinic)
     .orderBy(schema.clinic.name);
+}
+
+/** A clinic enriched with its owner and member counts, for the admin manager. */
+export type AdminClinicRow = {
+  id: string;
+  name: string;
+  plan: Plan;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  coachCount: number;
+  studentCount: number;
+  createdAt: Date;
+};
+
+/**
+ * Every clinic on the platform with its owner and how many coaches + students it
+ * holds — the payload for the admin "Clínicas" manager. Cross-tenant, admin only.
+ * (Superset of {@link listClinics}: the id/name filters keep working off it.)
+ */
+export async function listAllClinics(db: DB): Promise<AdminClinicRow[]> {
+  return db
+    .select({
+      id: schema.clinic.id,
+      name: schema.clinic.name,
+      plan: schema.clinic.plan,
+      ownerName: schema.user.name,
+      ownerEmail: schema.user.email,
+      createdAt: schema.clinic.createdAt,
+      coachCount: sql<number>`(
+        select count(*)::int from "user" u
+        where u.clinic_id = ${schema.clinic.id} and u.role = 'coach'
+      )`,
+      studentCount: sql<number>`(
+        select count(*)::int from students s where s.clinic_id = ${schema.clinic.id}
+      )`,
+    })
+    .from(schema.clinic)
+    .leftJoin(schema.user, eq(schema.user.id, schema.clinic.ownerUserId))
+    .orderBy(asc(schema.clinic.name));
+}
+
+/**
+ * Hard-deletes a clinic and EVERYTHING that belongs to it — the whole tenant.
+ * Runs in one transaction:
+ * - deleting the `clinic` row cascades every clinic-scoped table (students,
+ *   invitations, diets, workouts, anamneses, the clinic's own foods/exercises +
+ *   their substitutions/measures/favorites, notifications) via their
+ *   `clinic_id` FKs, and nulls `user.clinic_id` for its members;
+ * - then the clinic's own user accounts (its coaches + activated alunos, captured
+ *   before the delete) are removed, cascading their sessions + accounts.
+ *
+ * Platform admins are never members of a clinic (`clinic_id IS NULL`), so this
+ * can never touch an admin. Returns `deleted: false` when the id is unknown;
+ * `deletedUsers` is how many logins were removed.
+ */
+export async function hardDeleteClinic(
+  db: DB,
+  clinicId: string,
+): Promise<{ deleted: boolean; deletedUsers: number }> {
+  return db.transaction(async (tx) => {
+    const [clinic] = await tx
+      .select({ id: schema.clinic.id })
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, clinicId));
+    if (!clinic) return { deleted: false, deletedUsers: 0 };
+
+    // The clinic's user accounts (owner + coaches + activated alunos). Captured
+    // now because deleting the clinic nulls their `clinic_id`.
+    const members = await tx
+      .select({ id: schema.user.id })
+      .from(schema.user)
+      .where(eq(schema.user.clinicId, clinicId));
+
+    // The clinic row first — all clinic-scoped data cascades away with it.
+    await tx.delete(schema.clinic).where(eq(schema.clinic.id, clinicId));
+
+    // Then the tenant's logins — sessions and accounts cascade from each.
+    if (members.length > 0) {
+      await tx.delete(schema.user).where(
+        inArray(
+          schema.user.id,
+          members.map((m) => m.id),
+        ),
+      );
+    }
+
+    return { deleted: true, deletedUsers: members.length };
+  });
 }
 
 /**

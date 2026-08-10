@@ -27,6 +27,22 @@ import { z } from "@/lib/validation";
 /** A clinic as offered in the admin's clinic filter. */
 export type ClinicOption = { id: string; name: string };
 
+/**
+ * A clinic row in the admin "Clínicas" manager: identity + owner + how many
+ * coaches/students it holds (so the delete dialog can spell out the blast
+ * radius). A superset of {@link ClinicOption}, so the id/name filters read it too.
+ */
+export type AdminClinicDto = {
+  id: string;
+  name: string;
+  plan: string;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  coachCount: number;
+  studentCount: number;
+  createdAt: string;
+};
+
 /** A platform student row: the student plus its clinic name and access flag. */
 export type AdminStudentDto = StudentDto & {
   clinicName: string;
