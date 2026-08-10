@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Settings,
   ShieldCheck,
   UtensilsCrossed,
   Users,
@@ -51,6 +52,7 @@ function navItems(role: string | null | undefined) {
     });
     // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
     items.push({ href: "/coach/library", label: "Biblioteca", icon: BookOpen });
+    items.push({ href: "/coach/settings", label: "Configurações", icon: Settings });
   }
   if (isAdmin(role)) {
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });

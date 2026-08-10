@@ -11,34 +11,9 @@ import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
 import { SubmitButton } from "@/components/ui/submit-button";
-
-type PlanOption = {
-  id: string;
-  name: string;
-  desc: string;
-  price: string;
-  popular?: boolean;
-};
+import { SIGNUP_PLANS } from "@/lib/plans";
 
 type Account = { name: string; email: string; password: string };
-
-// Enterprise is a "contact us" plan, so it is not self-selectable at signup.
-const planOptions: PlanOption[] = [
-  { id: "free", name: "Free", desc: "Até 3 alunos", price: "R$ 0" },
-  {
-    id: "solo",
-    name: "Solo",
-    desc: "Alunos ilimitados + WhatsApp",
-    price: "R$ 199",
-    popular: true,
-  },
-  {
-    id: "clinica",
-    name: "Clínica",
-    desc: "Tudo do Solo + até 3 coaches",
-    price: "R$ 399",
-  },
-];
 
 const steps = ["Conta", "Plano", "Confirmar"] as const;
 
@@ -236,7 +211,7 @@ function PlanStep({
       </div>
 
       <div className="mb-6 flex flex-col gap-3">
-        {planOptions.map((option) => {
+        {SIGNUP_PLANS.map((option) => {
           const isSelected = selected === option.id;
           return (
             <button
@@ -299,7 +274,7 @@ function ConfirmStep({
   onBack: () => void;
 }) {
   const [state, formAction] = useActionState(signUpCoach, undefined);
-  const planName = planOptions.find((p) => p.id === plan)?.name ?? "Solo";
+  const planName = SIGNUP_PLANS.find((p) => p.id === plan)?.name ?? "Solo";
   // The account fields live on step 1, so any server error (e.g. e-mail already
   // in use) is shown here as a banner rather than under an off-screen input.
   const banner =
