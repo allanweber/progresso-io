@@ -17,14 +17,16 @@ import type {
 } from "@/lib/student-anamneses";
 
 /**
- * The public fill island: loads the questionnaire for a token, asks the aluno to
- * confirm their WhatsApp (the credential), collects answers, and submits. On
- * success shows a thank-you. All traffic goes through the public
- * `/api/anamnesis/fill` endpoint.
+ * The public fill island. Two steps, because the WhatsApp number is the
+ * credential: first the aluno confirms their number (checked against the one on
+ * file); only then is the questionnaire revealed and submitted. On success shows
+ * a thank-you. All traffic goes through the public `/api/anamnesis/fill*`
+ * endpoints — no session.
  */
 export function AnamnesisFillIsland({ token }: { token: string }) {
   const [answers, setAnswers] = useState<AnamnesisAnswers>({});
   const [phone, setPhone] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
 
   const state = useQuery({
@@ -37,6 +39,17 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
     retry: false,
   });
 
+  // Step 1: confirm the WhatsApp number to unlock the questionnaire.
+  const confirm = useMutation({
+    mutationFn: () =>
+      apiFetch<{ ok: true }>("/api/anamnesis/fill/confirm", {
+        method: "POST",
+        body: JSON.stringify({ token, phone }),
+      }),
+    onSuccess: () => setConfirmed(true),
+  });
+
+  // Step 2: submit the answers (re-verifies the number server-side).
   const submit = useMutation({
     mutationFn: () =>
       apiFetch<{ ok: true }>("/api/anamnesis/fill", {
@@ -91,6 +104,53 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
   }
 
   const s = state.data;
+
+  // Step 1 — confirm the WhatsApp number. The questionnaire stays hidden until
+  // the number matches the one on file.
+  if (!confirmed) {
+    const confirmError =
+      confirm.error instanceof ApiError ? confirm.error.message : undefined;
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (phone.trim()) confirm.mutate();
+        }}
+        className={card}
+      >
+        <Logo />
+        <h1 className="mt-6 font-heading text-2xl font-bold text-foreground">
+          {s.name}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Olá, {s.studentFirstName}! {s.clinicName} pediu que você preencha esta
+          anamnese. Confirme seu WhatsApp para começar.
+        </p>
+
+        <div className="mt-6 space-y-6">
+          <Field
+            id="confirm-phone"
+            label="Seu WhatsApp"
+            inputMode="tel"
+            placeholder={s.phoneHint ? `•••• ${s.phoneHint}` : "+55 11 99999-0000"}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            error={confirmError}
+          />
+
+          <Button
+            type="submit"
+            disabled={confirm.isPending || phone.trim().length === 0}
+            className="w-full sm:w-auto"
+          >
+            {confirm.isPending ? "Confirmando…" : "Confirmar WhatsApp"}
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
+  // Step 2 — the questionnaire (revealed only after confirmation).
   const banner = submit.error instanceof ApiError ? submit.error.message : undefined;
 
   return (
@@ -107,49 +167,34 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
       <h1 className="mt-6 font-heading text-2xl font-bold text-foreground">
         {s.name}
       </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Olá, {s.studentFirstName}! {s.clinicName} pediu que você preencha esta
-        anamnese. Confirme seu WhatsApp para começar.
+      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <CheckCircle2 className="size-4 shrink-0 text-primary" />
+        WhatsApp confirmado. Preencha os campos abaixo, {s.studentFirstName}.
       </p>
 
       <div className="mt-6 space-y-6">
-        <Field
-          id="confirm-phone"
-          label="Seu WhatsApp"
-          placeholder={s.phoneHint ? `•••• ${s.phoneHint}` : "+55 11 99999-0000"}
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          error={
-            submit.error instanceof ApiError && submit.error.status === 403
-              ? submit.error.message
-              : undefined
-          }
+        <AnamnesisFillForm
+          sections={s.sections}
+          answers={answers}
+          onAnswer={(key: string, value: AnamnesisAnswerValue) => {
+            setAnswers((prev) => ({ ...prev, [key]: value }));
+            setClientErrors((prev) => {
+              if (!(key in prev)) return prev;
+              const next = { ...prev };
+              delete next[key];
+              return next;
+            });
+          }}
+          disabled={submit.isPending}
+          errors={{
+            ...(submit.error instanceof ApiError
+              ? (submit.error.fieldErrors ?? {})
+              : {}),
+            ...clientErrors,
+          }}
         />
 
-        <div className="border-t border-border pt-6">
-          <AnamnesisFillForm
-            sections={s.sections}
-            answers={answers}
-            onAnswer={(key: string, value: AnamnesisAnswerValue) => {
-              setAnswers((prev) => ({ ...prev, [key]: value }));
-              setClientErrors((prev) => {
-                if (!(key in prev)) return prev;
-                const next = { ...prev };
-                delete next[key];
-                return next;
-              });
-            }}
-            disabled={submit.isPending}
-            errors={{
-              ...(submit.error instanceof ApiError
-                ? (submit.error.fieldErrors ?? {})
-                : {}),
-              ...clientErrors,
-            }}
-          />
-        </div>
-
-        {banner && submit.error instanceof ApiError && submit.error.status !== 403 && (
+        {banner && (
           <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
             {banner}
           </div>

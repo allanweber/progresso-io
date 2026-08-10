@@ -109,6 +109,9 @@ The first profile tab shows two cards:
 - `PUT /api/students/[id]/anamnesis/template` — swap the template.
 - `GET/POST /api/anamnesis/fill` — public: load the questionnaire / submit with
   the number confirm.
+- `POST /api/anamnesis/fill/confirm` — public: verify the WhatsApp number to
+  unlock the questionnaire (the number must match before the form is shown).
+  Attempts are rate-limited per token, shared with the submit endpoint.
 
 ## DAL (`src/server/dal/student-anamneses.ts`)
 
