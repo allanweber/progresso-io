@@ -1,59 +1,236 @@
-import type { Metadata } from "next";
-import { Dumbbell, TrendingUp, Users, Utensils } from "lucide-react";
+"use client";
 
-import { clinics, students } from "@/server/dal";
-import { requireClinic } from "@/server/tenant";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Dashboard — Progresso IO",
-};
+import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api-client";
+import type { CoachDashboardDto } from "@/lib/coach-dashboard";
+import { avatarColor, studentInitials } from "@/lib/students";
 
-export default async function CoachDashboardPage() {
-  // Tenant-scoped: everything here reads through the DAL for this clinic only.
-  const ctx = await requireClinic();
-  const [clinic, studentCount] = await Promise.all([
-    clinics.getClinic(ctx),
-    students.countStudents(ctx),
-  ]);
+/** Today's date as an "Sábado · 2 de agosto" eyebrow (capitalised weekday). */
+function useTodayLabel(): string | null {
+  // Compute only after mount so the server's timezone never disagrees with the
+  // browser's (which would flash a hydration warning on the weekday/day).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+  if (!mounted) return null;
+  const now = new Date();
+  const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(
+    now,
+  );
+  const dayMonth = new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "long",
+  }).format(now);
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} · ${dayMonth}`;
+}
 
-  const stats = [
-    { label: "Alunos ativos", value: String(studentCount), icon: Users },
-    { label: "Treinos criados", value: "—", icon: Dumbbell },
-    { label: "Dietas ativas", value: "—", icon: Utensils },
-    { label: "Check-ins na semana", value: "—", icon: TrendingUp },
-  ];
+/** A dashboard section: card chrome with a titled header. */
+function SectionCard({
+  title,
+  badge,
+  aside,
+  children,
+}: {
+  title: string;
+  badge?: React.ReactNode;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3.5">
+        <h2 className="font-heading text-[15px] font-semibold text-foreground">
+          {title}
+        </h2>
+        {badge}
+        {aside ? (
+          <span className="ml-auto text-xs text-muted-foreground">{aside}</span>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Placeholder body for a section whose feature isn't built yet. */
+function ComingSoon() {
+  return (
+    <div className="px-4 py-9 text-center">
+      <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+        Em breve
+      </span>
+    </div>
+  );
+}
+
+export default function CoachDashboardPage() {
+  const today = useTodayLabel();
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["coach-dashboard"],
+    queryFn: () => apiFetch<CoachDashboardDto>("/api/coach/dashboard"),
+  });
+
+  const missingPlans = data?.missingPlans ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="font-heading text-2xl font-bold text-foreground">
-        {clinic?.name ?? "Seu painel"}
-      </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Este é o painel da sua clínica. As funcionalidades chegam em breve — por
-        enquanto, um espaço reservado.
-      </p>
+    <div className="mx-auto max-w-6xl">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-[#94A3B8]">
+            {today ?? " "}
+          </div>
+          <h1 className="mt-1 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+            Sua fila de hoje
+          </h1>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <Button asChild variant="outline">
+            <Link href="/coach/students">Ver todos os alunos</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/coach/students/new">
+              <Plus className="size-4" />
+              Convidar aluno
+            </Link>
+          </Button>
+        </div>
+      </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon }) => (
+      {/* KPIs — two real, two coming-soon */}
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="text-[13px] text-muted-foreground">Alunos ativos</div>
+          <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
+            {isLoading ? "…" : (data?.activeCount ?? 0)}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="text-[13px] text-muted-foreground">Sem treino/dieta</div>
           <div
-            key={label}
-            className="rounded-2xl border border-border bg-white p-5 shadow-[0_2px_16px_rgba(15,23,42,0.05)]"
+            className={`mt-1.5 font-heading text-3xl font-bold ${
+              missingPlans.length > 0 ? "text-destructive" : "text-foreground"
+            }`}
           >
-            <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-light">
-              <Icon className="size-5 text-primary" strokeWidth={2} />
+            {isLoading ? "…" : missingPlans.length}
+          </div>
+        </div>
+        {[
+          { label: "Check-ins pendentes" },
+          { label: "WhatsApp aguardando" },
+        ].map((k) => (
+          <div
+            key={k.label}
+            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+          >
+            <div className="text-[13px] text-muted-foreground">{k.label}</div>
+            <div className="mt-1.5 font-heading text-3xl font-bold text-[#CBD5E1]">
+              —
             </div>
-            <div className="font-heading text-2xl font-bold text-foreground">
-              {value}
+            <div className="text-[11px] font-medium text-muted-foreground">
+              em breve
             </div>
-            <div className="text-xs text-muted-foreground">{label}</div>
           </div>
         ))}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center">
-        <p className="text-sm text-muted-foreground">
-          Gestão de alunos, treinos, dietas e evolução aparecerão aqui.
-        </p>
+      {/* Two-column body, faithful to the mockup */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {/* Left column */}
+        <div className="flex flex-col gap-4">
+          <SectionCard title="Check-ins aguardando resposta">
+            <ComingSoon />
+          </SectionCard>
+          <SectionCard title="Peso destoando da meta" aside="últimos 14 dias">
+            <ComingSoon />
+          </SectionCard>
+        </div>
+
+        {/* Right column */}
+        <div className="flex flex-col gap-4">
+          <SectionCard title="Hoje" aside="calendário em breve">
+            <ComingSoon />
+          </SectionCard>
+          <SectionCard title="Esta semana">
+            <ComingSoon />
+          </SectionCard>
+          <SectionCard title="WhatsApp aguardando">
+            <ComingSoon />
+          </SectionCard>
+
+          {/* The one real list */}
+          <SectionCard
+            title="Sem treino ou dieta"
+            badge={
+              missingPlans.length > 0 ? (
+                <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                  {missingPlans.length}
+                </span>
+              ) : undefined
+            }
+          >
+            {isLoading ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            ) : isError ? (
+              <div className="px-4 py-9 text-center text-sm text-destructive">
+                {(error as Error).message}
+              </div>
+            ) : missingPlans.length === 0 ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Todos os alunos ativos têm treino e dieta. 🎉
+              </div>
+            ) : (
+              <ul>
+                {missingPlans.map((s) => (
+                  <li key={s.id} className="border-b border-[#F1F5F9] last:border-0">
+                    <Link
+                      href={`/coach/students/${s.id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light"
+                    >
+                      <div
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
+                        style={{ background: avatarColor(s.id) }}
+                      >
+                        {studentInitials(s.firstName, s.lastName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {s.firstName} {s.lastName}
+                        </div>
+                        {s.goal ? (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {s.goal}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                        {s.missingWorkout ? (
+                          <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-semibold text-destructive">
+                            sem treino
+                          </span>
+                        ) : null}
+                        {s.missingDiet ? (
+                          <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-semibold text-destructive">
+                            sem dieta
+                          </span>
+                        ) : null}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
       </div>
     </div>
   );

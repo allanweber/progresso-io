@@ -161,6 +161,85 @@ export async function countStudents(ctx: TenantContext): Promise<number> {
   return rows.length;
 }
 
+/** A student on the coach dashboard's "sem treino ou dieta" list. */
+export type MissingPlanStudent = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  goal: string | null;
+  missingDiet: boolean;
+  missingWorkout: boolean;
+};
+
+/** The real (data-backed) part of the coach dashboard. */
+export type CoachDashboard = {
+  activeCount: number;
+  missingPlans: MissingPlanStudent[];
+};
+
+/**
+ * Powers the coach dashboard's two real cards: the active-student count and the
+ * "sem treino ou dieta" list. A student "has a plan" once their `student_diet` /
+ * `student_workout` reaches `active` (i.e. has ≥ 1 published version); until then
+ * it's missing. Only `active` students count — inactive/archived aren't the
+ * coach's live queue. Tenant-scoped like every DAL read.
+ */
+export async function getCoachDashboard(
+  ctx: TenantContext,
+): Promise<CoachDashboard> {
+  const [active, dietRows, workoutRows] = await Promise.all([
+    ctx.db
+      .select({
+        id: schema.students.id,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+        goal: schema.students.goal,
+      })
+      .from(schema.students)
+      .where(
+        and(
+          eq(schema.students.clinicId, ctx.clinicId),
+          eq(schema.students.status, "active"),
+        ),
+      )
+      .orderBy(desc(schema.students.createdAt)),
+    ctx.db
+      .select({ studentId: schema.studentDiet.studentId })
+      .from(schema.studentDiet)
+      .where(
+        and(
+          eq(schema.studentDiet.clinicId, ctx.clinicId),
+          eq(schema.studentDiet.status, "active"),
+        ),
+      ),
+    ctx.db
+      .select({ studentId: schema.studentWorkout.studentId })
+      .from(schema.studentWorkout)
+      .where(
+        and(
+          eq(schema.studentWorkout.clinicId, ctx.clinicId),
+          eq(schema.studentWorkout.status, "active"),
+        ),
+      ),
+  ]);
+
+  const hasDiet = new Set(dietRows.map((r) => r.studentId));
+  const hasWorkout = new Set(workoutRows.map((r) => r.studentId));
+
+  const missingPlans = active
+    .map((s) => ({
+      id: s.id,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      goal: s.goal,
+      missingDiet: !hasDiet.has(s.id),
+      missingWorkout: !hasWorkout.has(s.id),
+    }))
+    .filter((s) => s.missingDiet || s.missingWorkout);
+
+  return { activeCount: active.length, missingPlans };
+}
+
 export async function createStudent(
   ctx: TenantContext,
   input: StudentInput,
