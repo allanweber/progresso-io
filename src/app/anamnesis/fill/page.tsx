@@ -19,7 +19,7 @@ export default async function AnamnesisFillPage({
 }) {
   const { token } = await searchParams;
   return (
-    <main className="flex min-h-screen justify-center bg-surface-light px-4 py-10">
+    <main className="min-h-screen bg-surface-light">
       <AnamnesisFillIsland token={token ?? ""} />
     </main>
   );
