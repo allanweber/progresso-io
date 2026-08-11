@@ -12,6 +12,10 @@ export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
+    // Bounce to /login, preserving where the user was headed as `?redirect=` so
+    // the flow can send them back after sign-in. Any consumer of this param MUST
+    // treat it as untrusted and only ever redirect to a same-origin path (never
+    // an absolute URL) to avoid an open redirect.
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);

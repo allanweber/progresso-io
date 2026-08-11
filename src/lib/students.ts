@@ -105,12 +105,17 @@ export function avatarColor(seed: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-/** A student as serialized by the API (timestamps are ISO strings over JSON). */
+/**
+ * A student as serialized by the API (timestamps are ISO strings over JSON).
+ *
+ * Data minimization: the internal tenant/relationship keys (`clinicId`,
+ * `coachId`, `userId`) are intentionally NOT part of the client payload — the
+ * UI never needs them, and the account/coach relationship the client does need
+ * is exposed via the derived `hasAccount` flag instead of the raw `userId`. The
+ * API strips them with {@link toStudentDto} before responding.
+ */
 export type StudentDto = {
   id: string;
-  clinicId: string;
-  coachId: string | null;
-  userId: string | null;
   firstName: string;
   lastName: string;
   email: string | null;
@@ -127,6 +132,22 @@ export type StudentRosterDto = StudentDto & {
   hasAccount: boolean;
   pendingInvite: boolean;
 };
+
+/**
+ * Serialization boundary for a student row: drops the internal `clinicId`,
+ * `coachId` and `userId` FKs so opaque tenant identifiers never cross to the
+ * browser. Access flags (`hasAccount`/`pendingInvite`) are derived from
+ * `userId` in the DAL before this runs, so stripping it here loses nothing.
+ */
+export function toStudentDto<
+  T extends { clinicId: string; coachId: string | null; userId: string | null },
+>(student: T): Omit<T, "clinicId" | "coachId" | "userId"> {
+  const { clinicId: _c, coachId: _co, userId: _u, ...rest } = student;
+  void _c;
+  void _co;
+  void _u;
+  return rest;
+}
 
 /**
  * E-mail is now **conditional**: required for online students (the portal

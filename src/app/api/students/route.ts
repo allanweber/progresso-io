@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { isAtStudentLimit, studentRegistrationSchema } from "@/lib/students";
+import {
+  isAtStudentLimit,
+  studentRegistrationSchema,
+  toStudentDto,
+} from "@/lib/students";
 import { plans, students, studentAnamneses } from "@/server/dal";
 import {
   apiError,
@@ -29,8 +33,9 @@ import { getTenantContext } from "@/server/tenant";
 export const GET = withRoute("students.list", async () => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const roster = await students.listStudents(ctx);
-  return NextResponse.json({ students: roster });
+  return NextResponse.json({ students: roster.map(toStudentDto) });
 });
 
 export const POST = withRoute("students.register", async (request) => {
@@ -102,7 +107,7 @@ export const POST = withRoute("students.register", async (request) => {
     sent,
   });
   return NextResponse.json(
-    { student: created, access: data.modality, sent },
+    { student: toStudentDto(created), access: data.modality, sent },
     { status: 201 },
   );
 });

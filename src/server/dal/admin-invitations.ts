@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { and, eq, gt, isNull } from "drizzle-orm";
 
-import { type DB, schema } from "@/db";
+import { type Database, type DB, schema } from "@/db";
 import type { AdminInvitation } from "@/db/schema";
 
 /**
@@ -141,7 +141,10 @@ export async function findPendingByToken(
 }
 
 /** Marks an admin invite accepted (idempotent within the accept transaction). */
-export async function markAccepted(db: DB, invitationId: string): Promise<void> {
+export async function markAccepted(
+  db: Database,
+  invitationId: string,
+): Promise<void> {
   await db
     .update(schema.adminInvitation)
     .set({ acceptedAt: new Date() })

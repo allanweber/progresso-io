@@ -69,15 +69,19 @@ describe("logger", () => {
     expect(captured[1].method).toBe("error");
   });
 
-  it("redacts sensitive keys at any depth", () => {
+  it("redacts sensitive keys (incl. PII) at any depth", () => {
     logger.info("signup", {
       email: "a@b.com",
+      firstName: "Ana",
       password: "supersecret",
+      role: "coach",
       nested: { token: "raw-token", tokenHash: "deadbeef", ok: true },
     });
     const rec = lastRecord();
-    expect(rec.email).toBe("a@b.com"); // not sensitive
+    expect(rec.email).toBe("[redacted]"); // PII — redacted
+    expect(rec.firstName).toBe("[redacted]"); // PII — redacted
     expect(rec.password).toBe("[redacted]");
+    expect(rec.role).toBe("coach"); // not sensitive
     const nested = rec.nested as Record<string, unknown>;
     expect(nested.token).toBe("[redacted]");
     expect(nested.tokenHash).toBe("[redacted]");

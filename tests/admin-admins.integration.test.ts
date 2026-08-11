@@ -125,4 +125,34 @@ describe("admin users DAL", () => {
     expect(await admin.countAdmins(h)).toBe(before - 1);
     expect(await admin.getUserById(h, second!.id)).toBeNull();
   });
+
+  it("deleteAdminAtomic enforces the last-admin floor (L-2)", async () => {
+    // State here: boss@example.com is the only admin left.
+    expect(await admin.countAdmins(h)).toBe(1);
+    const boss = await admin.getUserByEmail(h, "boss@example.com");
+
+    // A non-admin id is reported, not deleted.
+    const coach = await admin.getUserByEmail(h, "coach1@example.com");
+    expect(await admin.deleteAdminAtomic(h, coach!.id)).toBe("not_found");
+
+    // The sole admin can't be removed — the floor holds and boss survives.
+    expect(await admin.deleteAdminAtomic(h, boss!.id)).toBe("last_admin");
+    expect(await admin.getUserById(h, boss!.id)).not.toBeNull();
+
+    // With a second admin present, one CAN be deleted atomically.
+    await auth.api.signUpEmail({
+      body: { name: "Third Admin", email: "third@example.com", password },
+    });
+    const third = await admin.getUserByEmail(h, "third@example.com");
+    await db
+      .update(schema.user)
+      .set({ role: "admin", clinicId: null })
+      .where(eq(schema.user.id, third!.id));
+    await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, third!.id));
+
+    expect(await admin.countAdmins(h)).toBe(2);
+    expect(await admin.deleteAdminAtomic(h, third!.id)).toBe("deleted");
+    expect(await admin.getUserById(h, third!.id)).toBeNull();
+    expect(await admin.countAdmins(h)).toBe(1); // boss remains
+  });
 });

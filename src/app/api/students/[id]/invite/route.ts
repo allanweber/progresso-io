@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { apiError, isUuid, notFound, unauthorized } from "@/server/api";
+import { apiError, forbidden, isUuid, notFound, unauthorized } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
 import { sendPortalInvite } from "@/server/onboarding";
 import { getTenantContext } from "@/server/tenant";
@@ -19,6 +19,7 @@ type Params = { params: Promise<{ id: string }> };
 export const POST = withRoute<Params>("invite.send", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 

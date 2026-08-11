@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { count, eq } from "drizzle-orm";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins/admin";
 import { emailOTP } from "better-auth/plugins/email-otp";
@@ -64,6 +65,19 @@ export function createAuth({
   const googleConfigured =
     !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
+  // Session tokens are signed with this secret; an unset/weak one makes sessions
+  // forgeable. Fail fast at boot in production rather than degrade silently
+  // (mirrors the DATABASE_URL guard in src/db/index.ts). Dev/test keep any value.
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!secret || secret.length < 32)
+  ) {
+    throw new Error(
+      "BETTER_AUTH_SECRET is missing or too short (need at least 32 chars) in production.",
+    );
+  }
+
   // Admins aren't self-selectable: the single sign-up whose e-mail matches
   // ADMIN_EMAIL is promoted to admin; everyone else defaults to coach.
   const adminEmail = bootstrapAdminEmail(process.env.ADMIN_EMAIL);
@@ -74,8 +88,22 @@ export function createAuth({
 
   const options = {
     appName: "Progresso IO",
-    secret: process.env.BETTER_AUTH_SECRET,
+    secret,
     baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+
+    // Pin cookie/session/origin defaults instead of relying on inferred ones.
+    // Only the canonical production origin is trusted for CSRF/redirects; secure
+    // cookies are forced in production (they're http-only, sameSite=lax already).
+    ...(process.env.BETTER_AUTH_URL
+      ? { trustedOrigins: [process.env.BETTER_AUTH_URL] }
+      : {}),
+    session: {
+      expiresIn: 60 * 60 * 24 * 7, // 7-day session
+      updateAge: 60 * 60 * 24, // refresh the token at most once a day
+    },
+    advanced: {
+      useSecureCookies: process.env.NODE_ENV === "production",
+    },
 
     database: drizzleAdapter(db, {
       provider: "pg",
@@ -113,10 +141,17 @@ export function createAuth({
       user: {
         create: {
           // Grant the admin role at sign-up when the e-mail matches the single
-          // ADMIN_EMAIL. Ordinary sign-ups keep the default (coach).
+          // ADMIN_EMAIL — but ONLY to bootstrap the very first admin. Once any
+          // admin exists, that address no longer auto-elevates (further admins
+          // come from in-app invitations), so an attacker who pre-registers the
+          // ADMIN_EMAIL can't silently gain admin. Ordinary sign-ups stay coach.
           before: async (user) => {
             if (isAdminEmail(user.email, adminEmail)) {
-              return { data: { ...user, role: "admin" } };
+              const [{ n }] = await database
+                .select({ n: count() })
+                .from(schema.user)
+                .where(eq(schema.user.role, "admin"));
+              if (n === 0) return { data: { ...user, role: "admin" } };
             }
           },
           // Every coach sign-up (email or Google) gets its own clinic — a solo

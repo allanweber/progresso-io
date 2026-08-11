@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { studentFormSchema, studentStatusSchema } from "@/lib/students";
+import {
+  studentFormSchema,
+  studentStatusSchema,
+  toStudentDto,
+} from "@/lib/students";
 import { students } from "@/server/dal";
 import {
   fieldConflict,
+  forbidden,
   isUuid,
   notFound,
   readJson,
@@ -23,17 +28,19 @@ type Params = { params: Promise<{ id: string }> };
 export const GET = withRoute<Params>("students.get", async (_request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
   const student = await students.getStudentRoster(ctx, id);
   if (!student) return notFound("Aluno não encontrado.");
-  return NextResponse.json({ student });
+  return NextResponse.json({ student: toStudentDto(student) });
 });
 
 export const PUT = withRoute<Params>("students.update", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
@@ -65,12 +72,13 @@ export const PUT = withRoute<Params>("students.update", async (request, { params
   const updated = await students.updateStudent(ctx, id, data);
   if (!updated) return notFound("Aluno não encontrado.");
   logger.info("student.updated", { studentId: id });
-  return NextResponse.json({ student: updated });
+  return NextResponse.json({ student: toStudentDto(updated) });
 });
 
 export const PATCH = withRoute<Params>("students.setStatus", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
@@ -83,12 +91,13 @@ export const PATCH = withRoute<Params>("students.setStatus", async (request, { p
   const updated = await students.setStudentStatus(ctx, id, parsed.data.status);
   if (!updated) return notFound("Aluno não encontrado.");
   logger.info("student.status_changed", { studentId: id, status: parsed.data.status });
-  return NextResponse.json({ student: updated });
+  return NextResponse.json({ student: toStudentDto(updated) });
 });
 
 export const DELETE = withRoute<Params>("students.archive", async (_request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
@@ -96,5 +105,5 @@ export const DELETE = withRoute<Params>("students.archive", async (_request, { p
   const archived = await students.archiveStudent(ctx, id);
   if (!archived) return notFound("Aluno não encontrado.");
   logger.info("student.archived", { studentId: id });
-  return NextResponse.json({ student: archived });
+  return NextResponse.json({ student: toStudentDto(archived) });
 });
