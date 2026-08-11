@@ -112,18 +112,29 @@ export type StudentAnamnesisDto = {
  * answers or tenant ids. `valid` is false when the token is unknown, expired or
  * already submitted.
  */
+/**
+ * What the public `GET /api/anamnesis/fill` returns — deliberately minimal and
+ * free of the data subject's PII. It carries only what the confirm gate needs
+ * to render (the clinic + the anamnese title, neither of which is personal
+ * data). The student's name, the phone hint and the questionnaire itself are
+ * NOT here: they're withheld until the WhatsApp number is confirmed and are
+ * returned by the confirm endpoint ({@link FillRevealDto}). This way a leaked/
+ * forwarded fill link can't disclose who the link is for.
+ */
 export type FillPageState =
   | { valid: false }
-  | {
-      valid: true;
-      studentAnamnesisId: string;
-      studentFirstName: string;
-      clinicName: string;
-      name: string;
-      sections: AnamnesisSection[];
-      /** Last 4 digits of the on-file WhatsApp, to hint the confirm field. */
-      phoneHint: string;
-    };
+  | { valid: true; clinicName: string; name: string };
+
+/**
+ * Returned by `POST /api/anamnesis/fill/confirm` once the WhatsApp number
+ * matches the one on file — the identity + questionnaire, revealed only after
+ * the number is verified server-side.
+ */
+export type FillRevealDto = {
+  studentAnamnesisId: string;
+  studentFirstName: string;
+  sections: AnamnesisSection[];
+};
 
 /* -------------------------------------------------------------------------- */
 /*  Schemas                                                                     */

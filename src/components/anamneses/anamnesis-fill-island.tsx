@@ -14,6 +14,7 @@ import type {
   AnamnesisAnswers,
   AnamnesisAnswerValue,
   FillPageState,
+  FillRevealDto,
 } from "@/lib/student-anamneses";
 
 /**
@@ -26,7 +27,9 @@ import type {
 export function AnamnesisFillIsland({ token }: { token: string }) {
   const [answers, setAnswers] = useState<AnamnesisAnswers>({});
   const [phone, setPhone] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
+  // The identity + questionnaire, held back by the API until the WhatsApp number
+  // is confirmed. Null until then — its presence IS the "confirmed" state.
+  const [reveal, setReveal] = useState<FillRevealDto | null>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
 
   const state = useQuery({
@@ -39,14 +42,15 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
     retry: false,
   });
 
-  // Step 1: confirm the WhatsApp number to unlock the questionnaire.
+  // Step 1: confirm the WhatsApp number. On success the server returns the
+  // identity + questionnaire (withheld pre-confirm), which unlocks step 2.
   const confirm = useMutation({
     mutationFn: () =>
-      apiFetch<{ ok: true }>("/api/anamnesis/fill/confirm", {
+      apiFetch<FillRevealDto>("/api/anamnesis/fill/confirm", {
         method: "POST",
         body: JSON.stringify({ token, phone }),
       }),
-    onSuccess: () => setConfirmed(true),
+    onSuccess: (data) => setReveal(data),
   });
 
   // Step 2: submit the answers (re-verifies the number server-side).
@@ -104,8 +108,8 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
                 Anamnese enviada!
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Obrigado, {state.data.studentFirstName}. Suas respostas foram
-                enviadas para {state.data.clinicName}.
+                Obrigado{reveal?.studentFirstName ? `, ${reveal.studentFirstName}` : ""}.
+                Suas respostas foram enviadas para {state.data.clinicName}.
               </p>
             </div>
           </div>
@@ -116,9 +120,10 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
 
   const s = state.data;
 
-  // Step 1 — confirm the WhatsApp number. The questionnaire stays hidden until
-  // the number matches the one on file. Centered compact card (little content).
-  if (!confirmed) {
+  // Step 1 — confirm the WhatsApp number. The questionnaire (and who this is for)
+  // stays hidden — server-side, not just visually — until the number matches the
+  // one on file. Centered compact card (little content).
+  if (!reveal) {
     const confirmError =
       confirm.error instanceof ApiError ? confirm.error.message : undefined;
     return (
@@ -135,8 +140,8 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
             {s.name}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Olá, {s.studentFirstName}! {s.clinicName} pediu que você preencha
-            esta anamnese. Confirme seu WhatsApp para começar.
+            {s.clinicName} pediu que você preencha esta anamnese. Confirme seu
+            WhatsApp para começar.
           </p>
 
           <div className="mt-6 space-y-5">
@@ -144,9 +149,7 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
               id="confirm-phone"
               label="Seu WhatsApp"
               inputMode="tel"
-              placeholder={
-                s.phoneHint ? `•••• ${s.phoneHint}` : "+55 11 99999-0000"
-              }
+              placeholder="+55 11 99999-0000"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               error={confirmError}
@@ -173,7 +176,7 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        const errs = validateAnswers(s.sections, answers);
+        const errs = validateAnswers(reveal.sections, answers);
         setClientErrors(errs);
         if (Object.keys(errs).length === 0) submit.mutate();
       }}
@@ -185,12 +188,12 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
       </h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
         <CheckCircle2 className="size-4 shrink-0 text-primary" />
-        WhatsApp confirmado. Preencha os campos abaixo, {s.studentFirstName}.
+        WhatsApp confirmado. Preencha os campos abaixo, {reveal.studentFirstName}.
       </p>
 
       <div className="mt-6 space-y-6">
         <AnamnesisFillForm
-          sections={s.sections}
+          sections={reveal.sections}
           answers={answers}
           onAnswer={(key: string, value: AnamnesisAnswerValue) => {
             setAnswers((prev) => ({ ...prev, [key]: value }));

@@ -106,12 +106,19 @@ created via in-app invitations — that address no longer auto-elevates, so it
 can't be used as a standing self-elevation vector. Test:
 `tests/admin-bootstrap.integration.test.ts`.
 
-### L-4 — Secrets in URL + pre-confirm disclosure → **partially fixed**
+### L-4 — Secrets in URL + pre-confirm disclosure → **fixed**
 
-Token-landing pages (`/invite/accept`, `/admin-invite/accept`, `/anamnesis/fill`)
-now send `Referrer-Policy: no-referrer` (per-path override in `next.config.ts`),
-so the credential-bearing URL never leaks via `Referer`. Edge/proxy access-log
-scrubbing of query strings remains an infra-side task.
+- Token-landing pages (`/invite/accept`, `/admin-invite/accept`, `/anamnesis/fill`)
+  send `Referrer-Policy: no-referrer` (per-path override in `next.config.ts`), so
+  the credential-bearing URL never leaks via `Referer`. Edge/proxy access-log
+  scrubbing of query strings remains an infra-side task.
+- **Pre-confirm minimization (anamnese fill):** `GET /api/anamnesis/fill` no
+  longer returns the student's first name, phone-hint or the questionnaire — only
+  `{ valid, clinicName, name }` (no personal data). The identity + questionnaire
+  are withheld **server-side** until the WhatsApp number is confirmed, and are
+  returned by `POST /api/anamnesis/fill/confirm` on a match. A leaked/forwarded
+  fill link can no longer disclose who it's for. (`FillPageState` / `FillRevealDto`
+  in `src/lib/student-anamneses.ts`.)
 
 ### L-5 — Auth defaults not pinned → **fixed**
 
@@ -138,6 +145,37 @@ are unchanged, only the store swaps.
   `${CLOUDFLARED_VERSION:-…}`) instead of `:latest`.
 - `src/proxy.ts` drops the dead `?redirect=` param (never consumed; removed so it
   can't later become an open-redirect).
+
+## PII / GDPR data-return review
+
+A pass over what personal & special-category data the APIs actually return.
+
+**Verdict:** no unauthenticated, cross-tenant or cross-party leak of contact or
+special-category (health) data. Special-category data — anamnese answers,
+check-in weight/measurements/skinfolds, progress photos — is only ever returned
+to the owning aluno or the clinic's coach, behind ownership joins; photo routes
+prove clinic+student ownership before streaming bytes. The aluno portal
+(`getMyProfile`) returns the coach's **name** only — never the coach's e-mail or
+phone.
+
+Changes made from this review:
+
+- **Log redaction (PII):** the logger backstop now redacts `email` and personal
+  names (`firstName`/`lastName`/`studentName`/`fullName`) in addition to phone —
+  so a stray `logger.info("…", { email })` can't leak a data subject into the log
+  stream. The bare key `name` is intentionally NOT redacted (it collides with
+  `Error.name`, a diagnostic); personal names are logged under the `*name`
+  variants, which are. Correlate by `userId`/`clinicId` instead.
+- **Data minimization (student payload):** the student API responses drop the
+  internal `clinicId`/`coachId`/`userId` FKs the client never uses (via
+  `toStudentDto`); the account relationship the UI needs is still exposed through
+  the derived `hasAccount` flag.
+- **Pre-confirm minimization:** see L-4 above.
+
+Accepted as-is: platform admins (`role = "admin"`) see cross-clinic student
+contact data by design — that's a controller function, gated by
+`getAdminSession()`. Coaches see their own students' full contact data (email,
+phone, goal) — legitimate for the processor relationship.
 
 ## Verified-safe (unchanged)
 

@@ -33,9 +33,16 @@ export type LogFields = Record<string, unknown> & { err?: unknown };
  * Keys whose values must never reach the logs. Matched case-insensitively on
  * the whole key name, at any depth. Keep this list ahead of what call sites
  * might accidentally pass (form bodies, headers, env-derived values).
+ *
+ * PII (GDPR): e-mail, phone and personal names are redacted here as a backstop
+ * so a stray `logger.info("…", { email })` can't leak a data subject's identity
+ * into the log stream. Note the intentional gap: the bare key `name` is NOT
+ * matched — it collides with `Error.name` (a diagnostic, not PII) — so personal
+ * names are logged under `firstName`/`lastName`/`studentName`/`fullName`, which
+ * ARE matched. Correlate records by `userId`/`clinicId` instead of raw PII.
  */
 const SENSITIVE =
-  /^(password|otp|token|token_?hash|secret|authorization|cookie|set-cookie|access_?token|refresh_?token|id_?token|database_?url|better_auth_secret|resend_api_key|google_client_secret|phone|whatsapp)$/i;
+  /^(password|otp|token|token_?hash|secret|authorization|cookie|set-cookie|access_?token|refresh_?token|id_?token|database_?url|better_auth_secret|resend_api_key|google_client_secret|phone|whatsapp|email|first_?name|last_?name|full_?name|student_?name)$/i;
 
 function serializeError(err: unknown): unknown {
   if (err instanceof Error) {

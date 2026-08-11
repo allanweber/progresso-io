@@ -15,18 +15,15 @@ import { logger, withRoute } from "@/server/observability";
  * and the student confirms their WhatsApp number to unlock the form). Mirrors
  * the invite-accept public flow.
  *
- * GET  ?token=…            → the questionnaire + who it's for (or {valid:false}).
+ * GET  ?token=…            → ONLY whether the link is valid + the clinic/title
+ *   (no PII). The student's name, phone hint and the questionnaire are withheld
+ *   until the WhatsApp number is confirmed — see /confirm — so a leaked link
+ *   can't disclose who it's for.
  * POST { token, phone, answers } → submits the answers once the confirmed number
  *   matches the one on file; raises the clinic's `anamnesis_completed`
  *   notification. Number-confirm attempts are rate-limited per token (shared with
  *   the /confirm endpoint that gates the questionnaire).
  */
-
-/** Last 4 digits of a normalized number, to hint the confirm field. */
-function phoneHintOf(phone: string | null): string {
-  const d = (phone ?? "").replace(/\D/g, "");
-  return d.length >= 4 ? d.slice(-4) : "";
-}
 
 export const GET = withRoute("anamneseFill.check", async (request) => {
   const token = new URL(request.url).searchParams.get("token");
@@ -36,14 +33,12 @@ export const GET = withRoute("anamneseFill.check", async (request) => {
   const found = await studentAnamneses.findByFillToken(db, token);
   if (!found) return NextResponse.json(empty);
 
+  // Minimal, PII-free: only the clinic name + anamnese title (both non-personal)
+  // so the confirm gate can render. Identity + questionnaire come after confirm.
   const state: FillPageState = {
     valid: true,
-    studentAnamnesisId: found.studentAnamnesis.id,
-    studentFirstName: found.student.firstName,
     clinicName: found.clinicName,
     name: found.studentAnamnesis.name,
-    sections: found.studentAnamnesis.sections,
-    phoneHint: phoneHintOf(found.student.phone),
   };
   return NextResponse.json(state);
 });
