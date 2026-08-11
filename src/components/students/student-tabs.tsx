@@ -34,14 +34,16 @@ export function StudentTabs({ studentId }: { studentId: string }) {
     },
   ];
   return (
-    <div className="border-b border-border">
+    // Five tabs overflow narrow widths — scroll horizontally instead of
+    // wrapping/clipping, and keep each label on a single line.
+    <div className="overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <nav className="-mb-px flex gap-1" aria-label="Seções do aluno">
         {tabs.map((t) => (
           <Link
             key={t.href}
             href={t.href}
             aria-current={t.active ? "page" : undefined}
-            className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               t.active
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
