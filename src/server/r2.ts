@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { NextResponse } from "next/server";
@@ -44,19 +46,14 @@ export function isR2Configured(): boolean {
   return r2Env() !== null;
 }
 
-/**
- * Uploads one image to R2 and returns its stored key (`custom/<uuid>.<ext>`,
- * without the prefix). Throws if R2 isn't configured — callers must guard with
- * {@link isR2Configured} first (the route does, answering a friendly 503).
- */
-export async function putExerciseImage(
+/** Sends one PutObject to R2, applying the `R2_PREFIX` to the stored key. */
+async function r2PutObject(
+  env: NonNullable<ReturnType<typeof r2Env>>,
+  key: string,
   body: Buffer,
   contentType: string,
-): Promise<string> {
-  const env = r2Env();
-  if (!env) throw new Error("R2 not configured");
-  const ext = ALLOWED_TYPES[contentType] ?? "jpg";
-  const key = `custom/${randomUUID()}.${ext}`;
+  cacheControl: string,
+): Promise<void> {
   const prefix = env.R2_PREFIX ? `${env.R2_PREFIX.replace(/\/+$/, "")}/` : "";
   const s3 = new S3Client({
     region: "auto",
@@ -77,9 +74,25 @@ export async function putExerciseImage(
       Key: prefix + key,
       Body: body,
       ContentType: contentType,
-      CacheControl: "public, max-age=31536000, immutable",
+      CacheControl: cacheControl,
     }),
   );
+}
+
+/**
+ * Uploads one image to R2 and returns its stored key (`custom/<uuid>.<ext>`,
+ * without the prefix). Throws if R2 isn't configured — callers must guard with
+ * {@link isR2Configured} first (the route does, answering a friendly 503).
+ */
+export async function putExerciseImage(
+  body: Buffer,
+  contentType: string,
+): Promise<string> {
+  const env = r2Env();
+  if (!env) throw new Error("R2 not configured");
+  const ext = ALLOWED_TYPES[contentType] ?? "jpg";
+  const key = `custom/${randomUUID()}.${ext}`;
+  await r2PutObject(env, key, body, contentType, "public, max-age=31536000, immutable");
   return key;
 }
 
@@ -135,4 +148,74 @@ export async function receiveExerciseImage(
   const buffer = Buffer.from(await file.arrayBuffer());
   const key = await putExerciseImage(buffer, file.type);
   return { ok: true, key };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Check-in photos                                                            */
+/*                                                                            */
+/*  Progress photos captured in the aluno portal. Unlike exercise images       */
+/*  (public catalog art), these are private and write-only for now — stored     */
+/*  under a `checkins/` prefix but not served back this release. When R2 is      */
+/*  configured they go to R2; when it isn't (local dev + e2e/CI) they fall back  */
+/*  to a gitignored local dir, so the full submit flow works without creds.      */
+/* -------------------------------------------------------------------------- */
+
+/** Compressed uploads are small; this is a generous server-side backstop. */
+export const CHECKIN_PHOTO_MAX_BYTES = 3 * 1024 * 1024; // 3 MB
+/** Where the fallback writes when R2 is unconfigured (gitignored). */
+const LOCAL_UPLOAD_DIR = ".uploads";
+
+const checkinPhotoMetaSchema = z.object({
+  type: z.enum(Object.keys(ALLOWED_TYPES) as [string, ...string[]], {
+    error: "Envie uma imagem JPG, PNG ou WEBP.",
+  }),
+  size: z
+    .number()
+    .positive("Arquivo vazio.")
+    .max(CHECKIN_PHOTO_MAX_BYTES, "Imagem muito grande após a compressão."),
+});
+
+/**
+ * Validates one already-compressed photo's type + size, returning a PT-BR
+ * message on failure. The client compresses before upload, so this only catches
+ * a bad/oversized blob slipping through.
+ */
+export function validateCheckinPhoto(
+  file: File,
+): { ok: true } | { ok: false; message: string } {
+  const parsed = checkinPhotoMetaSchema.safeParse({
+    type: file.type,
+    size: file.size,
+  });
+  if (parsed.success) return { ok: true };
+  return {
+    ok: false,
+    message: parsed.error.issues[0]?.message ?? "Imagem inválida.",
+  };
+}
+
+/**
+ * Stores one check-in photo and returns its key (`checkins/<uuid>.<ext>`,
+ * without any bucket prefix). Uploads to R2 when configured; otherwise writes to
+ * the gitignored `.uploads/` dir so dev + e2e work without cloud creds. The key
+ * shape is identical either way.
+ */
+export async function putCheckinPhoto(
+  body: Buffer,
+  contentType: string,
+): Promise<string> {
+  const ext = ALLOWED_TYPES[contentType] ?? "jpg";
+  const key = `checkins/${randomUUID()}.${ext}`;
+
+  const env = r2Env();
+  if (env) {
+    await r2PutObject(env, key, body, contentType, "private, max-age=31536000, immutable");
+    return key;
+  }
+
+  // Local-disk fallback (dev/e2e): write under .uploads/, creating the dir.
+  const abs = path.join(process.cwd(), LOCAL_UPLOAD_DIR, key);
+  await mkdir(path.dirname(abs), { recursive: true });
+  await writeFile(abs, body);
+  return key;
 }

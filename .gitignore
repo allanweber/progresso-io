@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local-disk fallback for uploads when R2 isn't configured (dev/e2e)
+.uploads/
+
 # vercel
 .vercel
 

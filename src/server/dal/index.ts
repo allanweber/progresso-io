@@ -16,6 +16,7 @@ export * as invitations from "./invitations";
 export * as notifications from "./notifications";
 export * as plans from "./plans";
 export * as studentAnamneses from "./student-anamneses";
+export * as studentCheckins from "./student-checkins";
 export * as studentDiets from "./student-diets";
 export * as studentPortal from "./student-portal";
 export * as students from "./students";
