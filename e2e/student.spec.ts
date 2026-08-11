@@ -141,12 +141,10 @@ test.describe("aluno portal", () => {
   test("submits a check-in with the four photos and a live upload bar (desktop + mobile)", async ({
     page,
   }) => {
-    // A tiny solid PNG stands in for each pose photo; the browser compresses it
-    // client-side before upload (storage falls back to local disk in e2e).
-    const IMG = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-      "base64",
-    );
+    // A real gradient image stands in for each pose photo; the browser
+    // compresses it client-side before upload (storage falls back to local disk
+    // in e2e).
+    const POSE_FIXTURE = "e2e/fixtures/pose.png";
     const POSES = [
       "Pose de frente",
       "Pose de costas",
@@ -159,8 +157,15 @@ test.describe("aluno portal", () => {
     await page.getByRole("button", { name: "Aceitar" }).click();
     await page.getByRole("button", { name: "Check-in" }).first().click();
 
+    // The header reflects the clinic's check-in cadence (Configurações). The
+    // frequency word is not hardcoded here: the coach `settings` project runs in
+    // parallel against the same seeded clinic and may change it, so match any
+    // cadence — the point is that the clinic config drives this text.
     await expect(
-      page.getByRole("heading", { name: "Check-in semanal" }),
+      page.getByRole("heading", { name: /^Check-in (semanal|quinzenal|mensal)$/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/(Semanal|Quinzenal|Mensal) · /),
     ).toBeVisible();
     await expect(page.getByText("Como tirar as fotos")).toBeVisible();
 
@@ -175,7 +180,7 @@ test.describe("aluno portal", () => {
     for (const label of POSES) {
       await page
         .getByLabel(`Enviar ${label}`)
-        .setInputFiles({ name: "pose.png", mimeType: "image/png", buffer: IMG });
+        .setInputFiles(POSE_FIXTURE);
       await expect(
         page.getByRole("button", { name: `Remover ${label}` }),
       ).toBeVisible();
@@ -203,17 +208,49 @@ test.describe("aluno portal", () => {
       fullPage: true,
     });
 
+    // Open the just-submitted check-in → modal shows the note + the pose photos.
+    await page.getByRole("button", { name: /71,2 kg/ }).first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByText("Semana ótima, bati todas as séries."),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("img", { name: "Pose de frente" }),
+    ).toBeVisible();
+    await expect(dialog.getByRole("img")).toHaveCount(4);
+    // Wait for the four photos to actually decode before capturing (a visible
+    // <img> isn't necessarily loaded), so the shot shows the real images.
+    await expect
+      .poll(() =>
+        dialog
+          .getByRole("img")
+          .evaluateAll((imgs) =>
+            imgs.every(
+              (i) =>
+                (i as HTMLImageElement).complete &&
+                (i as HTMLImageElement).naturalWidth > 0,
+            ),
+          ),
+      )
+      .toBe(true);
+    await dialog.screenshot({
+      path: "test-results/screens/portal-checkin-detail-desktop.png",
+    });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
     // --- Mobile --- the check-in form on a phone viewport.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Check-in" }).first().click();
     await expect(
-      page.getByRole("heading", { name: "Check-in semanal" }),
+      page.getByRole("heading", { name: /^Check-in (semanal|quinzenal|mensal)$/ }),
     ).toBeVisible();
     await page.getByLabel("Peso atual (kg)").fill("71,2");
     for (const label of POSES) {
       await page
         .getByLabel(`Enviar ${label}`)
-        .setInputFiles({ name: "pose.png", mimeType: "image/png", buffer: IMG });
+        .setInputFiles(POSE_FIXTURE);
       await expect(
         page.getByRole("button", { name: `Remover ${label}` }),
       ).toBeVisible();

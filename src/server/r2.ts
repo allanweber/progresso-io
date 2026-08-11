@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { NextResponse } from "next/server";
 
 import { z } from "@/lib/validation";
@@ -218,4 +218,76 @@ export async function putCheckinPhoto(
   await mkdir(path.dirname(abs), { recursive: true });
   await writeFile(abs, body);
   return key;
+}
+
+const EXT_CONTENT_TYPE: Record<string, string> = {
+  webp: "image/webp",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+};
+
+/** Content-type for a stored key, by extension (defaults to JPEG). */
+function contentTypeForKey(key: string): string {
+  const ext = key.split(".").pop()?.toLowerCase() ?? "";
+  return EXT_CONTENT_TYPE[ext] ?? "image/jpeg";
+}
+
+/**
+ * Reads one check-in photo back by its stored key — from R2 when configured,
+ * otherwise from the local `.uploads/` fallback. Returns null if the object is
+ * missing (e.g. a seeded placeholder key with no file), so the route can answer
+ * with a labeled placeholder instead of a broken image.
+ */
+export async function readCheckinPhoto(
+  key: string,
+): Promise<{ body: Buffer; contentType: string } | null> {
+  const contentType = contentTypeForKey(key);
+  const env = r2Env();
+  if (env) {
+    try {
+      const prefix = env.R2_PREFIX
+        ? `${env.R2_PREFIX.replace(/\/+$/, "")}/`
+        : "";
+      const s3 = new S3Client({
+        region: "auto",
+        endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: env.R2_ACCESS_KEY_ID,
+          secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+        },
+        requestChecksumCalculation: "WHEN_REQUIRED",
+        responseChecksumValidation: "WHEN_REQUIRED",
+      });
+      const res = await s3.send(
+        new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: prefix + key }),
+      );
+      const bytes = await res.Body?.transformToByteArray();
+      if (!bytes) return null;
+      return { body: Buffer.from(bytes), contentType };
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const abs = path.join(process.cwd(), LOCAL_UPLOAD_DIR, key);
+    const body = await readFile(abs);
+    return { body, contentType };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A small labeled SVG placeholder (theme-neutral), used when a photo's bytes
+ * aren't available — e.g. seeded demo check-ins whose keys point at no file.
+ */
+export function checkinPhotoPlaceholder(label: string): {
+  body: Buffer;
+  contentType: string;
+} {
+  const safe = label.replace(/[<>&]/g, "");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2e8f0"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient></defs><rect width="400" height="500" fill="url(#g)"/><g fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(176 214)"><rect x="0" y="8" width="48" height="40" rx="6"/><circle cx="24" cy="30" r="10"/><path d="M14 8l5-8h10l5 8"/></g><text x="200" y="300" fill="#64748b" font-family="system-ui, sans-serif" font-size="20" font-weight="600" text-anchor="middle">${safe}</text></svg>`;
+  return { body: Buffer.from(svg), contentType: "image/svg+xml" };
 }

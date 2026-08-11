@@ -98,3 +98,20 @@ export type CheckinListDto = {
   /** Only entries that carry a weight, oldest → newest (for the chart). */
   weightSeries: WeightPointDto[];
 };
+
+/** One stored photo of a check-in (the id resolves to its bytes via the route). */
+export type CheckinPhotoDto = { id: string; pose: CheckinPose };
+
+/**
+ * A single check-in's full detail, for the modal opened from the history — adds
+ * the photos. Their bytes are streamed, owner-scoped, from
+ * `/api/student/checkin/<id>/photo/<photoId>`.
+ */
+export type CheckinDetailDto = {
+  id: string;
+  date: string;
+  author: CheckinAuthor;
+  weightKg: number | null;
+  note: string | null;
+  photos: CheckinPhotoDto[];
+};

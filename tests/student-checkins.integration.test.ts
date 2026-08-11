@@ -142,6 +142,35 @@ describe("student check-ins", () => {
     );
   });
 
+  it("exposes a check-in's detail + photos, owner-scoped", async () => {
+    const created = await studentCheckins.createStudentCheckin(alunoCtxA, {
+      weightKg: 70.5,
+      note: "Detalhe.",
+      photos: fourPhotos,
+    });
+
+    const detail = await studentCheckins.getMyCheckin(alunoCtxA, created!.id);
+    expect(detail).not.toBeNull();
+    expect(detail!.photos).toHaveLength(4);
+    expect(new Set(detail!.photos.map((p) => p.pose))).toEqual(
+      new Set(schema.CHECKIN_POSES),
+    );
+
+    const photoId = detail!.photos[0].id;
+    const photo = await studentCheckins.getMyCheckinPhoto(
+      alunoCtxA,
+      created!.id,
+      photoId,
+    );
+    expect(photo?.r2Key).toContain("checkins/");
+
+    // Another clinic's aluno can read neither the detail nor a photo.
+    expect(await studentCheckins.getMyCheckin(alunoCtxB, created!.id)).toBeNull();
+    expect(
+      await studentCheckins.getMyCheckinPhoto(alunoCtxB, created!.id, photoId),
+    ).toBeNull();
+  });
+
   it("scopes reads + writes to the caller's own student", async () => {
     // Clinic B's aluno never sees clinic A's check-ins.
     const bList = await studentCheckins.listMyCheckins(alunoCtxB);

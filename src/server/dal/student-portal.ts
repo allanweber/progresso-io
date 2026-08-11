@@ -60,6 +60,8 @@ export async function getMyProfile(
       goal: schema.students.goal,
       coachName: coach.name,
       clinicName: schema.clinic.name,
+      feedbackFrequency: schema.clinic.feedbackFrequency,
+      feedbackPreferredDay: schema.clinic.feedbackPreferredDay,
     })
     .from(schema.students)
     .innerJoin(schema.clinic, eq(schema.clinic.id, schema.students.clinicId))
@@ -77,6 +79,8 @@ export async function getMyProfile(
     coachName: row.coachName,
     clinicName: row.clinicName,
     goal: row.goal,
+    feedbackFrequency: row.feedbackFrequency,
+    feedbackPreferredDay: row.feedbackPreferredDay,
   };
 }
 

@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import type { CheckinPose } from "@/db/schema";
 import type {
+  CheckinDetailDto,
   CheckinDto,
   CheckinListDto,
   WeightPointDto,
@@ -171,4 +172,86 @@ export async function listMyCheckins(
     .reverse();
 
   return { checkins, weightSeries };
+}
+
+/**
+ * One check-in's full detail (its photos included), for the history modal.
+ * Scoped to the aluno's own student; returns null when not found/allowed. Photo
+ * keys are NOT exposed — the client resolves bytes by photo id through the
+ * owner-scoped photo route.
+ */
+export async function getMyCheckin(
+  ctx: TenantContext,
+  checkinId: string,
+): Promise<CheckinDetailDto | null> {
+  const studentId = await ownStudentId(ctx);
+  if (!studentId) return null;
+
+  const [row] = await ctx.db
+    .select({
+      id: schema.studentCheckin.id,
+      date: schema.studentCheckin.date,
+      author: schema.studentCheckin.author,
+      weightKg: schema.studentCheckin.weightKg,
+      note: schema.studentCheckin.note,
+    })
+    .from(schema.studentCheckin)
+    .where(
+      and(
+        eq(schema.studentCheckin.id, checkinId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+        eq(schema.studentCheckin.studentId, studentId),
+      ),
+    );
+  if (!row) return null;
+
+  const photos = await ctx.db
+    .select({
+      id: schema.studentCheckinPhoto.id,
+      pose: schema.studentCheckinPhoto.pose,
+    })
+    .from(schema.studentCheckinPhoto)
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+      ),
+    )
+    .orderBy(schema.studentCheckinPhoto.sortOrder);
+
+  return { ...row, photos };
+}
+
+/**
+ * One photo's stored key + pose, scoped to the aluno's own check-in (the join
+ * enforces ownership: photo → check-in → this student in this clinic). Null when
+ * not found/allowed. The route streams the bytes for this key.
+ */
+export async function getMyCheckinPhoto(
+  ctx: TenantContext,
+  checkinId: string,
+  photoId: string,
+): Promise<{ r2Key: string; pose: CheckinPose } | null> {
+  const studentId = await ownStudentId(ctx);
+  if (!studentId) return null;
+
+  const [row] = await ctx.db
+    .select({
+      r2Key: schema.studentCheckinPhoto.r2Key,
+      pose: schema.studentCheckinPhoto.pose,
+    })
+    .from(schema.studentCheckinPhoto)
+    .innerJoin(
+      schema.studentCheckin,
+      eq(schema.studentCheckinPhoto.checkinId, schema.studentCheckin.id),
+    )
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.id, photoId),
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+        eq(schema.studentCheckin.studentId, studentId),
+      ),
+    );
+  return row ?? null;
 }

@@ -5,6 +5,7 @@
  * supplies an id (see `src/server/dal/student-portal.ts`).
  */
 
+import type { FeedbackFrequency, Weekday } from "@/db/schema";
 import type {
   StudentDietHistoryDto,
   StudentDietPublishedDto,
@@ -26,6 +27,10 @@ export type AlunoProfileDto = {
   clinicName: string;
   /** The training goal (objetivo), or null if unset — the badge is hidden then. */
   goal: string | null;
+  /** The clinic's check-in cadence (set by the coach in Configurações). */
+  feedbackFrequency: FeedbackFrequency;
+  /** The clinic's preferred check-in weekday. */
+  feedbackPreferredDay: Weekday;
 };
 
 /**
