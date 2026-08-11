@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -16,6 +18,25 @@ import { attachUserToClinic, createClinicForOwner } from "@/server/dal/clinics";
 
 /** OTP validity window, in seconds. */
 const OTP_EXPIRES_IN = 60 * 10;
+
+/**
+ * Set for the async context of a token-based account activation (aluno invite /
+ * admin invite accept). Those flows create the login with `signUpEmail` and
+ * then force `emailVerified: true` themselves — the invite token already proves
+ * the address — so Better Auth's automatic "verification OTP on sign-up" would
+ * e-mail the user a code they never need. When this store is active, that
+ * verification send is skipped. Coach self sign-up (/register) and
+ * password-reset are unaffected and still send normally.
+ */
+const suppressVerificationEmail = new AsyncLocalStorage<true>();
+
+/**
+ * Runs `fn` with the sign-up verification OTP suppressed — wrap the
+ * `auth.api.signUpEmail` call in the invite/admin accept routes.
+ */
+export function withoutVerificationEmail<T>(fn: () => Promise<T>): Promise<T> {
+  return suppressVerificationEmail.run(true, fn);
+}
 
 type CreateAuthOptions = {
   /** Drizzle client. Injectable so tests can run against an in-memory DB. */
@@ -160,6 +181,16 @@ export function createAuth({
         // Wrong-code attempts before the OTP is invalidated.
         allowedAttempts: 3,
         sendVerificationOTP: async ({ email, otp, type }) => {
+          // Skip the sign-up verification e-mail during a token-based account
+          // activation (invite accept), which force-verifies the address itself.
+          // Only the "email-verification" send is suppressed — a sign-in or
+          // password-reset OTP is never affected.
+          if (
+            type === "email-verification" &&
+            suppressVerificationEmail.getStore()
+          ) {
+            return;
+          }
           await sendOtp({ email, otp, type });
         },
       }),
