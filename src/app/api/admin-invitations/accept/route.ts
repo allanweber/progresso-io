@@ -3,7 +3,7 @@ import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
 
 import { db, schema } from "@/db";
-import { auth } from "@/lib/auth";
+import { auth, withoutVerificationEmail } from "@/lib/auth";
 import { acceptInviteSchema } from "@/lib/students";
 import { adminInvitations } from "@/server/dal";
 import { apiError, readJson, validationError } from "@/server/api";
@@ -50,9 +50,13 @@ export const POST = withRoute("adminInvite.accept", async (request) => {
   // Create the login. Sign-up auto-bootstraps a clinic for any new user; we then
   // promote them to admin and drop that throwaway clinic (admins have no clinic).
   try {
-    await auth.api.signUpEmail({
-      body: { name: invite.name, email: invite.email, password },
-    });
+    // The invite token proves the address and we force-verify below, so suppress
+    // Better Auth's automatic sign-up verification OTP — the admin needs none.
+    await withoutVerificationEmail(() =>
+      auth.api.signUpEmail({
+        body: { name: invite.name, email: invite.email, password },
+      }),
+    );
   } catch (error) {
     if (
       error instanceof APIError &&

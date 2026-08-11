@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
-import { createAuth } from "@/lib/auth";
+import { createAuth, withoutVerificationEmail } from "@/lib/auth";
 import { students as studentsDal } from "@/server/dal";
 
 import { createTestDb, type TestDb } from "./pglite";
@@ -152,6 +152,34 @@ describe("clinic tenant bootstrap", () => {
       .where(eq(schema.user.email, "boss@example.com"));
     expect(admin.role).toBe("admin"); // from ADMIN_EMAIL
     expect(admin.clinicId).toBeNull(); // admins live outside any clinic
+  });
+});
+
+describe("invite activation suppresses the sign-up verification OTP", () => {
+  it("emails no verification OTP on a suppressed sign-up, but a normal one still does", async () => {
+    // Baseline: an ordinary sign-up (coach /register) still e-mails an OTP.
+    const normalEmail = "normal-signup@example.com";
+    await auth.api.signUpEmail({
+      body: { name: "Normal User", email: normalEmail, password },
+    });
+    expect(latestOtp(normalEmail, "email-verification")).toMatch(/^\d{6}$/);
+
+    // The invite/admin accept path wraps signUpEmail in withoutVerificationEmail:
+    // the login is created, but NO verification OTP is ever sent (the route
+    // force-verifies the address itself, so the code would be noise).
+    const invitedEmail = "invited-aluno@example.com";
+    await withoutVerificationEmail(() =>
+      auth.api.signUpEmail({
+        body: { name: "Invited Aluno", email: invitedEmail, password },
+      }),
+    );
+
+    const [row] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, invitedEmail));
+    expect(row).toBeTruthy(); // the account was created…
+    expect(captured.some((c) => c.email === invitedEmail)).toBe(false); // …no OTP
   });
 });
 

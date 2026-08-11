@@ -3,7 +3,7 @@ import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
 
 import { db, schema } from "@/db";
-import { auth } from "@/lib/auth";
+import { auth, withoutVerificationEmail } from "@/lib/auth";
 import { acceptInviteSchema } from "@/lib/students";
 import { invitations, students } from "@/server/dal";
 import { apiError, readJson, validationError } from "@/server/api";
@@ -63,8 +63,13 @@ export const POST = withRoute("invite.accept", async (request) => {
   // then move the aluno into the inviting clinic and drop that throwaway one —
   // the same provisioning the seed performs for its aluno.
   const name = `${student.firstName} ${student.lastName}`.trim();
+  const email = student.email; // narrowed to string by the guard above
   try {
-    await auth.api.signUpEmail({ body: { name, email: student.email, password } });
+    // Activating from an invite force-verifies the e-mail below, so suppress
+    // Better Auth's automatic sign-up verification OTP — the aluno needs none.
+    await withoutVerificationEmail(() =>
+      auth.api.signUpEmail({ body: { name, email, password } }),
+    );
   } catch (error) {
     if (
       error instanceof APIError &&
