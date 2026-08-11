@@ -21,11 +21,14 @@ async function openAnaFeedback(page: import("@playwright/test").Page) {
   // name cell bubbles to the row's onClick. Scope to the table so the (hidden)
   // mobile card list never matches.
   await page.getByRole("table").getByText("Ana Aluna").first().click();
-  await expect(page.getByRole("heading", { name: "Ana Aluna" })).toBeVisible();
+  // The ficha route compiles cold on the first CI hit — allow for it.
+  await expect(page.getByRole("heading", { name: "Ana Aluna" })).toBeVisible({
+    timeout: 20000,
+  });
   await page.getByRole("link", { name: "Feedback" }).click();
   await expect(
     page.getByRole("heading", { name: "Timeline de feedback" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 20000 });
 }
 
 test.describe("coach feedback", () => {
@@ -104,24 +107,28 @@ test.describe("coach feedback", () => {
     await page.getByRole("link", { name: "Evolução" }).click();
 
     // Weight chart + the Medidas Δ table (seeded two assessments) + photos.
-    await expect(page.getByText("Peso ao longo do tempo")).toBeVisible();
+    // The evolution route (and its photo route) compile cold in CI — allow time.
+    await expect(page.getByText("Peso ao longo do tempo")).toBeVisible({
+      timeout: 20000,
+    });
     await expect(page.getByText("Fotos comparáveis")).toBeVisible();
     // The Medidas Δ table (seeded two assessments): the Cintura row is unique.
-    await expect(
-      page.getByRole("cell", { name: /Cintura/ }),
-    ).toBeVisible();
-    // Wait for the comparable photos to decode before the shot.
+    await expect(page.getByRole("cell", { name: /Cintura/ })).toBeVisible();
+    // Wait for the (first) comparable photo to actually decode before the shot —
+    // scoped to one image, with a generous timeout for the cold photo route.
+    const comparePhoto = page
+      .getByRole("img", { name: "Pose de frente" })
+      .first();
+    await expect(comparePhoto).toBeVisible({ timeout: 20000 });
     await expect
-      .poll(() =>
-        page
-          .getByRole("img")
-          .evaluateAll((imgs) =>
-            imgs.every(
-              (i) =>
-                (i as HTMLImageElement).complete &&
-                (i as HTMLImageElement).naturalWidth > 0,
-            ),
+      .poll(
+        () =>
+          comparePhoto.evaluate(
+            (i) =>
+              (i as HTMLImageElement).complete &&
+              (i as HTMLImageElement).naturalWidth > 0,
           ),
+        { timeout: 20000 },
       )
       .toBe(true);
     await page.screenshot({
