@@ -11,15 +11,17 @@ const POSE_FIXTURE = "e2e/fixtures/pose.png";
 
 async function openAnaFeedback(page: import("@playwright/test").Page) {
   await page.goto("/coach/students");
-  // Dismiss the app-wide cookie banner if present (fixed bottom bar).
+  // Dismiss the app-wide cookie banner if present (short-timeout, optional).
   await page
     .getByRole("button", { name: "Aceitar" })
-    .click()
+    .click({ timeout: 3000 })
     .catch(() => {});
-  await page.getByRole("link", { name: "Ana Aluna" }).first().click();
-  await expect(
-    page.getByRole("heading", { name: "Ana Aluna" }),
-  ).toBeVisible();
+  // The desktop roster is a table whose ROWS navigate on click (router.push) —
+  // there's no name link on desktop (that's the mobile card view). Clicking the
+  // name cell bubbles to the row's onClick. Scope to the table so the (hidden)
+  // mobile card list never matches.
+  await page.getByRole("table").getByText("Ana Aluna").first().click();
+  await expect(page.getByRole("heading", { name: "Ana Aluna" })).toBeVisible();
   await page.getByRole("link", { name: "Feedback" }).click();
   await expect(
     page.getByRole("heading", { name: "Timeline de feedback" }),
