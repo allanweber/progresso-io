@@ -67,9 +67,18 @@ support correlation and are lower-sensitivity than a full phone/OTP/token.
 
 ### M-3 — `BETTER_AUTH_SECRET` not asserted → **fixed**
 
-`createAuth` (`src/lib/auth.ts`) now throws at boot in production when the secret
-is missing or shorter than 32 chars — fail fast instead of degrading session
-signing silently (mirrors the `DATABASE_URL` guard in `src/db/index.ts`).
+`createAuth` (`src/lib/auth.ts`) throws in production when the secret is missing
+or shorter than 32 chars — fail fast instead of degrading session signing
+silently (mirrors the `DATABASE_URL` guard in `src/db/index.ts`).
+
+The check is **skipped during `next build`** (guarded by
+`NEXT_PHASE !== "phase-production-build"`): the production build runs with
+`NODE_ENV=production` but the secret is a runtime-only env (set in the deploy
+environment, not a build arg), so asserting during the build's page-data
+collection would break the Docker build. At runtime (`node server.js`,
+`NEXT_PHASE` unset) the guard still fires. Verified by reproducing the deploy
+condition — `NODE_ENV=production` with no secret and no `.env.local` — and
+confirming the build now completes.
 
 ## Low
 

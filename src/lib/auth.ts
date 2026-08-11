@@ -66,11 +66,18 @@ export function createAuth({
     !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
   // Session tokens are signed with this secret; an unset/weak one makes sessions
-  // forgeable. Fail fast at boot in production rather than degrade silently
+  // forgeable. Fail fast at RUNTIME in production rather than degrade silently
   // (mirrors the DATABASE_URL guard in src/db/index.ts). Dev/test keep any value.
+  //
+  // The check is skipped during `next build`: the build runs with
+  // NODE_ENV=production but the secret is a runtime-only env (set in the deploy
+  // environment, never a build arg), so asserting here would break the build's
+  // page-data collection. NEXT_PHASE is "phase-production-build" only while
+  // building; at runtime (`node server.js`) it's unset, so the guard still fires.
   const secret = process.env.BETTER_AUTH_SECRET;
   if (
     process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE !== "phase-production-build" &&
     (!secret || secret.length < 32)
   ) {
     throw new Error(
