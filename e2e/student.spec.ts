@@ -157,12 +157,16 @@ test.describe("aluno portal", () => {
     await page.getByRole("button", { name: "Aceitar" }).click();
     await page.getByRole("button", { name: "Check-in" }).first().click();
 
+    // The header reflects the clinic's check-in cadence (Configurações). The
+    // frequency word is not hardcoded here: the coach `settings` project runs in
+    // parallel against the same seeded clinic and may change it, so match any
+    // cadence — the point is that the clinic config drives this text.
     await expect(
-      page.getByRole("heading", { name: "Check-in semanal" }),
+      page.getByRole("heading", { name: /^Check-in (semanal|quinzenal|mensal)$/ }),
     ).toBeVisible();
-    // The clinic's check-in cadence (Configurações) surfaces here — the seed's
-    // clinic defaults to Semanal · Segunda-feira.
-    await expect(page.getByText("Semanal · Segunda-feira")).toBeVisible();
+    await expect(
+      page.getByText(/(Semanal|Quinzenal|Mensal) · /),
+    ).toBeVisible();
     await expect(page.getByText("Como tirar as fotos")).toBeVisible();
 
     // Weight + note.
@@ -240,7 +244,7 @@ test.describe("aluno portal", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Check-in" }).first().click();
     await expect(
-      page.getByRole("heading", { name: "Check-in semanal" }),
+      page.getByRole("heading", { name: /^Check-in (semanal|quinzenal|mensal)$/ }),
     ).toBeVisible();
     await page.getByLabel("Peso atual (kg)").fill("71,2");
     for (const label of POSES) {
