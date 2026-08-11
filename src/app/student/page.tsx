@@ -639,45 +639,57 @@ function PhotoUploadSlot({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const label = CHECKIN_POSE_LABELS[pose];
+  const ready = slot !== null && !slot.compressing;
 
   return (
-    <div className="rounded-xl border border-dashed border-input bg-white p-2 dark:bg-card">
-      <div className="mb-1.5 text-center text-[11.5px] font-semibold text-foreground">
-        {label}
-      </div>
-
-      {slot && !slot.compressing ? (
-        <div className="relative">
+    <div className="relative aspect-[4/5] overflow-hidden rounded-xl">
+      {ready ? (
+        <>
           {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
           <img
             src={slot.url}
             alt={label}
-            className="h-28 w-full rounded-lg object-cover"
+            className="h-full w-full object-cover"
           />
+          {/* Pose caption over a bottom gradient so it stays legible on any photo. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
+            <span className="text-[11px] font-semibold text-white">{label}</span>
+          </div>
+          <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+            <Check className="size-3" />
+          </span>
           <button
             type="button"
             onClick={onRemove}
             disabled={disabled}
             aria-label={`Remover ${label}`}
-            className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75 disabled:opacity-50"
+            className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 disabled:opacity-50"
           >
             <X className="size-3.5" />
           </button>
-        </div>
+        </>
       ) : slot?.compressing ? (
-        <div className="flex h-28 flex-col items-center justify-center gap-1.5 text-muted-foreground">
+        <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-muted/30 text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
           <span className="text-[11px]">Comprimindo…</span>
+          <span className="text-[11px] font-semibold text-foreground">
+            {label}
+          </span>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
-          className="flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-lg text-muted-foreground hover:bg-muted/50 disabled:opacity-50"
+          className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-white text-center transition-colors hover:border-primary/60 hover:bg-primary-light/40 disabled:opacity-50 dark:bg-card"
         >
-          <Camera className="size-5" />
-          <span className="text-[11px] font-medium">Adicionar</span>
+          <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Camera className="size-4" />
+          </span>
+          <span className="px-2 text-[11.5px] font-semibold leading-tight text-foreground">
+            {label}
+          </span>
+          <span className="text-[11px] text-muted-foreground">Adicionar</span>
         </button>
       )}
 

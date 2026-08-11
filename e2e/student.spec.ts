@@ -218,9 +218,17 @@ test.describe("aluno portal", () => {
         page.getByRole("button", { name: `Remover ${label}` }),
       ).toBeVisible();
     }
+    // Bring the photo grid into view and capture the VIEWPORT (not fullPage), so
+    // the fixed bottom tab bar shows pinned to the bottom (a fullPage shot would
+    // render the fixed bar mid-image). Assert the bar sits within the viewport.
+    await page.getByText("Como tirar as fotos").scrollIntoViewIfNeeded();
+    const tabBar = page.getByRole("button", { name: "Evolução" }).last();
+    const box = await tabBar.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y).toBeGreaterThan(844 - 120); // near the bottom edge (844 tall)
     await page.screenshot({
       path: "test-results/screens/portal-checkin-mobile.png",
-      fullPage: true,
+      fullPage: false,
     });
   });
 });
