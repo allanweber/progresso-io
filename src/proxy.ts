@@ -12,10 +12,13 @@ export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
-    // Bounce to /login. No `?redirect=` is attached: nothing consumes it, and a
-    // dangling, attacker-controllable return path is an open-redirect waiting to
-    // happen if it were ever wired into a post-login `router.push`.
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Bounce to /login, preserving where the user was headed as `?redirect=` so
+    // the flow can send them back after sign-in. Any consumer of this param MUST
+    // treat it as untrusted and only ever redirect to a same-origin path (never
+    // an absolute URL) to avoid an open redirect.
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

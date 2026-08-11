@@ -137,14 +137,18 @@ are unchanged, only the store swaps.
 
 `src/app/actions/contact.ts` now bounds `name` to `max(120)`.
 
-### L-8 — Unpinned Docker images + dead redirect param → **fixed**
+### L-8 — Unpinned Docker images → **fixed** (redirect param kept)
 
 - `Dockerfile` pins the Node base to an exact patch (`22.13.1-slim`, overridable
   via build-arg; prefer a sha256 digest once the deploy registry is fixed).
 - `docker-compose.yml` pins `cloudflared` to a version (via
   `${CLOUDFLARED_VERSION:-…}`) instead of `:latest`.
-- `src/proxy.ts` drops the dead `?redirect=` param (never consumed; removed so it
-  can't later become an open-redirect).
+- `src/proxy.ts` **retains** the `?redirect=` param. It looked dead (no page
+  consumes it today) but it's part of the intended return-after-login flow and is
+  asserted by `e2e/auth.spec.ts`; removing it is a behavior change, not a security
+  fix. The param is only a risk if a future consumer redirects to it unsafely, so
+  the guidance (documented at the call site) is: any consumer MUST treat it as
+  untrusted and redirect only to a same-origin path, never an absolute URL.
 
 ## PII / GDPR data-return review
 
