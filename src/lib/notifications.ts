@@ -8,7 +8,10 @@
  * their anamnese via the public link (a coach filling it in never notifies).
  */
 
-export const NOTIFICATION_TYPES = ["anamnesis_completed"] as const;
+export const NOTIFICATION_TYPES = [
+  "anamnesis_completed",
+  "checkin_submitted",
+] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /** Payload for `anamnesis_completed`. Denormalized so the bell needs no joins. */
@@ -18,8 +21,16 @@ export type AnamnesisCompletedData = {
   anamnesisName: string;
 };
 
-/** The discriminated payload union (one member for now). */
-export type NotificationData = AnamnesisCompletedData;
+/** Payload for `checkin_submitted`. Denormalized so the bell needs no joins. */
+export type CheckinSubmittedData = {
+  studentId: string;
+  studentName: string;
+  /** The check-in's calendar date, `YYYY-MM-DD`. */
+  checkinDate: string;
+};
+
+/** The discriminated payload union. */
+export type NotificationData = AnamnesisCompletedData | CheckinSubmittedData;
 
 /** A notification row as the bell reads it, plus this coach's read flag. */
 export type NotificationDto = {
@@ -44,6 +55,8 @@ export function notificationTitle(n: {
   switch (n.type) {
     case "anamnesis_completed":
       return `${n.data.studentName} preencheu a anamnese`;
+    case "checkin_submitted":
+      return `${n.data.studentName} enviou um check-in`;
     default:
       return "Nova notificação";
   }
@@ -57,6 +70,8 @@ export function notificationHref(n: {
   switch (n.type) {
     case "anamnesis_completed":
       return `/coach/students/${n.data.studentId}`;
+    case "checkin_submitted":
+      return `/coach/students/${n.data.studentId}/feedback`;
     default:
       return "/coach";
   }

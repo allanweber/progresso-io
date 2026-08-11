@@ -1,24 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
-  Camera,
   Check,
   ChevronRight,
+  Clock,
   Dumbbell,
   LineChart,
   ListChecks,
-  Loader2,
   LogOut,
+  MessageCircle,
   Repeat,
   TrendingDown,
   TrendingUp,
   UtensilsCrossed,
-  X,
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
@@ -64,18 +63,28 @@ import {
   WEEKDAY_LABELS,
 } from "@/lib/clinic-settings";
 import { fieldError } from "@/lib/form";
-import { compressImage } from "@/lib/image-compression";
 import {
   CHECKIN_POSE_INSTRUCTIONS,
   CHECKIN_POSE_LABELS,
   CHECKIN_POSE_VALUES,
   checkinSubmitSchema,
+  formatCheckinDate,
+  formatCheckinWeight,
+  isCheckinPending,
   type CheckinDetailDto,
   type CheckinDto,
   type CheckinListDto,
-  type WeightPointDto,
 } from "@/lib/student-checkins";
-import type { CheckinPose } from "@/db/schema";
+import {
+  anyCompressing as anySlotCompressing,
+  appendPhotos,
+  CheckinPhotoGrid,
+  PhotoUploadSlot,
+  uploadCheckinForm,
+  usePhotoSlots,
+} from "@/components/checkins/photo-upload";
+import { WeightChart } from "@/components/checkins/weight-chart";
+import { AssessmentView } from "@/components/checkins/assessment-view";
 import { cn } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------- */
@@ -337,74 +346,20 @@ export default function StudentPortalPage() {
 /*  Check-in tab (submit this week's check-in)                                  */
 /* -------------------------------------------------------------------------- */
 
-type PhotoSlot = { blob: Blob; url: string; compressing: boolean };
-
-const EMPTY_PHOTOS: Record<CheckinPose, PhotoSlot | null> = {
-  frente: null,
-  costas: null,
-  lado_esquerdo: null,
-  lado_direito: null,
-};
-
-/**
- * POSTs the multipart check-in via XMLHttpRequest — `fetch` can't report upload
- * progress, so we use XHR's `upload.onprogress` to drive a determinate bar tied
- * to the real byte transfer.
- */
-function uploadCheckin(
-  formData: FormData,
-  onProgress: (pct: number) => void,
-): Promise<CheckinDto> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/student/checkin");
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
-      }
-    };
-    xhr.onload = () => {
-      let data: unknown = null;
-      try {
-        data = JSON.parse(xhr.responseText);
-      } catch {
-        /* non-JSON body */
-      }
-      const body = data as {
-        error?: string;
-        fieldErrors?: Record<string, string>;
-      } | null;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(data as CheckinDto);
-      } else {
-        reject(
-          new ApiError(
-            body?.error ?? "Não foi possível enviar o check-in.",
-            xhr.status,
-            body?.fieldErrors,
-          ),
-        );
-      }
-    };
-    xhr.onerror = () =>
-      reject(new ApiError("Falha de conexão ao enviar o check-in.", 0));
-    xhr.send(formData);
-  });
-}
-
 function CheckinTab() {
   const queryClient = useQueryClient();
   const profile = useQuery({
     queryKey: ["student", "profile"],
     queryFn: () => apiFetch<AlunoProfileDto>("/api/student/profile"),
   });
-  const [photos, setPhotos] =
-    useState<Record<CheckinPose, PhotoSlot | null>>(EMPTY_PHOTOS);
+  const { photos, pick: pickPhoto, remove: removePhoto, reset: resetPhotos } =
+    usePhotoSlots();
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (fd: FormData) => uploadCheckin(fd, setProgress),
+    mutationFn: (fd: FormData) =>
+      uploadCheckinForm<CheckinDto>("/api/student/checkin", fd, setProgress),
     onSuccess: () => {
       setDone(true);
       queryClient.invalidateQueries({ queryKey: ["student", "checkin"] });
@@ -418,12 +373,8 @@ function CheckinTab() {
       const fd = new FormData();
       fd.set("weightKg", value.weightKg);
       if (value.note) fd.set("note", value.note);
-      for (const pose of CHECKIN_POSE_VALUES) {
-        const slot = photos[pose];
-        if (!slot) return; // guarded by the button; defensive
-        const ext = slot.blob.type === "image/webp" ? "webp" : "jpg";
-        fd.set(pose, slot.blob, `${pose}.${ext}`);
-      }
+      if (!CHECKIN_POSE_VALUES.every((p) => photos[p])) return; // guarded
+      appendPhotos(fd, photos);
       setProgress(0);
       try {
         await mutation.mutateAsync(fd);
@@ -433,28 +384,8 @@ function CheckinTab() {
     },
   });
 
-  async function pickPhoto(pose: CheckinPose, file: File) {
-    setPhotos((prev) => {
-      if (prev[pose]) URL.revokeObjectURL(prev[pose]!.url);
-      return { ...prev, [pose]: { blob: file, url: "", compressing: true } };
-    });
-    const blob = await compressImage(file);
-    const url = URL.createObjectURL(blob);
-    setPhotos((prev) => ({ ...prev, [pose]: { blob, url, compressing: false } }));
-  }
-
-  function removePhoto(pose: CheckinPose) {
-    setPhotos((prev) => {
-      if (prev[pose]) URL.revokeObjectURL(prev[pose]!.url);
-      return { ...prev, [pose]: null };
-    });
-  }
-
   function reset() {
-    for (const pose of CHECKIN_POSE_VALUES) {
-      if (photos[pose]) URL.revokeObjectURL(photos[pose]!.url);
-    }
-    setPhotos(EMPTY_PHOTOS);
+    resetPhotos();
     setProgress(0);
     setDone(false);
     mutation.reset();
@@ -464,7 +395,7 @@ function CheckinTab() {
   const allPhotos = CHECKIN_POSE_VALUES.every(
     (p) => photos[p] && !photos[p]!.compressing,
   );
-  const anyCompressing = CHECKIN_POSE_VALUES.some((p) => photos[p]?.compressing);
+  const anyCompressing = anySlotCompressing(photos);
   const banner =
     mutation.error instanceof ApiError ? mutation.error.message : undefined;
 
@@ -642,106 +573,9 @@ function CheckinTab() {
   );
 }
 
-/** One pose upload card: empty (pick), compressing (spinner), or a thumbnail. */
-function PhotoUploadSlot({
-  pose,
-  slot,
-  disabled,
-  onPick,
-  onRemove,
-}: {
-  pose: CheckinPose;
-  slot: PhotoSlot | null;
-  disabled: boolean;
-  onPick: (file: File) => void;
-  onRemove: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const label = CHECKIN_POSE_LABELS[pose];
-  const ready = slot !== null && !slot.compressing;
-
-  return (
-    <div className="relative aspect-[4/5] overflow-hidden rounded-xl">
-      {ready ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
-          <img
-            src={slot.url}
-            alt={label}
-            className="h-full w-full object-cover"
-          />
-          {/* Pose caption over a bottom gradient so it stays legible on any photo. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
-            <span className="text-[11px] font-semibold text-white">{label}</span>
-          </div>
-          <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-            <Check className="size-3" />
-          </span>
-          <button
-            type="button"
-            onClick={onRemove}
-            disabled={disabled}
-            aria-label={`Remover ${label}`}
-            className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 disabled:opacity-50"
-          >
-            <X className="size-3.5" />
-          </button>
-        </>
-      ) : slot?.compressing ? (
-        <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-muted/30 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin" />
-          <span className="text-[11px]">Comprimindo…</span>
-          <span className="text-[11px] font-semibold text-foreground">
-            {label}
-          </span>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={disabled}
-          className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-white text-center transition-colors hover:border-primary/60 hover:bg-primary-light/40 disabled:opacity-50 dark:bg-card"
-        >
-          <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Camera className="size-4" />
-          </span>
-          <span className="px-2 text-[11.5px] font-semibold leading-tight text-foreground">
-            {label}
-          </span>
-          <span className="text-[11px] text-muted-foreground">Adicionar</span>
-        </button>
-      )}
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        aria-label={`Enviar ${label}`}
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onPick(file);
-          e.target.value = "";
-        }}
-      />
-    </div>
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /*  Evolução tab (weight chart + check-in history)                             */
 /* -------------------------------------------------------------------------- */
-
-/** "71,4" — one decimal, comma separator (pt-BR). */
-function formatWeightKg(n: number): string {
-  return n.toFixed(1).replace(".", ",");
-}
-
-/** "11/08/2026" from a `YYYY-MM-DD` string, timezone-safe (no Date parsing). */
-function formatIsoDate(d: string): string {
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
 
 function EvolucaoTab() {
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -799,7 +633,7 @@ function EvolucaoTab() {
                 Peso atual
               </div>
               <div className="font-heading text-2xl font-bold tracking-tight">
-                {last !== undefined ? `${formatWeightKg(last)} kg` : "—"}
+                {last !== undefined ? `${formatCheckinWeight(last)} kg` : "—"}
               </div>
             </div>
             {delta !== undefined && delta !== 0 ? (
@@ -817,7 +651,7 @@ function EvolucaoTab() {
                   <TrendingUp className="size-4" />
                 )}
                 {delta < 0 ? "−" : "+"}
-                {formatWeightKg(Math.abs(delta))} kg
+                {formatCheckinWeight(Math.abs(delta))} kg
               </span>
             ) : null}
           </div>
@@ -848,127 +682,6 @@ function EvolucaoTab() {
   );
 }
 
-/** "95,5" short kg number; "11/08" short date for the axis. */
-function shortDate(iso: string): string {
-  const [, m, d] = iso.split("-");
-  return `${d}/${m}`;
-}
-
-/**
- * Inline SVG weight chart: gridlines + min/max/date labels + area + line + dots.
- * Handles a single check-in gracefully (a centered point on a baseline).
- */
-function WeightChart({ series }: { series: WeightPointDto[] }) {
-  const W = 340;
-  const H = 176;
-  const left = 38;
-  const right = W - 12;
-  const top = 14;
-  const bottom = H - 22;
-  const n = series.length;
-
-  const weights = series.map((s) => s.weightKg);
-  const rawMin = Math.min(...weights);
-  const rawMax = Math.max(...weights);
-  const flat = rawMax - rawMin < 0.05;
-  // Pad the range a touch so the line isn't glued to the top/bottom edges.
-  const min = flat ? rawMin - 1 : rawMin - (rawMax - rawMin) * 0.15;
-  const max = flat ? rawMax + 1 : rawMax + (rawMax - rawMin) * 0.15;
-  const span = max - min || 1;
-
-  const x = (i: number) =>
-    n === 1 ? (left + right) / 2 : left + (i / (n - 1)) * (right - left);
-  const y = (w: number) => top + (1 - (w - min) / span) * (bottom - top);
-  const pts = series.map((s, i) => [x(i), y(s.weightKg)] as const);
-
-  const line = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
-    .join(" ");
-  const area = `${line} L${pts[n - 1][0].toFixed(1)} ${bottom} L${pts[0][0].toFixed(1)} ${bottom} Z`;
-
-  const gridYs = [top, (top + bottom) / 2, bottom];
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
-      role="img"
-      aria-label="Gráfico de evolução do peso"
-    >
-      <defs>
-        <linearGradient id="checkinWeight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--primary)" stopOpacity="0.18" />
-          <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      {/* Gridlines */}
-      {gridYs.map((gy, i) => (
-        <line
-          key={i}
-          x1={left}
-          y1={gy}
-          x2={right}
-          y2={gy}
-          stroke="var(--border)"
-          strokeWidth={1}
-          strokeDasharray={i === 2 ? "0" : "3 4"}
-        />
-      ))}
-
-      {/* Y labels: max at top, min at bottom (real range, not the padded one) */}
-      <text x={left - 6} y={top + 4} textAnchor="end" className="fill-muted-foreground" fontSize="10">
-        {formatWeightKg(rawMax)}
-      </text>
-      <text x={left - 6} y={bottom} textAnchor="end" className="fill-muted-foreground" fontSize="10">
-        {formatWeightKg(rawMin)}
-      </text>
-
-      {/* Area + line (only meaningful with 2+ points) */}
-      {n >= 2 ? (
-        <>
-          <path d={area} fill="url(#checkinWeight)" />
-          <path
-            d={line}
-            fill="none"
-            stroke="var(--primary)"
-            strokeWidth={2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-        </>
-      ) : null}
-
-      {/* Dots */}
-      {pts.map((p, i) => (
-        <circle
-          key={i}
-          cx={p[0]}
-          cy={p[1]}
-          r={n === 1 ? 4 : 2.5}
-          fill="var(--primary)"
-        />
-      ))}
-
-      {/* X labels: first + last date (or the single date, centered) */}
-      {n === 1 ? (
-        <text x={(left + right) / 2} y={H - 6} textAnchor="middle" className="fill-muted-foreground" fontSize="10">
-          {shortDate(series[0].date)}
-        </text>
-      ) : (
-        <>
-          <text x={left} y={H - 6} textAnchor="start" className="fill-muted-foreground" fontSize="10">
-            {shortDate(series[0].date)}
-          </text>
-          <text x={right} y={H - 6} textAnchor="end" className="fill-muted-foreground" fontSize="10">
-            {shortDate(series[n - 1].date)}
-          </text>
-        </>
-      )}
-    </svg>
-  );
-}
-
 /** One timeline row (a button): date + weight + note; opens the detail modal. */
 function CheckinRow({
   checkin,
@@ -988,7 +701,7 @@ function CheckinRow({
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="text-[13px] font-semibold">
             {checkin.weightKg !== null
-              ? `${formatWeightKg(checkin.weightKg)} kg`
+              ? `${formatCheckinWeight(checkin.weightKg)} kg`
               : "Anotação"}
           </span>
           {checkin.author === "coach" ? (
@@ -1005,6 +718,17 @@ function CheckinRow({
               {checkin.photoCount === 1 ? "foto" : "fotos"}
             </span>
           ) : null}
+          {checkin.author === "student" ? (
+            isCheckinPending(checkin) ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40">
+                <Clock className="size-3" /> aguardando resposta
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                <MessageCircle className="size-3" /> respondido
+              </span>
+            )
+          ) : null}
         </div>
         {checkin.note ? (
           <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted-foreground">
@@ -1013,7 +737,7 @@ function CheckinRow({
         ) : null}
       </div>
       <span className="flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
-        {formatIsoDate(checkin.date)}
+        {formatCheckinDate(checkin.date)}
         <ChevronRight className="size-3.5" />
       </span>
     </button>
@@ -1043,7 +767,7 @@ function CheckinDetailDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading text-lg">
             {d?.weightKg !== null && d?.weightKg !== undefined
-              ? `${formatWeightKg(d.weightKg)} kg`
+              ? `${formatCheckinWeight(d.weightKg)} kg`
               : "Check-in"}
             {d?.author === "coach" ? (
               <Badge
@@ -1056,7 +780,7 @@ function CheckinDetailDialog({
           </DialogTitle>
           {d ? (
             <p className="text-[12.5px] text-muted-foreground">
-              {formatIsoDate(d.date)}
+              {formatCheckinDate(d.date)}
             </p>
           ) : null}
         </DialogHeader>
@@ -1075,31 +799,36 @@ function CheckinDetailDialog({
               </div>
             ) : null}
 
+            {/* The coach's response (once reviewed). */}
+            {d.feedback ? (
+              <div className="rounded-xl border border-primary/25 bg-primary-light/50 px-3.5 py-3">
+                <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
+                  <MessageCircle className="size-3.5" />
+                  Resposta do coach
+                </div>
+                <p className="whitespace-pre-line text-[13px] text-foreground">
+                  {d.feedback}
+                </p>
+              </div>
+            ) : d.author === "student" ? (
+              <div className="flex items-center gap-1.5 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[12.5px] font-medium text-amber-700 dark:bg-amber-950/30">
+                <Clock className="size-4" />
+                Aguardando resposta do seu coach.
+              </div>
+            ) : null}
+
+            {/* Measures the coach recorded, if any. */}
+            {d.assessment ? <AssessmentView assessment={d.assessment} /> : null}
+
             {d.photos.length > 0 ? (
               <div>
                 <div className="mb-2 text-xs font-medium text-muted-foreground">
                   Fotos
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {d.photos.map((p) => (
-                    <div
-                      key={p.id}
-                      className="relative aspect-[4/5] overflow-hidden rounded-xl bg-muted"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- owner-scoped API stream */}
-                      <img
-                        src={`/api/student/checkin/${d.id}/photo/${p.id}`}
-                        alt={CHECKIN_POSE_LABELS[p.pose]}
-                        className="h-full w-full object-cover"
-                      />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
-                        <span className="text-[11px] font-semibold text-white">
-                          {CHECKIN_POSE_LABELS[p.pose]}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <CheckinPhotoGrid
+                  basePath={`/api/student/checkin/${d.id}/photo`}
+                  photos={d.photos}
+                />
               </div>
             ) : (
               <p className="text-[13px] text-muted-foreground">

@@ -22,6 +22,16 @@ export function StudentTabs({ studentId }: { studentId: string }) {
       label: "Treino",
       active: pathname.startsWith(`${base}/workout`),
     },
+    {
+      href: `${base}/feedback`,
+      label: "Feedback",
+      active: pathname.startsWith(`${base}/feedback`),
+    },
+    {
+      href: `${base}/evolution`,
+      label: "Evolução",
+      active: pathname.startsWith(`${base}/evolution`),
+    },
   ];
   return (
     <div className="border-b border-border">

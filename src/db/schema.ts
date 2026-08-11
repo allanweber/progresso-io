@@ -27,6 +27,10 @@ import type {
   AnamnesisFilledBy,
   StudentAnamnesisStatus,
 } from "@/lib/student-anamneses";
+import type {
+  CheckinCircumferences,
+  CheckinSkinfolds,
+} from "@/lib/checkin-assessment";
 import type { NotificationData, NotificationType } from "@/lib/notifications";
 import type { DietStructure } from "@/lib/student-diets";
 import type { WorkoutStructure } from "@/lib/student-workouts";
@@ -1602,15 +1606,72 @@ export const studentCheckin = pgTable(
       onDelete: "set null",
     }),
     // Body weight in kg. Required for aluno submissions (enforced at the zod
-    // layer); nullable so a future coach note-only entry is representable.
+    // layer); nullable so a coach note-only entry is representable.
     weightKg: doublePrecision("weight_kg"),
     note: text("note"),
+    // The coach's written response to this check-in. A student entry is "pending
+    // review" while `feedbackAt` IS NULL; the coach's reply stamps both. Coach-
+    // authored entries carry their own note as their message and never pend.
+    feedback: text("feedback"),
+    feedbackAt: timestamp("feedback_at"),
+    feedbackByUserId: text("feedback_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (t) => [
     index("student_checkin_clinic_idx").on(t.clinicId),
     index("student_checkin_student_date_idx").on(t.studentId, t.date),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
+/*  Check-in assessment (avaliação física)                                    */
+/*                                                                            */
+/*  The OPTIONAL body measurements a coach captures during a check-in review   */
+/*  or an in-person check-in: circumferences (cm) + skinfolds (mm) as typed    */
+/*  jsonb (only the measured sites are stored), plus an optional body-fat %.    */
+/*  One assessment per check-in. Weight is NOT here — it lives on the check-in  */
+/*  row. See src/lib/checkin-assessment.ts for the site catalog.               */
+/* -------------------------------------------------------------------------- */
+
+export const checkinAssessment = pgTable(
+  "checkin_assessment",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // One assessment per check-in (unique) — deleted with its check-in.
+    checkinId: uuid("checkin_id")
+      .notNull()
+      .references(() => studentCheckin.id, { onDelete: "cascade" }),
+    // Denormalized for measures-over-time queries without joining the check-in.
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    assessedAt: date("assessed_at", { mode: "string" }).notNull(),
+    circumferences: jsonb("circumferences")
+      .$type<CheckinCircumferences>()
+      .default({})
+      .notNull(),
+    skinfolds: jsonb("skinfolds")
+      .$type<CheckinSkinfolds>()
+      .default({})
+      .notNull(),
+    bodyFatPct: doublePrecision("body_fat_pct"),
+    // The coach who recorded it; NULL if that user is later deleted.
+    recordedByUserId: text("recorded_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("checkin_assessment_clinic_idx").on(t.clinicId),
+    index("checkin_assessment_student_idx").on(t.studentId),
+    unique("checkin_assessment_checkin_uq").on(t.checkinId),
   ],
 );
 
@@ -1653,7 +1714,33 @@ export const studentCheckinRelations = relations(
       fields: [studentCheckin.authorUserId],
       references: [user.id],
     }),
+    feedbackBy: one(user, {
+      fields: [studentCheckin.feedbackByUserId],
+      references: [user.id],
+    }),
     photos: many(studentCheckinPhoto),
+    assessment: one(checkinAssessment, {
+      fields: [studentCheckin.id],
+      references: [checkinAssessment.checkinId],
+    }),
+  }),
+);
+
+export const checkinAssessmentRelations = relations(
+  checkinAssessment,
+  ({ one }) => ({
+    clinic: one(clinic, {
+      fields: [checkinAssessment.clinicId],
+      references: [clinic.id],
+    }),
+    checkin: one(studentCheckin, {
+      fields: [checkinAssessment.checkinId],
+      references: [studentCheckin.id],
+    }),
+    student: one(students, {
+      fields: [checkinAssessment.studentId],
+      references: [students.id],
+    }),
   }),
 );
 
@@ -1726,3 +1813,5 @@ export type StudentCheckin = typeof studentCheckin.$inferSelect;
 export type NewStudentCheckin = typeof studentCheckin.$inferInsert;
 export type StudentCheckinPhoto = typeof studentCheckinPhoto.$inferSelect;
 export type NewStudentCheckinPhoto = typeof studentCheckinPhoto.$inferInsert;
+export type CheckinAssessment = typeof checkinAssessment.$inferSelect;
+export type NewCheckinAssessment = typeof checkinAssessment.$inferInsert;
