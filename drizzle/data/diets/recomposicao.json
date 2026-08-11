@@ -1,0 +1,90 @@
+{
+  "key": "recomposicao",
+  "name": "Recomposição / Definição",
+  "objective": "recomposicao",
+  "notes": "Proteína alta com carboidrato moderado para perder gordura preservando massa. Boa para fase de definição.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "ovo",
+          "grams": 150
+        },
+        {
+          "food": "aveia",
+          "grams": 40
+        },
+        {
+          "food": "maca",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 120
+        },
+        {
+          "food": "frango",
+          "grams": 180
+        },
+        {
+          "food": "feijao",
+          "grams": 80
+        },
+        {
+          "food": "brocolis",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Lanche pré-treino",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "whey_iso",
+          "grams": 35
+        },
+        {
+          "food": "banana",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "merluza",
+          "grams": 160,
+          "substitutes": [
+            {
+              "food": "salmao",
+              "grams": 140
+            }
+          ]
+        },
+        {
+          "food": "batata_doce",
+          "grams": 120
+        },
+        {
+          "food": "alface",
+          "grams": 50
+        },
+        {
+          "food": "tomate",
+          "grams": 60
+        }
+      ]
+    }
+  ]
+}

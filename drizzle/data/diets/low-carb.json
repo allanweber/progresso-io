@@ -1,0 +1,86 @@
+{
+  "key": "low-carb",
+  "name": "Low Carb",
+  "objective": "low_carb",
+  "notes": "Baixo carboidrato com prioridade em proteínas e gorduras boas. Concentre os poucos carboidratos ao redor do treino.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:30",
+      "items": [
+        {
+          "food": "ovo",
+          "grams": 150
+        },
+        {
+          "food": "queijo_minas",
+          "grams": 50
+        },
+        {
+          "food": "abacate",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:30",
+      "items": [
+        {
+          "food": "frango",
+          "grams": 180
+        },
+        {
+          "food": "brocolis",
+          "grams": 150
+        },
+        {
+          "food": "alface",
+          "grams": 50
+        },
+        {
+          "food": "azeite",
+          "grams": 10
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:30",
+      "items": [
+        {
+          "food": "castanha",
+          "grams": 30
+        },
+        {
+          "food": "iogurte",
+          "grams": 170
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:30",
+      "items": [
+        {
+          "food": "salmao",
+          "grams": 150,
+          "substitutes": [
+            {
+              "food": "merluza",
+              "grams": 160
+            }
+          ]
+        },
+        {
+          "food": "couve",
+          "grams": 100
+        },
+        {
+          "food": "tomate",
+          "grams": 80
+        }
+      ]
+    }
+  ]
+}

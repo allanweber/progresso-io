@@ -1,0 +1,94 @@
+{
+  "key": "vegana",
+  "name": "Vegana (Estrita)",
+  "objective": "vegana",
+  "notes": "Sem qualquer produto de origem animal. Proteína de leguminosas, soja e suplemento vegetal (proteína de ervilha). Combine cereais e leguminosas.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "aveia",
+          "grams": 60
+        },
+        {
+          "food": "banana",
+          "grams": 120
+        },
+        {
+          "food": "pasta_amendoim",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:30",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 130
+        },
+        {
+          "food": "feijao",
+          "grams": 130,
+          "substitutes": [
+            {
+              "food": "lentilha",
+              "grams": 130
+            },
+            {
+              "food": "grao_bico",
+              "grams": 120
+            }
+          ]
+        },
+        {
+          "food": "tofu",
+          "grams": 120
+        },
+        {
+          "food": "brocolis",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "prot_ervilha",
+          "grams": 35
+        },
+        {
+          "food": "maca",
+          "grams": 130
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "pts_soja",
+          "grams": 60
+        },
+        {
+          "food": "batata_doce",
+          "grams": 160
+        },
+        {
+          "food": "cenoura",
+          "grams": 80
+        },
+        {
+          "food": "azeite",
+          "grams": 10
+        }
+      ]
+    }
+  ]
+}

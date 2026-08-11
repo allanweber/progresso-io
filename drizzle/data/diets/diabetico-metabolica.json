@@ -1,0 +1,84 @@
+{
+  "key": "diabetico-metabolica",
+  "name": "Diabético / Metabólica",
+  "objective": "diabetico",
+  "notes": "Carboidratos de baixo índice glicêmico e alta fibra, para controle glicêmico e síndrome metabólica. Evite açúcares simples; oriente com nutricionista.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "aveia",
+          "grams": 40
+        },
+        {
+          "food": "ovo",
+          "grams": 100
+        },
+        {
+          "food": "maca",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 100
+        },
+        {
+          "food": "feijao",
+          "grams": 100
+        },
+        {
+          "food": "frango",
+          "grams": 150
+        },
+        {
+          "food": "brocolis",
+          "grams": 120
+        },
+        {
+          "food": "alface",
+          "grams": 40
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "iogurte",
+          "grams": 170
+        },
+        {
+          "food": "castanha",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "merluza",
+          "grams": 150
+        },
+        {
+          "food": "batata_doce",
+          "grams": 100
+        },
+        {
+          "food": "couve",
+          "grams": 100
+        }
+      ]
+    }
+  ]
+}

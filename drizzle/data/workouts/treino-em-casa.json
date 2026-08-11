@@ -1,0 +1,129 @@
+{
+  "key": "treino-em-casa",
+  "name": "Treino em Casa (Peso Corporal)",
+  "level": "beginner",
+  "notes": "Sem academia: apenas peso corporal. Duas fichas alternadas. Ajuste a dificuldade pela cadência e pelas variações.",
+  "sessions": [
+    {
+      "name": "Ficha A · Empurrar e core",
+      "exercises": [
+        {
+          "exercise": "flexao",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              15
+            ]
+          },
+          "load": "peso corporal",
+          "rest": 60
+        },
+        {
+          "exercise": "agachamento_corp",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 20
+          },
+          "load": "peso corporal",
+          "rest": 60
+        },
+        {
+          "exercise": "afundo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "peso corporal · cada perna",
+          "rest": 45
+        },
+        {
+          "exercise": "prancha",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 40
+          },
+          "load": "peso corporal · segundos",
+          "rest": 45
+        },
+        {
+          "exercise": "abdominal",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 20
+          },
+          "load": "peso corporal",
+          "rest": 30
+        }
+      ]
+    },
+    {
+      "name": "Ficha B · Circuito metabólico",
+      "exercises": [
+        {
+          "exercise": "polichinelo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 40
+          },
+          "load": "peso corporal",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "casa-b1"
+        },
+        {
+          "exercise": "agachamento_corp",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 20
+          },
+          "load": "peso corporal",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "casa-b1"
+        },
+        {
+          "exercise": "flexao",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "peso corporal",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "casa-b1"
+        },
+        {
+          "exercise": "escalador",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 30
+          },
+          "load": "peso corporal",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "casa-b1"
+        },
+        {
+          "exercise": "prancha",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 45
+          },
+          "load": "peso corporal · segundos",
+          "rest": 45
+        }
+      ]
+    }
+  ]
+}

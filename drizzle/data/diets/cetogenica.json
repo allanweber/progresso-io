@@ -1,0 +1,82 @@
+{
+  "key": "cetogenica",
+  "name": "Cetogênica (Keto)",
+  "objective": "cetogenica",
+  "notes": "Muito baixo carboidrato e alta gordura para adaptação cetogênica. Priorize gorduras boas e mantenha a hidratação e os eletrólitos.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "08:00",
+      "items": [
+        {
+          "food": "ovo",
+          "grams": 150
+        },
+        {
+          "food": "abacate",
+          "grams": 100
+        },
+        {
+          "food": "queijo_moz",
+          "grams": 40
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "13:00",
+      "items": [
+        {
+          "food": "salmao",
+          "grams": 170,
+          "substitutes": [
+            {
+              "food": "frango",
+              "grams": 160
+            }
+          ]
+        },
+        {
+          "food": "couve",
+          "grams": 120
+        },
+        {
+          "food": "azeite",
+          "grams": 15
+        }
+      ]
+    },
+    {
+      "name": "Lanche",
+      "time": "17:00",
+      "items": [
+        {
+          "food": "castanha",
+          "grams": 40
+        },
+        {
+          "food": "queijo_minas",
+          "grams": 60
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:30",
+      "items": [
+        {
+          "food": "patinho",
+          "grams": 160
+        },
+        {
+          "food": "brocolis",
+          "grams": 150
+        },
+        {
+          "food": "azeite",
+          "grams": 10
+        }
+      ]
+    }
+  ]
+}

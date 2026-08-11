@@ -1,0 +1,94 @@
+{
+  "key": "reeducacao-alimentar",
+  "name": "Reeducação Alimentar",
+  "objective": "reeducacao",
+  "notes": "Plano variado e sustentável para reeducar hábitos, com alimentos in natura e boa distribuição. Sem restrições extremas.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "tapioca",
+          "grams": 60
+        },
+        {
+          "food": "ovo",
+          "grams": 100
+        },
+        {
+          "food": "mamao",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Lanche da manhã",
+      "time": "10:00",
+      "items": [
+        {
+          "food": "maca",
+          "grams": 130
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:30",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 120
+        },
+        {
+          "food": "feijao",
+          "grams": 100
+        },
+        {
+          "food": "frango",
+          "grams": 150
+        },
+        {
+          "food": "cenoura",
+          "grams": 60
+        },
+        {
+          "food": "alface",
+          "grams": 40
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "iogurte",
+          "grams": 170
+        },
+        {
+          "food": "aveia",
+          "grams": 30
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "merluza",
+          "grams": 140
+        },
+        {
+          "food": "batata_doce",
+          "grams": 130
+        },
+        {
+          "food": "brocolis",
+          "grams": 100
+        }
+      ]
+    }
+  ]
+}

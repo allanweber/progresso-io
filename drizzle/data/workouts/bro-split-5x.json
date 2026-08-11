@@ -1,0 +1,391 @@
+{
+  "key": "bro-split-5x",
+  "name": "Bro Split 5x (Peito/Costas/Perna/Ombro/Braço)",
+  "level": "expert",
+  "notes": "Divisão avançada de 5 dias, um grupo por dia, alto volume. Percorre todas as técnicas de intensidade — use apenas com boa base e recuperação.",
+  "sessions": [
+    {
+      "name": "Peito",
+      "exercises": [
+        {
+          "exercise": "supino_barra",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente",
+          "rest": 120
+        },
+        {
+          "exercise": "supino_incl",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "supino_halt",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 75,
+          "technique": "restpause",
+          "note": "Rest-pause: até a falha, 15s de pausa, mais repetições."
+        },
+        {
+          "exercise": "crucifixo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "dropset"
+        },
+        {
+          "exercise": "butterfly",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "fs7",
+          "note": "FS7: 7 séries de 7 com 30s de descanso."
+        }
+      ]
+    },
+    {
+      "name": "Costas",
+      "exercises": [
+        {
+          "exercise": "barra_fixa",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              6,
+              10
+            ]
+          },
+          "load": "peso corporal",
+          "rest": 120
+        },
+        {
+          "exercise": "remada_curvada",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente",
+          "rest": 120
+        },
+        {
+          "exercise": "puxada_frontal",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 75
+        },
+        {
+          "exercise": "remada_uni",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "restpause"
+        },
+        {
+          "exercise": "remada_baixa",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "dropset"
+        }
+      ]
+    },
+    {
+      "name": "Perna",
+      "exercises": [
+        {
+          "exercise": "agachamento_livre",
+          "sets": 5,
+          "reps": {
+            "kind": "fixed",
+            "value": 5
+          },
+          "load": "80% 1RM",
+          "rest": 180,
+          "technique": "cluster",
+          "note": "Cluster: 5 séries de 5 com pausas curtas na mesma carga."
+        },
+        {
+          "exercise": "leg_press",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              15
+            ]
+          },
+          "load": "pesada",
+          "rest": 120,
+          "technique": "gvt",
+          "note": "GVT: mire 10x10 com carga submáxima e descanso curto."
+        },
+        {
+          "exercise": "extensora",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "tripledrop",
+          "note": "Triple-drop: três reduções de carga sem descanso na última série."
+        },
+        {
+          "exercise": "flexora",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60
+        },
+        {
+          "exercise": "panturrilha_pe",
+          "sets": 5,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              20
+            ]
+          },
+          "load": "moderada",
+          "rest": 45,
+          "technique": "dropset"
+        }
+      ]
+    },
+    {
+      "name": "Ombro",
+      "exercises": [
+        {
+          "exercise": "desenv_barra",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente",
+          "rest": 120
+        },
+        {
+          "exercise": "arnold",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "elev_lateral",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "fs7"
+        },
+        {
+          "exercise": "crucifixo_inv",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "bro-o1"
+        },
+        {
+          "exercise": "face_pull",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "bro-o1"
+        },
+        {
+          "exercise": "encolhimento",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "pesada",
+          "rest": 60
+        }
+      ]
+    },
+    {
+      "name": "Braço",
+      "exercises": [
+        {
+          "exercise": "rosca_direta",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "giant",
+          "groupId": "bro-br1",
+          "note": "Giant-set de bíceps: encadeie os três exercícios sem descanso."
+        },
+        {
+          "exercise": "rosca_scott",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "giant",
+          "groupId": "bro-br1"
+        },
+        {
+          "exercise": "rosca_martelo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "moderada",
+          "rest": 0,
+          "technique": "giant",
+          "groupId": "bro-br1"
+        },
+        {
+          "exercise": "triceps_testa",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "giant",
+          "groupId": "bro-br2"
+        },
+        {
+          "exercise": "triceps_pulley",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "giant",
+          "groupId": "bro-br2"
+        },
+        {
+          "exercise": "mergulho",
+          "sets": 3,
+          "reps": {
+            "kind": "failure"
+          },
+          "load": "peso corporal",
+          "rest": 0,
+          "technique": "giant",
+          "groupId": "bro-br2"
+        }
+      ]
+    }
+  ]
+}

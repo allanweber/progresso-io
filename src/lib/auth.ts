@@ -178,12 +178,10 @@ export function createAuth({
               name: `Clínica de ${firstName}`,
             });
             await attachUserToClinic(database, u.id, clinic.id);
-            // Give the new clinic its own copy of the starter anamneses; it owns
-            // and edits them freely from here on.
-            const { seedClinicAnamneses } = await import(
-              "@/server/dal/anamneses"
-            );
-            await seedClinicAnamneses(database, clinic.id, u.id);
+            // Starter templates (anamneses + diets + workouts) are NOT seeded
+            // here — sign-up stays minimal. They're seeded in one background pass
+            // on the coach's first sign-in (`ensureClinicStarters`, fired by the
+            // /coach layout island), so a heavy first-sign-in never slows sign-up.
           },
         },
       },

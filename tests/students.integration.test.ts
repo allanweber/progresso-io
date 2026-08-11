@@ -12,6 +12,7 @@ import {
   students as studentsDal,
   studentAnamneses,
 } from "@/server/dal";
+import { seedClinicAnamneses } from "@/server/dal/anamneses";
 import {
   sendAnamnesisInvite,
   sendPortalInvite,
@@ -34,6 +35,10 @@ const password = "supersegura123";
 async function coachContext(email: string, name: string): Promise<TenantContext> {
   await auth.api.signUpEmail({ body: { name, email, password } });
   const [user] = await db.select().from(schema.user).where(eq(schema.user.email, email));
+  // Starter templates are no longer seeded at sign-up — they're seeded in the
+  // background on first sign-in. Seed the clinic's anamneses directly here (the
+  // onboarding tests below need a starter anamnese to assign).
+  await seedClinicAnamneses(db as unknown as DB, user.clinicId!, user.id);
   return {
     db: db as unknown as DB,
     clinicId: user.clinicId!,

@@ -1,0 +1,171 @@
+{
+  "key": "especializacao-braco-ombro",
+  "name": "Especialização Braço & Ombro",
+  "level": "expert",
+  "notes": "Especialização para ombros e braços com alto volume e técnicas de intensidade (drop-set, triple-drop, FS7). Use como bloco de 4 a 6 semanas.",
+  "sessions": [
+    {
+      "name": "Ombro",
+      "exercises": [
+        {
+          "exercise": "desenv_barra",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente",
+          "rest": 120
+        },
+        {
+          "exercise": "arnold",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 75
+        },
+        {
+          "exercise": "elev_lateral",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "fs7",
+          "note": "FS7: 7x7 com 30s de descanso."
+        },
+        {
+          "exercise": "elev_frontal",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "bo-o1"
+        },
+        {
+          "exercise": "crucifixo_inv",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "bo-o1"
+        },
+        {
+          "exercise": "encolhimento",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "pesada",
+          "rest": 60
+        }
+      ]
+    },
+    {
+      "name": "Braço",
+      "exercises": [
+        {
+          "exercise": "rosca_direta",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60
+        },
+        {
+          "exercise": "rosca_scott",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "dropset"
+        },
+        {
+          "exercise": "rosca_martelo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "moderada",
+          "rest": 45,
+          "technique": "tripledrop"
+        },
+        {
+          "exercise": "triceps_testa",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60
+        },
+        {
+          "exercise": "triceps_pulley",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 45,
+          "technique": "dropset"
+        },
+        {
+          "exercise": "triceps_corda",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "tripledrop"
+        }
+      ]
+    }
+  ]
+}

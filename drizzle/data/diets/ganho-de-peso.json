@@ -1,0 +1,120 @@
+{
+  "key": "ganho-de-peso",
+  "name": "Ganho de Peso (Hipercalórica)",
+  "objective": "ganho_peso",
+  "notes": "Hipercalórica para quem tem dificuldade de ganhar peso. Refeições densas e frequentes; use líquidos calóricos para facilitar o volume.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "aveia",
+          "grams": 100
+        },
+        {
+          "food": "leite_int",
+          "grams": 250
+        },
+        {
+          "food": "banana",
+          "grams": 150
+        },
+        {
+          "food": "pasta_amendoim",
+          "grams": 30
+        }
+      ]
+    },
+    {
+      "name": "Lanche da manhã",
+      "time": "10:00",
+      "items": [
+        {
+          "food": "pao_frances",
+          "grams": 100
+        },
+        {
+          "food": "queijo_moz",
+          "grams": 50
+        },
+        {
+          "food": "banana",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:30",
+      "items": [
+        {
+          "food": "arroz_branco",
+          "grams": 250
+        },
+        {
+          "food": "frango",
+          "grams": 200
+        },
+        {
+          "food": "feijao",
+          "grams": 150
+        },
+        {
+          "food": "azeite",
+          "grams": 10
+        }
+      ]
+    },
+    {
+      "name": "Lanche pré-treino",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "whey",
+          "grams": 40
+        },
+        {
+          "food": "aveia",
+          "grams": 60
+        },
+        {
+          "food": "banana",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:30",
+      "items": [
+        {
+          "food": "patinho",
+          "grams": 200
+        },
+        {
+          "food": "macarrao",
+          "grams": 150
+        },
+        {
+          "food": "brocolis",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Ceia",
+      "time": "22:30",
+      "items": [
+        {
+          "food": "leite_int",
+          "grams": 250
+        },
+        {
+          "food": "aveia",
+          "grams": 40
+        }
+      ]
+    }
+  ]
+}

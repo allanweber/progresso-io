@@ -1,0 +1,140 @@
+{
+  "key": "full-body-iniciante-ab",
+  "name": "Full-body Iniciante A/B",
+  "level": "beginner",
+  "notes": "Duas fichas (A e B) alternadas, 3x por semana. Foco em execução e adaptação. Progrida a carga quando completar todas as repetições com técnica.",
+  "sessions": [
+    {
+      "name": "Ficha A · Corpo inteiro",
+      "exercises": [
+        {
+          "exercise": "leg_press",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 90,
+          "note": "Amplitude controlada."
+        },
+        {
+          "exercise": "supino_maq",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "puxada_frontal",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "desenv_halt",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "leve",
+          "rest": 75
+        },
+        {
+          "exercise": "abdominal",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "peso corporal",
+          "rest": 45
+        }
+      ]
+    },
+    {
+      "name": "Ficha B · Corpo inteiro",
+      "exercises": [
+        {
+          "exercise": "agachamento_smith",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "supino_incl",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "leve",
+          "rest": 90
+        },
+        {
+          "exercise": "remada_baixa",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "elev_lateral",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 60
+        },
+        {
+          "exercise": "prancha",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 30
+          },
+          "load": "peso corporal · segundos",
+          "rest": 45
+        }
+      ]
+    }
+  ]
+}

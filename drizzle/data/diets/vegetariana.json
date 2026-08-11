@@ -1,0 +1,94 @@
+{
+  "key": "vegetariana",
+  "name": "Vegetariana (Ovolacto)",
+  "objective": "vegetariana",
+  "notes": "Sem carnes, com ovos e laticínios. Combina leguminosas e cereais para garantir proteína completa ao longo do dia.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "aveia",
+          "grams": 60
+        },
+        {
+          "food": "leite_desn",
+          "grams": 200
+        },
+        {
+          "food": "banana",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:30",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 130
+        },
+        {
+          "food": "feijao",
+          "grams": 120,
+          "substitutes": [
+            {
+              "food": "lentilha",
+              "grams": 120
+            },
+            {
+              "food": "grao_bico",
+              "grams": 110
+            }
+          ]
+        },
+        {
+          "food": "ovo",
+          "grams": 100
+        },
+        {
+          "food": "brocolis",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "iogurte",
+          "grams": 170
+        },
+        {
+          "food": "castanha",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "tofu",
+          "grams": 150
+        },
+        {
+          "food": "batata_doce",
+          "grams": 150
+        },
+        {
+          "food": "cenoura",
+          "grams": 80
+        },
+        {
+          "food": "azeite",
+          "grams": 10
+        }
+      ]
+    }
+  ]
+}

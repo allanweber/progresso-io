@@ -1361,6 +1361,178 @@ export async function hardDeleteAnamnesis(db: DB, id: string): Promise<boolean> 
   return rows.length > 0;
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Diets & workouts (data maintenance — cross-clinic)                         */
+/*                                                                            */
+/*  Same shape as the anamnese maintenance above: the admin sees every clinic's */
+/*  diets/workouts tagged by provenance (`source_key` non-null ⇒ seeded/        */
+/*  imported from the system starter set; null ⇒ coach-authored), can          */
+/*  hard-delete any, and import the system starters into a clinic. The import   */
+/*  itself (which must resolve base-catalog slugs) lives in dal/starters.ts;    */
+/*  here are the cross-clinic reads + delete.                                   */
+/* -------------------------------------------------------------------------- */
+
+/** system = seeded/imported starter; clinic = coach-authored. */
+export type AdminTemplateOrigin = "system" | "clinic";
+
+export type AdminTemplateRow = {
+  id: string;
+  name: string;
+  clinicId: string;
+  clinicName: string;
+  sourceKey: string | null;
+  origin: AdminTemplateOrigin;
+  archived: boolean;
+  updatedAt: Date;
+  /** How many student copies were made from this template (via source_*_id). */
+  studentUsageCount: number;
+};
+
+export type AdminTemplateListParams = {
+  clinicId?: string;
+  origin?: AdminTemplateOrigin;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminTemplateListResult = {
+  items: AdminTemplateRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/**
+ * A page of every clinic's diets (ordered by clinic then name), each with its
+ * clinic name, provenance and student-usage count. Base diets (clinic_id NULL)
+ * are excluded by the inner join — this feature only creates clinic-owned copies.
+ */
+export async function listDietsAcrossClinics(
+  db: DB,
+  params: AdminTemplateListParams = {},
+): Promise<AdminTemplateListResult> {
+  const page = Math.max(1, Math.trunc(params.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.trunc(params.pageSize ?? 25)));
+
+  const conds: SQL[] = [];
+  if (params.clinicId) conds.push(eq(schema.diet.clinicId, params.clinicId));
+  if (params.origin === "system") conds.push(isNotNull(schema.diet.sourceKey));
+  if (params.origin === "clinic") conds.push(isNull(schema.diet.sourceKey));
+  const term = params.search?.trim();
+  if (term) {
+    conds.push(
+      sql`unaccent(lower(${schema.diet.name})) like '%' || unaccent(lower(${term})) || '%'`,
+    );
+  }
+  const where = conds.length ? and(...conds) : undefined;
+
+  const usage = sql<number>`(select count(*)::int from student_diet sd where sd.source_diet_id = ${schema.diet.id})`;
+
+  const rows = await db
+    .select({
+      id: schema.diet.id,
+      name: schema.diet.name,
+      clinicId: schema.diet.clinicId,
+      clinicName: schema.clinic.name,
+      sourceKey: schema.diet.sourceKey,
+      archived: schema.diet.archived,
+      updatedAt: schema.diet.updatedAt,
+      studentUsageCount: usage,
+    })
+    .from(schema.diet)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.diet.clinicId))
+    .where(where)
+    .orderBy(asc(schema.clinic.name), asc(schema.diet.name))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(schema.diet)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.diet.clinicId))
+    .where(where);
+
+  const items: AdminTemplateRow[] = rows.map(({ clinicId, ...r }) => ({
+    ...r,
+    clinicId: clinicId as string,
+    origin: r.sourceKey === null ? "clinic" : "system",
+  }));
+  return { items, total, page, pageSize };
+}
+
+/** A page of every clinic's workouts (same shape as {@link listDietsAcrossClinics}). */
+export async function listWorkoutsAcrossClinics(
+  db: DB,
+  params: AdminTemplateListParams = {},
+): Promise<AdminTemplateListResult> {
+  const page = Math.max(1, Math.trunc(params.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.trunc(params.pageSize ?? 25)));
+
+  const conds: SQL[] = [];
+  if (params.clinicId) conds.push(eq(schema.workout.clinicId, params.clinicId));
+  if (params.origin === "system") conds.push(isNotNull(schema.workout.sourceKey));
+  if (params.origin === "clinic") conds.push(isNull(schema.workout.sourceKey));
+  const term = params.search?.trim();
+  if (term) {
+    conds.push(
+      sql`unaccent(lower(${schema.workout.name})) like '%' || unaccent(lower(${term})) || '%'`,
+    );
+  }
+  const where = conds.length ? and(...conds) : undefined;
+
+  const usage = sql<number>`(select count(*)::int from student_workout sw where sw.source_workout_id = ${schema.workout.id})`;
+
+  const rows = await db
+    .select({
+      id: schema.workout.id,
+      name: schema.workout.name,
+      clinicId: schema.workout.clinicId,
+      clinicName: schema.clinic.name,
+      sourceKey: schema.workout.sourceKey,
+      archived: schema.workout.archived,
+      updatedAt: schema.workout.updatedAt,
+      studentUsageCount: usage,
+    })
+    .from(schema.workout)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.workout.clinicId))
+    .where(where)
+    .orderBy(asc(schema.clinic.name), asc(schema.workout.name))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(schema.workout)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.workout.clinicId))
+    .where(where);
+
+  const items: AdminTemplateRow[] = rows.map(({ clinicId, ...r }) => ({
+    ...r,
+    clinicId: clinicId as string,
+    origin: r.sourceKey === null ? "clinic" : "system",
+  }));
+  return { items, total, page, pageSize };
+}
+
+/** Hard-deletes any diet (cross-tenant); meals/items cascade. False when unknown. */
+export async function hardDeleteDiet(db: DB, id: string): Promise<boolean> {
+  const rows = await db
+    .delete(schema.diet)
+    .where(eq(schema.diet.id, id))
+    .returning({ id: schema.diet.id });
+  return rows.length > 0;
+}
+
+/** Hard-deletes any workout (cross-tenant); sessions/exercises cascade. */
+export async function hardDeleteWorkout(db: DB, id: string): Promise<boolean> {
+  const rows = await db
+    .delete(schema.workout)
+    .where(eq(schema.workout.id, id))
+    .returning({ id: schema.workout.id });
+  return rows.length > 0;
+}
+
 export type ImportStartersResult =
   | { ok: true; imported: string[]; skipped: string[] }
   | { ok: false; reason: "clinic_not_found" | "no_valid_keys" };

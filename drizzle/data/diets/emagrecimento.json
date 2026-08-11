@@ -1,0 +1,98 @@
+{
+  "key": "emagrecimento",
+  "name": "Emagrecimento — Déficit Calórico",
+  "objective": "emagrecimento",
+  "notes": "Plano de déficit para perda de gordura (~1600 kcal). Beba ~35 ml de água por kg de peso. Ajuste as quantidades conforme a fome e a evolução.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "ovo",
+          "grams": 100,
+          "substitutes": [
+            {
+              "food": "clara_ovo",
+              "grams": 180
+            }
+          ]
+        },
+        {
+          "food": "pao_integral",
+          "grams": 50
+        },
+        {
+          "food": "mamao",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 100,
+          "substitutes": [
+            {
+              "food": "batata_doce",
+              "grams": 130
+            }
+          ]
+        },
+        {
+          "food": "frango",
+          "grams": 120
+        },
+        {
+          "food": "feijao",
+          "grams": 80
+        },
+        {
+          "food": "brocolis",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "iogurte",
+          "grams": 170
+        },
+        {
+          "food": "maca",
+          "grams": 130
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "merluza",
+          "grams": 130,
+          "substitutes": [
+            {
+              "food": "frango",
+              "grams": 120
+            }
+          ]
+        },
+        {
+          "food": "batata_doce",
+          "grams": 120
+        },
+        {
+          "food": "cenoura",
+          "grams": 100
+        }
+      ]
+    }
+  ]
+}
