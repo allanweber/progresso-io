@@ -9,6 +9,7 @@ export * as admin from "./admin";
 export * as adminInvitations from "./admin-invitations";
 export * as anamneses from "./anamneses";
 export * as clinics from "./clinics";
+export * as coachCheckins from "./coach-checkins";
 export * as diets from "./diets";
 export * as exercises from "./exercises";
 export * as foods from "./foods";

@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { schema } from "@/db";
-import type { CheckinPose } from "@/db/schema";
+import type { CheckinAuthor, CheckinPose } from "@/db/schema";
+import type { CheckinAssessmentDto } from "@/lib/checkin-assessment";
 import type {
   CheckinDetailDto,
   CheckinDto,
@@ -9,6 +10,23 @@ import type {
   WeightPointDto,
 } from "@/lib/student-checkins";
 import type { TenantContext } from "@/server/tenant";
+
+import { createNotification } from "./notifications";
+
+/** Maps a `checkin_assessment` row to its DTO (only measured sites present). */
+export function toAssessmentDto(row: {
+  assessedAt: string;
+  circumferences: CheckinAssessmentDto["circumferences"];
+  skinfolds: CheckinAssessmentDto["skinfolds"];
+  bodyFatPct: number | null;
+}): CheckinAssessmentDto {
+  return {
+    assessedAt: row.assessedAt,
+    circumferences: row.circumferences ?? {},
+    skinfolds: row.skinfolds ?? {},
+    bodyFatPct: row.bodyFatPct,
+  };
+}
 
 /**
  * Aluno check-in DAL. Doubly scoped: by `ctx.clinicId` (the tenant) AND by the
@@ -28,9 +46,15 @@ function todayIsoDate(): string {
 }
 
 /** The student row owned by the authenticated aluno, within their clinic. */
-async function ownStudentId(ctx: TenantContext): Promise<string | null> {
+async function ownStudent(
+  ctx: TenantContext,
+): Promise<{ id: string; firstName: string; lastName: string } | null> {
   const [row] = await ctx.db
-    .select({ id: schema.students.id })
+    .select({
+      id: schema.students.id,
+      firstName: schema.students.firstName,
+      lastName: schema.students.lastName,
+    })
     .from(schema.students)
     .where(
       and(
@@ -38,7 +62,92 @@ async function ownStudentId(ctx: TenantContext): Promise<string | null> {
         eq(schema.students.clinicId, ctx.clinicId),
       ),
     );
-  return row?.id ?? null;
+  return row ?? null;
+}
+
+/** The id of the student row owned by the authenticated aluno. */
+async function ownStudentId(ctx: TenantContext): Promise<string | null> {
+  return (await ownStudent(ctx))?.id ?? null;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Shared read helpers (reused by the coach DAL)                             */
+/* -------------------------------------------------------------------------- */
+
+/** Photo counts per check-in id, clinic-scoped, in one grouped query. */
+export async function photoCountsByCheckin(
+  ctx: TenantContext,
+  ids: string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (ids.length === 0) return map;
+  const counts = await ctx.db
+    .select({
+      checkinId: schema.studentCheckinPhoto.checkinId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(schema.studentCheckinPhoto)
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+        inArray(schema.studentCheckinPhoto.checkinId, ids),
+      ),
+    )
+    .groupBy(schema.studentCheckinPhoto.checkinId);
+  for (const c of counts) map.set(c.checkinId, c.count);
+  return map;
+}
+
+/** The set of check-in ids (of these) that carry an assessment, clinic-scoped. */
+export async function assessmentIds(
+  ctx: TenantContext,
+  ids: string[],
+): Promise<Set<string>> {
+  const set = new Set<string>();
+  if (ids.length === 0) return set;
+  const rows = await ctx.db
+    .select({ checkinId: schema.checkinAssessment.checkinId })
+    .from(schema.checkinAssessment)
+    .where(
+      and(
+        eq(schema.checkinAssessment.clinicId, ctx.clinicId),
+        inArray(schema.checkinAssessment.checkinId, ids),
+      ),
+    );
+  for (const r of rows) set.add(r.checkinId);
+  return set;
+}
+
+/** A raw timeline row as selected from `student_checkin`. */
+export type CheckinRow = {
+  id: string;
+  date: string;
+  author: CheckinAuthor;
+  weightKg: number | null;
+  note: string | null;
+  feedback: string | null;
+  feedbackAt: Date | null;
+  createdAt: Date;
+};
+
+/** Maps timeline rows + photo counts + assessment presence → {@link CheckinDto}s. */
+export function mapCheckinRows(
+  rows: CheckinRow[],
+  photoCounts: Map<string, number>,
+  assessments: Set<string>,
+): CheckinDto[] {
+  return rows.map((r) => ({
+    id: r.id,
+    date: r.date,
+    author: r.author,
+    weightKg: r.weightKg,
+    note: r.note,
+    photoCount: photoCounts.get(r.id) ?? 0,
+    feedback: r.feedback,
+    feedbackAt: r.feedbackAt ? r.feedbackAt.toISOString() : null,
+    hasAssessment: assessments.has(r.id),
+    createdAt: r.createdAt.toISOString(),
+  }));
 }
 
 export type CheckinPhotoInput = { pose: CheckinPose; r2Key: string };
@@ -59,17 +168,17 @@ export async function createStudentCheckin(
   ctx: TenantContext,
   input: CreateCheckinInput,
 ): Promise<CheckinDto | null> {
-  const studentId = await ownStudentId(ctx);
-  if (!studentId) return null;
+  const student = await ownStudent(ctx);
+  if (!student) return null;
 
   const date = todayIsoDate();
 
-  return ctx.db.transaction(async (tx) => {
+  const dto = await ctx.db.transaction(async (tx) => {
     const [checkin] = await tx
       .insert(schema.studentCheckin)
       .values({
         clinicId: ctx.clinicId,
-        studentId,
+        studentId: student.id,
         date,
         author: "student",
         authorUserId: ctx.userId,
@@ -97,9 +206,25 @@ export async function createStudentCheckin(
       weightKg: checkin.weightKg,
       note: checkin.note,
       photoCount: input.photos.length,
+      feedback: null,
+      feedbackAt: null,
+      hasAssessment: false,
       createdAt: checkin.createdAt.toISOString(),
-    };
+    } satisfies CheckinDto;
   });
+
+  // Notify the clinic's coaches (bell) that a check-in is waiting for review.
+  await createNotification(ctx.db, {
+    clinicId: ctx.clinicId,
+    type: "checkin_submitted",
+    data: {
+      studentId: student.id,
+      studentName: `${student.firstName} ${student.lastName}`.trim(),
+      checkinDate: date,
+    },
+  });
+
+  return dto;
 }
 
 /**
@@ -121,6 +246,8 @@ export async function listMyCheckins(
       author: schema.studentCheckin.author,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
+      feedback: schema.studentCheckin.feedback,
+      feedbackAt: schema.studentCheckin.feedbackAt,
       createdAt: schema.studentCheckin.createdAt,
     })
     .from(schema.studentCheckin)
@@ -135,35 +262,12 @@ export async function listMyCheckins(
       desc(schema.studentCheckin.createdAt),
     );
 
-  // Photo counts per check-in, in one grouped query scoped to these rows.
   const ids = rows.map((r) => r.id);
-  const countByCheckin = new Map<string, number>();
-  if (ids.length > 0) {
-    const counts = await ctx.db
-      .select({
-        checkinId: schema.studentCheckinPhoto.checkinId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(schema.studentCheckinPhoto)
-      .where(
-        and(
-          eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
-          inArray(schema.studentCheckinPhoto.checkinId, ids),
-        ),
-      )
-      .groupBy(schema.studentCheckinPhoto.checkinId);
-    for (const c of counts) countByCheckin.set(c.checkinId, c.count);
-  }
-
-  const checkins: CheckinDto[] = rows.map((r) => ({
-    id: r.id,
-    date: r.date,
-    author: r.author,
-    weightKg: r.weightKg,
-    note: r.note,
-    photoCount: countByCheckin.get(r.id) ?? 0,
-    createdAt: r.createdAt.toISOString(),
-  }));
+  const checkins: CheckinDto[] = mapCheckinRows(
+    rows,
+    await photoCountsByCheckin(ctx, ids),
+    await assessmentIds(ctx, ids),
+  );
 
   // Weight series for the chart: entries with a weight, oldest → newest.
   const weightSeries: WeightPointDto[] = checkins
@@ -194,6 +298,8 @@ export async function getMyCheckin(
       author: schema.studentCheckin.author,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
+      feedback: schema.studentCheckin.feedback,
+      feedbackAt: schema.studentCheckin.feedbackAt,
     })
     .from(schema.studentCheckin)
     .where(
@@ -219,7 +325,32 @@ export async function getMyCheckin(
     )
     .orderBy(schema.studentCheckinPhoto.sortOrder);
 
-  return { ...row, photos };
+  const [assessment] = await ctx.db
+    .select({
+      assessedAt: schema.checkinAssessment.assessedAt,
+      circumferences: schema.checkinAssessment.circumferences,
+      skinfolds: schema.checkinAssessment.skinfolds,
+      bodyFatPct: schema.checkinAssessment.bodyFatPct,
+    })
+    .from(schema.checkinAssessment)
+    .where(
+      and(
+        eq(schema.checkinAssessment.checkinId, checkinId),
+        eq(schema.checkinAssessment.clinicId, ctx.clinicId),
+      ),
+    );
+
+  return {
+    id: row.id,
+    date: row.date,
+    author: row.author,
+    weightKg: row.weightKg,
+    note: row.note,
+    feedback: row.feedback,
+    feedbackAt: row.feedbackAt ? row.feedbackAt.toISOString() : null,
+    photos,
+    assessment: assessment ? toAssessmentDto(assessment) : null,
+  } satisfies CheckinDetailDto;
 }
 
 /**

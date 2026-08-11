@@ -107,6 +107,12 @@ propagates to every student with no code change.
 - **Histórico de check-ins** — the timeline (both authors). Each row is a button
   that opens a **detail modal** (`GET /api/student/checkin/<id>`) showing the
   weight, note, and the four pose photos; a `coach` marker flags coach entries.
+  A student entry is badged **respondido / aguardando resposta**, and once the
+  coach responds the modal shows the **coach's feedback** and any **measures**
+  they recorded. Submitting a check-in also raises a `checkin_submitted`
+  notification for the clinic's coaches. The coach side of this loop (review,
+  respond, manual check-in, measures, evolution) is documented in
+  `docs/coach-feedback.md`.
 
 ## Seed
 

@@ -100,3 +100,33 @@ export async function sendStudentOnboardingWhatsApp({
   }
   return sendWhatsApp({ to, body: lines.join("\n"), links });
 }
+
+type CheckinFeedbackArgs = {
+  to: string;
+  firstName: string;
+  /** The coach's feedback text (or a manual check-in's note). */
+  feedback: string;
+  /** Link back to the student's portal (Evolução). */
+  portalUrl?: string;
+};
+
+/**
+ * Sends the coach's check-in feedback to the student on WhatsApp. WhatsApp isn't
+ * wired to a provider yet, so in dev/tests this only logs (and captures the
+ * portal link in the test outbox) — the caller contract is stable for when a
+ * provider is added. Never throws in the unconfigured path.
+ */
+export async function sendCheckinFeedbackWhatsApp({
+  to,
+  firstName,
+  feedback,
+  portalUrl,
+}: CheckinFeedbackArgs): Promise<{ delivered: boolean }> {
+  const lines = [`Oi, ${firstName}! Seu coach respondeu seu check-in:`, "", feedback];
+  const links: WhatsAppLink[] = [];
+  if (portalUrl) {
+    lines.push("", `📲 Veja no portal: ${portalUrl}`);
+    links.push({ kind: "checkin_feedback", url: portalUrl });
+  }
+  return sendWhatsApp({ to, body: lines.join("\n"), links });
+}

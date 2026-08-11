@@ -459,11 +459,16 @@ function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
 }
 
 /**
- * Seeds a handful of dated check-ins for the aluno (author = "student"), so the
- * portal's Evolução tab has a real weight curve + history. Inserted directly (no
- * R2 needed): weights + notes are real; the four pose photos use placeholder
- * keys, since photos aren't served back yet. Idempotent: skips if the aluno
- * already has any check-in.
+ * Seeds a realistic check-in timeline for the aluno so BOTH the portal
+ * (Evolução) and the coach Feedback/Evolução tabs have data:
+ *  - weekly student check-ins (weight trending down), most already answered by
+ *    the coach — the newest left PENDING so the coach queue has one to respond to;
+ *  - a coach ANNOTATION (note-only) entry;
+ *  - a coach PRESENCIAL entry carrying a body assessment;
+ *  - a body assessment on an earlier answered check-in, so the Medidas Δ table
+ *    has two points to compare.
+ * Inserted directly (no R2): the four pose photos use placeholder keys served as
+ * labeled SVGs. Idempotent: skips if the aluno already has any check-in.
  */
 async function seedAlunoCheckins(
   db: NonNullable<DbModule["db"]>,
@@ -471,6 +476,7 @@ async function seedAlunoCheckins(
   clinicId: string,
   studentId: string,
   authorUserId: string,
+  coachUserId: string,
 ): Promise<void> {
   const existing = await db
     .select({ id: schema.studentCheckin.id })
@@ -487,20 +493,41 @@ async function seedAlunoCheckins(
     return;
   }
 
-  // Six weekly entries, oldest → newest, weight trending down (a cutting phase).
-  const points: { weeksAgo: number; weightKg: number; note: string }[] = [
-    { weeksAgo: 5, weightKg: 73.4, note: "Primeira semana, ainda ajustando a dieta." },
-    { weeksAgo: 4, weightKg: 72.9, note: "Semana boa, treinos completos." },
-    { weeksAgo: 3, weightKg: 72.6, note: "Fim de semana pesou, mas mantive o foco." },
-    { weeksAgo: 2, weightKg: 72.0, note: "Dormindo melhor, energia lá em cima." },
-    { weeksAgo: 1, weightKg: 71.7, note: "Consegui subir carga no terra." },
-    { weeksAgo: 0, weightKg: 71.4, note: "Ótima! Bati todas as séries essa semana." },
+  const isoWeeksAgo = (weeks: number, dayOffset = 0) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - weeks * 7 + dayOffset);
+    return d.toISOString().slice(0, 10);
+  };
+  const addPhotos = async (checkinId: string, date: string) => {
+    await db.insert(schema.studentCheckinPhoto).values(
+      schema.CHECKIN_POSES.map((pose, i) => ({
+        clinicId,
+        checkinId,
+        pose,
+        r2Key: `checkins/seed-${date}-${pose}.webp`,
+        sortOrder: i,
+      })),
+    );
+  };
+
+  // Weekly student check-ins, oldest → newest (a cutting phase). `feedback` set
+  // = already reviewed; null = still pending (the newest one).
+  const points: {
+    weeksAgo: number;
+    weightKg: number;
+    note: string;
+    feedback: string | null;
+  }[] = [
+    { weeksAgo: 5, weightKg: 73.4, note: "Primeira semana, ainda ajustando a dieta.", feedback: "Bom começo! Foca na consistência dos treinos essa semana." },
+    { weeksAgo: 4, weightKg: 72.9, note: "Semana boa, treinos completos.", feedback: "Excelente. Mantém a hidratação e o sono que discutimos." },
+    { weeksAgo: 3, weightKg: 72.6, note: "Fim de semana pesou, mas mantive o foco.", feedback: "Acontece! O importante é a média da semana. Segue firme." },
+    { weeksAgo: 2, weightKg: 72.0, note: "Dormindo melhor, energia lá em cima.", feedback: "Isso! O sono muda tudo. Vamos subir um pouco a carga do treino B." },
+    { weeksAgo: 1, weightKg: 71.7, note: "Consegui subir carga no terra.", feedback: "Muito bom! Progressão de carga na medida certa." },
+    { weeksAgo: 0, weightKg: 71.4, note: "Ótima! Bati todas as séries essa semana.", feedback: null },
   ];
 
   for (const p of points) {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - p.weeksAgo * 7);
-    const date = d.toISOString().slice(0, 10);
+    const date = isoWeeksAgo(p.weeksAgo);
     const [checkin] = await db
       .insert(schema.studentCheckin)
       .values({
@@ -511,19 +538,70 @@ async function seedAlunoCheckins(
         authorUserId,
         weightKg: p.weightKg,
         note: p.note,
+        feedback: p.feedback,
+        feedbackAt: p.feedback ? new Date() : null,
+        feedbackByUserId: p.feedback ? coachUserId : null,
       })
       .returning({ id: schema.studentCheckin.id });
-    await db.insert(schema.studentCheckinPhoto).values(
-      schema.CHECKIN_POSES.map((pose, i) => ({
+    await addPhotos(checkin.id, date);
+
+    // An assessment recorded during the review of the 4-weeks-ago check-in
+    // (the "before" point of the Medidas Δ table).
+    if (p.weeksAgo === 4) {
+      await db.insert(schema.checkinAssessment).values({
         clinicId,
         checkinId: checkin.id,
-        pose,
-        r2Key: `checkins/seed-${date}-${pose}.webp`,
-        sortOrder: i,
-      })),
-    );
+        studentId,
+        assessedAt: date,
+        circumferences: { cintura: 82, abdomen: 86, quadril: 100, braco_direito: 34, torax: 97, coxa_direita: 57 },
+        skinfolds: { tricipital: 16, subescapular: 18, suprailiaca: 20, abdominal: 24, coxa: 22 },
+        bodyFatPct: 21.5,
+        recordedByUserId: coachUserId,
+      });
+    }
   }
-  console.info(`✓ seeded ${points.length} aluno check-ins`);
+
+  // A coach annotation (note only, no weight/photos/assessment).
+  await db.insert(schema.studentCheckin).values({
+    clinicId,
+    studentId,
+    date: isoWeeksAgo(3, 1),
+    author: "coach",
+    authorUserId: coachUserId,
+    weightKg: null,
+    note: "Ajustei o descanso do supino para 90s. Reforcei a hidratação.",
+  });
+
+  // A coach in-person (presencial) check-in with a body assessment — the "after"
+  // point of the Medidas Δ table — plus its own photos.
+  const presDate = isoWeeksAgo(1, 1);
+  const [pres] = await db
+    .insert(schema.studentCheckin)
+    .values({
+      clinicId,
+      studentId,
+      date: presDate,
+      author: "coach",
+      authorUserId: coachUserId,
+      weightKg: 71.6,
+      note: "Avaliação presencial. Cintura −3 cm no mês, ótima evolução.",
+    })
+    .returning({ id: schema.studentCheckin.id });
+  await addPhotos(pres.id, presDate);
+  await db.insert(schema.checkinAssessment).values({
+    clinicId,
+    checkinId: pres.id,
+    studentId,
+    assessedAt: presDate,
+    circumferences: { cintura: 79, abdomen: 82, quadril: 98, braco_direito: 34.5, torax: 96, coxa_direita: 56 },
+    skinfolds: { tricipital: 13, subescapular: 15, suprailiaca: 17, abdominal: 20, coxa: 19 },
+    bodyFatPct: 18.5,
+    recordedByUserId: coachUserId,
+  });
+
+  console.info(
+    `✓ seeded ${points.length} aluno check-ins + coach feedback, annotation & presencial assessment`,
+  );
 }
 
 async function seed() {
@@ -656,7 +734,7 @@ async function seed() {
   };
   await seedAlunoDiet(db, schema, studentDiets, coachCtx, studentId);
   await seedAlunoWorkout(db, schema, studentWorkouts, coachCtx, studentId);
-  await seedAlunoCheckins(db, schema, coachClinic.id, studentId, aluno.id);
+  await seedAlunoCheckins(db, schema, coachClinic.id, studentId, aluno.id, coach.id);
 
   // The clinic's own copy of the starter anamneses (idempotent).
   const { seedClinicAnamneses } = await import("@/server/dal/anamneses");
