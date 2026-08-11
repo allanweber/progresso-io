@@ -45,9 +45,8 @@ student API always requires it.
 
 ## Photos
 
-Progress photos are **private and write-only this release** — captured,
-compressed, and stored, but **not served back** (no viewer yet; that arrives with
-the coach UI, along with the private-delivery decision).
+Progress photos are **private** — the student can view their own, but they are
+never public.
 
 - **Client-side compression, no dependency** (`src/lib/image-compression.ts`):
   on pick, the browser downscales the longest edge to ~1600px and re-encodes to
@@ -58,6 +57,13 @@ the coach UI, along with the private-delivery decision).
   `checkins/<uuid>.<ext>`. Uploads to **R2** when configured; otherwise writes to
   a gitignored **`.uploads/`** dir, so local dev + e2e/CI work without cloud
   creds. `validateCheckinPhoto` is a server backstop (type + ≤ 3 MB).
+- **Delivery** (`readCheckinPhoto`): the owner reads their photos back through
+  `GET /api/student/checkin/<id>/photo/<photoId>`, which streams the bytes only
+  after the DAL join proves the photo belongs to this aluno's own check-in
+  (never a public/shared URL). Bytes come from R2 or the local fallback; a
+  missing object (e.g. a seeded placeholder key) falls back to a labeled SVG
+  placeholder so the modal never shows a broken image. Coach-side viewing is
+  still a later feature.
 
 ## Architecture
 
@@ -82,13 +88,25 @@ the real byte transfer, wired into a TanStack Query mutation. Photos are
 compressed on pick (each slot shows a brief "Comprimindo…"), so at submit the
 bar reflects the upload only.
 
+## Clinic cadence in the header
+
+The Check-in tab header reflects the clinic's **feedback configuration** (set by
+the coach in Configurações): the heading reads `Check-in <frequência>`
+(semanal / quinzenal / mensal) and a chip shows `<Frequência> · <dia preferido>`.
+The aluno reads it from `getMyProfile`, which now carries `feedbackFrequency` +
+`feedbackPreferredDay` off the clinic — so changing it in Configurações
+propagates to every student with no code change.
+
 ## Evolução
 
 - **Weight chart** — an inline SVG line/area built from the check-in weights
-  (`weightSeries`, oldest → newest). Coach annotations without a weight never
-  feed it.
-- **Histórico de check-ins** — the timeline (both authors), each row showing the
-  date, weight, note, photo count, and a `coach` marker for coach entries.
+  (`weightSeries`, oldest → newest): gridlines, min/max + first/last-date labels,
+  the current weight and the total delta. A single check-in renders a centered
+  point with a prompt to log more. Coach annotations without a weight never feed
+  it.
+- **Histórico de check-ins** — the timeline (both authors). Each row is a button
+  that opens a **detail modal** (`GET /api/student/checkin/<id>`) showing the
+  weight, note, and the four pose photos; a `coach` marker flags coach entries.
 
 ## Seed
 
@@ -100,9 +118,10 @@ chart + history render. Idempotent.
 
 - `tests/student-checkins.integration.test.ts` (PGlite) — persistence (weight +
   note + four photos, author/date/authorUserId), many-per-date, coach annotation
-  on the timeline (excluded from the weight series), and clinic + own-student
-  isolation.
+  on the timeline (excluded from the weight series), detail + photo reads scoped
+  to the owner, and clinic + own-student isolation.
 - `tests/image-compression.test.ts` — the pure downscale math.
 - `e2e/student.spec.ts` (student project) — fills the form, attaches the four
   poses, submits (real upload via the local-disk fallback), asserts the success
-  state + the live Evolução entry, and captures desktop + mobile screenshots.
+  state + the live Evolução entry, opens a history entry's modal and asserts the
+  four photos render, and captures desktop + mobile screenshots.

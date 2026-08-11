@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import {
+  CalendarClock,
   Camera,
   Check,
   ChevronRight,
@@ -58,6 +59,10 @@ import type {
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  FEEDBACK_FREQUENCY_LABELS,
+  WEEKDAY_LABELS,
+} from "@/lib/clinic-settings";
 import { fieldError } from "@/lib/form";
 import { compressImage } from "@/lib/image-compression";
 import {
@@ -65,6 +70,7 @@ import {
   CHECKIN_POSE_LABELS,
   CHECKIN_POSE_VALUES,
   checkinSubmitSchema,
+  type CheckinDetailDto,
   type CheckinDto,
   type CheckinListDto,
   type WeightPointDto,
@@ -388,6 +394,10 @@ function uploadCheckin(
 
 function CheckinTab() {
   const queryClient = useQueryClient();
+  const profile = useQuery({
+    queryKey: ["student", "profile"],
+    queryFn: () => apiFetch<AlunoProfileDto>("/api/student/profile"),
+  });
   const [photos, setPhotos] =
     useState<Record<CheckinPose, PhotoSlot | null>>(EMPTY_PHOTOS);
   const [progress, setProgress] = useState(0);
@@ -493,11 +503,20 @@ function CheckinTab() {
       className="mt-2"
     >
       <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        Check-in semanal
+        {profile.data
+          ? `Check-in ${FEEDBACK_FREQUENCY_LABELS[profile.data.feedbackFrequency].label.toLowerCase()}`
+          : "Check-in"}
       </h1>
       <p className="mt-1 text-[13px] text-muted-foreground">
         Registrado na data de hoje. Seu coach recebe assim que você enviar.
       </p>
+      {profile.data ? (
+        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-light px-3 py-1 text-[12px] font-medium text-primary">
+          <CalendarClock className="size-3.5" />
+          {FEEDBACK_FREQUENCY_LABELS[profile.data.feedbackFrequency].label} ·{" "}
+          {WEEKDAY_LABELS[profile.data.feedbackPreferredDay]}
+        </div>
+      ) : null}
 
       <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
         {/* Weight */}
@@ -725,6 +744,7 @@ function formatIsoDate(d: string): string {
 }
 
 function EvolucaoTab() {
+  const [detailId, setDetailId] = useState<string | null>(null);
   const state = useQuery({
     queryKey: ["student", "checkin"],
     queryFn: () => apiFetch<CheckinListDto>("/api/student/checkin"),
@@ -773,13 +793,22 @@ function EvolucaoTab() {
       {/* Weight chart */}
       {weightSeries.length > 0 ? (
         <div className="mt-5 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold">Peso</span>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[13px] text-muted-foreground">
+                Peso atual
+              </div>
+              <div className="font-heading text-2xl font-bold tracking-tight">
+                {last !== undefined ? `${formatWeightKg(last)} kg` : "—"}
+              </div>
+            </div>
             {delta !== undefined && delta !== 0 ? (
               <span
                 className={cn(
-                  "flex items-center gap-1 text-[13px] font-semibold",
-                  delta < 0 ? "text-primary" : "text-amber-600",
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-semibold",
+                  delta < 0
+                    ? "bg-primary-light text-primary"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
                 )}
               >
                 {delta < 0 ? (
@@ -789,81 +818,171 @@ function EvolucaoTab() {
                 )}
                 {delta < 0 ? "−" : "+"}
                 {formatWeightKg(Math.abs(delta))} kg
-                <span className="font-normal text-muted-foreground">
-                  em {weightSeries.length} check-ins
-                </span>
               </span>
             ) : null}
           </div>
           <WeightChart series={weightSeries} />
+          {weightSeries.length === 1 ? (
+            <p className="mt-2 text-center text-[12px] text-muted-foreground">
+              Registre mais check-ins para ver sua curva de evolução.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
       {/* History */}
       <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
-        <div className="mb-2 text-sm font-semibold">Histórico de check-ins</div>
+        <div className="mb-1 text-sm font-semibold">Histórico de check-ins</div>
         <div className="flex flex-col">
           {checkins.map((c) => (
-            <CheckinRow key={c.id} checkin={c} />
+            <CheckinRow key={c.id} checkin={c} onOpen={() => setDetailId(c.id)} />
           ))}
         </div>
       </div>
+
+      <CheckinDetailDialog
+        checkinId={detailId}
+        onClose={() => setDetailId(null)}
+      />
     </div>
   );
 }
 
-/** Inline SVG weight line (area + stroke + dots), oldest → newest. */
+/** "95,5" short kg number; "11/08" short date for the axis. */
+function shortDate(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+/**
+ * Inline SVG weight chart: gridlines + min/max/date labels + area + line + dots.
+ * Handles a single check-in gracefully (a centered point on a baseline).
+ */
 function WeightChart({ series }: { series: WeightPointDto[] }) {
-  const W = 320;
-  const H = 120;
-  const pad = 10;
-  const weights = series.map((s) => s.weightKg);
-  const min = Math.min(...weights);
-  const max = Math.max(...weights);
-  const span = max - min || 1;
+  const W = 340;
+  const H = 176;
+  const left = 38;
+  const right = W - 12;
+  const top = 14;
+  const bottom = H - 22;
   const n = series.length;
+
+  const weights = series.map((s) => s.weightKg);
+  const rawMin = Math.min(...weights);
+  const rawMax = Math.max(...weights);
+  const flat = rawMax - rawMin < 0.05;
+  // Pad the range a touch so the line isn't glued to the top/bottom edges.
+  const min = flat ? rawMin - 1 : rawMin - (rawMax - rawMin) * 0.15;
+  const max = flat ? rawMax + 1 : rawMax + (rawMax - rawMin) * 0.15;
+  const span = max - min || 1;
+
   const x = (i: number) =>
-    n === 1 ? W / 2 : pad + (i / (n - 1)) * (W - pad * 2);
-  const y = (w: number) => pad + (1 - (w - min) / span) * (H - pad * 2);
+    n === 1 ? (left + right) / 2 : left + (i / (n - 1)) * (right - left);
+  const y = (w: number) => top + (1 - (w - min) / span) * (bottom - top);
   const pts = series.map((s, i) => [x(i), y(s.weightKg)] as const);
+
   const line = pts
     .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
     .join(" ");
-  const area = `${line} L${pts[n - 1][0].toFixed(1)} ${H - pad} L${pts[0][0].toFixed(1)} ${H - pad} Z`;
+  const area = `${line} L${pts[n - 1][0].toFixed(1)} ${bottom} L${pts[0][0].toFixed(1)} ${bottom} Z`;
+
+  const gridYs = [top, (top + bottom) / 2, bottom];
 
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="h-[120px] w-full overflow-visible"
+      className="w-full"
       role="img"
       aria-label="Gráfico de evolução do peso"
     >
       <defs>
         <linearGradient id="checkinWeight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--primary)" stopOpacity="0.16" />
+          <stop offset="0" stopColor="var(--primary)" stopOpacity="0.18" />
           <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={area} fill="url(#checkinWeight)" />
-      <path
-        d={line}
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {pts.map((p, i) => (
-        <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill="var(--primary)" />
+
+      {/* Gridlines */}
+      {gridYs.map((gy, i) => (
+        <line
+          key={i}
+          x1={left}
+          y1={gy}
+          x2={right}
+          y2={gy}
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray={i === 2 ? "0" : "3 4"}
+        />
       ))}
+
+      {/* Y labels: max at top, min at bottom (real range, not the padded one) */}
+      <text x={left - 6} y={top + 4} textAnchor="end" className="fill-muted-foreground" fontSize="10">
+        {formatWeightKg(rawMax)}
+      </text>
+      <text x={left - 6} y={bottom} textAnchor="end" className="fill-muted-foreground" fontSize="10">
+        {formatWeightKg(rawMin)}
+      </text>
+
+      {/* Area + line (only meaningful with 2+ points) */}
+      {n >= 2 ? (
+        <>
+          <path d={area} fill="url(#checkinWeight)" />
+          <path
+            d={line}
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        </>
+      ) : null}
+
+      {/* Dots */}
+      {pts.map((p, i) => (
+        <circle
+          key={i}
+          cx={p[0]}
+          cy={p[1]}
+          r={n === 1 ? 4 : 2.5}
+          fill="var(--primary)"
+        />
+      ))}
+
+      {/* X labels: first + last date (or the single date, centered) */}
+      {n === 1 ? (
+        <text x={(left + right) / 2} y={H - 6} textAnchor="middle" className="fill-muted-foreground" fontSize="10">
+          {shortDate(series[0].date)}
+        </text>
+      ) : (
+        <>
+          <text x={left} y={H - 6} textAnchor="start" className="fill-muted-foreground" fontSize="10">
+            {shortDate(series[0].date)}
+          </text>
+          <text x={right} y={H - 6} textAnchor="end" className="fill-muted-foreground" fontSize="10">
+            {shortDate(series[n - 1].date)}
+          </text>
+        </>
+      )}
     </svg>
   );
 }
 
-/** One timeline row: date + weight + note, with a coach-entry marker. */
-function CheckinRow({ checkin }: { checkin: CheckinDto }) {
+/** One timeline row (a button): date + weight + note; opens the detail modal. */
+function CheckinRow({
+  checkin,
+  onOpen,
+}: {
+  checkin: CheckinDto;
+  onOpen: () => void;
+}) {
   return (
-    <div className="flex items-start gap-3 border-b border-[#F1F5F9] py-2.5 last:border-b-0 dark:border-border">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex items-start gap-3 border-b border-[#F1F5F9] py-2.5 text-left transition-colors last:border-b-0 hover:bg-muted/40 dark:border-border"
+    >
       <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -893,10 +1012,104 @@ function CheckinRow({ checkin }: { checkin: CheckinDto }) {
           </p>
         ) : null}
       </div>
-      <span className="shrink-0 text-[12px] text-muted-foreground">
+      <span className="flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
         {formatIsoDate(checkin.date)}
+        <ChevronRight className="size-3.5" />
       </span>
-    </div>
+    </button>
+  );
+}
+
+/** The history-entry modal: weight + note + the four pose photos. */
+function CheckinDetailDialog({
+  checkinId,
+  onClose,
+}: {
+  checkinId: string | null;
+  onClose: () => void;
+}) {
+  const detail = useQuery({
+    queryKey: ["student", "checkin", "detail", checkinId],
+    queryFn: () =>
+      apiFetch<CheckinDetailDto>(`/api/student/checkin/${checkinId}`),
+    enabled: checkinId !== null,
+  });
+
+  const d = detail.data;
+
+  return (
+    <Dialog open={checkinId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 font-heading text-lg">
+            {d?.weightKg !== null && d?.weightKg !== undefined
+              ? `${formatWeightKg(d.weightKg)} kg`
+              : "Check-in"}
+            {d?.author === "coach" ? (
+              <Badge
+                variant="neutral"
+                className="h-4 px-1.5 py-0 text-[10px] font-semibold"
+              >
+                coach
+              </Badge>
+            ) : null}
+          </DialogTitle>
+          {d ? (
+            <p className="text-[12.5px] text-muted-foreground">
+              {formatIsoDate(d.date)}
+            </p>
+          ) : null}
+        </DialogHeader>
+
+        {detail.isPending && checkinId ? (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        ) : detail.isError ? (
+          <p className="text-sm text-red-600">
+            Não foi possível carregar este check-in.
+          </p>
+        ) : d ? (
+          <div className="flex flex-col gap-4">
+            {d.note ? (
+              <div className="rounded-xl bg-muted/40 px-3.5 py-3 text-[13px] text-foreground">
+                {d.note}
+              </div>
+            ) : null}
+
+            {d.photos.length > 0 ? (
+              <div>
+                <div className="mb-2 text-xs font-medium text-muted-foreground">
+                  Fotos
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {d.photos.map((p) => (
+                    <div
+                      key={p.id}
+                      className="relative aspect-[4/5] overflow-hidden rounded-xl bg-muted"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- owner-scoped API stream */}
+                      <img
+                        src={`/api/student/checkin/${d.id}/photo/${p.id}`}
+                        alt={CHECKIN_POSE_LABELS[p.pose]}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
+                        <span className="text-[11px] font-semibold text-white">
+                          {CHECKIN_POSE_LABELS[p.pose]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">
+                Sem fotos neste check-in.
+              </p>
+            )}
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 

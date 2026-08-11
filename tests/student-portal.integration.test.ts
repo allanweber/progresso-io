@@ -171,6 +171,9 @@ describe("student portal DAL (aluno-facing, read-only)", () => {
       coachName: "Thiago Corrêa",
       clinicName: "Studio Forja",
       goal: "hipertrofia",
+      // The clinic's check-in cadence (defaults from the migration).
+      feedbackFrequency: "semanal",
+      feedbackPreferredDay: "monday",
     });
   });
 
