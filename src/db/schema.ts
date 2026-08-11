@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  date,
   doublePrecision,
   index,
   integer,
@@ -1555,6 +1556,118 @@ export const notificationReadRelations = relations(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Check-ins (aluno progress submissions)                                     */
+/*                                                                            */
+/*  A dated progress entry for a student: a body weight, an optional note, and  */
+/*  up to four physique photos (poses). The `author` discriminates who logged   */
+/*  it — the aluno from the portal, or a coach recording an in-person check-in   */
+/*  (the coach-side UI is not built yet). Many entries may share a date (a coach */
+/*  may annotate the same day the aluno submits), so the timeline orders by      */
+/*  (date desc, created_at desc). Photos live in `student_checkin_photo`, one    */
+/*  row per pose, each pointing at a stored image key — R2 in production, a      */
+/*  local-disk fallback in dev/e2e (see src/server/r2.ts).                       */
+/* -------------------------------------------------------------------------- */
+
+export const CHECKIN_AUTHORS = ["student", "coach"] as const;
+export type CheckinAuthor = (typeof CHECKIN_AUTHORS)[number];
+
+export const CHECKIN_POSES = [
+  "frente",
+  "costas",
+  "lado_esquerdo",
+  "lado_direito",
+] as const;
+export type CheckinPose = (typeof CHECKIN_POSES)[number];
+
+export const studentCheckin = pgTable(
+  "student_checkin",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    // The calendar date of the check-in (no time) — the timeline index. Server-
+    // set to "today" for aluno submissions; a coach may backdate an in-person one.
+    date: date("date", { mode: "string" }).notNull(),
+    // Who logged it. A student submission carries weight + all four poses; a
+    // coach in-person entry can carry the same fields (and more, later).
+    author: text("author").$type<CheckinAuthor>().default("student").notNull(),
+    // The user who created the row (aluno or coach). NULL if that user is later
+    // deleted — the entry itself stays on the student's timeline.
+    authorUserId: text("author_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    // Body weight in kg. Required for aluno submissions (enforced at the zod
+    // layer); nullable so a future coach note-only entry is representable.
+    weightKg: doublePrecision("weight_kg"),
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_checkin_clinic_idx").on(t.clinicId),
+    index("student_checkin_student_date_idx").on(t.studentId, t.date),
+  ],
+);
+
+export const studentCheckinPhoto = pgTable(
+  "student_checkin_photo",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — carried on the photo too so every query stays clinic-scoped.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    checkinId: uuid("checkin_id")
+      .notNull()
+      .references(() => studentCheckin.id, { onDelete: "cascade" }),
+    pose: text("pose").$type<CheckinPose>().notNull(),
+    // Stored image key (e.g. "checkins/<uuid>.webp"), WITHOUT any bucket prefix
+    // — the same shape whether it lives in R2 or the dev local-disk fallback.
+    r2Key: text("r2_key").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [
+    index("student_checkin_photo_checkin_idx").on(t.checkinId),
+    // One photo per pose per check-in.
+    unique("student_checkin_photo_pose_uq").on(t.checkinId, t.pose),
+  ],
+);
+
+export const studentCheckinRelations = relations(
+  studentCheckin,
+  ({ one, many }) => ({
+    clinic: one(clinic, {
+      fields: [studentCheckin.clinicId],
+      references: [clinic.id],
+    }),
+    student: one(students, {
+      fields: [studentCheckin.studentId],
+      references: [students.id],
+    }),
+    author: one(user, {
+      fields: [studentCheckin.authorUserId],
+      references: [user.id],
+    }),
+    photos: many(studentCheckinPhoto),
+  }),
+);
+
+export const studentCheckinPhotoRelations = relations(
+  studentCheckinPhoto,
+  ({ one }) => ({
+    checkin: one(studentCheckin, {
+      fields: [studentCheckinPhoto.checkinId],
+      references: [studentCheckin.id],
+    }),
+  }),
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -1609,3 +1722,7 @@ export type Notification = typeof notification.$inferSelect;
 export type NewNotification = typeof notification.$inferInsert;
 export type NotificationRead = typeof notificationRead.$inferSelect;
 export type NewNotificationRead = typeof notificationRead.$inferInsert;
+export type StudentCheckin = typeof studentCheckin.$inferSelect;
+export type NewStudentCheckin = typeof studentCheckin.$inferInsert;
+export type StudentCheckinPhoto = typeof studentCheckinPhoto.$inferSelect;
+export type NewStudentCheckinPhoto = typeof studentCheckinPhoto.$inferInsert;

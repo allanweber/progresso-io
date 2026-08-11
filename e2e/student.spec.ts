@@ -130,8 +130,105 @@ test.describe("aluno portal", () => {
     await expect(
       page.getByRole("heading", { name: "Cutting" }),
     ).toBeVisible();
-    // The "em breve" tabs are reachable from the bottom bar.
+    // Evolução is reachable from the bottom bar and shows the seeded history.
     await page.getByRole("button", { name: "Evolução" }).click();
-    await expect(page.getByText(/Em breve/)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Minha evolução" }),
+    ).toBeVisible();
+    await expect(page.getByText("Histórico de check-ins")).toBeVisible();
+  });
+
+  test("submits a check-in with the four photos and a live upload bar (desktop + mobile)", async ({
+    page,
+  }) => {
+    // A tiny solid PNG stands in for each pose photo; the browser compresses it
+    // client-side before upload (storage falls back to local disk in e2e).
+    const IMG = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const POSES = [
+      "Pose de frente",
+      "Pose de costas",
+      "Pose lado esquerdo",
+      "Pose lado direito",
+    ];
+
+    // --- Desktop ---
+    await page.goto("/student");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await page.getByRole("button", { name: "Check-in" }).first().click();
+
+    await expect(
+      page.getByRole("heading", { name: "Check-in semanal" }),
+    ).toBeVisible();
+    await expect(page.getByText("Como tirar as fotos")).toBeVisible();
+
+    // Weight + note.
+    await page.getByLabel("Peso atual (kg)").fill("71,2");
+    await page
+      .getByLabel("Como foi a semana?")
+      .fill("Semana ótima, bati todas as séries.");
+
+    // Attach all four poses; each compresses to a thumbnail (its "Remover"
+    // button appears once ready).
+    for (const label of POSES) {
+      await page
+        .getByLabel(`Enviar ${label}`)
+        .setInputFiles({ name: "pose.png", mimeType: "image/png", buffer: IMG });
+      await expect(
+        page.getByRole("button", { name: `Remover ${label}` }),
+      ).toBeVisible();
+    }
+
+    await page.screenshot({
+      path: "test-results/screens/portal-checkin-desktop.png",
+      fullPage: true,
+    });
+
+    // Submit → the determinate upload bar shows, then the success state.
+    await page.getByRole("button", { name: "Enviar check-in" }).click();
+    await expect(
+      page.getByText(/Check-in enviado ao seu coach/),
+    ).toBeVisible();
+
+    // The new check-in shows up live on Evolução.
+    await page.getByRole("button", { name: "Evolução" }).first().click();
+    await expect(
+      page.getByRole("heading", { name: "Minha evolução" }),
+    ).toBeVisible();
+    await expect(page.getByText("Histórico de check-ins")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/portal-evolucao-desktop.png",
+      fullPage: true,
+    });
+
+    // --- Mobile --- the check-in form on a phone viewport.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Check-in" }).first().click();
+    await expect(
+      page.getByRole("heading", { name: "Check-in semanal" }),
+    ).toBeVisible();
+    await page.getByLabel("Peso atual (kg)").fill("71,2");
+    for (const label of POSES) {
+      await page
+        .getByLabel(`Enviar ${label}`)
+        .setInputFiles({ name: "pose.png", mimeType: "image/png", buffer: IMG });
+      await expect(
+        page.getByRole("button", { name: `Remover ${label}` }),
+      ).toBeVisible();
+    }
+    // Bring the photo grid into view and capture the VIEWPORT (not fullPage), so
+    // the fixed bottom tab bar shows pinned to the bottom (a fullPage shot would
+    // render the fixed bar mid-image). Assert the bar sits within the viewport.
+    await page.getByText("Como tirar as fotos").scrollIntoViewIfNeeded();
+    const tabBar = page.getByRole("button", { name: "Evolução" }).last();
+    const box = await tabBar.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y).toBeGreaterThan(844 - 120); // near the bottom edge (844 tall)
+    await page.screenshot({
+      path: "test-results/screens/portal-checkin-mobile.png",
+      fullPage: false,
+    });
   });
 });

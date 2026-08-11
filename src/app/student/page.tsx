@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import {
+  Camera,
+  Check,
   ChevronRight,
   Dumbbell,
   LineChart,
   ListChecks,
+  Loader2,
   LogOut,
   Repeat,
+  TrendingDown,
+  TrendingUp,
   UtensilsCrossed,
+  X,
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
@@ -28,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, ApiError } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
   formatGrams,
@@ -48,6 +55,22 @@ import type {
   MyDietStateDto,
   MyWorkoutStateDto,
 } from "@/lib/student-portal";
+import { Field } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { fieldError } from "@/lib/form";
+import { compressImage } from "@/lib/image-compression";
+import {
+  CHECKIN_POSE_INSTRUCTIONS,
+  CHECKIN_POSE_LABELS,
+  CHECKIN_POSE_VALUES,
+  checkinSubmitSchema,
+  type CheckinDto,
+  type CheckinListDto,
+  type WeightPointDto,
+} from "@/lib/student-checkins";
+import type { CheckinPose } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------- */
 /*  Tabs                                                                        */
@@ -59,12 +82,11 @@ const TABS: {
   id: TabId;
   label: string;
   icon: typeof Dumbbell;
-  ready: boolean;
 }[] = [
-  { id: "treino", label: "Treino", icon: Dumbbell, ready: true },
-  { id: "dieta", label: "Dieta", icon: UtensilsCrossed, ready: true },
-  { id: "checkin", label: "Check-in", icon: ListChecks, ready: false },
-  { id: "evolucao", label: "Evolução", icon: LineChart, ready: false },
+  { id: "treino", label: "Treino", icon: Dumbbell },
+  { id: "dieta", label: "Dieta", icon: UtensilsCrossed },
+  { id: "checkin", label: "Check-in", icon: ListChecks },
+  { id: "evolucao", label: "Evolução", icon: LineChart },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -271,8 +293,10 @@ export default function StudentPortalPage() {
               <DietTab />
             ) : tab === "treino" ? (
               <WorkoutTab />
+            ) : tab === "checkin" ? (
+              <CheckinTab />
             ) : (
-              <ComingSoon label={TABS.find((t) => t.id === tab)!.label} />
+              <EvolucaoTab />
             )}
           </main>
         </div>
@@ -304,20 +328,574 @@ export default function StudentPortalPage() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  "Em breve" placeholder (Treino / Check-in / Evolução)                      */
+/*  Check-in tab (submit this week's check-in)                                  */
 /* -------------------------------------------------------------------------- */
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="mt-2">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        {label}
-      </h1>
-      <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
-        <p className="text-sm text-muted-foreground">
-          Em breve. Assim que seu coach liberar, aparece por aqui.
-        </p>
+type PhotoSlot = { blob: Blob; url: string; compressing: boolean };
+
+const EMPTY_PHOTOS: Record<CheckinPose, PhotoSlot | null> = {
+  frente: null,
+  costas: null,
+  lado_esquerdo: null,
+  lado_direito: null,
+};
+
+/**
+ * POSTs the multipart check-in via XMLHttpRequest — `fetch` can't report upload
+ * progress, so we use XHR's `upload.onprogress` to drive a determinate bar tied
+ * to the real byte transfer.
+ */
+function uploadCheckin(
+  formData: FormData,
+  onProgress: (pct: number) => void,
+): Promise<CheckinDto> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/student/checkin");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      let data: unknown = null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* non-JSON body */
+      }
+      const body = data as {
+        error?: string;
+        fieldErrors?: Record<string, string>;
+      } | null;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data as CheckinDto);
+      } else {
+        reject(
+          new ApiError(
+            body?.error ?? "Não foi possível enviar o check-in.",
+            xhr.status,
+            body?.fieldErrors,
+          ),
+        );
+      }
+    };
+    xhr.onerror = () =>
+      reject(new ApiError("Falha de conexão ao enviar o check-in.", 0));
+    xhr.send(formData);
+  });
+}
+
+function CheckinTab() {
+  const queryClient = useQueryClient();
+  const [photos, setPhotos] =
+    useState<Record<CheckinPose, PhotoSlot | null>>(EMPTY_PHOTOS);
+  const [progress, setProgress] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: (fd: FormData) => uploadCheckin(fd, setProgress),
+    onSuccess: () => {
+      setDone(true);
+      queryClient.invalidateQueries({ queryKey: ["student", "checkin"] });
+    },
+  });
+
+  const form = useForm({
+    defaultValues: { weightKg: "", note: "" },
+    validators: { onChange: checkinSubmitSchema },
+    onSubmit: async ({ value }) => {
+      const fd = new FormData();
+      fd.set("weightKg", value.weightKg);
+      if (value.note) fd.set("note", value.note);
+      for (const pose of CHECKIN_POSE_VALUES) {
+        const slot = photos[pose];
+        if (!slot) return; // guarded by the button; defensive
+        const ext = slot.blob.type === "image/webp" ? "webp" : "jpg";
+        fd.set(pose, slot.blob, `${pose}.${ext}`);
+      }
+      setProgress(0);
+      try {
+        await mutation.mutateAsync(fd);
+      } catch {
+        /* surfaced via mutation.error below */
+      }
+    },
+  });
+
+  async function pickPhoto(pose: CheckinPose, file: File) {
+    setPhotos((prev) => {
+      if (prev[pose]) URL.revokeObjectURL(prev[pose]!.url);
+      return { ...prev, [pose]: { blob: file, url: "", compressing: true } };
+    });
+    const blob = await compressImage(file);
+    const url = URL.createObjectURL(blob);
+    setPhotos((prev) => ({ ...prev, [pose]: { blob, url, compressing: false } }));
+  }
+
+  function removePhoto(pose: CheckinPose) {
+    setPhotos((prev) => {
+      if (prev[pose]) URL.revokeObjectURL(prev[pose]!.url);
+      return { ...prev, [pose]: null };
+    });
+  }
+
+  function reset() {
+    for (const pose of CHECKIN_POSE_VALUES) {
+      if (photos[pose]) URL.revokeObjectURL(photos[pose]!.url);
+    }
+    setPhotos(EMPTY_PHOTOS);
+    setProgress(0);
+    setDone(false);
+    mutation.reset();
+    form.reset();
+  }
+
+  const allPhotos = CHECKIN_POSE_VALUES.every(
+    (p) => photos[p] && !photos[p]!.compressing,
+  );
+  const anyCompressing = CHECKIN_POSE_VALUES.some((p) => photos[p]?.compressing);
+  const banner =
+    mutation.error instanceof ApiError ? mutation.error.message : undefined;
+
+  if (done) {
+    return (
+      <div className="mt-2">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Check-in
+        </h1>
+        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+          <div className="flex size-14 items-center justify-center rounded-full bg-primary-light text-primary">
+            <Check className="size-7" />
+          </div>
+          <div>
+            <div className="font-heading text-lg font-semibold">
+              Check-in enviado ao seu coach 💪
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ele já pode ver seu peso, seu relato e suas fotos.
+            </p>
+          </div>
+          <Button variant="outline" onClick={reset}>
+            Enviar outro check-in
+          </Button>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+      className="mt-2"
+    >
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        Check-in semanal
+      </h1>
+      <p className="mt-1 text-[13px] text-muted-foreground">
+        Registrado na data de hoje. Seu coach recebe assim que você enviar.
+      </p>
+
+      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+        {/* Weight */}
+        <form.Field name="weightKg">
+          {(field) => (
+            <Field
+              id="weightKg"
+              label="Peso atual (kg)"
+              type="text"
+              inputMode="decimal"
+              placeholder="71,4"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+              error={fieldError(field)}
+            />
+          )}
+        </form.Field>
+
+        {/* Note */}
+        <form.Field name="note">
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label htmlFor="note">Como foi a semana?</Label>
+              <Textarea
+                id="note"
+                rows={4}
+                placeholder="Ótima! Consegui bater todas as séries…"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Opcional.</p>
+            </div>
+          )}
+        </form.Field>
+
+        {/* Photos */}
+        <div className="space-y-2.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label>Fotos</Label>
+            <span className="text-xs text-muted-foreground">
+              As 4 poses são obrigatórias
+            </span>
+          </div>
+
+          <details className="overflow-hidden rounded-xl border border-border bg-muted/40">
+            <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5 text-[12.5px] font-semibold text-foreground">
+              Como tirar as fotos
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </summary>
+            <ol className="flex list-decimal flex-col gap-1.5 px-7 pb-3 text-[12.5px] leading-snug text-muted-foreground">
+              {CHECKIN_POSE_VALUES.map((pose) => (
+                <li key={pose}>
+                  <strong className="font-semibold text-foreground">
+                    {CHECKIN_POSE_LABELS[pose]}
+                  </strong>{" "}
+                  — {CHECKIN_POSE_INSTRUCTIONS[pose]}
+                </li>
+              ))}
+            </ol>
+          </details>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {CHECKIN_POSE_VALUES.map((pose) => (
+              <PhotoUploadSlot
+                key={pose}
+                pose={pose}
+                slot={photos[pose]}
+                disabled={mutation.isPending}
+                onPick={(file) => pickPhoto(pose, file)}
+                onRemove={() => removePhoto(pose)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {banner ? (
+          <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+            {banner}
+          </div>
+        ) : null}
+
+        {/* Submit + upload progress bar (tight to the transfer) */}
+        {mutation.isPending ? (
+          <div
+            className="space-y-2"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+            aria-label="Enviando check-in"
+          >
+            <div className="flex items-center justify-between text-[13px] font-medium text-foreground">
+              <span>{progress < 100 ? "Enviando…" : "Finalizando…"}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {progress}%
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <form.Subscribe selector={(s) => s.canSubmit}>
+            {(canSubmit) => (
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={!canSubmit || !allPhotos}
+              >
+                {anyCompressing ? "Processando fotos…" : "Enviar check-in"}
+              </Button>
+            )}
+          </form.Subscribe>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/** One pose upload card: empty (pick), compressing (spinner), or a thumbnail. */
+function PhotoUploadSlot({
+  pose,
+  slot,
+  disabled,
+  onPick,
+  onRemove,
+}: {
+  pose: CheckinPose;
+  slot: PhotoSlot | null;
+  disabled: boolean;
+  onPick: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const label = CHECKIN_POSE_LABELS[pose];
+  const ready = slot !== null && !slot.compressing;
+
+  return (
+    <div className="relative aspect-[4/5] overflow-hidden rounded-xl">
+      {ready ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
+          <img
+            src={slot.url}
+            alt={label}
+            className="h-full w-full object-cover"
+          />
+          {/* Pose caption over a bottom gradient so it stays legible on any photo. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
+            <span className="text-[11px] font-semibold text-white">{label}</span>
+          </div>
+          <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+            <Check className="size-3" />
+          </span>
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={disabled}
+            aria-label={`Remover ${label}`}
+            className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 disabled:opacity-50"
+          >
+            <X className="size-3.5" />
+          </button>
+        </>
+      ) : slot?.compressing ? (
+        <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-muted/30 text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" />
+          <span className="text-[11px]">Comprimindo…</span>
+          <span className="text-[11px] font-semibold text-foreground">
+            {label}
+          </span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled}
+          className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-white text-center transition-colors hover:border-primary/60 hover:bg-primary-light/40 disabled:opacity-50 dark:bg-card"
+        >
+          <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Camera className="size-4" />
+          </span>
+          <span className="px-2 text-[11.5px] font-semibold leading-tight text-foreground">
+            {label}
+          </span>
+          <span className="text-[11px] text-muted-foreground">Adicionar</span>
+        </button>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        aria-label={`Enviar ${label}`}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onPick(file);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Evolução tab (weight chart + check-in history)                             */
+/* -------------------------------------------------------------------------- */
+
+/** "71,4" — one decimal, comma separator (pt-BR). */
+function formatWeightKg(n: number): string {
+  return n.toFixed(1).replace(".", ",");
+}
+
+/** "11/08/2026" from a `YYYY-MM-DD` string, timezone-safe (no Date parsing). */
+function formatIsoDate(d: string): string {
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
+function EvolucaoTab() {
+  const state = useQuery({
+    queryKey: ["student", "checkin"],
+    queryFn: () => apiFetch<CheckinListDto>("/api/student/checkin"),
+  });
+
+  if (state.isPending) {
+    return <p className="mt-8 text-sm text-muted-foreground">Carregando…</p>;
+  }
+  if (state.isError) {
+    return (
+      <p className="mt-8 text-sm text-red-600">
+        Não foi possível carregar sua evolução. Tente novamente.
+      </p>
+    );
+  }
+
+  const { checkins, weightSeries } = state.data;
+
+  if (checkins.length === 0) {
+    return (
+      <div className="mt-2">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Minha evolução
+        </h1>
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+          <p className="text-sm text-muted-foreground">
+            Você ainda não enviou nenhum check-in. Faça seu primeiro na aba
+            Check-in e acompanhe sua evolução aqui.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const first = weightSeries[0]?.weightKg;
+  const last = weightSeries[weightSeries.length - 1]?.weightKg;
+  const delta =
+    first !== undefined && last !== undefined ? last - first : undefined;
+
+  return (
+    <div className="mt-2 min-w-0">
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        Minha evolução
+      </h1>
+
+      {/* Weight chart */}
+      {weightSeries.length > 0 ? (
+        <div className="mt-5 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-semibold">Peso</span>
+            {delta !== undefined && delta !== 0 ? (
+              <span
+                className={cn(
+                  "flex items-center gap-1 text-[13px] font-semibold",
+                  delta < 0 ? "text-primary" : "text-amber-600",
+                )}
+              >
+                {delta < 0 ? (
+                  <TrendingDown className="size-4" />
+                ) : (
+                  <TrendingUp className="size-4" />
+                )}
+                {delta < 0 ? "−" : "+"}
+                {formatWeightKg(Math.abs(delta))} kg
+                <span className="font-normal text-muted-foreground">
+                  em {weightSeries.length} check-ins
+                </span>
+              </span>
+            ) : null}
+          </div>
+          <WeightChart series={weightSeries} />
+        </div>
+      ) : null}
+
+      {/* History */}
+      <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+        <div className="mb-2 text-sm font-semibold">Histórico de check-ins</div>
+        <div className="flex flex-col">
+          {checkins.map((c) => (
+            <CheckinRow key={c.id} checkin={c} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Inline SVG weight line (area + stroke + dots), oldest → newest. */
+function WeightChart({ series }: { series: WeightPointDto[] }) {
+  const W = 320;
+  const H = 120;
+  const pad = 10;
+  const weights = series.map((s) => s.weightKg);
+  const min = Math.min(...weights);
+  const max = Math.max(...weights);
+  const span = max - min || 1;
+  const n = series.length;
+  const x = (i: number) =>
+    n === 1 ? W / 2 : pad + (i / (n - 1)) * (W - pad * 2);
+  const y = (w: number) => pad + (1 - (w - min) / span) * (H - pad * 2);
+  const pts = series.map((s, i) => [x(i), y(s.weightKg)] as const);
+  const line = pts
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+    .join(" ");
+  const area = `${line} L${pts[n - 1][0].toFixed(1)} ${H - pad} L${pts[0][0].toFixed(1)} ${H - pad} Z`;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-[120px] w-full overflow-visible"
+      role="img"
+      aria-label="Gráfico de evolução do peso"
+    >
+      <defs>
+        <linearGradient id="checkinWeight" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="var(--primary)" stopOpacity="0.16" />
+          <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#checkinWeight)" />
+      <path
+        d={line}
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill="var(--primary)" />
+      ))}
+    </svg>
+  );
+}
+
+/** One timeline row: date + weight + note, with a coach-entry marker. */
+function CheckinRow({ checkin }: { checkin: CheckinDto }) {
+  return (
+    <div className="flex items-start gap-3 border-b border-[#F1F5F9] py-2.5 last:border-b-0 dark:border-border">
+      <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-[13px] font-semibold">
+            {checkin.weightKg !== null
+              ? `${formatWeightKg(checkin.weightKg)} kg`
+              : "Anotação"}
+          </span>
+          {checkin.author === "coach" ? (
+            <Badge
+              variant="neutral"
+              className="h-4 px-1.5 py-0 text-[10px] font-semibold"
+            >
+              coach
+            </Badge>
+          ) : null}
+          {checkin.photoCount > 0 ? (
+            <span className="text-[11.5px] text-muted-foreground">
+              {checkin.photoCount}{" "}
+              {checkin.photoCount === 1 ? "foto" : "fotos"}
+            </span>
+          ) : null}
+        </div>
+        {checkin.note ? (
+          <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted-foreground">
+            {checkin.note}
+          </p>
+        ) : null}
+      </div>
+      <span className="shrink-0 text-[12px] text-muted-foreground">
+        {formatIsoDate(checkin.date)}
+      </span>
     </div>
   );
 }

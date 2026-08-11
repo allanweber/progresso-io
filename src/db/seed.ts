@@ -458,6 +458,74 @@ function demoAnamnesisAnswers(sections: AnamnesisSection[]): AnamnesisAnswers {
   return answers;
 }
 
+/**
+ * Seeds a handful of dated check-ins for the aluno (author = "student"), so the
+ * portal's Evolução tab has a real weight curve + history. Inserted directly (no
+ * R2 needed): weights + notes are real; the four pose photos use placeholder
+ * keys, since photos aren't served back yet. Idempotent: skips if the aluno
+ * already has any check-in.
+ */
+async function seedAlunoCheckins(
+  db: NonNullable<DbModule["db"]>,
+  schema: DbModule["schema"],
+  clinicId: string,
+  studentId: string,
+  authorUserId: string,
+): Promise<void> {
+  const existing = await db
+    .select({ id: schema.studentCheckin.id })
+    .from(schema.studentCheckin)
+    .where(
+      and(
+        eq(schema.studentCheckin.clinicId, clinicId),
+        eq(schema.studentCheckin.studentId, studentId),
+      ),
+    )
+    .limit(1);
+  if (existing.length > 0) {
+    console.info("• skipped aluno check-ins — already present");
+    return;
+  }
+
+  // Six weekly entries, oldest → newest, weight trending down (a cutting phase).
+  const points: { weeksAgo: number; weightKg: number; note: string }[] = [
+    { weeksAgo: 5, weightKg: 73.4, note: "Primeira semana, ainda ajustando a dieta." },
+    { weeksAgo: 4, weightKg: 72.9, note: "Semana boa, treinos completos." },
+    { weeksAgo: 3, weightKg: 72.6, note: "Fim de semana pesou, mas mantive o foco." },
+    { weeksAgo: 2, weightKg: 72.0, note: "Dormindo melhor, energia lá em cima." },
+    { weeksAgo: 1, weightKg: 71.7, note: "Consegui subir carga no terra." },
+    { weeksAgo: 0, weightKg: 71.4, note: "Ótima! Bati todas as séries essa semana." },
+  ];
+
+  for (const p of points) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - p.weeksAgo * 7);
+    const date = d.toISOString().slice(0, 10);
+    const [checkin] = await db
+      .insert(schema.studentCheckin)
+      .values({
+        clinicId,
+        studentId,
+        date,
+        author: "student",
+        authorUserId,
+        weightKg: p.weightKg,
+        note: p.note,
+      })
+      .returning({ id: schema.studentCheckin.id });
+    await db.insert(schema.studentCheckinPhoto).values(
+      schema.CHECKIN_POSES.map((pose, i) => ({
+        clinicId,
+        checkinId: checkin.id,
+        pose,
+        r2Key: `checkins/seed-${date}-${pose}.webp`,
+        sortOrder: i,
+      })),
+    );
+  }
+  console.info(`✓ seeded ${points.length} aluno check-ins`);
+}
+
 async function seed() {
   const { db, schema } = await import("@/db");
   const { createAuth } = await import("@/lib/auth");
@@ -588,6 +656,7 @@ async function seed() {
   };
   await seedAlunoDiet(db, schema, studentDiets, coachCtx, studentId);
   await seedAlunoWorkout(db, schema, studentWorkouts, coachCtx, studentId);
+  await seedAlunoCheckins(db, schema, coachClinic.id, studentId, aluno.id);
 
   // The clinic's own copy of the starter anamneses (idempotent).
   const { seedClinicAnamneses } = await import("@/server/dal/anamneses");
