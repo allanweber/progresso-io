@@ -36,12 +36,14 @@ export const DELETE = withRoute<Params>(
     if (isAdminEmail(target.email, bootstrapAdminEmail(process.env.ADMIN_EMAIL))) {
       return apiError("O administrador principal não pode ser removido.", 409);
     }
-    if ((await admin.countAdmins(db)) <= 1) {
+
+    // Atomic count-and-delete: the last-admin floor is enforced inside a
+    // transaction (rows locked), so concurrent deletes can't both slip through.
+    const result = await admin.deleteAdminAtomic(db, id);
+    if (result === "not_found") return notFound("Administrador não encontrado.");
+    if (result === "last_admin") {
       return apiError("A plataforma precisa de ao menos um administrador.", 409);
     }
-
-    const deleted = await admin.deleteAdminUser(db, id);
-    if (!deleted) return notFound("Administrador não encontrado.");
 
     logger.warn("admin.deleted", { userId: id, by: session.user.id });
     return NextResponse.json({ ok: true });

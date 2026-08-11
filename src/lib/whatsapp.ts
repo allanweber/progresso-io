@@ -15,6 +15,15 @@ import { logger } from "@/server/observability";
 
 type WhatsAppLink = { kind: string; url: string };
 
+/**
+ * Masks all but the last four digits of a phone number for logging — full
+ * numbers are PII and must not reach the log stream (see M-2). `+5511998887766`
+ * → `•••••••••7766`.
+ */
+function maskPhone(p: string): string {
+  return p.replace(/\d(?=\d{4})/g, "•");
+}
+
 export type WhatsAppMessage = {
   /** Normalized destination number (see @/lib/phone). */
   to: string;
@@ -41,8 +50,11 @@ export async function sendWhatsApp(
   }
 
   if (!providerConfigured) {
-    console.info(`[whatsapp:dev] to ${msg.to}: ${msg.body}`);
-    logger.info("whatsapp.logged", { to: msg.to, links: msg.links?.length ?? 0 });
+    console.info(`[whatsapp:dev] to ${maskPhone(msg.to)}: ${msg.body}`);
+    logger.info("whatsapp.logged", {
+      to: maskPhone(msg.to),
+      links: msg.links?.length ?? 0,
+    });
     return { delivered: false };
   }
 
@@ -57,10 +69,10 @@ export async function sendWhatsApp(
       },
       body: JSON.stringify({ to: msg.to, body: msg.body }),
     });
-    logger.info("whatsapp.sent", { to: msg.to });
+    logger.info("whatsapp.sent", { to: maskPhone(msg.to) });
     return { delivered: true };
   } catch (error) {
-    logger.error("whatsapp.send_failed", { err: error, to: msg.to });
+    logger.error("whatsapp.send_failed", { err: error, to: maskPhone(msg.to) });
     throw error;
   }
 }

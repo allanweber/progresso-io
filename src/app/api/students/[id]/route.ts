@@ -4,6 +4,7 @@ import { studentFormSchema, studentStatusSchema } from "@/lib/students";
 import { students } from "@/server/dal";
 import {
   fieldConflict,
+  forbidden,
   isUuid,
   notFound,
   readJson,
@@ -23,6 +24,7 @@ type Params = { params: Promise<{ id: string }> };
 export const GET = withRoute<Params>("students.get", async (_request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
@@ -34,6 +36,7 @@ export const GET = withRoute<Params>("students.get", async (_request, { params }
 export const PUT = withRoute<Params>("students.update", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
@@ -71,6 +74,7 @@ export const PUT = withRoute<Params>("students.update", async (request, { params
 export const PATCH = withRoute<Params>("students.setStatus", async (request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 
@@ -89,6 +93,7 @@ export const PATCH = withRoute<Params>("students.setStatus", async (request, { p
 export const DELETE = withRoute<Params>("students.archive", async (_request, { params }) => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
 

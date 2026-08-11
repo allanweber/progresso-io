@@ -35,7 +35,7 @@ export type LogFields = Record<string, unknown> & { err?: unknown };
  * might accidentally pass (form bodies, headers, env-derived values).
  */
 const SENSITIVE =
-  /^(password|otp|token|token_?hash|secret|authorization|cookie|set-cookie|access_?token|refresh_?token|id_?token|database_?url|better_auth_secret|resend_api_key|google_client_secret)$/i;
+  /^(password|otp|token|token_?hash|secret|authorization|cookie|set-cookie|access_?token|refresh_?token|id_?token|database_?url|better_auth_secret|resend_api_key|google_client_secret|phone|whatsapp)$/i;
 
 function serializeError(err: unknown): unknown {
   if (err instanceof Error) {

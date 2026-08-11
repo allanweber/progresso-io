@@ -46,4 +46,14 @@ export const db = client
 /** The Drizzle client type — accepted by the Data Access Layer. */
 export type DB = typeof db;
 
+/** A transaction handle, as passed to a `db.transaction(async (tx) => …)` body. */
+export type Tx = Parameters<Parameters<DB["transaction"]>[0]>[0];
+
+/**
+ * Either the shared client or a transaction handle. DAL helpers that must be
+ * callable both standalone and inside a caller's transaction take this, so an
+ * invite-accept flow can run its writes atomically without duplicating them.
+ */
+export type Database = DB | Tx;
+
 export { schema };

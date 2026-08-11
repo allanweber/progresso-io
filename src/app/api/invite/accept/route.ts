@@ -88,19 +88,25 @@ export const POST = withRoute("invite.accept", async (request) => {
     .from(schema.user)
     .where(eq(schema.user.email, student.email));
 
-  await db
-    .update(schema.user)
-    .set({ role: "aluno", clinicId: invitation.clinicId, emailVerified: true })
-    .where(eq(schema.user.id, newUser.id));
-  // Remove the clinic auto-created for them at sign-up.
-  await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, newUser.id));
+  // The account is already created by signUpEmail above (its own call); the
+  // remaining provisioning — promote to aluno, drop the throwaway clinic, link
+  // the student row, mark the invite accepted — runs in one transaction so a
+  // mid-flow error can't leave the aluno half-provisioned.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.user)
+      .set({ role: "aluno", clinicId: invitation.clinicId, emailVerified: true })
+      .where(eq(schema.user.id, newUser.id));
+    // Remove the clinic auto-created for them at sign-up.
+    await tx.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, newUser.id));
 
-  await students.linkStudentAccount(db, {
-    clinicId: invitation.clinicId,
-    studentId: student.id,
-    userId: newUser.id,
+    await students.linkStudentAccount(tx, {
+      clinicId: invitation.clinicId,
+      studentId: student.id,
+      userId: newUser.id,
+    });
+    await invitations.markAccepted(tx, invitation.id);
   });
-  await invitations.markAccepted(db, invitation.id);
 
   logger.info("invite.accepted", {
     studentId: student.id,

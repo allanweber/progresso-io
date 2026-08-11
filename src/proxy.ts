@@ -12,9 +12,10 @@ export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
+    // Bounce to /login. No `?redirect=` is attached: nothing consumes it, and a
+    // dangling, attacker-controllable return path is an open-redirect waiting to
+    // happen if it were ever wired into a post-login `router.push`.
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();

@@ -82,7 +82,10 @@ services:
       - dokploy-network
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # Pinned (not `:latest`) so deploys are reproducible and a surprise upstream
+    # change can't roll in unreviewed. Override/bump via the CLOUDFLARED_VERSION
+    # env in Dokploy after confirming the tag; prefer a sha256 digest long-term.
+    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-2024.12.2}
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:

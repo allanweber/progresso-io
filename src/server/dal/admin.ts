@@ -303,6 +303,35 @@ export async function deleteAdminUser(db: DB, userId: string): Promise<boolean> 
   return rows.length > 0;
 }
 
+export type DeleteAdminResult = "deleted" | "last_admin" | "not_found";
+
+/**
+ * Atomically deletes an admin while enforcing the "never remove the last admin"
+ * floor. The count and the delete run in ONE transaction with the admin rows
+ * locked (`SELECT … FOR UPDATE`), so two concurrent deletes can't both read
+ * "2 admins" and each drop one — the TOCTOU race the route's separate
+ * count-then-delete had. Identity guards (self / bootstrap admin) stay at the
+ * route; this only guarantees the last-admin invariant.
+ */
+export async function deleteAdminAtomic(
+  db: DB,
+  userId: string,
+): Promise<DeleteAdminResult> {
+  return db.transaction(async (tx) => {
+    const admins = await tx
+      .select({ id: schema.user.id })
+      .from(schema.user)
+      .where(eq(schema.user.role, "admin"))
+      .for("update");
+    if (!admins.some((a) => a.id === userId)) return "not_found";
+    if (admins.length <= 1) return "last_admin";
+    await tx
+      .delete(schema.user)
+      .where(and(eq(schema.user.id, userId), eq(schema.user.role, "admin")));
+    return "deleted";
+  });
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Food catalog — platform admin (phase 3)                                    */
 /*                                                                            */

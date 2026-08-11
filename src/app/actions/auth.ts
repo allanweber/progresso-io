@@ -7,7 +7,17 @@ import { APIError } from "better-auth/api";
 import { auth } from "@/lib/auth";
 import { homePathForRole } from "@/lib/roles";
 import { logger, withAction } from "@/server/observability";
+import { clientIp, hit } from "@/server/rate-limit";
 import { type FieldErrors, parseForm, z } from "@/lib/validation";
+
+/** A minute and an hour, in ms — the windows the auth limiter uses. */
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+/** Friendly PT-BR "slow down" banner reused by every throttled auth action. */
+const TOO_MANY: ActionState = {
+  formError: "Muitas tentativas. Aguarde um instante e tente de novo.",
+};
 
 /**
  * Result returned to client forms. Actions that finish the flow `redirect()`
@@ -110,6 +120,9 @@ export const signUpCoach = withAction(
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
     const { name, email, password } = parsed.data;
 
+    // Cap account creation per IP (each sign-up also e-mails a verification OTP).
+    if (!hit(`signup:${await clientIp()}`, 5, HOUR)) return TOO_MANY;
+
     try {
       await auth.api.signUpEmail({
         body: { name, email, password },
@@ -136,6 +149,9 @@ export const signIn = withAction(
     const parsed = parseForm(signInSchema, formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
     const { email, password } = parsed.data;
+
+    // Throttle password brute force per IP.
+    if (!hit(`signin:${await clientIp()}`, 10, MINUTE)) return TOO_MANY;
 
     let role: string | null | undefined;
     try {
@@ -170,6 +186,9 @@ export const verifyAccount = withAction(
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
     const { email, otp } = parsed.data;
 
+    // Throttle OTP guessing per IP (the plugin's per-code cap is 3 attempts).
+    if (!hit(`verify:${await clientIp()}`, 10, MINUTE)) return TOO_MANY;
+
     try {
       await auth.api.verifyEmailOTP({ body: { email, otp } });
     } catch (error) {
@@ -202,6 +221,16 @@ export const resendOtp = withAction(
     const parsed = resendSchema.safeParse({ email, type });
     if (!parsed.success) return { formError: "E-mail inválido." };
 
+    // Cap OTP sends to curb inbox bombing + provider cost: at most one per
+    // minute per address, and a looser per-IP hourly ceiling.
+    const ip = await clientIp();
+    if (
+      !hit(`otp-send:${parsed.data.email}`, 1, MINUTE) ||
+      !hit(`otp-send-ip:${ip}`, 5, HOUR)
+    ) {
+      return TOO_MANY;
+    }
+
     try {
       if (parsed.data.type === "forget-password") {
         await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
@@ -229,6 +258,17 @@ export const requestPasswordReset = withAction(
     const parsed = parseForm(forgotSchema, formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
+    // Same OTP-send budget as the resend action (per-email + per-IP).
+    const ip = await clientIp();
+    if (
+      !hit(`otp-send:${parsed.data.email}`, 1, MINUTE) ||
+      !hit(`otp-send-ip:${ip}`, 5, HOUR)
+    ) {
+      // Neutral success is kept below to avoid enumeration; a throttle banner
+      // here would only ever apply to the same address, so it's safe to show.
+      return TOO_MANY;
+    }
+
     try {
       await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
     } catch (error) {
@@ -250,6 +290,9 @@ export const resetPassword = withAction(
     const parsed = parseForm(resetSchema, formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
     const { email, otp, password } = parsed.data;
+
+    // Throttle reset-OTP guessing per IP.
+    if (!hit(`reset:${await clientIp()}`, 10, MINUTE)) return TOO_MANY;
 
     try {
       await auth.api.resetPasswordEmailOTP({ body: { email, otp, password } });

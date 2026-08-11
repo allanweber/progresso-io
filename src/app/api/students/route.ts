@@ -29,6 +29,7 @@ import { getTenantContext } from "@/server/tenant";
 export const GET = withRoute("students.list", async () => {
   const ctx = await getTenantContext();
   if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
   const roster = await students.listStudents(ctx);
   return NextResponse.json({ students: roster });
 });

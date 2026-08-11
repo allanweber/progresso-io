@@ -1,7 +1,9 @@
 # Follows the official Next.js Docker example:
 # https://github.com/vercel/next.js/tree/canary/examples/with-docker
-# Pin to an exact patch (e.g. 22.13.1-slim) for fully reproducible builds.
-ARG NODE_VERSION=22-slim
+# Pinned to an exact patch for reproducible builds — bump deliberately (ideally
+# to a sha256 digest once the deploy registry is known). Overridable via
+# `--build-arg NODE_VERSION=…`.
+ARG NODE_VERSION=22.13.1-slim
 
 # ---- Dependencies ----
 FROM node:${NODE_VERSION} AS dependencies

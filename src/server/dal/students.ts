@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
 
-import { type DB, schema } from "@/db";
+import { type Database, schema } from "@/db";
 import type { Modality, Student, StudentStatus } from "@/db/schema";
 import type { TenantContext } from "@/server/tenant";
 
@@ -321,7 +321,7 @@ export async function archiveStudent(
  * never from client input — and still scopes the write by it.
  */
 export async function linkStudentAccount(
-  db: DB,
+  db: Database,
   args: { clinicId: string; studentId: string; userId: string },
 ): Promise<void> {
   await db

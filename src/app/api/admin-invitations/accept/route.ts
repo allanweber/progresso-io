@@ -75,14 +75,18 @@ export const POST = withRoute("adminInvite.accept", async (request) => {
     .from(schema.user)
     .where(eq(schema.user.email, invite.email));
 
-  await db
-    .update(schema.user)
-    .set({ role: "admin", clinicId: null, emailVerified: true })
-    .where(eq(schema.user.id, newUser.id));
-  // Remove the clinic auto-created for them at sign-up — admins own none.
-  await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, newUser.id));
+  // Promote to admin, drop the throwaway clinic and mark the invite accepted in
+  // one transaction, so a mid-flow error can't leave a stray half-admin account.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.user)
+      .set({ role: "admin", clinicId: null, emailVerified: true })
+      .where(eq(schema.user.id, newUser.id));
+    // Remove the clinic auto-created for them at sign-up — admins own none.
+    await tx.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, newUser.id));
 
-  await adminInvitations.markAccepted(db, invite.id);
+    await adminInvitations.markAccepted(tx, invite.id);
+  });
 
   logger.info("admin.invite_accepted", { email: invite.email, userId: newUser.id });
 
