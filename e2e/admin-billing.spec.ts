@@ -24,8 +24,15 @@ test.beforeEach(async ({ page }) => {
 async function openClinicDetail(page: Page) {
   await page.goto("/admin/maintenance");
   await page.getByRole("tab", { name: "Clínicas" }).click();
-  await page.getByRole("link", { name: CLINIC }).first().click();
-  await expect(page.getByRole("heading", { name: CLINIC })).toBeVisible();
+  // Wait for the clinics list to render before following the link — the tab
+  // content loads via a query, and clicking too early misses the link.
+  const link = page.getByRole("link", { name: CLINIC }).first();
+  await expect(link).toBeVisible({ timeout: 15_000 });
+  await link.click();
+  // The detail route compiles on first hit in CI dev mode — give it room.
+  await expect(page.getByRole("heading", { name: CLINIC })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 test.describe("admin: manual billing", () => {
@@ -39,8 +46,11 @@ test.describe("admin: manual billing", () => {
     await page.getByRole("option", { name: "Solo" }).click();
     await page.getByRole("button", { name: "Salvar plano" }).click();
 
-    // The change is logged (from Clínica → Solo).
-    await expect(page.getByText("Histórico de alterações")).toBeVisible();
+    // The change is logged (from Clínica → Solo). The save round-trips through a
+    // mutation + refetch before the history renders, so allow extra time.
+    await expect(page.getByText("Histórico de alterações")).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByText(/Clínica → Solo/)).toBeVisible();
   });
 

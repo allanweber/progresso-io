@@ -45,6 +45,26 @@ import { cn } from "@/lib/utils";
  * renders a permanent "Em breve"; Plano atual shows the clinic's real plan.
  */
 
+/**
+ * A curated set of modern accent tones (Tailwind 600-ish) offered as swatches,
+ * so the coach picks a tasteful brand color without the raw OS color dialog. A
+ * custom picker still covers anything off-palette.
+ */
+const ACCENT_PRESETS = [
+  "#16a34a", // green
+  "#059669", // emerald
+  "#0d9488", // teal
+  "#0ea5e9", // sky
+  "#2563eb", // blue
+  "#4f46e5", // indigo
+  "#7c3aed", // violet
+  "#db2777", // pink
+  "#e11d48", // rose
+  "#ea580c", // orange
+  "#d97706", // amber
+  "#0f172a", // slate
+] as const;
+
 /** Card chrome with a titled header, shared by every settings section. */
 function SettingsCard({
   title,
@@ -497,26 +517,74 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                   {(field) => {
                     const err = fieldError(field, serverErrors?.accentColor);
                     const value = field.state.value;
+                    const selected = value.toLowerCase();
+                    const isPreset = ACCENT_PRESETS.some(
+                      (c) => c === selected,
+                    );
                     return (
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <Label htmlFor="accentColor">Cor de destaque</Label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            id="accentColor"
-                            type="color"
-                            value={value || "#16a34a"}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            className="size-9 cursor-pointer rounded-md border border-input bg-transparent p-1"
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {value || "Cor padrão"}
-                          </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {ACCENT_PRESETS.map((color) => {
+                            const active = selected === color;
+                            return (
+                              <button
+                                key={color}
+                                type="button"
+                                aria-label={`Cor ${color}`}
+                                aria-pressed={active}
+                                onClick={() => field.handleChange(color)}
+                                style={{ backgroundColor: color }}
+                                className={cn(
+                                  "flex size-8 items-center justify-center rounded-full transition-transform hover:scale-110 focus:outline-none",
+                                  active
+                                    ? "ring-2 ring-offset-2 ring-foreground ring-offset-background"
+                                    : "ring-1 ring-black/10",
+                                )}
+                              >
+                                {active && (
+                                  <Check className="size-4 text-white drop-shadow" />
+                                )}
+                              </button>
+                            );
+                          })}
+
+                          {/* Custom picker — native input hidden behind a swatch. */}
+                          <label
+                            aria-label="Cor personalizada"
+                            className={cn(
+                              "relative flex size-8 cursor-pointer items-center justify-center rounded-full text-white transition-transform hover:scale-110",
+                              value && !isPreset
+                                ? "ring-2 ring-offset-2 ring-foreground ring-offset-background"
+                                : "ring-1 ring-black/10",
+                            )}
+                            style={{
+                              background:
+                                value && !isPreset
+                                  ? value
+                                  : "conic-gradient(from 0deg, #ef4444, #f59e0b, #22c55e, #0ea5e9, #6366f1, #ec4899, #ef4444)",
+                            }}
+                          >
+                            <input
+                              id="accentColor"
+                              type="color"
+                              value={value || "#16a34a"}
+                              onBlur={field.handleBlur}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              className="absolute inset-0 cursor-pointer opacity-0"
+                            />
+                            {value && !isPreset && (
+                              <Check className="size-4 drop-shadow" />
+                            )}
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
+                          <span className="font-mono">{value || "Cor padrão"}</span>
                           {value ? (
                             <button
                               type="button"
                               onClick={() => field.handleChange("")}
-                              className="text-[13px] font-medium text-muted-foreground hover:text-foreground"
+                              className="font-medium hover:text-foreground"
                             >
                               Remover
                             </button>
