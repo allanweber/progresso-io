@@ -310,6 +310,7 @@ export default function AdminClinicDetailPage() {
       {invoiceDialog && (
         <InvoiceDialog
           clinicId={id}
+          currentPlan={clinic.plan as Plan}
           state={invoiceDialog}
           onClose={() => setInvoiceDialog(null)}
           onSaved={() => {
@@ -520,6 +521,22 @@ function PlanForm({
 /*  Invoice create / edit dialog                                               */
 /* -------------------------------------------------------------------------- */
 
+type InvoiceLine = { description: string; amount: string };
+
+/** The default subscription line for a plan (priced plans prefill the amount). */
+function subscriptionLineFor(plan: Plan): InvoiceLine {
+  const price = PLAN_PRICE_CENTS[plan];
+  return {
+    description: `Assinatura ${PLAN_META[plan].name}`,
+    amount: price != null ? centsToReais(price) : "",
+  };
+}
+
+/** Whether a line still looks auto-generated (blank or a "Assinatura …" line). */
+function isAutoSubscriptionLine(line: InvoiceLine): boolean {
+  return line.description.trim() === "" || line.description.startsWith("Assinatura ");
+}
+
 type InvoiceFormValues = {
   competencia: string; // "YYYY-MM"
   issuedAt: string; // "YYYY-MM-DD"
@@ -528,16 +545,18 @@ type InvoiceFormValues = {
   discount: string; // reais
   discountReason: string;
   notes: string;
-  lineItems: { description: string; amount: string }[];
+  lineItems: InvoiceLine[];
 };
 
 function InvoiceDialog({
   clinicId,
+  currentPlan,
   state,
   onClose,
   onSaved,
 }: {
   clinicId: string;
+  currentPlan: Plan;
   state: { mode: "create" } | { mode: "edit"; invoice: InvoiceDto };
   onClose: () => void;
   onSaved: () => void;
@@ -561,17 +580,19 @@ function InvoiceDialog({
         })),
       };
     }
+    // New invoice: default to the clinic's current plan with its subscription
+    // line already filled in — the common case is billing that plan.
     return {
       competencia: month,
       issuedAt: day,
       dueDate: day,
-      planSnapshot: "solo",
+      planSnapshot: currentPlan,
       discount: "",
       discountReason: "",
       notes: "",
-      lineItems: [{ description: "", amount: "" }],
+      lineItems: [subscriptionLineFor(currentPlan)],
     };
-  }, [state, month, day]);
+  }, [state, month, day, currentPlan]);
 
   const mutation = useMutation({
     mutationFn: (value: InvoiceFormValues) => {
@@ -655,23 +676,13 @@ function InvoiceDialog({
                   <Select
                     value={field.state.value}
                     onValueChange={(v) => {
-                      field.handleChange(v as Plan);
-                      // Prefill a single line item's amount when it's empty and a
-                      // priced plan is chosen — a convenience for the common case.
-                      const price = PLAN_PRICE_CENTS[v as Plan];
+                      const plan = v as Plan;
+                      field.handleChange(plan);
+                      // Keep the auto subscription line in sync with the chosen
+                      // plan — but never clobber a line the admin edited by hand.
                       const items = form.getFieldValue("lineItems");
-                      if (
-                        price != null &&
-                        items.length === 1 &&
-                        !items[0].description &&
-                        !items[0].amount
-                      ) {
-                        form.setFieldValue("lineItems", [
-                          {
-                            description: `Assinatura ${PLAN_META[v as Plan].name}`,
-                            amount: centsToReais(price),
-                          },
-                        ]);
+                      if (items.length === 1 && isAutoSubscriptionLine(items[0])) {
+                        form.setFieldValue("lineItems", [subscriptionLineFor(plan)]);
                       }
                     }}
                   >
