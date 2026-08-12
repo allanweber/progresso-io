@@ -50,10 +50,15 @@ test.describe("clinic settings", () => {
     await expect(page.getByText("convite pendente")).toBeVisible();
     await expect(page.getByText(/Plano Clínica ·/)).toBeVisible();
 
-    // Plano atual is a real read (plan name from the clinic).
-    await expect(
-      page.getByRole("heading", { name: "Plano atual" }),
-    ).toBeVisible();
+    // Plano atual is a real read (plan name from the clinic) and now shows
+    // usage vs. caps — alunos, coaches, and whether WhatsApp is included.
+    const planCard = page.locator("section", {
+      has: page.getByRole("heading", { name: "Plano atual" }),
+    });
+    await expect(planCard).toBeVisible();
+    await expect(planCard.getByText("Alunos")).toBeVisible();
+    await expect(planCard.getByText("Coaches")).toBeVisible();
+    await expect(planCard.getByText("Incluído")).toBeVisible();
 
     // Faturas is a read-only card fed by the admin's manual ledger. The seed
     // gives the demo clinic two invoices (one paid, one overdue).

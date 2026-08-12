@@ -8,7 +8,9 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
 import type { CoachDashboardDto } from "@/lib/coach-dashboard";
+import { isAtLimit, type PlanUsageDto } from "@/lib/plans";
 import { avatarColor, studentInitials } from "@/lib/students";
+import { cn } from "@/lib/utils";
 
 /** Today's date as an "Sábado · 2 de agosto" eyebrow (capitalised weekday). */
 function useTodayLabel(): string | null {
@@ -77,6 +79,12 @@ export default function CoachDashboardPage() {
     queryFn: () => apiFetch<CoachDashboardDto>("/api/coach/dashboard"),
   });
 
+  // Plan capacity for the "Alunos ativos" tile (shared cache with settings + roster).
+  const { data: usage } = useQuery({
+    queryKey: ["coach-plan-usage"],
+    queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
+  });
+
   const missingPlans = data?.missingPlans ?? [];
 
   return (
@@ -111,6 +119,20 @@ export default function CoachDashboardPage() {
           <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
             {isLoading ? "…" : (data?.activeCount ?? 0)}
           </div>
+          {usage ? (
+            <div
+              className={cn(
+                "text-[11px] font-medium",
+                isAtLimit(usage.students.used, usage.students.limit)
+                  ? "text-destructive"
+                  : "text-muted-foreground",
+              )}
+            >
+              {usage.students.limit === null
+                ? `Plano ${usage.planName} · sem limite`
+                : `de ${usage.students.limit} · plano ${usage.planName}`}
+            </div>
+          ) : null}
         </div>
         <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           <div className="text-[13px] text-muted-foreground">Sem treino/dieta</div>

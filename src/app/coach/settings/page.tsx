@@ -50,7 +50,12 @@ import {
   type InvoiceDto,
 } from "@/lib/billing";
 import { fieldError } from "@/lib/form";
-import { PLAN_META } from "@/lib/plans";
+import {
+  formatUsage,
+  isAtLimit,
+  PLAN_META,
+  type PlanUsageDto,
+} from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 /**
@@ -566,6 +571,55 @@ function PendingRow({
       >
         <X className="size-4" />
       </button>
+    </div>
+  );
+}
+
+/**
+ * Plan usage vs. caps for the "Plano atual" card — active alunos, coaches, and
+ * whether WhatsApp is included. Shares the `coach-plan-usage` query with the
+ * roster chip + dashboard tile.
+ */
+function PlanUsageRows() {
+  const { data } = useQuery({
+    queryKey: ["coach-plan-usage"],
+    queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
+  });
+  if (!data) return null;
+
+  const counters = [
+    { label: "Alunos", counter: data.students },
+    { label: "Coaches", counter: data.coaches },
+  ];
+
+  return (
+    <div className="mt-4 space-y-2 border-t border-border pt-3 text-[13px]">
+      {counters.map(({ label, counter }) => (
+        <div key={label} className="flex items-center justify-between">
+          <span className="text-muted-foreground">{label}</span>
+          <span
+            className={cn(
+              "font-medium",
+              isAtLimit(counter.used, counter.limit)
+                ? "text-destructive"
+                : "text-foreground",
+            )}
+          >
+            {formatUsage(counter.used, counter.limit)}
+          </span>
+        </div>
+      ))}
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">WhatsApp</span>
+        <span
+          className={cn(
+            "font-medium",
+            data.whatsapp ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {data.whatsapp ? "Incluído" : "Não incluído"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -1094,6 +1148,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                 </div>
               </div>
             </div>
+            <PlanUsageRows />
             <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[13px]">
               <span className="text-muted-foreground">Cobrança e renovação</span>
               <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">

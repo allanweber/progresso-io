@@ -35,6 +35,21 @@ Limits only gate **new** additions; nothing is ever removed on a downgrade.
   existing coaches/alunos keep working; only new adds are blocked until the
   clinic is back under the cap.
 
+### Where usage is shown
+
+`GET /api/coach/plan-usage` returns the clinic's usage vs. caps (active alunos,
+coaches, WhatsApp included) — any coach may read it. Three surfaces share the
+one `coach-plan-usage` query (TanStack dedupes the cache):
+
+- **"Plano atual" card** (settings) — a full list: `Alunos 34/50`,
+  `Coaches 2/3`, `WhatsApp Incluído`, with an "at limit" accent.
+- **Students roster** — a `34 / 50 alunos` chip next to "Adicionar aluno".
+- **Dashboard** — the "Alunos ativos" KPI gains a `de 50 · plano Clínica`
+  subtitle (`sem limite` when uncapped).
+
+`formatUsage(used, limit)` renders `34 / 50` (or just `34` when unlimited);
+`isAtLimit` drives the accent.
+
 ### WhatsApp gate
 
 WhatsApp is a paid-plan channel. `plans.canUseWhatsapp(ctx)` guards the three
