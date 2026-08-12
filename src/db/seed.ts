@@ -615,13 +615,19 @@ async function seed() {
   // Seed-local auth: no OTP e-mails, no Next.js cookies.
   const auth = createAuth({ nextCookiesPlugin: false, sendOtp: async () => {} });
 
-  // Per-plan student caps (reference data). `null` = unlimited. Free blocks the
-  // 4th student. Idempotent upsert so re-running keeps them in sync.
-  const planLimits: { plan: (typeof schema.PLANS)[number]; maxStudents: number | null }[] = [
-    { plan: "free", maxStudents: 3 },
-    { plan: "solo", maxStudents: 50 },
-    { plan: "clinica", maxStudents: 300 },
-    { plan: "enterprise", maxStudents: null },
+  // Per-plan capabilities (reference data). `null` = unlimited. Free blocks the
+  // 4th student and has no WhatsApp; only Clínica+ allow more than one coach.
+  // Idempotent upsert so re-running keeps them in sync.
+  const planLimits: {
+    plan: (typeof schema.PLANS)[number];
+    maxStudents: number | null;
+    maxCoaches: number | null;
+    whatsapp: boolean;
+  }[] = [
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true },
+    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true },
   ];
   for (const limit of planLimits) {
     await db
@@ -629,7 +635,11 @@ async function seed() {
       .values(limit)
       .onConflictDoUpdate({
         target: schema.planLimit.plan,
-        set: { maxStudents: limit.maxStudents },
+        set: {
+          maxStudents: limit.maxStudents,
+          maxCoaches: limit.maxCoaches,
+          whatsapp: limit.whatsapp,
+        },
       });
   }
   console.info("✓ plan limits seeded");
@@ -704,6 +714,23 @@ async function seed() {
     .set({ emailVerified: true, role: "admin", clinicId: null })
     .where(eq(schema.user.id, admin.id));
   await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, admin.id));
+
+  // Demo team: a second coach + one pending invite on the coach's (Clínica) clinic,
+  // so "Equipe de coaches" shows a populated team — 2 ocupadas + 1 convite pendente
+  // against 3 vagas — locally and in e2e (login: coach@progresso.io, the owner).
+  const coach2 = await ensureUser("Bianca Reis", "bianca@progresso.io");
+  await db
+    .update(schema.user)
+    .set({ emailVerified: true, role: "coach", clinicId: coachClinic.id })
+    .where(eq(schema.user.id, coach2.id));
+  await db.delete(schema.clinic).where(eq(schema.clinic.ownerUserId, coach2.id));
+
+  const { createCoachInvitation } = await import("@/server/dal/coach-invitations");
+  // Superseding + tenant-scoped, so re-running the seed keeps exactly one invite.
+  await createCoachInvitation(
+    { db, clinicId: coachClinic.id, userId: coach.id, role: "coach" },
+    { email: "novo.coach@progresso.io", name: "Novo Coach" },
+  );
 
   // Link the aluno to the coach inside the clinic.
   const link = await db

@@ -1,6 +1,6 @@
 import { sendInviteEmail } from "@/lib/email";
 import { sendStudentOnboardingWhatsApp } from "@/lib/whatsapp";
-import { clinics, invitations, students, studentAnamneses } from "@/server/dal";
+import { clinics, invitations, plans, students, studentAnamneses } from "@/server/dal";
 import { INVITE_TTL_DAYS } from "@/server/dal/invitations";
 import { logger } from "@/server/observability";
 import type { TenantContext } from "@/server/tenant";
@@ -24,7 +24,12 @@ export type OnboardingResult =
   | { ok: true }
   | {
       ok: false;
-      reason: "no_phone" | "already_active" | "archived" | "no_anamnesis";
+      reason:
+        | "no_phone"
+        | "already_active"
+        | "archived"
+        | "no_anamnesis"
+        | "whatsapp_disabled";
     };
 
 /**
@@ -42,6 +47,12 @@ export async function sendAnamnesisInvite(
   if (!student) return { ok: false, reason: "already_active" };
   if (student.status === "archived") return { ok: false, reason: "archived" };
   if (!student.phone) return { ok: false, reason: "no_phone" };
+
+  // The anamnese-fill link only goes out over WhatsApp — a channel free clinics
+  // don't have. Skip it for them (the student is still registered).
+  if (!(await plans.canUseWhatsapp(ctx))) {
+    return { ok: false, reason: "whatsapp_disabled" };
+  }
 
   const anamnesis = await studentAnamneses.getStudentAnamnesis(ctx, studentId);
   if (!anamnesis || anamnesis.status !== "pending") {
@@ -95,12 +106,16 @@ export async function sendPortalInvite(
     });
   }
 
-  await sendStudentOnboardingWhatsApp({
-    to: student.phone,
-    clinicName,
-    firstName: student.firstName,
-    portalUrl,
-  });
+  // WhatsApp is a paid-plan channel; the portal link is always e-mailed above,
+  // so a free clinic still onboards — it just skips the WhatsApp copy.
+  if (await plans.canUseWhatsapp(ctx)) {
+    await sendStudentOnboardingWhatsApp({
+      to: student.phone,
+      clinicName,
+      firstName: student.firstName,
+      portalUrl,
+    });
+  }
 
   logger.info("student.portal_invite_sent", { studentId });
   return { ok: true };

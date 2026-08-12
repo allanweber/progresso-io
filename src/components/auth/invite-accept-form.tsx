@@ -24,11 +24,12 @@ const passwordSchema = z
   });
 
 /**
- * Which invite this set-password screen activates. Both are token-based accept
+ * Which invite this set-password screen activates. All are token-based accept
  * flows that create a login and set a password, differing only in endpoint and
- * copy: `student` activates an aluno (the default), `admin` a platform admin.
+ * copy: `student` activates an aluno (the default), `admin` a platform admin,
+ * `coach` a coach joining a clinic's team.
  */
-type InviteKind = "student" | "admin";
+type InviteKind = "student" | "admin" | "coach";
 
 const INVITE_CONFIG: Record<
   InviteKind,
@@ -43,6 +44,11 @@ const INVITE_CONFIG: Record<
     endpoint: "/api/admin-invitations/accept",
     queryKey: "admin-invite",
     roleLabel: "administrador",
+  },
+  coach: {
+    endpoint: "/api/coach-invitations/accept",
+    queryKey: "coach-invite",
+    roleLabel: "coach",
   },
 };
 

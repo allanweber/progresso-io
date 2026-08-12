@@ -6,7 +6,7 @@ import {
   type CheckinDetailDto,
 } from "@/lib/student-checkins";
 import { sendCheckinFeedbackWhatsApp } from "@/lib/whatsapp";
-import { coachCheckins, students } from "@/server/dal";
+import { coachCheckins, plans, students } from "@/server/dal";
 import type { AssessmentWriteInput } from "@/server/dal/coach-checkins";
 import {
   forbidden,
@@ -59,9 +59,10 @@ export const POST = withRoute<Params>(
     });
     if (!detail) return notFound("Check-in não encontrado.");
 
-    // Deliver the feedback to the student on WhatsApp (logged in dev).
+    // Deliver the feedback to the student on WhatsApp (logged in dev). Paid-plan
+    // channel only — free clinics keep feedback in-portal.
     const student = await students.getStudent(ctx, id);
-    if (student?.phone) {
+    if (student?.phone && (await plans.canUseWhatsapp(ctx))) {
       const origin = new URL(request.url).origin;
       await sendCheckinFeedbackWhatsApp({
         to: student.phone,

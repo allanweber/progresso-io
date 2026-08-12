@@ -1,0 +1,119 @@
+import {
+  Body,
+  Button,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Preview,
+  Section,
+  Text,
+} from "@react-email/components";
+
+export const COACH_INVITE_EMAIL_SUBJECT = "Convite de coach — Progresso IO";
+
+type CoachInviteEmailProps = {
+  /** Invitee's first name, for the greeting. */
+  firstName: string;
+  /** The clinic the coach is being invited to join. */
+  clinicName: string;
+  /** Absolute URL to the coach accept page (carries the raw token). */
+  acceptUrl: string;
+  /** Days until the invite expires, for the copy. */
+  expiresInDays: number;
+};
+
+/** Branded coach-invite e-mail: a single CTA that opens the set-password page. */
+export function CoachInviteEmail({
+  firstName,
+  clinicName,
+  acceptUrl,
+  expiresInDays,
+}: CoachInviteEmailProps) {
+  return (
+    <Html lang="pt-BR">
+      <Head />
+      <Preview>Você foi convidado como coach no Progresso IO</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Text style={brand}>
+            Progresso <span style={brandAccent}>IO</span>
+          </Text>
+          <Heading style={heading}>Convite de coach</Heading>
+          <Text style={paragraph}>
+            Olá, {firstName}! Você foi convidado para fazer parte da equipe de{" "}
+            {clinicName} no Progresso IO. Defina sua senha para ativar seu acesso
+            de coach.
+          </Text>
+          <Section style={{ textAlign: "center", margin: "28px 0" }}>
+            <Button style={button} href={acceptUrl}>
+              Ativar meu acesso
+            </Button>
+          </Section>
+          <Text style={muted}>
+            O convite expira em {expiresInDays} dias. Se você não esperava este
+            e-mail, pode ignorá-lo com segurança.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+export default CoachInviteEmail;
+
+/* ------------------------------- styles --------------------------------- */
+
+const main: React.CSSProperties = {
+  backgroundColor: "#F8FAFC",
+  fontFamily:
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  padding: "24px 0",
+};
+
+const container: React.CSSProperties = {
+  maxWidth: "440px",
+  margin: "0 auto",
+  backgroundColor: "#ffffff",
+  borderRadius: "16px",
+  padding: "32px 24px",
+};
+
+const brand: React.CSSProperties = {
+  fontWeight: 700,
+  fontSize: "18px",
+  color: "#0F172A",
+  margin: "0 0 24px",
+};
+
+const brandAccent: React.CSSProperties = { color: "#059669" };
+
+const heading: React.CSSProperties = {
+  fontSize: "20px",
+  color: "#0F172A",
+  margin: "0 0 8px",
+};
+
+const paragraph: React.CSSProperties = {
+  fontSize: "14px",
+  lineHeight: "1.6",
+  color: "#475569",
+  margin: "0 0 8px",
+};
+
+const button: React.CSSProperties = {
+  backgroundColor: "#059669",
+  color: "#ffffff",
+  fontSize: "15px",
+  fontWeight: 600,
+  borderRadius: "10px",
+  padding: "12px 24px",
+  textDecoration: "none",
+};
+
+const muted: React.CSSProperties = {
+  fontSize: "13px",
+  lineHeight: "1.6",
+  color: "#94A3B8",
+  margin: "24px 0 0",
+};

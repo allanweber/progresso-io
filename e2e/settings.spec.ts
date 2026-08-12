@@ -8,6 +8,10 @@ import { expect, test } from "@playwright/test";
  * (see the screenshots rule in AGENTS.md).
  */
 
+// Serial: both tests share the seeded coach's clinic + DB, and the team test
+// mutates coach invites — running them in order on one worker avoids races.
+test.describe.configure({ mode: "serial" });
+
 test.describe("clinic settings", () => {
   test("edits the real sections, saves, and shows coming-soon for the rest", async ({
     page,
@@ -29,14 +33,22 @@ test.describe("clinic settings", () => {
       page.getByRole("heading", { name: "Preferências de feedback" }),
     ).toBeVisible();
 
-    // Coming-soon sections render an "Em breve" body.
+    // WhatsApp Business is still coming-soon.
     await expect(
       page.getByRole("heading", { name: "WhatsApp Business" }),
     ).toBeVisible();
+    await expect(page.getByText("Em breve").first()).toBeVisible();
+
+    // Equipe de coaches is real for the seeded owner on the Clínica plan: the
+    // owner ("Admin · Coach"), a second coach, one pending invite, and the seat
+    // footer (2 ocupadas + 1 pendente against 3 vagas).
     await expect(
       page.getByRole("heading", { name: "Equipe de coaches" }),
     ).toBeVisible();
-    await expect(page.getByText("Em breve").first()).toBeVisible();
+    await expect(page.getByText("Admin · Coach")).toBeVisible();
+    await expect(page.getByText("Bianca Reis")).toBeVisible();
+    await expect(page.getByText("convite pendente")).toBeVisible();
+    await expect(page.getByText(/Plano Clínica ·/)).toBeVisible();
 
     // Plano atual is a real read (plan name from the clinic).
     await expect(
@@ -93,6 +105,54 @@ test.describe("clinic settings", () => {
 
     await page.screenshot({
       path: "test-results/screens/clinic-settings-mobile.png",
+      fullPage: true,
+    });
+  });
+
+  test("owner manages the coach team — cancels a pending invite, then sends one", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/coach/settings");
+
+    const team = page.locator("section", {
+      has: page.getByRole("heading", { name: "Equipe de coaches" }),
+    });
+    await expect(team).toBeVisible();
+
+    // At capacity (owner + 1 coach + 1 pending = 3/3): "Convidar" is disabled.
+    const convidar = team.getByRole("button", { name: "Convidar" });
+    await expect(convidar).toBeDisabled();
+
+    // Cancel the seeded pending invite → a seat frees, "Convidar" enables.
+    await team
+      .getByRole("button", { name: /Cancelar convite/ })
+      .first()
+      .click();
+    await expect(convidar).toBeEnabled();
+
+    // Send a fresh invite (unique e-mail so re-runs never collide).
+    const email = `novo-${Date.now().toString().slice(-8)}@example.com`;
+    await convidar.click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Nome", { exact: true }).fill("Novo Coach");
+    await dialog.getByLabel("E-mail", { exact: true }).fill(email);
+    await dialog.getByRole("button", { name: "Enviar convite" }).click();
+
+    // The new pending invite appears and the seat is used again.
+    await expect(team.getByText(email)).toBeVisible();
+    await expect(convidar).toBeDisabled();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-team-desktop.png",
+      fullPage: true,
+    });
+
+    // --- Mobile ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(team).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-team-mobile.png",
       fullPage: true,
     });
   });

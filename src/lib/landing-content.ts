@@ -6,6 +6,7 @@ import {
   Smartphone,
   TrendingUp,
   Users,
+  UsersRound,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -37,6 +38,14 @@ export const features: Feature[] = [
     description:
       "Ficha completa, evolução de peso, check-ins, histórico de treinos e dieta — tudo num perfil unificado.",
     eyebrow: "Mais usado",
+    accent: true,
+  },
+  {
+    icon: UsersRound,
+    title: "Equipe de Coaches",
+    description:
+      "No plano Clínica, adicione até 3 treinadores na mesma conta e compartilhe alunos, dietas e treinos — cada coach com o seu acesso.",
+    eyebrow: "Plano Clínica",
     accent: true,
   },
   {
@@ -96,6 +105,7 @@ export const plans: Plan[] = [
     priceSuffix: "/mês",
     features: [
       { label: "Até 3 alunos", included: true },
+      { label: "1 coach", included: true },
       { label: "Treinos e dietas", included: true },
       { label: "WhatsApp integrado", included: false },
       { label: "Calendário", included: false },
@@ -108,7 +118,8 @@ export const plans: Plan[] = [
     price: "R$ 199",
     priceSuffix: "/mês",
     features: [
-      { label: "Alunos ilimitados", included: true },
+      { label: "Até 50 alunos", included: true },
+      { label: "1 coach", included: true },
       { label: "WhatsApp integrado", included: true },
       { label: "Substituições", included: true },
       { label: "Calendário completo", included: true },
@@ -122,8 +133,9 @@ export const plans: Plan[] = [
     price: "R$ 399",
     priceSuffix: "/mês",
     features: [
-      { label: "Tudo do Solo", included: true },
+      { label: "Até 100 alunos", included: true },
       { label: "Até 3 coaches", included: true },
+      { label: "Tudo do Solo", included: true },
       { label: "Relatórios avançados", included: true },
       { label: "Suporte prioritário", included: true },
     ],
@@ -135,7 +147,7 @@ export const plans: Plan[] = [
     price: "Preço personalizado",
     features: [
       { label: "Tudo da Clínica", included: true },
-      { label: "Coaches ilimitados", included: true },
+      { label: "Alunos e coaches ilimitados", included: true },
       { label: "Integrações customizadas", included: true },
       { label: "SLA e suporte dedicado", included: true },
     ],
