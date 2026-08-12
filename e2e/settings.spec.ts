@@ -52,7 +52,7 @@ test.describe("clinic settings", () => {
 
     // Edit the Clínica section.
     await page.getByLabel("Nome da clínica").fill("Studio Forja");
-    await page.getByLabel("Subdomínio do portal").fill(subdomain);
+    await page.getByLabel("Endereço do portal").fill(subdomain);
 
     // Pick the "Mensal" check-in frequency and confirm it becomes selected.
     const mensal = page.getByRole("button", { name: /Mensal/ });
@@ -76,7 +76,7 @@ test.describe("clinic settings", () => {
 
     // The change persisted: a reload shows the saved subdomain + selection.
     await page.reload();
-    await expect(page.getByLabel("Subdomínio do portal")).toHaveValue(subdomain);
+    await expect(page.getByLabel("Endereço do portal")).toHaveValue(subdomain);
     await expect(page.getByRole("button", { name: /Mensal/ })).toHaveAttribute(
       "aria-pressed",
       "true",
