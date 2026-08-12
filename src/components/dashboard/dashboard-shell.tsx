@@ -140,9 +140,9 @@ export function DashboardShell({
 
   return (
     <Sheet open={navOpen} onOpenChange={setNavOpen}>
-      <div className="flex min-h-screen bg-surface-light">
+      <div className="flex min-h-screen bg-surface-light print:block print:min-h-0 print:bg-white">
         {/* Desktop rail */}
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white px-5 py-6 md:flex">
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white px-5 py-6 md:flex print:!hidden">
           <Link href={home} className="mb-8">
             <Logo />
           </Link>
@@ -172,7 +172,7 @@ export function DashboardShell({
           so a wide child (e.g. the food table) scrolls inside its own
           container instead of forcing horizontal page overflow on mobile. */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3.5">
+        <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3.5 print:hidden">
           <div className="flex items-center gap-2.5 md:hidden">
             <SheetTrigger
               aria-label="Abrir menu"
@@ -204,7 +204,7 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="flex-1 px-6 py-8">{children}</main>
+        <main className="flex-1 px-6 py-8 print:p-0">{children}</main>
         </div>
       </div>
     </Sheet>

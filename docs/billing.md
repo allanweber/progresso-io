@@ -59,6 +59,17 @@ stored status.
   (line items + discount, live total), a mark-paid dialog, and cancel/delete.
   The coach sees a read-only **Faturas** card in `/coach/settings`.
 
+## Printing an invoice (PDF)
+
+There is no server-side PDF renderer. Each invoice has a **print-friendly view**
+at `/admin/invoices/[id]/print` (a Printer action on each table row opens it in a
+new tab) — an "Imprimir / PDF" button calls `window.print()`, and the browser's
+print dialog saves it as a PDF. The dashboard chrome (sidebar + header) is hidden
+under `@media print` via `print:` classes on `DashboardShell`, so the printed
+page is just the invoice document: a "Progresso" issuer header, the clinic as
+payee, the dates/plan/status meta, the line items, and the derived totals. The
+data comes from `GET /api/admin/invoices/[id]` (invoice + clinic), admin-gated.
+
 ## Rules honored
 
 - Every API route validates its input with **zod** and derives identity from the

@@ -77,6 +77,18 @@ test.describe("admin: manual billing", () => {
     // Its status flips to Paga.
     await expect(page.getByText("Paga").first()).toBeVisible();
 
+    // The row's print action opens a print-friendly invoice in a new tab.
+    const [printTab] = await Promise.all([
+      page.waitForEvent("popup"),
+      row.getByRole("link", { name: /Imprimir fatura/ }).click(),
+    ]);
+    await expect(printTab.getByText(/Fatura #/)).toBeVisible();
+    await expect(printTab.getByText("Mensalidade E2E")).toBeVisible();
+    await expect(
+      printTab.getByRole("button", { name: "Imprimir / PDF" }),
+    ).toBeVisible();
+    await printTab.close();
+
     // --- Mobile ---
     await page.setViewportSize({ width: 390, height: 844 });
     await openClinicDetail(page);

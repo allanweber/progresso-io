@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -255,6 +255,19 @@ export default function AdminClinicDetailPage() {
                             Marcar paga
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          aria-label={`Imprimir fatura ${inv.number}`}
+                        >
+                          <Link
+                            href={`/admin/invoices/${inv.id}/print`}
+                            target="_blank"
+                          >
+                            <Printer className="size-4" />
+                          </Link>
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
