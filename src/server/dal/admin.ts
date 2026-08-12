@@ -109,6 +109,33 @@ export async function listAllClinics(db: DB): Promise<AdminClinicRow[]> {
     .orderBy(asc(schema.clinic.name));
 }
 
+/** A single clinic enriched like {@link listAllClinics}, or null. Admin only. */
+export async function getClinicAdminRow(
+  db: DB,
+  id: string,
+): Promise<AdminClinicRow | null> {
+  const [row] = await db
+    .select({
+      id: schema.clinic.id,
+      name: schema.clinic.name,
+      plan: schema.clinic.plan,
+      ownerName: schema.user.name,
+      ownerEmail: schema.user.email,
+      createdAt: schema.clinic.createdAt,
+      coachCount: sql<number>`(
+        select count(*)::int from "user" u
+        where u.clinic_id = ${schema.clinic.id} and u.role = 'coach'
+      )`,
+      studentCount: sql<number>`(
+        select count(*)::int from students s where s.clinic_id = ${schema.clinic.id}
+      )`,
+    })
+    .from(schema.clinic)
+    .leftJoin(schema.user, eq(schema.user.id, schema.clinic.ownerUserId))
+    .where(eq(schema.clinic.id, id));
+  return row ?? null;
+}
+
 /**
  * Hard-deletes a clinic and EVERYTHING that belongs to it — the whole tenant.
  * Runs in one transaction:

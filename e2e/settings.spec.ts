@@ -43,9 +43,16 @@ test.describe("clinic settings", () => {
       page.getByRole("heading", { name: "Plano atual" }),
     ).toBeVisible();
 
+    // Faturas is a read-only card fed by the admin's manual ledger. The seed
+    // gives the demo clinic two invoices (one paid, one overdue).
+    const faturas = page.getByRole("heading", { name: "Faturas" });
+    await expect(faturas).toBeVisible();
+    await expect(page.getByText("Paga").first()).toBeVisible();
+    await expect(page.getByText("Vencida").first()).toBeVisible();
+
     // Edit the Clínica section.
     await page.getByLabel("Nome da clínica").fill("Studio Forja");
-    await page.getByLabel("Subdomínio do portal").fill(subdomain);
+    await page.getByLabel("Endereço do portal").fill(subdomain);
 
     // Pick the "Mensal" check-in frequency and confirm it becomes selected.
     const mensal = page.getByRole("button", { name: /Mensal/ });
@@ -69,7 +76,7 @@ test.describe("clinic settings", () => {
 
     // The change persisted: a reload shows the saved subdomain + selection.
     await page.reload();
-    await expect(page.getByLabel("Subdomínio do portal")).toHaveValue(subdomain);
+    await expect(page.getByLabel("Endereço do portal")).toHaveValue(subdomain);
     await expect(page.getByRole("button", { name: /Mensal/ })).toHaveAttribute(
       "aria-pressed",
       "true",

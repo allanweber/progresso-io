@@ -7,6 +7,7 @@
  */
 export * as admin from "./admin";
 export * as adminInvitations from "./admin-invitations";
+export * as billing from "./billing";
 export * as anamneses from "./anamneses";
 export * as clinics from "./clinics";
 export * as coachCheckins from "./coach-checkins";

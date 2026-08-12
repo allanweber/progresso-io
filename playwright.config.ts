@@ -48,7 +48,7 @@ export default defineConfig({
   projects: [
     {
       name: "public",
-      testMatch: /(auth|content)\.spec\.ts/,
+      testMatch: /(auth|content|portal)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], launchOptions },
     },
     {
@@ -118,7 +118,7 @@ export default defineConfig({
     },
     {
       name: "admin",
-      testMatch: /admin-(maintenance|admins)\.spec\.ts/,
+      testMatch: /admin-(maintenance|admins|billing)\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

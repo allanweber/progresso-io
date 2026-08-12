@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Trash2 } from "lucide-react";
 
@@ -415,7 +416,12 @@ function ClinicsMaintenance() {
             {clinics.map((c) => (
               <TableRow key={c.id}>
                 <TableCell>
-                  <div className="font-medium text-foreground">{c.name}</div>
+                  <Link
+                    href={`/admin/clinics/${c.id}`}
+                    className="font-medium text-foreground hover:text-primary hover:underline"
+                  >
+                    {c.name}
+                  </Link>
                   <div className="text-xs text-muted-foreground">
                     Plano {c.plan}
                   </div>
@@ -468,7 +474,12 @@ function ClinicsMaintenance() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-medium text-foreground">{c.name}</div>
+                <Link
+                  href={`/admin/clinics/${c.id}`}
+                  className="font-medium text-foreground hover:text-primary hover:underline"
+                >
+                  {c.name}
+                </Link>
                 <div className="text-[13px] text-muted-foreground">
                   {c.ownerEmail ?? "—"} · Plano {c.plan}
                 </div>

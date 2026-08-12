@@ -1,10 +1,37 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
-import { admin } from "@/server/dal";
+import { admin, billing } from "@/server/dal";
 import { forbidden, isUuid, notFound } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
 import { getAdminSession } from "@/server/admin";
+
+type Params = { params: Promise<{ id: string }> };
+
+/**
+ * The per-clinic admin detail payload: the clinic (identity + owner + counts +
+ * current plan), its plan-change history (audit trail), and its invoices (the
+ * manual billing ledger, with derived totals). Admin-only, cross-tenant.
+ */
+export const GET = withRoute<Params>(
+  "admin.clinics.detail",
+  async (_request, { params }) => {
+    const session = await getAdminSession();
+    if (!session) return forbidden();
+
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Clínica não encontrada.");
+
+    const clinic = await admin.getClinicAdminRow(db, id);
+    if (!clinic) return notFound("Clínica não encontrada.");
+
+    const [planChanges, invoices] = await Promise.all([
+      billing.listPlanChanges(db, id),
+      billing.listInvoicesForClinic(db, id),
+    ]);
+    return NextResponse.json({ clinic, planChanges, invoices });
+  },
+);
 
 /**
  * Hard-delete a clinic — the whole tenant. Permanently removes the clinic and
@@ -13,7 +40,6 @@ import { getAdminSession } from "@/server/admin";
  * activated alunos) with their sessions and credentials. Irreversible and
  * cross-tenant, so it's admin-only. See {@link admin.hardDeleteClinic}.
  */
-type Params = { params: Promise<{ id: string }> };
 
 export const DELETE = withRoute<Params>(
   "admin.clinics.hardDelete",

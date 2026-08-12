@@ -2,7 +2,12 @@ import { and, eq, ne } from "drizzle-orm";
 
 import { type DB, schema } from "@/db";
 import type { Clinic, Plan } from "@/db/schema";
-import type { ClinicSettingsDto, ClinicSettingsValues } from "@/lib/clinic-settings";
+import {
+  canUseBrandedPortal,
+  type ClinicPublicBrandingDto,
+  type ClinicSettingsDto,
+  type ClinicSettingsValues,
+} from "@/lib/clinic-settings";
 import type { TenantContext } from "@/server/tenant";
 
 /* -------------------------------------------------------------------------- */
@@ -66,6 +71,13 @@ export async function getClinicSettings(
   return {
     name: clinic.name,
     portalSubdomain: clinic.portalSubdomain,
+    headline: clinic.headline,
+    description: clinic.description,
+    whatsapp: clinic.whatsapp,
+    instagram: clinic.instagram,
+    siteUrl: clinic.siteUrl,
+    accentColor: clinic.accentColor,
+    hasLogo: clinic.logoKey !== null,
     feedbackFrequency: clinic.feedbackFrequency,
     feedbackPreferredDay: clinic.feedbackPreferredDay,
     feedbackWhatsappReminder: clinic.feedbackWhatsappReminder,
@@ -112,6 +124,12 @@ export async function updateClinicSettings(
     .set({
       name: values.name,
       portalSubdomain: values.portalSubdomain,
+      headline: values.headline,
+      description: values.description,
+      whatsapp: values.whatsapp,
+      instagram: values.instagram,
+      siteUrl: values.siteUrl,
+      accentColor: values.accentColor,
       feedbackFrequency: values.feedbackFrequency,
       feedbackPreferredDay: values.feedbackPreferredDay,
       feedbackWhatsappReminder: values.feedbackWhatsappReminder,
@@ -120,4 +138,82 @@ export async function updateClinicSettings(
     .where(eq(schema.clinic.id, ctx.clinicId))
     .returning();
   return updated;
+}
+
+/**
+ * Persists the clinic's logo storage key (tenant-scoped). Called by the logo
+ * upload route after the file is stored; the raw key never leaves the server.
+ */
+export async function setClinicLogoKey(
+  ctx: TenantContext,
+  logoKey: string,
+): Promise<void> {
+  await ctx.db
+    .update(schema.clinic)
+    .set({ logoKey, updatedAt: new Date() })
+    .where(eq(schema.clinic.id, ctx.clinicId));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Public branded portal (pre-auth, by slug — deliberately NOT tenant-scoped) */
+/*                                                                            */
+/*  The clinic microsite + branded login are public and resolved by slug        */
+/*  before any session exists, so these take a raw DB handle. They expose ONLY   */
+/*  the clinic's own public branding (no students, no PII) and only for a clinic */
+/*  on a paid plan with the slug set — an unknown/reserved/free/downgraded slug   */
+/*  resolves to null (a 404).                                                    */
+/* -------------------------------------------------------------------------- */
+
+/** The public branding for a slug, or null when it shouldn't resolve. */
+export async function getPublicClinicBySlug(
+  db: DB,
+  slug: string,
+): Promise<ClinicPublicBrandingDto | null> {
+  const [c] = await db
+    .select({
+      name: schema.clinic.name,
+      slug: schema.clinic.portalSubdomain,
+      plan: schema.clinic.plan,
+      logoKey: schema.clinic.logoKey,
+      headline: schema.clinic.headline,
+      description: schema.clinic.description,
+      whatsapp: schema.clinic.whatsapp,
+      instagram: schema.clinic.instagram,
+      siteUrl: schema.clinic.siteUrl,
+      accentColor: schema.clinic.accentColor,
+    })
+    .from(schema.clinic)
+    .where(eq(schema.clinic.portalSubdomain, slug))
+    .limit(1);
+  // No row, or the clinic downgraded off a paid plan → the portal is unpublished.
+  if (!c || !c.slug || !canUseBrandedPortal(c.plan)) return null;
+  return {
+    slug: c.slug,
+    name: c.name,
+    headline: c.headline,
+    description: c.description,
+    whatsapp: c.whatsapp,
+    instagram: c.instagram,
+    siteUrl: c.siteUrl,
+    accentColor: c.accentColor,
+    hasLogo: c.logoKey !== null,
+  };
+}
+
+/**
+ * The logo storage key for a public slug, or null when the portal isn't
+ * published (unknown/free/downgraded) or has no logo. Used by the public logo
+ * route; paid-gated so a free clinic's key is never served.
+ */
+export async function getPublicLogoKeyBySlug(
+  db: DB,
+  slug: string,
+): Promise<string | null> {
+  const [c] = await db
+    .select({ logoKey: schema.clinic.logoKey, plan: schema.clinic.plan })
+    .from(schema.clinic)
+    .where(eq(schema.clinic.portalSubdomain, slug))
+    .limit(1);
+  if (!c || !canUseBrandedPortal(c.plan)) return null;
+  return c.logoKey;
 }

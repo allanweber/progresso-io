@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { ContactForm } from "./contact-form";
@@ -31,7 +32,7 @@ export default function ContactPage() {
           Crie sua conta gratuitamente e conheça o Progresso IO na prática.
         </p>
         <Button asChild variant="secondary" size="lg" className="mt-4">
-          <a href="/register">Começar grátis</a>
+          <Link href="/register">Começar grátis</Link>
         </Button>
       </div>
     </>

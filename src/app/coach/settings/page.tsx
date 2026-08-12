@@ -17,6 +17,8 @@ import {
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { FeedbackFrequency, Weekday } from "@/db/schema";
 import {
+  canUseBrandedPortal,
+  clinicLogoUrl,
   clinicSettingsSchema,
   type ClinicSettingsDto,
   FEEDBACK_FREQUENCY_LABELS,
@@ -24,6 +26,13 @@ import {
   WEEKDAY_LABELS,
   WEEKDAY_VALUES,
 } from "@/lib/clinic-settings";
+import {
+  formatBRL,
+  formatCompetencia,
+  formatDateBR,
+  INVOICE_STATUS_LABELS,
+  type InvoiceDto,
+} from "@/lib/billing";
 import { fieldError } from "@/lib/form";
 import { PLAN_META } from "@/lib/plans";
 import { cn } from "@/lib/utils";
@@ -59,6 +68,79 @@ function SettingsCard({
   );
 }
 
+/**
+ * Read-only "Faturas" card: the clinic's own invoices (managed by the platform
+ * admin — the coach can see them but never edits them). Its own data island with
+ * a separate query to the tenant-scoped `GET /api/coach/invoices`.
+ */
+function CoachInvoicesCard() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["coach-invoices"],
+    queryFn: () =>
+      apiFetch<{ invoices: InvoiceDto[] }>("/api/coach/invoices").then(
+        (r) => r.invoices,
+      ),
+  });
+
+  return (
+    <SettingsCard title="Faturas">
+      {isLoading && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Carregando…
+        </p>
+      )}
+      {isError && (
+        <p className="py-4 text-center text-sm text-destructive">
+          Não foi possível carregar as faturas.
+        </p>
+      )}
+      {data && data.length === 0 && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Nenhuma fatura por aqui ainda.
+        </p>
+      )}
+      {data && data.length > 0 && (
+        <ul className="divide-y divide-border">
+          {data.map((inv) => (
+            <li
+              key={inv.id}
+              className="flex items-center justify-between gap-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-foreground">
+                  #{inv.number} · {formatCompetencia(inv.competencia)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Vence {formatDateBR(inv.dueDate)}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-sm font-semibold text-foreground">
+                  {formatBRL(inv.totalCents)}
+                </span>
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    inv.status === "paid"
+                      ? "text-[#047857]"
+                      : inv.overdue
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                  )}
+                >
+                  {inv.status === "pending" && inv.overdue
+                    ? "Vencida"
+                    : INVOICE_STATUS_LABELS[inv.status]}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SettingsCard>
+  );
+}
+
 /** Body for a section whose feature isn't built yet. */
 function ComingSoon() {
   return (
@@ -73,6 +155,12 @@ function ComingSoon() {
 type SettingsFormValues = {
   name: string;
   portalSubdomain: string;
+  headline: string;
+  description: string;
+  whatsapp: string;
+  instagram: string;
+  siteUrl: string;
+  accentColor: string;
   feedbackFrequency: FeedbackFrequency;
   feedbackPreferredDay: Weekday;
   feedbackWhatsappReminder: boolean;
@@ -82,6 +170,12 @@ function toValues(dto: ClinicSettingsDto): SettingsFormValues {
   return {
     name: dto.name,
     portalSubdomain: dto.portalSubdomain ?? "",
+    headline: dto.headline ?? "",
+    description: dto.description ?? "",
+    whatsapp: dto.whatsapp ?? "",
+    instagram: dto.instagram ?? "",
+    siteUrl: dto.siteUrl ?? "",
+    accentColor: dto.accentColor ?? "",
     feedbackFrequency: dto.feedbackFrequency,
     feedbackPreferredDay: dto.feedbackPreferredDay,
     feedbackWhatsappReminder: dto.feedbackWhatsappReminder,
@@ -105,6 +199,26 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
     onSuccess: (data) => {
       queryClient.setQueryData(["coach-settings"], data);
     },
+  });
+
+  // Logo upload is a separate multipart call (not part of the settings PUT). On
+  // success we refetch so `hasLogo` + the preview update.
+  const logoUpload = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/coach/settings/logo", {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => null);
+        throw new Error(msg?.error ?? "Falha ao enviar a imagem.");
+      }
+      return res.json() as Promise<{ hasLogo: boolean }>;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["coach-settings"] }),
   });
 
   const form = useForm({
@@ -131,6 +245,9 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
       : undefined;
 
   const plan = PLAN_META[initial.plan];
+  const branded = canUseBrandedPortal(initial.plan);
+  const logoUploadError =
+    logoUpload.error instanceof Error ? logoUpload.error.message : undefined;
 
   return (
     <form
@@ -169,62 +286,251 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
         <div className="flex flex-col gap-4">
           {/* Clínica */}
           <SettingsCard title="Clínica">
-            <div className="flex flex-col gap-4">
-              <form.Field name="name">
-                {(field) => (
-                  <Field
-                    id="name"
-                    label="Nome da clínica"
-                    placeholder="Studio Forja"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    error={fieldError(field, serverErrors?.name)}
-                  />
-                )}
-              </form.Field>
+            <form.Field name="name">
+              {(field) => (
+                <Field
+                  id="name"
+                  label="Nome da clínica"
+                  placeholder="Studio Forja"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  error={fieldError(field, serverErrors?.name)}
+                />
+              )}
+            </form.Field>
+          </SettingsCard>
 
-              <form.Field name="portalSubdomain">
-                {(field) => {
-                  const err = fieldError(field, serverErrors?.portalSubdomain);
-                  return (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="portalSubdomain">
-                        Subdomínio do portal
-                      </Label>
-                      <div
-                        className={cn(
-                          "flex items-center rounded-[10px] border border-input bg-transparent px-3 text-sm focus-within:ring-2 focus-within:ring-ring/50",
-                          err && "border-destructive",
+          {/* Portal do aluno — branded microsite + login (paid feature). */}
+          <SettingsCard
+            title="Portal do aluno"
+            badge={
+              !branded ? (
+                <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  Planos pagos
+                </span>
+              ) : undefined
+            }
+          >
+            {!branded ? (
+              <p className="py-2 text-[13px] text-muted-foreground">
+                Publique um endereço com a sua marca —{" "}
+                <span className="font-medium text-foreground">
+                  app.progresso.io/sua-clinica
+                </span>{" "}
+                — com logo, descrição e uma tela de login personalizada para os
+                seus alunos. Disponível a partir do plano Solo.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {/* Logo */}
+                <div className="space-y-1.5">
+                  <Label>Logo</Label>
+                  <div className="flex items-center gap-3">
+                    {initial.hasLogo && initial.portalSubdomain ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={clinicLogoUrl(initial.portalSubdomain)}
+                        alt="Logo da clínica"
+                        className="size-14 rounded-xl border border-border object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-14 items-center justify-center rounded-xl border border-dashed border-border text-lg font-bold text-muted-foreground">
+                        {initial.name.trim().charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <label className="cursor-pointer">
+                      <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-text-secondary shadow-sm hover:border-primary hover:text-primary">
+                        {logoUpload.isPending ? "Enviando…" : "Enviar logo"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={logoUpload.isPending}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) logoUpload.mutate(file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {logoUploadError ? (
+                    <p className="text-[13px] text-destructive">{logoUploadError}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      JPG, PNG ou WEBP, até 5 MB. Salve um endereço para exibi-lo.
+                    </p>
+                  )}
+                </div>
+
+                {/* Slug */}
+                <form.Field name="portalSubdomain">
+                  {(field) => {
+                    const err = fieldError(field, serverErrors?.portalSubdomain);
+                    return (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="portalSubdomain">Endereço do portal</Label>
+                        <div
+                          className={cn(
+                            "flex items-center rounded-[10px] border border-input bg-transparent px-3 text-sm focus-within:ring-2 focus-within:ring-ring/50",
+                            err && "border-destructive",
+                          )}
+                        >
+                          <span className="shrink-0 text-muted-foreground">
+                            app.progresso.io/
+                          </span>
+                          <input
+                            id="portalSubdomain"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            placeholder="studio-forja"
+                            aria-invalid={err ? true : undefined}
+                            className="w-full bg-transparent py-2 outline-none placeholder:text-muted-foreground"
+                          />
+                        </div>
+                        {err ? (
+                          <p className="text-[13px] text-destructive">{err}</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Opcional. Letras minúsculas, números e hífens.
+                          </p>
                         )}
-                      >
-                        <span className="shrink-0 text-muted-foreground">
-                          app.progresso.io/
-                        </span>
-                        <input
-                          id="portalSubdomain"
+                      </div>
+                    );
+                  }}
+                </form.Field>
+
+                {/* Headline */}
+                <form.Field name="headline">
+                  {(field) => (
+                    <Field
+                      id="headline"
+                      label="Chamada"
+                      placeholder="Treinamento e nutrição personalizados"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      error={fieldError(field, serverErrors?.headline)}
+                    />
+                  )}
+                </form.Field>
+
+                {/* Description */}
+                <form.Field name="description">
+                  {(field) => {
+                    const err = fieldError(field, serverErrors?.description);
+                    return (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="description">Descrição</Label>
+                        <textarea
+                          id="description"
+                          rows={3}
                           value={field.state.value}
                           onBlur={field.handleBlur}
-                          onChange={(e) =>
-                            field.handleChange(e.target.value)
-                          }
-                          placeholder="studio-forja"
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="Uma breve apresentação da sua clínica."
                           aria-invalid={err ? true : undefined}
-                          className="w-full bg-transparent py-2 outline-none placeholder:text-muted-foreground"
+                          className={cn(
+                            "w-full rounded-[10px] border border-input bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground",
+                            err && "border-destructive",
+                          )}
                         />
+                        {err ? (
+                          <p className="text-[13px] text-destructive">{err}</p>
+                        ) : null}
                       </div>
-                      {err ? (
-                        <p className="text-[13px] text-destructive">{err}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Opcional. Letras minúsculas, números e hífens.
-                        </p>
-                      )}
-                    </div>
-                  );
-                }}
-              </form.Field>
-            </div>
+                    );
+                  }}
+                </form.Field>
+
+                {/* Contacts */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <form.Field name="whatsapp">
+                    {(field) => (
+                      <Field
+                        id="whatsapp"
+                        label="WhatsApp"
+                        placeholder="+55 11 99999-0000"
+                        inputMode="tel"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        error={fieldError(field, serverErrors?.whatsapp)}
+                      />
+                    )}
+                  </form.Field>
+                  <form.Field name="instagram">
+                    {(field) => (
+                      <Field
+                        id="instagram"
+                        label="Instagram"
+                        placeholder="@suaclinica"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        error={fieldError(field, serverErrors?.instagram)}
+                      />
+                    )}
+                  </form.Field>
+                </div>
+
+                <form.Field name="siteUrl">
+                  {(field) => (
+                    <Field
+                      id="siteUrl"
+                      label="Site"
+                      placeholder="https://suaclinica.com.br"
+                      inputMode="url"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      error={fieldError(field, serverErrors?.siteUrl)}
+                    />
+                  )}
+                </form.Field>
+
+                {/* Accent color */}
+                <form.Field name="accentColor">
+                  {(field) => {
+                    const err = fieldError(field, serverErrors?.accentColor);
+                    const value = field.state.value;
+                    return (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="accentColor">Cor de destaque</Label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            id="accentColor"
+                            type="color"
+                            value={value || "#16a34a"}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            className="size-9 cursor-pointer rounded-md border border-input bg-transparent p-1"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {value || "Cor padrão"}
+                          </span>
+                          {value ? (
+                            <button
+                              type="button"
+                              onClick={() => field.handleChange("")}
+                              className="text-[13px] font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              Remover
+                            </button>
+                          ) : null}
+                        </div>
+                        {err ? (
+                          <p className="text-[13px] text-destructive">{err}</p>
+                        ) : null}
+                      </div>
+                    );
+                  }}
+                </form.Field>
+              </div>
+            )}
           </SettingsCard>
 
           {/* Preferências de feedback */}
@@ -377,6 +683,9 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
               </span>
             </div>
           </SettingsCard>
+
+          {/* Faturas — read-only ledger kept by the platform admin */}
+          <CoachInvoicesCard />
         </div>
       </div>
     </form>

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
 import {
+  canUseBrandedPortal,
   type ClinicSettingsDto,
   clinicSettingsSchema,
 } from "@/lib/clinic-settings";
+import type { Clinic } from "@/db/schema";
 import { clinics } from "@/server/dal";
 import {
+  apiError,
   fieldConflict,
   forbidden,
   notFound,
@@ -45,23 +48,57 @@ export const PUT = withRoute("coach.settings.update", async (request) => {
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 
-  // Subdomain is unique across the platform; surface a duplicate under its field.
+  const clinic = await clinics.getClinic(ctx);
+  if (!clinic) return notFound("Clínica não encontrada.");
+
+  // The branded portal (custom slug + branding) is a paid-plan feature. Free
+  // clinics can still save name + feedback prefs, but not any branding value.
+  if (!canUseBrandedPortal(clinic.plan)) {
+    const wantsBranding = Boolean(
+      data.portalSubdomain ||
+        data.headline ||
+        data.description ||
+        data.whatsapp ||
+        data.instagram ||
+        data.siteUrl ||
+        data.accentColor,
+    );
+    if (wantsBranding) {
+      return apiError(
+        "O portal personalizado está disponível apenas nos planos pagos.",
+        403,
+      );
+    }
+  }
+
+  // Slug is unique across the platform; surface a duplicate under its field.
   if (
     data.portalSubdomain &&
     (await clinics.isSubdomainTaken(ctx, data.portalSubdomain))
   ) {
-    const m = "Este subdomínio já está em uso.";
+    const m = "Este endereço já está em uso.";
     return fieldConflict(m, { portalSubdomain: m });
   }
 
   const updated = await clinics.updateClinicSettings(ctx, data);
-  const settings: ClinicSettingsDto = {
-    name: updated.name,
-    portalSubdomain: updated.portalSubdomain,
-    feedbackFrequency: updated.feedbackFrequency,
-    feedbackPreferredDay: updated.feedbackPreferredDay,
-    feedbackWhatsappReminder: updated.feedbackWhatsappReminder,
-    plan: updated.plan,
-  };
-  return NextResponse.json(settings);
+  return NextResponse.json(toDto(updated));
 });
+
+/** Serializes a clinic row into the settings DTO (never exposes the logo key). */
+function toDto(c: Clinic): ClinicSettingsDto {
+  return {
+    name: c.name,
+    portalSubdomain: c.portalSubdomain,
+    headline: c.headline,
+    description: c.description,
+    whatsapp: c.whatsapp,
+    instagram: c.instagram,
+    siteUrl: c.siteUrl,
+    accentColor: c.accentColor,
+    hasLogo: c.logoKey !== null,
+    feedbackFrequency: c.feedbackFrequency,
+    feedbackPreferredDay: c.feedbackPreferredDay,
+    feedbackWhatsappReminder: c.feedbackWhatsappReminder,
+    plan: c.plan,
+  };
+}
