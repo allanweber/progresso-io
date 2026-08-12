@@ -14,15 +14,27 @@
         },
         {
           "food": "leite_int",
-          "grams": 250
+          "grams": 200,
+          "measure": {
+            "label": "copo",
+            "grams": 200
+          }
         },
         {
           "food": "banana",
-          "grams": 150
+          "grams": 140,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         },
         {
           "food": "pasta_amendoim",
-          "grams": 30
+          "grams": 24,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 12
+          }
         }
       ]
     },
@@ -32,15 +44,27 @@
       "items": [
         {
           "food": "pao_frances",
-          "grams": 100
+          "grams": 100,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "queijo_moz",
-          "grams": 50
+          "grams": 40,
+          "measure": {
+            "label": "fatia",
+            "grams": 20
+          }
         },
         {
           "food": "banana",
-          "grams": 100
+          "grams": 70,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         }
       ]
     },
@@ -58,11 +82,19 @@
         },
         {
           "food": "feijao",
-          "grams": 150
+          "grams": 160,
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "azeite",
-          "grams": 10
+          "grams": 8,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 8
+          }
         }
       ]
     },
@@ -72,7 +104,11 @@
       "items": [
         {
           "food": "whey",
-          "grams": 40
+          "grams": 30,
+          "measure": {
+            "label": "scoop",
+            "grams": 30
+          }
         },
         {
           "food": "aveia",
@@ -80,7 +116,11 @@
         },
         {
           "food": "banana",
-          "grams": 120
+          "grams": 140,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         }
       ]
     },
@@ -108,7 +148,11 @@
       "items": [
         {
           "food": "leite_int",
-          "grams": 250
+          "grams": 200,
+          "measure": {
+            "label": "copo",
+            "grams": 200
+          }
         },
         {
           "food": "aveia",

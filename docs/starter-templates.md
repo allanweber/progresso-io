@@ -35,6 +35,13 @@ They are loaded into `STARTER_DIETS` / `STARTER_WORKOUTS`
 (`src/server/{diets,workouts}/starter-templates.ts`), the diet/workout analogue
 of `STARTER_ANAMNESES`.
 
+Diet items that a coach naturally prescribes by **household measure** (eggs,
+fruit, bread, yogurt, milk, oil, cheese, protein scoops, beans…) carry a
+`measure` snapshot (`{ label, grams }`) taken from the catalog's canonical
+`food_measure`, with the item's grams snapped to a whole multiple — so they read
+as "3 unidades · 150 g", "1 pote · 170 g", "1 concha · 80 g". Weighed staples
+(rice, chicken, oats, potato) stay in grams.
+
 ### Why slugs, not ids
 
 A `food`/`exercise` id is generated per database, so a starter can't embed catalog

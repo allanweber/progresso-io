@@ -10,7 +10,11 @@
       "items": [
         {
           "food": "ovo",
-          "grams": 150
+          "grams": 150,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "abacate",
@@ -18,7 +22,11 @@
         },
         {
           "food": "queijo_moz",
-          "grams": 40
+          "grams": 40,
+          "measure": {
+            "label": "fatia",
+            "grams": 20
+          }
         }
       ]
     },
@@ -42,7 +50,11 @@
         },
         {
           "food": "azeite",
-          "grams": 15
+          "grams": 16,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 8
+          }
         }
       ]
     },
@@ -52,11 +64,19 @@
       "items": [
         {
           "food": "castanha",
-          "grams": 40
+          "grams": 40,
+          "measure": {
+            "label": "unidade",
+            "grams": 5
+          }
         },
         {
           "food": "queijo_minas",
-          "grams": 60
+          "grams": 60,
+          "measure": {
+            "label": "fatia",
+            "grams": 20
+          }
         }
       ]
     },
@@ -74,7 +94,11 @@
         },
         {
           "food": "azeite",
-          "grams": 10
+          "grams": 8,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 8
+          }
         }
       ]
     }

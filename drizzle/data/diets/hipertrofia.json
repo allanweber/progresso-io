@@ -14,15 +14,27 @@
         },
         {
           "food": "ovo",
-          "grams": 150
+          "grams": 150,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "banana",
-          "grams": 120
+          "grams": 140,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         },
         {
           "food": "pasta_amendoim",
-          "grams": 20
+          "grams": 24,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 12
+          }
         }
       ]
     },
@@ -46,7 +58,11 @@
         },
         {
           "food": "feijao",
-          "grams": 120
+          "grams": 160,
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         }
       ]
     },
@@ -56,7 +72,11 @@
       "items": [
         {
           "food": "pao_frances",
-          "grams": 100
+          "grams": 100,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "frango",
@@ -64,7 +84,11 @@
         },
         {
           "food": "banana",
-          "grams": 100
+          "grams": 70,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         }
       ]
     },
@@ -74,7 +98,11 @@
       "items": [
         {
           "food": "whey",
-          "grams": 40
+          "grams": 30,
+          "measure": {
+            "label": "scoop",
+            "grams": 30
+          }
         },
         {
           "food": "arroz_branco",

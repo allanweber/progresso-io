@@ -18,7 +18,11 @@
         },
         {
           "food": "feijao",
-          "grams": 100
+          "grams": 80,
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "brocolis",
@@ -32,7 +36,11 @@
       "items": [
         {
           "food": "ovo",
-          "grams": 150
+          "grams": 150,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "abacate",
@@ -40,7 +48,11 @@
         },
         {
           "food": "castanha",
-          "grams": 20
+          "grams": 20,
+          "measure": {
+            "label": "unidade",
+            "grams": 5
+          }
         }
       ]
     },
@@ -68,7 +80,11 @@
         },
         {
           "food": "tomate",
-          "grams": 60
+          "grams": 90,
+          "measure": {
+            "label": "unidade",
+            "grams": 90
+          }
         }
       ]
     }

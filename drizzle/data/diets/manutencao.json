@@ -10,15 +10,27 @@
       "items": [
         {
           "food": "pao_integral",
-          "grams": 50
+          "grams": 50,
+          "measure": {
+            "label": "fatia",
+            "grams": 25
+          }
         },
         {
           "food": "ovo",
-          "grams": 100
+          "grams": 100,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "laranja",
-          "grams": 130
+          "grams": 130,
+          "measure": {
+            "label": "unidade",
+            "grams": 130
+          }
         }
       ]
     },
@@ -32,7 +44,11 @@
         },
         {
           "food": "feijao",
-          "grams": 100
+          "grams": 80,
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "frango",
@@ -44,7 +60,11 @@
         },
         {
           "food": "tomate",
-          "grams": 60
+          "grams": 90,
+          "measure": {
+            "label": "unidade",
+            "grams": 90
+          }
         }
       ]
     },
@@ -54,7 +74,11 @@
       "items": [
         {
           "food": "iogurte",
-          "grams": 170
+          "grams": 170,
+          "measure": {
+            "label": "pote",
+            "grams": 170
+          }
         },
         {
           "food": "aveia",
@@ -62,7 +86,11 @@
         },
         {
           "food": "banana",
-          "grams": 100
+          "grams": 70,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         }
       ]
     },
