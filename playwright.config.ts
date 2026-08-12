@@ -48,7 +48,7 @@ export default defineConfig({
   projects: [
     {
       name: "public",
-      testMatch: /(auth|content)\.spec\.ts/,
+      testMatch: /(auth|content|portal)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], launchOptions },
     },
     {

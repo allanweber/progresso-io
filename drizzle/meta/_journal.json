@@ -155,6 +155,13 @@
       "when": 1786479914548,
       "tag": "0021_starter_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786539715776,
+      "tag": "0022_clinic_branding",
+      "breakpoints": true
     }
   ]
 }

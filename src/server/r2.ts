@@ -291,3 +291,69 @@ export function checkinPhotoPlaceholder(label: string): {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2e8f0"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient></defs><rect width="400" height="500" fill="url(#g)"/><g fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(176 214)"><rect x="0" y="8" width="48" height="40" rx="6"/><circle cx="24" cy="30" r="10"/><path d="M14 8l5-8h10l5 8"/></g><text x="200" y="300" fill="#64748b" font-family="system-ui, sans-serif" font-size="20" font-weight="600" text-anchor="middle">${safe}</text></svg>`;
   return { body: Buffer.from(svg), contentType: "image/svg+xml" };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Clinic logos (branded portal)                                              */
+/*                                                                            */
+/*  Public logo art for a clinic's branded microsite + login. Stored under a    */
+/*  `logos/` prefix; served publicly by slug. Like check-in photos, they go to   */
+/*  R2 when configured and fall back to the gitignored `.uploads/` dir so dev +  */
+/*  e2e work without cloud creds.                                              */
+/* -------------------------------------------------------------------------- */
+
+/** Stores one clinic logo, returning its key (`logos/<uuid>.<ext>`). Public cache. */
+export async function putClinicLogo(
+  body: Buffer,
+  contentType: string,
+): Promise<string> {
+  const ext = ALLOWED_TYPES[contentType] ?? "jpg";
+  const key = `logos/${randomUUID()}.${ext}`;
+
+  const env = r2Env();
+  if (env) {
+    await r2PutObject(env, key, body, contentType, "public, max-age=86400");
+    return key;
+  }
+  const abs = path.join(process.cwd(), LOCAL_UPLOAD_DIR, key);
+  await mkdir(path.dirname(abs), { recursive: true });
+  await writeFile(abs, body);
+  return key;
+}
+
+/** Reads a clinic logo back by key (R2 or local fallback). Null when missing. */
+export async function readClinicLogo(
+  key: string,
+): Promise<{ body: Buffer; contentType: string } | null> {
+  // Mechanically identical to reading a check-in photo — both fetch by key.
+  return readCheckinPhoto(key);
+}
+
+/**
+ * Reads a single `file` from a multipart request, validates type/size (JPG/PNG/
+ * WEBP ≤ 5 MB), stores it as a clinic logo and returns the key. Unlike the
+ * exercise-image upload it uses the R2-or-local store, so it works in dev/e2e.
+ */
+export async function receiveClinicLogo(
+  request: Request,
+): Promise<{ ok: true; key: string } | { ok: false; response: NextResponse }> {
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return { ok: false, response: apiError("Envio inválido.", 400) };
+  }
+  const file = form.get("file");
+  if (!(file instanceof File)) {
+    return { ok: false, response: apiError("Nenhuma imagem enviada.", 400) };
+  }
+  const parsed = uploadMetaSchema.safeParse({ type: file.type, size: file.size });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      response: apiError(parsed.error.issues[0]?.message ?? "Imagem inválida.", 422),
+    };
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const key = await putClinicLogo(buffer, file.type);
+  return { ok: true, key };
+}

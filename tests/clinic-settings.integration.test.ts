@@ -51,6 +51,12 @@ describe("clinic settings", () => {
     await clinics.updateClinicSettings(ctx, {
       name: "Studio Forja",
       portalSubdomain: "studio-forja",
+      headline: null,
+      description: null,
+      whatsapp: null,
+      instagram: null,
+      siteUrl: null,
+      accentColor: null,
       feedbackFrequency: "mensal",
       feedbackPreferredDay: "friday",
       feedbackWhatsappReminder: false,
@@ -75,6 +81,12 @@ describe("clinic settings", () => {
     await clinics.updateClinicSettings(ctxA, {
       name: "Clínica B",
       portalSubdomain: "clinica-b",
+      headline: null,
+      description: null,
+      whatsapp: null,
+      instagram: null,
+      siteUrl: null,
+      accentColor: null,
       feedbackFrequency: "semanal",
       feedbackPreferredDay: "monday",
       feedbackWhatsappReminder: true,
@@ -91,5 +103,67 @@ describe("clinic settings", () => {
     expect(await clinics.isSubdomainTaken(ctxA, "clinica-b")).toBe(false);
     // …and a free slug is available to anyone.
     expect(await clinics.isSubdomainTaken(ctxB, "clinica-c")).toBe(false);
+  });
+});
+
+describe("public branded portal", () => {
+  const branding = {
+    headline: "Olá",
+    description: "Descrição",
+    whatsapp: "+55 11 98888-0000",
+    instagram: "@branda",
+    siteUrl: "https://branda.com",
+    accentColor: "#123456",
+    feedbackFrequency: "semanal" as const,
+    feedbackPreferredDay: "monday" as const,
+    feedbackWhatsappReminder: true,
+  };
+
+  it("resolves branding only for a paid clinic with a slug set", async () => {
+    const ctx = await coachContext("brand-a@example.com", "Brand A");
+    await clinics.updateClinicSettings(ctx, {
+      name: "Brand A",
+      portalSubdomain: "brand-a",
+      ...branding,
+    });
+
+    // Free plan (the sign-up default) → the portal is not published.
+    expect(await clinics.getPublicClinicBySlug(h, "brand-a")).toBeNull();
+
+    // Upgrade to a paid plan → it resolves, with only public branding fields.
+    await h
+      .update(schema.clinic)
+      .set({ plan: "solo" })
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    const pub = await clinics.getPublicClinicBySlug(h, "brand-a");
+    expect(pub).not.toBeNull();
+    expect(pub!.name).toBe("Brand A");
+    expect(pub!.headline).toBe("Olá");
+    expect(pub!.accentColor).toBe("#123456");
+    expect(pub!.hasLogo).toBe(false);
+  });
+
+  it("returns null for an unknown slug", async () => {
+    expect(await clinics.getPublicClinicBySlug(h, "nope-nope-nope")).toBeNull();
+  });
+
+  it("stops resolving when the clinic downgrades to free", async () => {
+    const ctx = await coachContext("brand-b@example.com", "Brand B");
+    await h
+      .update(schema.clinic)
+      .set({ plan: "clinica" })
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    await clinics.updateClinicSettings(ctx, {
+      name: "Brand B",
+      portalSubdomain: "brand-b",
+      ...branding,
+    });
+    expect(await clinics.getPublicClinicBySlug(h, "brand-b")).not.toBeNull();
+
+    await h
+      .update(schema.clinic)
+      .set({ plan: "free" })
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    expect(await clinics.getPublicClinicBySlug(h, "brand-b")).toBeNull();
   });
 });

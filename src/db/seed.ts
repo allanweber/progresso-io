@@ -671,10 +671,22 @@ async function seed() {
     .update(schema.user)
     .set({ emailVerified: true, role: "coach", clinicId: coachClinic.id })
     .where(eq(schema.user.id, coach.id));
-  // Give the demo coach a roomy plan so the seeded scenario isn't at the cap.
+  // Give the demo coach a roomy plan so the seeded scenario isn't at the cap,
+  // plus a published branded portal (paid feature) so app.progresso.io/studio-forja
+  // renders the microsite + branded login locally and in e2e.
   await db
     .update(schema.clinic)
-    .set({ plan: "clinica" })
+    .set({
+      plan: "clinica",
+      portalSubdomain: "studio-forja",
+      headline: "Treinamento e nutrição personalizados",
+      description:
+        "Acompanhamento individual de treino e dieta, com check-ins e ajustes contínuos.",
+      whatsapp: "+55 11 99999-0000",
+      instagram: "@studioforja",
+      siteUrl: "https://studioforja.com.br",
+      accentColor: "#7c3aed",
+    })
     .where(eq(schema.clinic.id, coachClinic.id));
 
   // Aluno — belongs to the coach's clinic; drop the clinic auto-created for them.

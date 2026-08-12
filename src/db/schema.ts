@@ -281,10 +281,21 @@ export const clinic = pgTable(
     ownerUserId: text("owner_user_id")
       .notNull()
       .references((): AnyPgColumn => user.id),
-    // Portal subdomain (app.progresso.io/<slug>). Optional; globally unique when
-    // present. Nothing routes on it yet — it's stored from the settings screen so
-    // the future portal-subdomain feature has it. Validated (slug) at the zod layer.
+    // Portal slug — the clinic's branded microsite + login live at
+    // app.progresso.io/<slug> (path-based, same origin). Optional; globally unique
+    // when set. Validated (slug + reserved-word blocklist) at the zod layer; only
+    // paid plans may set it (gated in the settings route).
     portalSubdomain: text("portal_subdomain"),
+    // Branded-portal fields, shown on the public microsite + branded login. All
+    // optional; only meaningful when `portalSubdomain` is set on a paid plan.
+    // `logoKey` is a storage key served via the public logo route.
+    logoKey: text("logo_key"),
+    headline: text("headline"),
+    description: text("description"),
+    whatsapp: text("whatsapp"),
+    instagram: text("instagram"),
+    siteUrl: text("site_url"),
+    accentColor: text("accent_color"),
     // Clinic-wide feedback preferences (the "Preferências de feedback" settings
     // section). Persisted now; the check-in engine that consumes them is a later
     // feature.
