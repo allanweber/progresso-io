@@ -310,6 +310,13 @@ export const clinic = pgTable(
     feedbackWhatsappReminder: boolean("feedback_whatsapp_reminder")
       .default(true)
       .notNull(),
+    // Per-clinic capability overrides, set by a platform admin on the clinic
+    // detail page. NULL = inherit the plan default (`plan_limit`); a value takes
+    // precedence over the plan for THIS clinic only. Lets a single clinic get a
+    // higher (or lower) cap, or WhatsApp toggled, without changing its plan.
+    maxStudentsOverride: integer("max_students_override"),
+    maxCoachesOverride: integer("max_coaches_override"),
+    whatsappOverride: boolean("whatsapp_override"),
     // When the clinic's starter templates (anamneses + diets + workouts) were
     // seeded. NULL until the first coach sign-in triggers the one-shot background
     // seed (see `ensureClinicStarters`); set to the completion time once all

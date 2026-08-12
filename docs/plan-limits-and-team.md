@@ -22,16 +22,21 @@ no row exists (a missing limit must never block). Read them through
 `plans.getPlanLimits(ctx)` (or the `getStudentLimit` / `getCoachLimit` /
 `canUseWhatsapp` shortcuts), always derived from the session's clinic.
 
-### Admin-managed (Manutenção → Planos)
+### Per-clinic overrides (admin clinic detail)
 
-Platform admins edit these values from **/admin/maintenance → Planos**: a table
-of every plan with its máx. alunos, máx. coaches (blank = ilimitado) and whether
-WhatsApp is included. Because `plan_limit` is reference data, a change applies
-immediately to every clinic on that plan. Backed by `GET /api/admin/plan-limits`
-+ `PUT /api/admin/plan-limits/[plan]` (admin-gated), which upsert so a plan whose
-row was never seeded is created rather than ignored — the way to correct an
-environment where the columns were added by migration but never seeded (e.g. a
-plan left at `max_coaches = NULL`).
+A platform admin sets limits for **one clinic** from `/admin/clinics/[id]` →
+"Limites desta clínica": máx. alunos, máx. coaches and WhatsApp. Each is stored
+as a nullable override column on `clinic` (`max_students_override`,
+`max_coaches_override`, `whatsapp_override`) — **`null` = inherit the plan
+default**; a value wins for that clinic only, without changing its plan.
+`getPlanLimits` resolves `override ?? plan_default`, so overrides layer on top of
+`plan_limit`. Backed by `PUT /api/admin/clinics/[id]/limits` (admin-gated); the
+effective limits + plan defaults come back on `GET /api/admin/clinics/[id]`.
+
+The plan defaults themselves live in `plan_limit` and are established by the
+seed (fresh DBs) and by migration `0025`, which **upserts** the canonical values
+so a deployed environment with a missing/`NULL` `plan_limit` row (e.g. Solo left
+at unlimited after `0024`) is corrected on migrate.
 
 ### Enforcement is soft (never destructive)
 

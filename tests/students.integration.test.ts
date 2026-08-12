@@ -52,6 +52,8 @@ beforeAll(async () => {
   auth = createAuth({ db, nextCookiesPlugin: false, sendOtp: async () => {} });
 
   // Reference plan limits (mirrors the seed): free blocks the 4th student.
+  // Migration 0025 already seeds plan_limit, so reset to this test's set first.
+  await db.delete(schema.planLimit);
   await db.insert(schema.planLimit).values([
     { plan: "free", maxStudents: 3 },
     { plan: "solo", maxStudents: 50 },

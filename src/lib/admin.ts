@@ -16,8 +16,6 @@ import {
 } from "@/lib/foods";
 import type { AnamnesisModality, AnamnesisObjective } from "@/lib/anamneses";
 import type { StudentDto } from "@/lib/students";
-import { PLAN_META } from "@/lib/plans";
-import { PLANS, type Plan } from "@/db/schema";
 import { z } from "@/lib/validation";
 
 /**
@@ -406,45 +404,43 @@ export type AdminTemplateListResponse = {
 /** A system diet/workout starter offered in the "Importar starters" dialog. */
 export type AdminTemplateStarterDto = { key: string; name: string };
 
+
 /* -------------------------------------------------------------------------- */
-/*  Plan limits (admin-managed per-plan capabilities)                          */
+/*  Per-clinic capability limits (admin clinic detail)                         */
 /* -------------------------------------------------------------------------- */
-
-/** One plan's editable capabilities, for the admin "Planos" table. */
-export type AdminPlanLimitDto = {
-  plan: Plan;
-  /** Display name (e.g. "Clínica"). */
-  planName: string;
-  /** `null` = unlimited. */
-  maxStudents: number | null;
-  /** `null` = unlimited. */
-  maxCoaches: number | null;
-  whatsapp: boolean;
-};
-
-/** Plans in display order, so the admin table is stable regardless of row order. */
-export const PLAN_ORDER: readonly Plan[] = PLANS;
-
-/** Display name for a plan (falls back to the id if unknown). */
-export function planDisplayName(plan: Plan): string {
-  return PLAN_META[plan]?.name ?? plan;
-}
 
 /**
- * Admin edit of a plan's caps. A blank/omitted cap means unlimited (`null`); a
- * present value must be a non-negative integer. `whatsapp` toggles the channel.
+ * A clinic's effective limits, as the admin clinic-detail "Limites" card reads
+ * them: the plan defaults plus this clinic's overrides. Each override is `null`
+ * when the clinic inherits the plan; a value wins for this clinic only.
  */
-export const planLimitUpdateSchema = z.object({
-  maxStudents: z
+export type AdminClinicLimitsDto = {
+  plan: string;
+  planName: string;
+  planMaxStudents: number | null;
+  planMaxCoaches: number | null;
+  planWhatsapp: boolean;
+  maxStudentsOverride: number | null;
+  maxCoachesOverride: number | null;
+  whatsappOverride: boolean | null;
+};
+
+/**
+ * Admin edit of a clinic's overrides. Each field is nullable: `null` = inherit
+ * the plan. A present cap must be a non-negative integer; `whatsappOverride`
+ * true/false forces the channel on/off for this clinic.
+ */
+export const clinicLimitsUpdateSchema = z.object({
+  maxStudentsOverride: z
     .number()
     .int("Informe um número inteiro.")
     .min(0, "Não pode ser negativo.")
     .nullable(),
-  maxCoaches: z
+  maxCoachesOverride: z
     .number()
     .int("Informe um número inteiro.")
     .min(0, "Não pode ser negativo.")
     .nullable(),
-  whatsapp: z.boolean(),
+  whatsappOverride: z.boolean().nullable(),
 });
-export type PlanLimitUpdateInput = z.output<typeof planLimitUpdateSchema>;
+export type ClinicLimitsUpdateInput = z.output<typeof clinicLimitsUpdateSchema>;
