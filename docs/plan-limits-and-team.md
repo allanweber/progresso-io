@@ -22,6 +22,17 @@ no row exists (a missing limit must never block). Read them through
 `plans.getPlanLimits(ctx)` (or the `getStudentLimit` / `getCoachLimit` /
 `canUseWhatsapp` shortcuts), always derived from the session's clinic.
 
+### Admin-managed (Manutenção → Planos)
+
+Platform admins edit these values from **/admin/maintenance → Planos**: a table
+of every plan with its máx. alunos, máx. coaches (blank = ilimitado) and whether
+WhatsApp is included. Because `plan_limit` is reference data, a change applies
+immediately to every clinic on that plan. Backed by `GET /api/admin/plan-limits`
++ `PUT /api/admin/plan-limits/[plan]` (admin-gated), which upsert so a plan whose
+row was never seeded is created rather than ignored — the way to correct an
+environment where the columns were added by migration but never seeded (e.g. a
+plan left at `max_coaches = NULL`).
+
 ### Enforcement is soft (never destructive)
 
 Limits only gate **new** additions; nothing is ever removed on a downgrade.
@@ -34,6 +45,21 @@ Limits only gate **new** additions; nothing is ever removed on a downgrade.
 - If an admin downgrades a plan and the clinic is now over the new cap, the
   existing coaches/alunos keep working; only new adds are blocked until the
   clinic is back under the cap.
+
+### Where usage is shown
+
+`GET /api/coach/plan-usage` returns the clinic's usage vs. caps (active alunos,
+coaches, WhatsApp included) — any coach may read it. Three surfaces share the
+one `coach-plan-usage` query (TanStack dedupes the cache):
+
+- **"Plano atual" card** (settings) — a full list: `Alunos 34/50`,
+  `Coaches 2/3`, `WhatsApp Incluído`, with an "at limit" accent.
+- **Students roster** — a `34 / 50 alunos` chip next to "Adicionar aluno".
+- **Dashboard** — the "Alunos ativos" KPI gains a `de 50 · plano Clínica`
+  subtitle (`sem limite` when uncapped).
+
+`formatUsage(used, limit)` renders `34 / 50` (or just `34` when unlimited);
+`isAtLimit` drives the accent.
 
 ### WhatsApp gate
 

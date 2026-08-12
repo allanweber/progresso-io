@@ -24,6 +24,7 @@ import type {
   FoodType,
   Muscle,
   Plan,
+  PlanLimit,
   Student,
   User,
 } from "@/db/schema";
@@ -1618,4 +1619,37 @@ export async function importStartersToClinic(
     imported: toImport.map((s) => s.key),
     skipped: wanted.filter((s) => have.has(s.key)).map((s) => s.key),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Plan limits (reference data) — admin-managed per-plan capabilities         */
+/* -------------------------------------------------------------------------- */
+
+/** Every `plan_limit` row (unordered — the caller sorts by plan). */
+export async function listPlanLimits(db: DB): Promise<PlanLimit[]> {
+  return db.select().from(schema.planLimit);
+}
+
+/** Values an admin may set for a plan. `null` caps = unlimited. */
+export type PlanLimitInput = {
+  maxStudents: number | null;
+  maxCoaches: number | null;
+  whatsapp: boolean;
+};
+
+/**
+ * Upserts a plan's capabilities. Upsert (not update) so a plan whose row was
+ * never seeded is created rather than silently ignored.
+ */
+export async function upsertPlanLimit(
+  db: DB,
+  plan: Plan,
+  input: PlanLimitInput,
+): Promise<PlanLimit> {
+  const [row] = await db
+    .insert(schema.planLimit)
+    .values({ plan, ...input })
+    .onConflictDoUpdate({ target: schema.planLimit.plan, set: input })
+    .returning();
+  return row;
 }

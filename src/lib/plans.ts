@@ -48,3 +48,28 @@ export const SIGNUP_PLANS: PlanMeta[] = [
   PLAN_META.solo,
   PLAN_META.clinica,
 ];
+
+/** A used/limit pair, `limit: null` meaning unlimited. */
+export type UsageCounter = { used: number; limit: number | null };
+
+/**
+ * The clinic's plan usage vs. its caps, read by the "Plano atual" card, the
+ * roster chip and the dashboard tile. `limit: null` = unlimited.
+ */
+export type PlanUsageDto = {
+  plan: Plan;
+  planName: string;
+  students: UsageCounter;
+  coaches: UsageCounter;
+  whatsapp: boolean;
+};
+
+/** "34 / 50", or just "34" when the cap is unlimited. */
+export function formatUsage(used: number, limit: number | null): string {
+  return limit === null ? `${used}` : `${used} / ${limit}`;
+}
+
+/** Whether usage has reached (or passed) the cap — for an "at limit" accent. */
+export function isAtLimit(used: number, limit: number | null): boolean {
+  return limit !== null && used >= limit;
+}

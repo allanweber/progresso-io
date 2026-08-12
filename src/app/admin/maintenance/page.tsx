@@ -44,6 +44,7 @@ import {
   type AdminAnamnesisListResponse,
   type AdminClinicDto,
   type AdminImportResult,
+  type AdminPlanLimitDto,
   type AdminStarterDto,
   type AdminTemplateListItemDto,
   type AdminTemplateListResponse,
@@ -78,6 +79,7 @@ export default function AdminMaintenancePage() {
           <TabsTrigger value="diets">Dietas</TabsTrigger>
           <TabsTrigger value="workouts">Treinos</TabsTrigger>
           <TabsTrigger value="clinics">Clínicas</TabsTrigger>
+          <TabsTrigger value="plans">Planos</TabsTrigger>
         </TabsList>
         <TabsContent value="anamneses" className="mt-4">
           <AnamnesesMaintenance />
@@ -90,6 +92,9 @@ export default function AdminMaintenancePage() {
         </TabsContent>
         <TabsContent value="clinics" className="mt-4">
           <ClinicsMaintenance />
+        </TabsContent>
+        <TabsContent value="plans" className="mt-4">
+          <PlansMaintenance />
         </TabsContent>
       </Tabs>
     </div>
@@ -1155,5 +1160,149 @@ function ImportDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** "50" or an em dash when the cap is unlimited (empty input). */
+function capInput(value: number | null): string {
+  return value === null ? "" : String(value);
+}
+
+/**
+ * Admin "Planos" tab — edit each plan's caps (máx. alunos, máx. coaches) and
+ * whether WhatsApp is included. An empty cap means unlimited. Reference data
+ * shared by every clinic on that plan, so a change takes effect immediately.
+ */
+function PlansMaintenance() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["admin-plan-limits"],
+    queryFn: () =>
+      apiFetch<{ plans: AdminPlanLimitDto[] }>("/api/admin/plan-limits").then(
+        (r) => r.plans,
+      ),
+  });
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  }
+  if (isError || !data) {
+    return (
+      <p className="text-sm text-destructive">
+        Não foi possível carregar os planos.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Limites por plano. Deixe um limite em branco para{" "}
+        <span className="font-medium text-foreground">ilimitado</span>. A mudança
+        vale para todas as clínicas do plano.
+      </p>
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Plano</TableHead>
+              <TableHead className="w-36">Máx. alunos</TableHead>
+              <TableHead className="w-36">Máx. coaches</TableHead>
+              <TableHead className="w-32">WhatsApp</TableHead>
+              <TableHead className="w-28" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((p) => (
+              <PlanRow key={p.plan} plan={p} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+/** One editable plan row (its own local state + save mutation). */
+function PlanRow({ plan }: { plan: AdminPlanLimitDto }) {
+  const queryClient = useQueryClient();
+  const [students, setStudents] = useState(capInput(plan.maxStudents));
+  const [coaches, setCoaches] = useState(capInput(plan.maxCoaches));
+  const [whatsapp, setWhatsapp] = useState(plan.whatsapp);
+
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch<AdminPlanLimitDto>(`/api/admin/plan-limits/${plan.plan}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          maxStudents: students.trim() === "" ? null : Number(students),
+          maxCoaches: coaches.trim() === "" ? null : Number(coaches),
+          whatsapp,
+        }),
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["admin-plan-limits"] }),
+  });
+
+  const dirty =
+    students !== capInput(plan.maxStudents) ||
+    coaches !== capInput(plan.maxCoaches) ||
+    whatsapp !== plan.whatsapp;
+  const error = save.error instanceof ApiError ? save.error.message : undefined;
+
+  return (
+    <TableRow>
+      <TableCell className="font-medium text-foreground">
+        {plan.planName}
+      </TableCell>
+      <TableCell>
+        <Input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          placeholder="ilimitado"
+          value={students}
+          onChange={(e) => setStudents(e.target.value)}
+          aria-label={`Máx. alunos — ${plan.planName}`}
+        />
+      </TableCell>
+      <TableCell>
+        <Input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          placeholder="ilimitado"
+          value={coaches}
+          onChange={(e) => setCoaches(e.target.value)}
+          aria-label={`Máx. coaches — ${plan.planName}`}
+        />
+      </TableCell>
+      <TableCell>
+        <Select
+          value={whatsapp ? "yes" : "no"}
+          onValueChange={(v) => setWhatsapp(v === "yes")}
+        >
+          <SelectTrigger aria-label={`WhatsApp — ${plan.planName}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="yes">Incluído</SelectItem>
+            <SelectItem value="no">Não</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Button
+          size="sm"
+          disabled={!dirty || save.isPending}
+          onClick={() => save.mutate()}
+          title={error}
+        >
+          {save.isPending ? "Salvando…" : "Salvar"}
+        </Button>
+        {error ? (
+          <p className="mt-1 text-[11px] text-destructive">{error}</p>
+        ) : null}
+      </TableCell>
+    </TableRow>
   );
 }

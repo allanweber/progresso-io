@@ -23,6 +23,11 @@ import {
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
 import {
+  formatUsage,
+  isAtLimit,
+  type PlanUsageDto,
+} from "@/lib/plans";
+import {
   ACCESS_LABELS,
   avatarColor,
   deriveAccess,
@@ -32,6 +37,7 @@ import {
   type StudentRosterDto,
   type StudentStateKey,
 } from "@/lib/students";
+import { cn } from "@/lib/utils";
 
 const FILTERS: { key: StudentStateKey | "all"; label: string }[] = [
   { key: "all", label: "Todos" },
@@ -150,6 +156,12 @@ export default function StudentsPage() {
       ),
   });
 
+  // Plan capacity for the header chip (shared cache with settings + dashboard).
+  const { data: usage } = useQuery({
+    queryKey: ["coach-plan-usage"],
+    queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
+  });
+
   const students = useMemo(() => data ?? [], [data]);
   const filtered = useMemo(
     () =>
@@ -181,12 +193,27 @@ export default function StudentsPage() {
             {students.length} no total · {activeCount} ativos
           </p>
         </div>
-        <Button asChild>
-          <Link href="/coach/students/new">
-            <Plus className="size-4" />
-            Adicionar aluno
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {usage ? (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] font-medium",
+                isAtLimit(usage.students.used, usage.students.limit)
+                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                  : "border-border bg-white text-muted-foreground",
+              )}
+              title={`Alunos ativos no plano ${usage.planName}`}
+            >
+              {formatUsage(usage.students.used, usage.students.limit)} alunos
+            </span>
+          ) : null}
+          <Button asChild>
+            <Link href="/coach/students/new">
+              <Plus className="size-4" />
+              Adicionar aluno
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
