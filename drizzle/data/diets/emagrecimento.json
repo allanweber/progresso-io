@@ -16,11 +16,19 @@
               "food": "clara_ovo",
               "grams": 180
             }
-          ]
+          ],
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "pao_integral",
-          "grams": 50
+          "grams": 50,
+          "measure": {
+            "label": "fatia",
+            "grams": 25
+          }
         },
         {
           "food": "mamao",
@@ -48,7 +56,11 @@
         },
         {
           "food": "feijao",
-          "grams": 80
+          "grams": 80,
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "brocolis",
@@ -62,11 +74,19 @@
       "items": [
         {
           "food": "iogurte",
-          "grams": 170
+          "grams": 170,
+          "measure": {
+            "label": "pote",
+            "grams": 170
+          }
         },
         {
           "food": "maca",
-          "grams": 130
+          "grams": 130,
+          "measure": {
+            "label": "unidade",
+            "grams": 130
+          }
         }
       ]
     },

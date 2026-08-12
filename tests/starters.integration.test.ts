@@ -117,6 +117,16 @@ describe("ensureClinicStarters", () => {
     // Live nutrition computed from the referenced foods.
     expect(detail!.totals.energyKcal ?? 0).toBeGreaterThan(0);
     expect(detail!.totals.protein ?? 0).toBeGreaterThan(0);
+
+    // Unit-foods carry a household measure snapshot (e.g. eggs in "unidade"),
+    // with grams a whole multiple so the count renders cleanly.
+    const withMeasure = detail!.meals
+      .flatMap((m) => m.items)
+      .filter((i) => i.measureLabel && i.measureGrams);
+    expect(withMeasure.length).toBeGreaterThan(0);
+    for (const i of withMeasure) {
+      expect(i.grams % i.measureGrams!).toBe(0);
+    }
   });
 
   it("concurrent first-load calls still seed exactly once", async () => {

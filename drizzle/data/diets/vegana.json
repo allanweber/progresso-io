@@ -14,11 +14,19 @@
         },
         {
           "food": "banana",
-          "grams": 120
+          "grams": 140,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         },
         {
           "food": "pasta_amendoim",
-          "grams": 20
+          "grams": 24,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 12
+          }
         }
       ]
     },
@@ -32,7 +40,7 @@
         },
         {
           "food": "feijao",
-          "grams": 130,
+          "grams": 160,
           "substitutes": [
             {
               "food": "lentilha",
@@ -42,7 +50,11 @@
               "food": "grao_bico",
               "grams": 120
             }
-          ]
+          ],
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "tofu",
@@ -60,11 +72,19 @@
       "items": [
         {
           "food": "prot_ervilha",
-          "grams": 35
+          "grams": 30,
+          "measure": {
+            "label": "scoop",
+            "grams": 30
+          }
         },
         {
           "food": "maca",
-          "grams": 130
+          "grams": 130,
+          "measure": {
+            "label": "unidade",
+            "grams": 130
+          }
         }
       ]
     },
@@ -74,7 +94,11 @@
       "items": [
         {
           "food": "pts_soja",
-          "grams": 60
+          "grams": 60,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 10
+          }
         },
         {
           "food": "batata_doce",
@@ -86,7 +110,11 @@
         },
         {
           "food": "azeite",
-          "grams": 10
+          "grams": 8,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 8
+          }
         }
       ]
     }

@@ -14,7 +14,11 @@
         },
         {
           "food": "ovo",
-          "grams": 100
+          "grams": 100,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "mamao",
@@ -28,7 +32,11 @@
       "items": [
         {
           "food": "maca",
-          "grams": 130
+          "grams": 130,
+          "measure": {
+            "label": "unidade",
+            "grams": 130
+          }
         }
       ]
     },
@@ -42,7 +50,11 @@
         },
         {
           "food": "feijao",
-          "grams": 100
+          "grams": 80,
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "frango",
@@ -64,7 +76,11 @@
       "items": [
         {
           "food": "iogurte",
-          "grams": 170
+          "grams": 170,
+          "measure": {
+            "label": "pote",
+            "grams": 170
+          }
         },
         {
           "food": "aveia",

@@ -14,11 +14,19 @@
         },
         {
           "food": "leite_desn",
-          "grams": 200
+          "grams": 200,
+          "measure": {
+            "label": "copo",
+            "grams": 200
+          }
         },
         {
           "food": "banana",
-          "grams": 120
+          "grams": 140,
+          "measure": {
+            "label": "unidade",
+            "grams": 70
+          }
         }
       ]
     },
@@ -32,7 +40,7 @@
         },
         {
           "food": "feijao",
-          "grams": 120,
+          "grams": 160,
           "substitutes": [
             {
               "food": "lentilha",
@@ -42,11 +50,19 @@
               "food": "grao_bico",
               "grams": 110
             }
-          ]
+          ],
+          "measure": {
+            "label": "concha",
+            "grams": 80
+          }
         },
         {
           "food": "ovo",
-          "grams": 100
+          "grams": 100,
+          "measure": {
+            "label": "unidade",
+            "grams": 50
+          }
         },
         {
           "food": "brocolis",
@@ -60,11 +76,19 @@
       "items": [
         {
           "food": "iogurte",
-          "grams": 170
+          "grams": 170,
+          "measure": {
+            "label": "pote",
+            "grams": 170
+          }
         },
         {
           "food": "castanha",
-          "grams": 20
+          "grams": 20,
+          "measure": {
+            "label": "unidade",
+            "grams": 5
+          }
         }
       ]
     },
@@ -86,7 +110,11 @@
         },
         {
           "food": "azeite",
-          "grams": 10
+          "grams": 8,
+          "measure": {
+            "label": "colher de sopa",
+            "grams": 8
+          }
         }
       ]
     }
