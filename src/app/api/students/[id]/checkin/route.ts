@@ -10,7 +10,7 @@ import {
   type CheckinListDto,
 } from "@/lib/student-checkins";
 import { sendCheckinFeedbackWhatsApp } from "@/lib/whatsapp";
-import { coachCheckins, students } from "@/server/dal";
+import { coachCheckins, plans, students } from "@/server/dal";
 import type {
   AssessmentWriteInput,
   CreateCoachCheckinInput,
@@ -147,7 +147,7 @@ export const POST = withRoute<Params>(
     // Send the coach's note to the student on WhatsApp (logged in dev).
     if (parsed.data.note) {
       const student = await students.getStudent(ctx, id);
-      if (student?.phone) {
+      if (student?.phone && (await plans.canUseWhatsapp(ctx))) {
         const origin = new URL(request.url).origin;
         await sendCheckinFeedbackWhatsApp({
           to: student.phone,

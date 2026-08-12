@@ -379,13 +379,19 @@ export const students = pgTable(
 );
 
 /**
- * Per-plan cap on the number of students a clinic may hold. Reference data
- * (not tenant-scoped), keyed by the lowercase plan name so limits are edited in
- * the database rather than hardcoded. `maxStudents = null` means unlimited.
+ * Per-plan capabilities a clinic gets. Reference data (not tenant-scoped), keyed
+ * by the lowercase plan name so limits are edited in the database rather than
+ * hardcoded. `maxStudents`/`maxCoaches = null` means unlimited (both the "no cap"
+ * plans and a missing row, which must never block). `whatsapp` gates the WhatsApp
+ * delivery channel — free clinics onboard over e-mail only.
  */
 export const planLimit = pgTable("plan_limit", {
   plan: text("plan").$type<Plan>().primaryKey(),
   maxStudents: integer("max_students"),
+  // Max coaches (incl. the owner) that may belong to the clinic. null = unlimited.
+  maxCoaches: integer("max_coaches"),
+  // Whether the plan may send over WhatsApp (paid plans) or e-mail only (free).
+  whatsapp: boolean("whatsapp").default(true).notNull(),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -529,6 +535,37 @@ export const adminInvitation = pgTable("admin_invitation", {
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+/**
+ * A pending invite for a NEW coach to join a clinic (the `Clínica` plan's
+ * multi-coach team). Clinic-scoped: it carries the inviting `clinicId` plus the
+ * invitee's name + e-mail; the `user` row (role `coach`, `clinicId` set) is
+ * created only when they accept and set a password. The raw token lives only in
+ * the e-mailed link (we store its SHA-256 hash). One live invite per (clinic,
+ * e-mail) is enforced in the DAL (previous unaccepted ones are superseded). A
+ * pending invite reserves a seat against the plan's `maxCoaches` cap.
+ */
+export const coachInvitation = pgTable(
+  "coach_invitation",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    name: text("name").notNull(),
+    // SHA-256 of the raw token. The raw token is never persisted.
+    tokenHash: text("token_hash").notNull().unique(),
+    // The coach who sent the invite (audit). Nulled if that user is later removed.
+    invitedByUserId: text("invited_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("coach_invitation_clinic_idx").on(t.clinicId)],
+);
 
 /* -------------------------------------------------------------------------- */
 /*  Food catalog (reference data — mostly NOT tenant-scoped, like plan_limit)  */
@@ -1907,6 +1944,7 @@ export type InvoiceLineItem = typeof invoiceLineItem.$inferSelect;
 export type ClinicPlanChange = typeof clinicPlanChange.$inferSelect;
 export type Invitation = typeof invitation.$inferSelect;
 export type AdminInvitation = typeof adminInvitation.$inferSelect;
+export type CoachInvitation = typeof coachInvitation.$inferSelect;
 export type NewInvitation = typeof invitation.$inferInsert;
 export type FoodGroup = typeof foodGroup.$inferSelect;
 export type NewFoodGroup = typeof foodGroup.$inferInsert;

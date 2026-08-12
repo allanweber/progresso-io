@@ -169,6 +169,13 @@
       "when": 1786544917867,
       "tag": "0023_manual_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1786561397678,
+      "tag": "0024_plan_limits_coach_invites",
+      "breakpoints": true
     }
   ]
 }

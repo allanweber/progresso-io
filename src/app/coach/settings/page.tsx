@@ -1,11 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check } from "lucide-react";
+import { Check, Trash2, UserPlus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/ui/color-picker";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,6 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import {
+  coachInviteSchema,
+  type CoachRowDto,
+  type CoachTeamResponse,
+  type PendingInviteDto,
+} from "@/lib/coaches";
 import type { FeedbackFrequency, Weekday } from "@/db/schema";
 import {
   canUseBrandedPortal,
@@ -40,10 +55,11 @@ import { cn } from "@/lib/utils";
 
 /**
  * Clinic configuration ("Configurações"). Client page → GET/PUT
- * /api/coach/settings via TanStack Query, per the frontend rules. Two sections
- * are real and editable — Clínica (name + portal subdomain) and Preferências de
- * feedback — and the rest of the mockup (WhatsApp Business, Equipe de coaches)
- * renders a permanent "Em breve"; Plano atual shows the clinic's real plan.
+ * /api/coach/settings via TanStack Query, per the frontend rules. Clínica,
+ * Portal do aluno and Preferências de feedback are editable; Equipe de coaches
+ * is the owner's team management on team-capable plans (hidden otherwise); Plano
+ * atual + Faturas read the clinic's real plan/invoices. Only WhatsApp Business
+ * still renders a permanent "Em breve".
  */
 
 /**
@@ -159,6 +175,398 @@ function CoachInvoicesCard() {
         </ul>
       )}
     </SettingsCard>
+  );
+}
+
+/** A deterministic avatar tint per coach, so rows read as distinct people. */
+const AVATAR_TINTS = [
+  "bg-[#14532d]", // owner-ish deep green
+  "bg-[#c2410c]", // orange
+  "bg-[#1d4ed8]", // blue
+  "bg-[#7c3aed]", // violet
+  "bg-[#0f766e]", // teal
+  "bg-[#be123c]", // rose
+] as const;
+
+function avatarTint(id: string, isOwner: boolean): string {
+  if (isOwner) return AVATAR_TINTS[0];
+  let sum = 0;
+  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+  return AVATAR_TINTS[1 + (sum % (AVATAR_TINTS.length - 1))];
+}
+
+/** Circular initials avatar shared by coach + pending rows. */
+function Avatar({
+  initials,
+  className,
+}: {
+  initials: string;
+  className: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
+        className,
+      )}
+    >
+      {initials}
+    </span>
+  );
+}
+
+/** The invite dialog — owner adds a coach by name + e-mail (TanStack Form). */
+function InviteCoachDialog({
+  open,
+  onOpenChange,
+  onInvited,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onInvited: () => void;
+}) {
+  const invite = useMutation({
+    mutationFn: (values: { name: string; email: string }) =>
+      apiFetch<{ ok: boolean }>("/api/coach/team", {
+        method: "POST",
+        body: JSON.stringify(values),
+      }),
+    onSuccess: () => {
+      onInvited();
+      onOpenChange(false);
+    },
+  });
+
+  const form = useForm({
+    defaultValues: { name: "", email: "" },
+    validators: { onChange: coachInviteSchema },
+    onSubmit: async ({ value, formApi }) => {
+      try {
+        await invite.mutateAsync(value);
+        formApi.reset();
+      } catch {
+        /* surfaced via invite.error */
+      }
+    },
+  });
+
+  const serverErrors =
+    invite.error instanceof ApiError ? invite.error.fieldErrors : undefined;
+  const banner =
+    invite.error instanceof ApiError && !invite.error.fieldErrors
+      ? invite.error.message
+      : undefined;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Convidar coach</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          {banner ? (
+            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+              {banner}
+            </div>
+          ) : null}
+          <form.Field name="name">
+            {(field) => (
+              <Field
+                id="coach-name"
+                label="Nome"
+                placeholder="Nome do coach"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                error={fieldError(field, serverErrors?.name)}
+              />
+            )}
+          </form.Field>
+          <form.Field name="email">
+            {(field) => (
+              <Field
+                id="coach-email"
+                label="E-mail"
+                type="email"
+                placeholder="coach@email.com"
+                autoComplete="off"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                error={fieldError(field, serverErrors?.email)}
+              />
+            )}
+          </form.Field>
+          <p className="text-xs text-muted-foreground">
+            Enviaremos um convite por e-mail para o coach definir a senha e
+            acessar a clínica.
+          </p>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="ghost">
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={invite.isPending}>
+              {invite.isPending ? "Enviando…" : "Enviar convite"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Confirm-and-remove dialog for an active coach (alunos move to the owner). */
+function RemoveCoachDialog({
+  coach,
+  onOpenChange,
+  onRemoved,
+}: {
+  coach: CoachRowDto | null;
+  onOpenChange: (open: boolean) => void;
+  onRemoved: () => void;
+}) {
+  const remove = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ ok: boolean }>(`/api/coach/team/coaches/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      onRemoved();
+      onOpenChange(false);
+    },
+  });
+
+  const error = remove.error instanceof ApiError ? remove.error.message : undefined;
+
+  return (
+    <Dialog open={coach !== null} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remover coach</DialogTitle>
+        </DialogHeader>
+        {coach ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Remover <span className="font-medium text-foreground">{coach.name}</span> da
+              equipe? Os {coach.studentCount} alunos deste coach passam para o
+              responsável pela clínica, e o acesso dele é encerrado.
+            </p>
+            {error ? (
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+                {error}
+              </div>
+            ) : null}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate(coach.id)}
+              >
+                {remove.isPending ? "Removendo…" : "Remover"}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * "Equipe de coaches" — the owner's team-management card (its own data island,
+ * like Faturas). Renders nothing unless the API says the surface is enabled
+ * (owner on a team-capable plan). Lists coaches with their aluno load, pending
+ * invites, and free seats, and drives invite/remove/cancel.
+ */
+function CoachTeamCard() {
+  const queryClient = useQueryClient();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [removing, setRemoving] = useState<CoachRowDto | null>(null);
+
+  const { data } = useQuery({
+    queryKey: ["coach-team"],
+    queryFn: () => apiFetch<CoachTeamResponse>("/api/coach/team"),
+  });
+
+  const cancelInvite = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ ok: boolean }>(`/api/coach/team/invites/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => refresh(),
+  });
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ["coach-team"] });
+  }
+
+  // Hidden entirely for non-owners / plans without a team surface.
+  if (!data || !data.enabled) return null;
+  const team = data.team;
+
+  const emptySeats =
+    team.maxCoaches === null
+      ? 0
+      : Math.max(0, team.maxCoaches - team.seatsUsed);
+
+  return (
+    <SettingsCard
+      title="Equipe de coaches"
+      badge={
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="ml-auto h-8 gap-1.5 px-2.5 text-primary"
+          disabled={!team.canInvite}
+          onClick={() => setInviteOpen(true)}
+        >
+          <UserPlus className="size-4" />
+          Convidar
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        {team.coaches.map((c) => (
+          <CoachRow
+            key={c.id}
+            coach={c}
+            onRemove={c.isOwner ? undefined : () => setRemoving(c)}
+          />
+        ))}
+
+        {team.pendingInvites.map((p) => (
+          <PendingRow
+            key={p.id}
+            invite={p}
+            onCancel={() => cancelInvite.mutate(p.id)}
+            canceling={cancelInvite.isPending}
+          />
+        ))}
+
+        {Array.from({ length: emptySeats }).map((_, i) => (
+          <div
+            key={`vaga-${i}`}
+            className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2.5"
+          >
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-muted-foreground">
+              ?
+            </span>
+            <span className="text-sm font-medium text-muted-foreground">
+              — vaga livre
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 border-t border-border pt-3 text-center text-[13px] text-muted-foreground">
+        Plano {team.planName} ·{" "}
+        {team.maxCoaches === null
+          ? "vagas ilimitadas"
+          : `${team.maxCoaches} ${team.maxCoaches === 1 ? "vaga" : "vagas"}`}{" "}
+        · {team.occupied} {team.occupied === 1 ? "ocupada" : "ocupadas"}
+        {team.pendingCount > 0
+          ? ` · ${team.pendingCount} pendente${team.pendingCount === 1 ? "" : "s"}`
+          : ""}
+      </p>
+
+      <InviteCoachDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        onInvited={refresh}
+      />
+      <RemoveCoachDialog
+        coach={removing}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+        onRemoved={refresh}
+      />
+    </SettingsCard>
+  );
+}
+
+/** One accepted coach: avatar, name, role label, aluno count, optional remove. */
+function CoachRow({
+  coach,
+  onRemove,
+}: {
+  coach: CoachRowDto;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-secondary px-3 py-2.5">
+      <Avatar initials={coach.initials} className={avatarTint(coach.id, coach.isOwner)} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-foreground">
+          {coach.name}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {coach.isOwner ? "Admin · Coach" : "Coach"}
+        </div>
+      </div>
+      <span className="shrink-0 text-sm text-muted-foreground">
+        {coach.studentCount} {coach.studentCount === 1 ? "aluno" : "alunos"}
+      </span>
+      {onRemove ? (
+        <button
+          type="button"
+          aria-label={`Remover ${coach.name}`}
+          onClick={onRemove}
+          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** One pending invite: muted slot with the invitee + a cancel control. */
+function PendingRow({
+  invite,
+  onCancel,
+  canceling,
+}: {
+  invite: PendingInviteDto;
+  onCancel: () => void;
+  canceling: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-secondary/60 px-3 py-2.5">
+      <Avatar initials={invite.initials} className="bg-muted-foreground/60" />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-foreground">
+          {invite.name}
+        </div>
+        <div className="truncate text-xs text-muted-foreground">
+          convite pendente · {invite.email}
+        </div>
+      </div>
+      <button
+        type="button"
+        aria-label={`Cancelar convite de ${invite.name}`}
+        onClick={onCancel}
+        disabled={canceling}
+        className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
   );
 }
 
@@ -660,10 +1068,9 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
 
         {/* Right column */}
         <div className="flex flex-col gap-4">
-          {/* Equipe de coaches — not built yet */}
-          <SettingsCard title="Equipe de coaches">
-            <ComingSoon />
-          </SettingsCard>
+          {/* Equipe de coaches — owner-only, on team-capable plans (hides itself
+              otherwise). Its own data island → GET/POST /api/coach/team. */}
+          <CoachTeamCard />
 
           {/* Plano atual — real read from the clinic's plan */}
           <SettingsCard

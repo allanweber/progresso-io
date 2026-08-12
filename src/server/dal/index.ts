@@ -11,6 +11,8 @@ export * as billing from "./billing";
 export * as anamneses from "./anamneses";
 export * as clinics from "./clinics";
 export * as coachCheckins from "./coach-checkins";
+export * as coachInvitations from "./coach-invitations";
+export * as coaches from "./coaches";
 export * as diets from "./diets";
 export * as exercises from "./exercises";
 export * as foods from "./foods";

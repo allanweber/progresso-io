@@ -6,6 +6,10 @@ import {
   AdminInviteEmail,
 } from "@/components/emails/admin-invite-email";
 import {
+  COACH_INVITE_EMAIL_SUBJECT,
+  CoachInviteEmail,
+} from "@/components/emails/coach-invite-email";
+import {
   INVITE_EMAIL_SUBJECT,
   InviteEmail,
 } from "@/components/emails/invite-email";
@@ -182,6 +186,66 @@ export async function sendAdminInviteEmail({
     logger.info("email.sent", { template: "admin_invite" });
   } catch (error) {
     logger.error("email.send_failed", { err: error, template: "admin_invite" });
+    throw error;
+  }
+}
+
+type SendCoachInviteArgs = {
+  email: string;
+  firstName: string;
+  clinicName: string;
+  acceptUrl: string;
+  expiresInDays: number;
+};
+
+/**
+ * Sends a new coach their invite e-mail (a link to set a password and activate
+ * their coach login inside the inviting clinic). Falls back to a console log
+ * when Resend isn't configured (local dev), and always records the accept URL in
+ * the test outbox so e2e can drive the accept flow without a real inbox.
+ */
+export async function sendCoachInviteEmail({
+  email,
+  firstName,
+  clinicName,
+  acceptUrl,
+  expiresInDays,
+}: SendCoachInviteArgs): Promise<void> {
+  captureOutbox({
+    to: email,
+    subject: COACH_INVITE_EMAIL_SUBJECT,
+    kind: "coach_invite",
+    url: acceptUrl,
+  });
+
+  if (!resend) {
+    console.info(`[email:dev] coach invite for ${email}: ${acceptUrl}`);
+    return;
+  }
+
+  const element = (
+    <CoachInviteEmail
+      firstName={firstName}
+      clinicName={clinicName}
+      acceptUrl={acceptUrl}
+      expiresInDays={expiresInDays}
+    />
+  );
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: COACH_INVITE_EMAIL_SUBJECT,
+      html,
+      text,
+    });
+    logger.info("email.sent", { template: "coach_invite" });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "coach_invite" });
     throw error;
   }
 }
