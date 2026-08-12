@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 
-import type { DB } from "@/db";
+import type { Database } from "@/db";
 import { schema } from "@/db";
 import {
   countQuestions,
@@ -281,7 +281,7 @@ export async function deleteAnamnesis(
  * from the seed against an existing dev clinic.
  */
 export async function seedClinicAnamneses(
-  db: DB,
+  db: Database,
   clinicId: string,
   coachId: string | null,
 ): Promise<number> {

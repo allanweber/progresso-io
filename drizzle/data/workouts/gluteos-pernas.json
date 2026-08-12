@@ -1,0 +1,144 @@
+{
+  "key": "gluteos-pernas",
+  "name": "Glúteos & Pernas (Foco Inferior)",
+  "level": "intermediate",
+  "notes": "Duas fichas voltadas a glúteos e membros inferiores, 2 a 4x por semana. Superséries e drop-set para volume localizado.",
+  "sessions": [
+    {
+      "name": "Ficha A · Glúteo e posterior",
+      "exercises": [
+        {
+          "exercise": "elev_pelvica",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              15
+            ]
+          },
+          "load": "moderada a pesada",
+          "rest": 90,
+          "note": "Contração forte no topo."
+        },
+        {
+          "exercise": "terra",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 120,
+          "substitutes": [
+            {
+              "exercise": "stiff"
+            }
+          ]
+        },
+        {
+          "exercise": "afundo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "moderada",
+          "rest": 75
+        },
+        {
+          "exercise": "coice_gluteo",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "gp-a1"
+        },
+        {
+          "exercise": "abdutora",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 20
+          },
+          "load": "moderada",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "gp-a1"
+        }
+      ]
+    },
+    {
+      "name": "Ficha B · Quadríceps e glúteo",
+      "exercises": [
+        {
+          "exercise": "agach_sumo",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "leg_press",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "extensora",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "dropset"
+        },
+        {
+          "exercise": "adutora",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 20
+          },
+          "load": "moderada",
+          "rest": 45
+        },
+        {
+          "exercise": "panturrilha_pe",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              15,
+              20
+            ]
+          },
+          "load": "moderada",
+          "rest": 45
+        }
+      ]
+    }
+  ]
+}

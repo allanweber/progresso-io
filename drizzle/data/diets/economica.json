@@ -1,0 +1,84 @@
+{
+  "key": "economica",
+  "name": "Econômica (Baixo Custo)",
+  "objective": "economica",
+  "notes": "Plano nutritivo com alimentos acessíveis (ovo, frango, arroz, feijão, mandioca). Bom custo-benefício sem abrir mão de proteína.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "pao_frances",
+          "grams": 100
+        },
+        {
+          "food": "ovo",
+          "grams": 100
+        },
+        {
+          "food": "banana",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_branco",
+          "grams": 180
+        },
+        {
+          "food": "feijao",
+          "grams": 120
+        },
+        {
+          "food": "frango",
+          "grams": 150
+        },
+        {
+          "food": "cenoura",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "banana",
+          "grams": 120
+        },
+        {
+          "food": "aveia",
+          "grams": 40
+        },
+        {
+          "food": "leite_int",
+          "grams": 200
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "ovo",
+          "grams": 150
+        },
+        {
+          "food": "mandioca",
+          "grams": 150
+        },
+        {
+          "food": "couve",
+          "grams": 80
+        }
+      ]
+    }
+  ]
+}

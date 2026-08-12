@@ -1,0 +1,83 @@
+{
+  "key": "adaptacao-full-body",
+  "name": "Adaptação 3x (Full-body)",
+  "level": "beginner",
+  "notes": "Ficha única de adaptação neuromuscular para as primeiras semanas. Repita 3x na semana com um dia de descanso entre os treinos.",
+  "sessions": [
+    {
+      "name": "Treino único · Corpo inteiro",
+      "exercises": [
+        {
+          "exercise": "agachamento_livre",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve a moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "supino_halt",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 90
+        },
+        {
+          "exercise": "remada_curvada",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 90
+        },
+        {
+          "exercise": "desenv_halt",
+          "sets": 2,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 75
+        },
+        {
+          "exercise": "rosca_alt",
+          "sets": 2,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 60
+        },
+        {
+          "exercise": "triceps_corda",
+          "sets": 2,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "leve",
+          "rest": 60
+        },
+        {
+          "exercise": "abdominal",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "peso corporal",
+          "rest": 45
+        }
+      ]
+    }
+  ]
+}

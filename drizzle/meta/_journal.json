@@ -148,6 +148,13 @@
       "when": 1786446198425,
       "tag": "0020_odd_hellcat",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786479914548,
+      "tag": "0021_starter_templates",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,176 @@
+{
+  "key": "forca-5x5",
+  "name": "Força 5×5 (Powerlifting)",
+  "level": "expert",
+  "notes": "Foco em força nos básicos: 5 séries de 5 nas grandes cargas, com cluster e rest-pause nos acessórios. Progrida pequenas cargas por semana.",
+  "sessions": [
+    {
+      "name": "Dia 1 · Agachamento",
+      "exercises": [
+        {
+          "exercise": "agachamento_livre",
+          "sets": 5,
+          "reps": {
+            "kind": "fixed",
+            "value": 5
+          },
+          "load": "80-85% 1RM",
+          "rest": 180,
+          "technique": "cluster",
+          "note": "Cluster: mesma carga, curtas pausas intra-série."
+        },
+        {
+          "exercise": "leg_press",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              6,
+              8
+            ]
+          },
+          "load": "pesada",
+          "rest": 120
+        },
+        {
+          "exercise": "flexora",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              10
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "panturrilha_pe",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "pesada",
+          "rest": 60
+        }
+      ]
+    },
+    {
+      "name": "Dia 2 · Supino",
+      "exercises": [
+        {
+          "exercise": "supino_barra",
+          "sets": 5,
+          "reps": {
+            "kind": "fixed",
+            "value": 5
+          },
+          "load": "80-85% 1RM",
+          "rest": 180
+        },
+        {
+          "exercise": "desenv_barra",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              5,
+              8
+            ]
+          },
+          "load": "pesada",
+          "rest": 120
+        },
+        {
+          "exercise": "supino_incl",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              6,
+              8
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "triceps_testa",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              10
+            ]
+          },
+          "load": "moderada",
+          "rest": 75,
+          "technique": "restpause"
+        }
+      ]
+    },
+    {
+      "name": "Dia 3 · Terra",
+      "exercises": [
+        {
+          "exercise": "terra",
+          "sets": 5,
+          "reps": {
+            "kind": "fixed",
+            "value": 5
+          },
+          "load": "80-85% 1RM",
+          "rest": 180,
+          "substitutes": [
+            {
+              "exercise": "stiff"
+            }
+          ]
+        },
+        {
+          "exercise": "remada_curvada",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              5,
+              8
+            ]
+          },
+          "load": "pesada",
+          "rest": 120
+        },
+        {
+          "exercise": "barra_fixa",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              6,
+              10
+            ]
+          },
+          "load": "peso corporal",
+          "rest": 90
+        },
+        {
+          "exercise": "rosca_direta",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              10
+            ]
+          },
+          "load": "moderada",
+          "rest": 75,
+          "technique": "restpause"
+        }
+      ]
+    }
+  ]
+}

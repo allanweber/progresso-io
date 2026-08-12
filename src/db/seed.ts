@@ -736,11 +736,14 @@ async function seed() {
   await seedAlunoWorkout(db, schema, studentWorkouts, coachCtx, studentId);
   await seedAlunoCheckins(db, schema, coachClinic.id, studentId, aluno.id, coach.id);
 
-  // The clinic's own copy of the starter anamneses (idempotent).
-  const { seedClinicAnamneses } = await import("@/server/dal/anamneses");
-  const seededAnamneses = await seedClinicAnamneses(db, coachClinic.id, coach.id);
-  if (seededAnamneses > 0) {
-    console.info(`✓ seeded ${seededAnamneses} anamneses for the clinic`);
+  // The clinic's own starter templates — anamneses + diets + workouts — the same
+  // one-shot background seed a real clinic gets on the coach's first sign-in.
+  // Seeded here so local/e2e data is ready without a sign-in. Idempotent and
+  // flag-guarded (sets clinic.starters_seeded_at).
+  const { ensureClinicStarters } = await import("@/server/dal/starters");
+  const starters = await ensureClinicStarters(db, coachClinic.id, coach.id);
+  if (starters.seeded) {
+    console.info("✓ seeded starter anamneses, diets and workouts for the clinic");
   }
 
   // Give the aluno a WhatsApp number (the primary identifier), then a completed
@@ -809,8 +812,8 @@ async function seed() {
 
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec
   // deletes/imports anamneses here, so it must never touch the demo coach's
-  // clinic that the coach/student specs read. Sign-up auto-seeds its starters
-  // (with source_key); we just rename it and ensure the set is present.
+  // clinic that the coach/student specs read. We rename it and seed its starter
+  // set (anamneses + diets + workouts, with source_key) directly.
   const e2eOwner = await ensureUser("Admin E2E Coach", "admin-e2e@progresso.io");
   const [e2eClinic] = await db
     .select()
@@ -825,7 +828,7 @@ async function seed() {
       .update(schema.clinic)
       .set({ name: "Clínica Admin E2E", plan: "clinica" })
       .where(eq(schema.clinic.id, e2eClinic.id));
-    await seedClinicAnamneses(db, e2eClinic.id, e2eOwner.id);
+    await ensureClinicStarters(db, e2eClinic.id, e2eOwner.id);
     console.info("✓ seeded isolated admin-e2e clinic");
   }
 

@@ -1,0 +1,76 @@
+{
+  "key": "jejum-intermitente",
+  "name": "Jejum Intermitente (16:8)",
+  "objective": "jejum",
+  "notes": "Janela alimentar de 8 horas (ex.: 12h–20h) com três refeições maiores. No jejum, apenas água, chá e café sem açúcar. Não é indicado a todos — avalie individualmente.",
+  "meals": [
+    {
+      "name": "Quebra de jejum",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_integral",
+          "grams": 150
+        },
+        {
+          "food": "frango",
+          "grams": 180
+        },
+        {
+          "food": "feijao",
+          "grams": 100
+        },
+        {
+          "food": "brocolis",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Lanche",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "ovo",
+          "grams": 150
+        },
+        {
+          "food": "abacate",
+          "grams": 80
+        },
+        {
+          "food": "castanha",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "name": "Última refeição",
+      "time": "19:30",
+      "items": [
+        {
+          "food": "salmao",
+          "grams": 160,
+          "substitutes": [
+            {
+              "food": "merluza",
+              "grams": 170
+            }
+          ]
+        },
+        {
+          "food": "batata_doce",
+          "grams": 150
+        },
+        {
+          "food": "alface",
+          "grams": 50
+        },
+        {
+          "food": "tomate",
+          "grams": 60
+        }
+      ]
+    }
+  ]
+}

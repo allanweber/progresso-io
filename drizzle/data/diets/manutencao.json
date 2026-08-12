@@ -1,0 +1,88 @@
+{
+  "key": "manutencao",
+  "name": "Manutenção — Equilíbrio",
+  "objective": "manutencao",
+  "notes": "Plano equilibrado para manter o peso e a composição corporal. Boa base para períodos de estabilidade entre ciclos.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "pao_integral",
+          "grams": 50
+        },
+        {
+          "food": "ovo",
+          "grams": 100
+        },
+        {
+          "food": "laranja",
+          "grams": 130
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_branco",
+          "grams": 150
+        },
+        {
+          "food": "feijao",
+          "grams": 100
+        },
+        {
+          "food": "frango",
+          "grams": 150
+        },
+        {
+          "food": "alface",
+          "grams": 40
+        },
+        {
+          "food": "tomate",
+          "grams": 60
+        }
+      ]
+    },
+    {
+      "name": "Lanche da tarde",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "iogurte",
+          "grams": 170
+        },
+        {
+          "food": "aveia",
+          "grams": 30
+        },
+        {
+          "food": "banana",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "20:00",
+      "items": [
+        {
+          "food": "patinho",
+          "grams": 150
+        },
+        {
+          "food": "batata_doce",
+          "grams": 150
+        },
+        {
+          "food": "cenoura",
+          "grams": 100
+        }
+      ]
+    }
+  ]
+}

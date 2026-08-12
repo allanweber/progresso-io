@@ -356,3 +356,50 @@ export const adminImportStartersSchema = z.object({
 export type AdminImportStartersInput = z.output<typeof adminImportStartersSchema>;
 
 export type AdminImportResult = { imported: string[]; skipped: string[] };
+
+/* -------------------------------------------------------------------------- */
+/*  Diets & workouts (data maintenance — cross-clinic)                         */
+/*                                                                            */
+/*  Same Sistema/Clínica model as anamneses: a diet/workout with `source_key`  */
+/*  set is a seeded/imported system starter; null is coach-authored. One DTO   */
+/*  shape serves both the Dietas and Treinos tabs.                             */
+/* -------------------------------------------------------------------------- */
+
+export type AdminTemplateOrigin = "system" | "clinic";
+
+export const ADMIN_TEMPLATE_ORIGIN_LABELS: Record<AdminTemplateOrigin, string> = {
+  system: "Sistema",
+  clinic: "Clínica",
+};
+
+/** Query for the admin's cross-clinic diet/workout listing. */
+export const adminTemplateListQuerySchema = z.object({
+  clinic: z.string().uuid().optional(),
+  origin: z.enum(["system", "clinic"]).optional(),
+  search: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).max(100_000).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type AdminTemplateListQuery = z.output<typeof adminTemplateListQuerySchema>;
+
+export type AdminTemplateListItemDto = {
+  id: string;
+  name: string;
+  clinicId: string;
+  clinicName: string;
+  origin: AdminTemplateOrigin;
+  sourceKey: string | null;
+  archived: boolean;
+  updatedAt: string;
+  studentUsageCount: number;
+};
+
+export type AdminTemplateListResponse = {
+  items: AdminTemplateListItemDto[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** A system diet/workout starter offered in the "Importar starters" dialog. */
+export type AdminTemplateStarterDto = { key: string; name: string };

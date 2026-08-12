@@ -94,6 +94,53 @@ test.describe("admin: anamnese maintenance", () => {
   });
 });
 
+test.describe("admin: diet & workout maintenance", () => {
+  test("Dietas tab lists a clinic's diets tagged Sistema", async ({ page }) => {
+    await page.goto("/admin/maintenance");
+    await page.getByRole("tab", { name: "Dietas" }).click();
+    await page.locator("#mnt-diets-clinic").click();
+    await page.getByRole("option", { name: CLINIC }).click();
+
+    const row = page.getByRole("row", {
+      name: new RegExp("Hipertrofia — Ganho de Massa"),
+    });
+    await expect(row).toBeVisible();
+    await expect(row.getByText("Sistema")).toBeVisible();
+    await expect(row.getByText(CLINIC)).toBeVisible();
+  });
+
+  test("Treinos tab lists a clinic's workouts tagged Sistema", async ({
+    page,
+  }) => {
+    await page.goto("/admin/maintenance");
+    await page.getByRole("tab", { name: "Treinos" }).click();
+    await page.locator("#mnt-workouts-clinic").click();
+    await page.getByRole("option", { name: CLINIC }).click();
+
+    const row = page.getByRole("row", { name: new RegExp("Bro Split 5x") });
+    await expect(row).toBeVisible();
+    await expect(row.getByText("Sistema")).toBeVisible();
+  });
+
+  test("importing all diet starters into the seeded clinic is idempotent", async ({
+    page,
+  }) => {
+    await page.goto("/admin/maintenance");
+    await page.getByRole("tab", { name: "Dietas" }).click();
+    await page.getByRole("button", { name: "Importar starters" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await dialog.locator("#import-diets-clinic").click();
+    await page.getByRole("option", { name: CLINIC }).click();
+    await dialog.getByRole("button", { name: "Selecionar todos" }).click();
+    await dialog.getByRole("button", { name: "Importar", exact: true }).click();
+
+    // The seeded clinic already has every diet starter → nothing new imported.
+    await expect(dialog.getByText(/0 importado\(s\)/)).toBeVisible();
+    await expect(dialog.getByText(/já existiam/)).toBeVisible();
+  });
+});
+
 test.describe("admin: clinic maintenance", () => {
   // Non-destructive: only exercises the type-to-confirm gate, then cancels — the
   // isolated clinic the other tests rely on must survive.

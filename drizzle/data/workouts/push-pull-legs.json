@@ -1,0 +1,227 @@
+{
+  "key": "push-pull-legs",
+  "name": "Push/Pull/Legs 6x",
+  "level": "intermediate",
+  "notes": "Empurrar / Puxar / Pernas, até 6x por semana. Faixas de repetição para hipertrofia e um drop-set no final de cada empurrão.",
+  "sessions": [
+    {
+      "name": "Push · Peito, ombro e tríceps",
+      "exercises": [
+        {
+          "exercise": "supino_barra",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "supino_incl",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "desenv_barra",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              10
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "elev_lateral",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "leve",
+          "rest": 60
+        },
+        {
+          "exercise": "triceps_pulley",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "dropset",
+          "note": "Última série em drop-set: reduza a carga e continue até a falha."
+        }
+      ]
+    },
+    {
+      "name": "Pull · Costas e bíceps",
+      "exercises": [
+        {
+          "exercise": "barra_fixa",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              6,
+              10
+            ]
+          },
+          "load": "peso corporal",
+          "rest": 120,
+          "substitutes": [
+            {
+              "exercise": "puxada_frontal"
+            }
+          ]
+        },
+        {
+          "exercise": "remada_curvada",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "remada_uni",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 75
+        },
+        {
+          "exercise": "rosca_direta",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60
+        },
+        {
+          "exercise": "rosca_martelo",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "dropset"
+        }
+      ]
+    },
+    {
+      "name": "Legs · Pernas completas",
+      "exercises": [
+        {
+          "exercise": "agachamento_livre",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada a pesada",
+          "rest": 150
+        },
+        {
+          "exercise": "leg_press",
+          "sets": 4,
+          "reps": {
+            "kind": "range",
+            "values": [
+              10,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "extensora",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 60
+        },
+        {
+          "exercise": "flexora",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 60
+        },
+        {
+          "exercise": "panturrilha_pe",
+          "sets": 5,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              20
+            ]
+          },
+          "load": "moderada",
+          "rest": 45,
+          "technique": "dropset"
+        }
+      ]
+    }
+  ]
+}

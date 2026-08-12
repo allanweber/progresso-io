@@ -1,0 +1,136 @@
+{
+  "key": "metabolico-hiit",
+  "name": "Metabólico / HIIT Circuit",
+  "level": "intermediate",
+  "notes": "Circuito metabólico de alta densidade: pouco descanso, giant-sets e bi-sets. Ótimo como finalizador ou treino curto de gasto calórico.",
+  "sessions": [
+    {
+      "name": "Circuito A · Corpo inteiro",
+      "exercises": [
+        {
+          "exercise": "agachamento_livre",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "hiit-a1"
+        },
+        {
+          "exercise": "supino_halt",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "hiit-a1"
+        },
+        {
+          "exercise": "remada_curvada",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "hiit-a1"
+        },
+        {
+          "exercise": "escalador",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 30
+          },
+          "load": "peso corporal",
+          "rest": 30,
+          "technique": "giant",
+          "groupId": "hiit-a1"
+        },
+        {
+          "exercise": "polichinelo",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 40
+          },
+          "load": "peso corporal",
+          "rest": 60,
+          "technique": "giant",
+          "groupId": "hiit-a1"
+        }
+      ]
+    },
+    {
+      "name": "Circuito B · Membros e core",
+      "exercises": [
+        {
+          "exercise": "leg_press",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 20
+          },
+          "load": "moderada",
+          "rest": 30,
+          "technique": "superset",
+          "groupId": "hiit-b1"
+        },
+        {
+          "exercise": "puxada_frontal",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 30,
+          "technique": "superset",
+          "groupId": "hiit-b1"
+        },
+        {
+          "exercise": "desenv_halt",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 30,
+          "technique": "superset",
+          "groupId": "hiit-b2"
+        },
+        {
+          "exercise": "abdominal",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 25
+          },
+          "load": "peso corporal",
+          "rest": 30,
+          "technique": "superset",
+          "groupId": "hiit-b2"
+        },
+        {
+          "exercise": "prancha",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 45
+          },
+          "load": "peso corporal · segundos",
+          "rest": 45
+        }
+      ]
+    }
+  ]
+}

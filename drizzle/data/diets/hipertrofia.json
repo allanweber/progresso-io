@@ -1,0 +1,104 @@
+{
+  "key": "hipertrofia",
+  "name": "Hipertrofia — Ganho de Massa",
+  "objective": "hipertrofia",
+  "notes": "Superávit calórico com alta proteína para ganho de massa. Distribua a proteína ao longo do dia e não pule refeições.",
+  "meals": [
+    {
+      "name": "Café da manhã",
+      "time": "07:00",
+      "items": [
+        {
+          "food": "aveia",
+          "grams": 80
+        },
+        {
+          "food": "ovo",
+          "grams": 150
+        },
+        {
+          "food": "banana",
+          "grams": 120
+        },
+        {
+          "food": "pasta_amendoim",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "name": "Almoço",
+      "time": "12:00",
+      "items": [
+        {
+          "food": "arroz_branco",
+          "grams": 200,
+          "substitutes": [
+            {
+              "food": "macarrao",
+              "grams": 120
+            }
+          ]
+        },
+        {
+          "food": "frango",
+          "grams": 180
+        },
+        {
+          "food": "feijao",
+          "grams": 120
+        }
+      ]
+    },
+    {
+      "name": "Lanche pré-treino",
+      "time": "16:00",
+      "items": [
+        {
+          "food": "pao_frances",
+          "grams": 100
+        },
+        {
+          "food": "frango",
+          "grams": 120
+        },
+        {
+          "food": "banana",
+          "grams": 100
+        }
+      ]
+    },
+    {
+      "name": "Pós-treino",
+      "time": "18:30",
+      "items": [
+        {
+          "food": "whey",
+          "grams": 40
+        },
+        {
+          "food": "arroz_branco",
+          "grams": 150
+        }
+      ]
+    },
+    {
+      "name": "Jantar",
+      "time": "21:00",
+      "items": [
+        {
+          "food": "patinho",
+          "grams": 170
+        },
+        {
+          "food": "batata_ingl",
+          "grams": 200
+        },
+        {
+          "food": "brocolis",
+          "grams": 120
+        }
+      ]
+    }
+  ]
+}

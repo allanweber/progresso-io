@@ -1,0 +1,156 @@
+{
+  "key": "upper-lower-4x",
+  "name": "Upper/Lower 4x",
+  "level": "intermediate",
+  "notes": "Divisão superior/inferior, 4x por semana (2 superiores + 2 inferiores). Usa pirâmide de carga e uma bi-set para intensificar.",
+  "sessions": [
+    {
+      "name": "Superior · Peito, costas e ombros",
+      "exercises": [
+        {
+          "exercise": "supino_barra",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente a cada série",
+          "rest": 120,
+          "note": "Aumente a carga e reduza as repetições."
+        },
+        {
+          "exercise": "puxada_frontal",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente",
+          "rest": 120
+        },
+        {
+          "exercise": "desenv_halt",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              12
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "crucifixo_halt",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "moderada",
+          "rest": 60,
+          "technique": "superset",
+          "groupId": "ul-ss1"
+        },
+        {
+          "exercise": "elev_lateral",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "leve",
+          "rest": 60,
+          "technique": "superset",
+          "groupId": "ul-ss1"
+        }
+      ]
+    },
+    {
+      "name": "Inferior · Pernas e core",
+      "exercises": [
+        {
+          "exercise": "agachamento_livre",
+          "sets": 4,
+          "reps": {
+            "kind": "pyramid",
+            "values": [
+              12,
+              10,
+              8,
+              6
+            ]
+          },
+          "load": "crescente",
+          "rest": 150
+        },
+        {
+          "exercise": "terra",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              8,
+              10
+            ]
+          },
+          "load": "moderada a pesada",
+          "rest": 150,
+          "substitutes": [
+            {
+              "exercise": "stiff"
+            }
+          ]
+        },
+        {
+          "exercise": "leg_press",
+          "sets": 3,
+          "reps": {
+            "kind": "range",
+            "values": [
+              12,
+              15
+            ]
+          },
+          "load": "moderada",
+          "rest": 90
+        },
+        {
+          "exercise": "flexora",
+          "sets": 3,
+          "reps": {
+            "kind": "fixed",
+            "value": 12
+          },
+          "load": "moderada",
+          "rest": 75,
+          "technique": "superset",
+          "groupId": "ul-ss2"
+        },
+        {
+          "exercise": "panturrilha_pe",
+          "sets": 4,
+          "reps": {
+            "kind": "fixed",
+            "value": 15
+          },
+          "load": "moderada",
+          "rest": 45,
+          "technique": "superset",
+          "groupId": "ul-ss2"
+        }
+      ]
+    }
+  ]
+}

@@ -299,6 +299,11 @@ export const clinic = pgTable(
     feedbackWhatsappReminder: boolean("feedback_whatsapp_reminder")
       .default(true)
       .notNull(),
+    // When the clinic's starter templates (anamneses + diets + workouts) were
+    // seeded. NULL until the first coach sign-in triggers the one-shot background
+    // seed (see `ensureClinicStarters`); set to the completion time once all
+    // starters are in. Read before seeding, so the run happens exactly once.
+    startersSeededAt: timestamp("starters_seeded_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -731,6 +736,10 @@ export const diet = pgTable(
     coachId: text("coach_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    // Provenance: the starter template key (e.g. "hipertrofia") when this diet was
+    // seeded/imported from the system's starter set; NULL when a coach authored it.
+    // Drives the admin "Sistema/Clínica" badge and idempotent re-import.
+    sourceKey: text("source_key"),
     name: text("name").notNull(),
     // Free-text notes/observations (PT-BR), optional.
     notes: text("notes"),
@@ -739,7 +748,13 @@ export const diet = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [index("diet_clinic_idx").on(t.clinicId)],
+  (t) => [
+    index("diet_clinic_idx").on(t.clinicId),
+    // At most one copy of a given starter per clinic (import is idempotent).
+    uniqueIndex("diet_clinic_source_uq")
+      .on(t.clinicId, t.sourceKey)
+      .where(sql`${t.sourceKey} is not null`),
+  ],
 );
 
 /** A meal within a diet (e.g. "Café da manhã"), ordered by `position`. */
@@ -940,6 +955,10 @@ export const workout = pgTable(
     coachId: text("coach_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    // Provenance: the starter template key (e.g. "bro-split-5x") when this workout
+    // was seeded/imported from the system's starter set; NULL when a coach authored
+    // it. Drives the admin "Sistema/Clínica" badge and idempotent re-import.
+    sourceKey: text("source_key"),
     name: text("name").notNull(),
     // Free-text notes/observations (PT-BR), optional.
     notes: text("notes"),
@@ -948,7 +967,13 @@ export const workout = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [index("workout_clinic_idx").on(t.clinicId)],
+  (t) => [
+    index("workout_clinic_idx").on(t.clinicId),
+    // At most one copy of a given starter per clinic (import is idempotent).
+    uniqueIndex("workout_clinic_source_uq")
+      .on(t.clinicId, t.sourceKey)
+      .where(sql`${t.sourceKey} is not null`),
+  ],
 );
 
 /** A session (ficha) within a workout (e.g. "Ficha A"), ordered by `position`. */
