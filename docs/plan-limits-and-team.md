@@ -22,6 +22,17 @@ no row exists (a missing limit must never block). Read them through
 `plans.getPlanLimits(ctx)` (or the `getStudentLimit` / `getCoachLimit` /
 `canUseWhatsapp` shortcuts), always derived from the session's clinic.
 
+### Admin-managed (Manutenção → Planos)
+
+Platform admins edit these values from **/admin/maintenance → Planos**: a table
+of every plan with its máx. alunos, máx. coaches (blank = ilimitado) and whether
+WhatsApp is included. Because `plan_limit` is reference data, a change applies
+immediately to every clinic on that plan. Backed by `GET /api/admin/plan-limits`
++ `PUT /api/admin/plan-limits/[plan]` (admin-gated), which upsert so a plan whose
+row was never seeded is created rather than ignored — the way to correct an
+environment where the columns were added by migration but never seeded (e.g. a
+plan left at `max_coaches = NULL`).
+
 ### Enforcement is soft (never destructive)
 
 Limits only gate **new** additions; nothing is ever removed on a downgrade.
