@@ -388,6 +388,105 @@ export const planLimit = pgTable("plan_limit", {
   maxStudents: integer("max_students"),
 });
 
+/* -------------------------------------------------------------------------- */
+/*  Manual billing (no gateway yet — platform admins manage plans + invoices)  */
+/* -------------------------------------------------------------------------- */
+
+export const INVOICE_STATUSES = ["pending", "paid", "canceled"] as const;
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+export const PAYMENT_METHODS = [
+  "pix",
+  "boleto",
+  "cartao",
+  "transferencia",
+  "outro",
+] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/**
+ * A manually-managed invoice for a clinic (the billing unit). There is no
+ * payment gateway yet: a platform admin creates invoices and marks them
+ * paid/canceled by hand. Money is stored in integer **BRL cents**. The invoice
+ * total is `sum(line items) − discount`, computed in the DAL (never stored, so
+ * it can't drift from the items). "Overdue" is derived (pending + past due), not
+ * a stored status. Independent of `clinic.plan` — paying an invoice does NOT
+ * change the plan; `plan_snapshot` just records which plan it was billed for.
+ */
+export const invoice = pgTable(
+  "invoice",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // Platform-wide human-friendly number (e.g. #0001), assigned on create.
+    number: integer("number").notNull(),
+    status: text("status").$type<InvoiceStatus>().default("pending").notNull(),
+    // Reference month (competência), stored as the first day of that month.
+    competencia: date("competencia").notNull(),
+    issuedAt: date("issued_at").notNull(),
+    dueDate: date("due_date").notNull(),
+    paidAt: date("paid_at"),
+    paymentMethod: text("payment_method").$type<PaymentMethod>(),
+    // Discount off the summed line items (BRL cents), with an optional reason.
+    discountCents: integer("discount_cents").default(0).notNull(),
+    discountReason: text("discount_reason"),
+    // Which plan this invoice was billed for (snapshot; independent of the
+    // clinic's current plan).
+    planSnapshot: text("plan_snapshot").$type<Plan>().notNull(),
+    notes: text("notes"),
+    // The admin who created it (kept for the audit trail; nulled if removed).
+    createdBy: text("created_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("invoice_clinic_idx").on(t.clinicId),
+    uniqueIndex("invoice_number_uq").on(t.number),
+  ],
+);
+
+/** One charge line on an invoice (description + BRL cents), ordered by position. */
+export const invoiceLineItem = pgTable(
+  "invoice_line_item",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoice.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("invoice_line_item_invoice_idx").on(t.invoiceId)],
+);
+
+/**
+ * Audit trail of a clinic's plan changes (who moved it from → to, when, why).
+ * Written whenever an admin changes `clinic.plan`; shown on the admin clinic
+ * detail page. `from_plan` is null for the very first record.
+ */
+export const clinicPlanChange = pgTable(
+  "clinic_plan_change",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    fromPlan: text("from_plan").$type<Plan>(),
+    toPlan: text("to_plan").$type<Plan>().notNull(),
+    changedBy: text("changed_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("clinic_plan_change_clinic_idx").on(t.clinicId)],
+);
+
 /**
  * A pending invite for a student to activate their aluno login. The raw token
  * lives only in the e-mailed link; we store its SHA-256 hash. Single active
@@ -1803,6 +1902,9 @@ export type NewClinic = typeof clinic.$inferInsert;
 export type Student = typeof students.$inferSelect;
 export type NewStudent = typeof students.$inferInsert;
 export type PlanLimit = typeof planLimit.$inferSelect;
+export type Invoice = typeof invoice.$inferSelect;
+export type InvoiceLineItem = typeof invoiceLineItem.$inferSelect;
+export type ClinicPlanChange = typeof clinicPlanChange.$inferSelect;
 export type Invitation = typeof invitation.$inferSelect;
 export type AdminInvitation = typeof adminInvitation.$inferSelect;
 export type NewInvitation = typeof invitation.$inferInsert;

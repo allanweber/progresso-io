@@ -26,6 +26,13 @@ import {
   WEEKDAY_LABELS,
   WEEKDAY_VALUES,
 } from "@/lib/clinic-settings";
+import {
+  formatBRL,
+  formatCompetencia,
+  formatDateBR,
+  INVOICE_STATUS_LABELS,
+  type InvoiceDto,
+} from "@/lib/billing";
 import { fieldError } from "@/lib/form";
 import { PLAN_META } from "@/lib/plans";
 import { cn } from "@/lib/utils";
@@ -58,6 +65,79 @@ function SettingsCard({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * Read-only "Faturas" card: the clinic's own invoices (managed by the platform
+ * admin — the coach can see them but never edits them). Its own data island with
+ * a separate query to the tenant-scoped `GET /api/coach/invoices`.
+ */
+function CoachInvoicesCard() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["coach-invoices"],
+    queryFn: () =>
+      apiFetch<{ invoices: InvoiceDto[] }>("/api/coach/invoices").then(
+        (r) => r.invoices,
+      ),
+  });
+
+  return (
+    <SettingsCard title="Faturas">
+      {isLoading && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Carregando…
+        </p>
+      )}
+      {isError && (
+        <p className="py-4 text-center text-sm text-destructive">
+          Não foi possível carregar as faturas.
+        </p>
+      )}
+      {data && data.length === 0 && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Nenhuma fatura por aqui ainda.
+        </p>
+      )}
+      {data && data.length > 0 && (
+        <ul className="divide-y divide-border">
+          {data.map((inv) => (
+            <li
+              key={inv.id}
+              className="flex items-center justify-between gap-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-foreground">
+                  #{inv.number} · {formatCompetencia(inv.competencia)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Vence {formatDateBR(inv.dueDate)}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-sm font-semibold text-foreground">
+                  {formatBRL(inv.totalCents)}
+                </span>
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    inv.status === "paid"
+                      ? "text-[#047857]"
+                      : inv.overdue
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                  )}
+                >
+                  {inv.status === "pending" && inv.overdue
+                    ? "Vencida"
+                    : INVOICE_STATUS_LABELS[inv.status]}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SettingsCard>
   );
 }
 
@@ -603,6 +683,9 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
               </span>
             </div>
           </SettingsCard>
+
+          {/* Faturas — read-only ledger kept by the platform admin */}
+          <CoachInvoicesCard />
         </div>
       </div>
     </form>

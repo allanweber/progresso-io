@@ -822,6 +822,62 @@ async function seed() {
     }
   }
 
+  // Manual billing demo: two invoices on the coach's clinic — one already paid
+  // (last month) and one overdue (this month, due date in the past) — so the
+  // admin clinic-detail screen and the coach's read-only "Faturas" card have real
+  // data. Managed by hand by the platform admin; independent of the clinic plan.
+  const billingDal = await import("@/server/dal/billing");
+  const existingInvoices = await billingDal.listInvoicesForClinic(db, coachClinic.id);
+  if (existingInvoices.length === 0) {
+    const now = new Date();
+    const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+    const monthStart = (offset: number) =>
+      new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const daysAgo = (n: number) =>
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - n);
+
+    // Paid — last month's subscription.
+    const paid = await billingDal.createInvoice(
+      db,
+      coachClinic.id,
+      {
+        competencia: isoDay(monthStart(-1)),
+        issuedAt: isoDay(monthStart(-1)),
+        dueDate: isoDay(new Date(now.getFullYear(), now.getMonth() - 1, 10)),
+        planSnapshot: "clinica",
+        discountCents: 0,
+        discountReason: null,
+        notes: null,
+        lineItems: [{ description: "Assinatura Clínica", amountCents: 39900 }],
+      },
+      admin.id,
+    );
+    if (paid) {
+      await billingDal.markInvoicePaid(db, paid.id, {
+        paidAt: isoDay(new Date(now.getFullYear(), now.getMonth() - 1, 8)),
+        paymentMethod: "pix",
+      });
+    }
+
+    // Overdue — this month's subscription, due date already past, still pending.
+    await billingDal.createInvoice(
+      db,
+      coachClinic.id,
+      {
+        competencia: isoDay(monthStart(0)),
+        issuedAt: isoDay(monthStart(0)),
+        dueDate: isoDay(daysAgo(5)),
+        planSnapshot: "clinica",
+        discountCents: 0,
+        discountReason: null,
+        notes: null,
+        lineItems: [{ description: "Assinatura Clínica", amountCents: 39900 }],
+      },
+      admin.id,
+    );
+    console.info("✓ seeded demo invoices (one paid, one overdue)");
+  }
+
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec
   // deletes/imports anamneses here, so it must never touch the demo coach's
   // clinic that the coach/student specs read. We rename it and seed its starter
