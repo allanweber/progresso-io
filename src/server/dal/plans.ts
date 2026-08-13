@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { schema } from "@/db";
+import { PLAN_DEFAULT_ARCHIVE } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -18,6 +19,8 @@ export type PlanLimits = {
   maxCoaches: number | null;
   /** Whether the plan may deliver over WhatsApp. */
   whatsapp: boolean;
+  /** Whether the plan may archive (soft-remove) students. */
+  archive: boolean;
 };
 
 /**
@@ -31,21 +34,28 @@ export type PlanLimits = {
 export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
   const [row] = await ctx.db
     .select({
+      plan: schema.clinic.plan,
       planMaxStudents: schema.planLimit.maxStudents,
       planMaxCoaches: schema.planLimit.maxCoaches,
       planWhatsapp: schema.planLimit.whatsapp,
+      planArchive: schema.planLimit.archive,
       overStudents: schema.clinic.maxStudentsOverride,
       overCoaches: schema.clinic.maxCoachesOverride,
       overWhatsapp: schema.clinic.whatsappOverride,
+      overArchive: schema.clinic.archiveOverride,
     })
     .from(schema.clinic)
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
     .where(eq(schema.clinic.id, ctx.clinicId));
 
+  // A missing plan_limit row (`planArchive` null) falls back to the plan default.
+  const archiveFallback = row ? PLAN_DEFAULT_ARCHIVE[row.plan] : true;
+
   return {
     maxStudents: row?.overStudents ?? row?.planMaxStudents ?? null,
     maxCoaches: row?.overCoaches ?? row?.planMaxCoaches ?? null,
     whatsapp: row?.overWhatsapp ?? row?.planWhatsapp ?? true,
+    archive: row?.overArchive ?? row?.planArchive ?? archiveFallback,
   };
 }
 
@@ -69,4 +79,12 @@ export async function getCoachLimit(ctx: TenantContext): Promise<number | null> 
  */
 export async function canUseWhatsapp(ctx: TenantContext): Promise<boolean> {
   return (await getPlanLimits(ctx)).whatsapp;
+}
+
+/**
+ * Whether the current clinic may ARCHIVE (soft-remove) students. Free/Solo can't
+ * — they hard-delete instead.
+ */
+export async function canArchiveStudents(ctx: TenantContext): Promise<boolean> {
+  return (await getPlanLimits(ctx)).archive;
 }

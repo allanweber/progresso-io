@@ -49,6 +49,17 @@ export const SIGNUP_PLANS: PlanMeta[] = [
   PLAN_META.clinica,
 ];
 
+/**
+ * Whether each plan may archive (soft-remove) students. Free/Solo can't — they
+ * hard-delete instead. Used as the fallback when a `plan_limit` row is missing.
+ */
+export const PLAN_DEFAULT_ARCHIVE: Record<Plan, boolean> = {
+  free: false,
+  solo: false,
+  clinica: true,
+  enterprise: true,
+};
+
 /** A used/limit pair, `limit: null` meaning unlimited. */
 export type UsageCounter = { used: number; limit: number | null };
 
@@ -62,6 +73,8 @@ export type PlanUsageDto = {
   students: UsageCounter;
   coaches: UsageCounter;
   whatsapp: boolean;
+  /** Whether the clinic may archive students (else hard-delete only). */
+  archive: boolean;
 };
 
 /** "34 / 50", or just "34" when the cap is unlimited. */

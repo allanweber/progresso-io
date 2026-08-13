@@ -5,7 +5,7 @@ import {
   type AdminClinicLimitsDto,
   clinicLimitsUpdateSchema,
 } from "@/lib/admin";
-import { PLAN_META } from "@/lib/plans";
+import { PLAN_DEFAULT_ARCHIVE, PLAN_META } from "@/lib/plans";
 import { admin } from "@/server/dal";
 import {
   forbidden,
@@ -50,9 +50,11 @@ export const PUT = withRoute<Params>(
       planMaxStudents: row.planMaxStudents,
       planMaxCoaches: row.planMaxCoaches,
       planWhatsapp: row.planWhatsapp ?? true,
+      planArchive: row.planArchive ?? PLAN_DEFAULT_ARCHIVE[row.plan],
       maxStudentsOverride: row.maxStudentsOverride,
       maxCoachesOverride: row.maxCoachesOverride,
       whatsappOverride: row.whatsappOverride,
+      archiveOverride: row.archiveOverride,
     };
     return NextResponse.json({ limits });
   },

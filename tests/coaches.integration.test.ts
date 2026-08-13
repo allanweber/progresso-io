@@ -74,7 +74,12 @@ describe("plan limits (coach cap + WhatsApp gate)", () => {
   it("reads the full plan capabilities for the tenant", async () => {
     const owner = await ownerContext("limits@example.com", "Owner", "clinica");
     const limits = await plans.getPlanLimits(owner);
-    expect(limits).toEqual({ maxStudents: 100, maxCoaches: 3, whatsapp: true });
+    expect(limits).toEqual({
+      maxStudents: 100,
+      maxCoaches: 3,
+      whatsapp: true,
+      archive: true,
+    });
     expect(await plans.getCoachLimit(owner)).toBe(3);
     expect(await plans.canUseWhatsapp(owner)).toBe(true);
   });

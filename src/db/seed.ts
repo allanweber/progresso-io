@@ -623,11 +623,12 @@ async function seed() {
     maxStudents: number | null;
     maxCoaches: number | null;
     whatsapp: boolean;
+    archive: boolean;
   }[] = [
-    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false },
-    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true },
-    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true },
-    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true },
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true },
+    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true },
   ];
   for (const limit of planLimits) {
     await db
@@ -639,6 +640,7 @@ async function seed() {
           maxStudents: limit.maxStudents,
           maxCoaches: limit.maxCoaches,
           whatsapp: limit.whatsapp,
+          archive: limit.archive,
         },
       });
   }

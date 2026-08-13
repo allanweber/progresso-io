@@ -183,6 +183,13 @@
       "when": 1786572778290,
       "tag": "0025_clinic_limit_overrides",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1786606732312,
+      "tag": "0026_student_archive_capability",
+      "breakpoints": true
     }
   ]
 }

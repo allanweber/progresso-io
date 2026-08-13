@@ -66,6 +66,21 @@ one `coach-plan-usage` query (TanStack dedupes the cache):
 `formatUsage(used, limit)` renders `34 / 50` (or just `34` when unlimited);
 `isAtLimit` drives the accent.
 
+### Archive vs. hard-delete (paid tier)
+
+Archiving a student (soft-remove, keeps history, frees a slot) is a paid-tier
+capability — `plan_limit.archive` (Free/Solo = false, Clínica/Enterprise = true),
+per-clinic-overridable via `clinic.archive_override`, resolved in
+`getPlanLimits().archive`. Consequences:
+
+- **Clínica/Enterprise** — the student profile shows **Arquivar/Reativar**;
+  `DELETE /api/students/[id]` archives (and is refused if the plan can't archive).
+- **Free/Solo** — no archive; the profile shows **Excluir** (a confirmed,
+  permanent delete) →`DELETE /api/students/[id]/delete` (`students.hardDeleteStudent`,
+  tenant-scoped: removes the student, its history and the aluno's login). This
+  route is refused for plans that *can* archive, so each plan has exactly one
+  removal path. Migration `0026` seeds the `archive` defaults (upsert-safe).
+
 ### WhatsApp gate
 
 WhatsApp is a paid-plan channel. `plans.canUseWhatsapp(ctx)` guards the three
