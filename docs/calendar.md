@@ -15,14 +15,22 @@ The calendar merges two things on **read**; only the first is stored.
    since students never pay in-app), or a one-off **check-in** the coach pins by
    hand. Full CRUD, clinic-scoped.
 2. **Derived check-in markers** (never stored) — one **"próximo check-in"** per
-   **active** student, computed live from the clinic cadence
-   (`clinic.feedbackFrequency` + `feedbackPreferredDay`) and the student's last
-   check-in: `last (or join day) + interval`, snapped forward to the preferred
-   weekday. If that lands in the past the student is **overdue** — the marker is
-   surfaced on the next preferred day on/after today and flagged red, rather than
-   buried weeks back. These are **read-only** (no id); clicking one jumps to the
-   student's **Feedback** tab. They roll forward automatically as check-ins
-   arrive, so nothing has to be re-scheduled.
+   **active** student, computed live: `last check-in (or join day) + the clinic's
+   cadence interval` (`clinic.feedbackFrequency` — semanal/quinzenal/mensal). The
+   interval is a whole number of weeks (7 / 14 / 28), so the marker **keeps the
+   student's own weekday** — the day the student registered / last checked in on;
+   only the *interval* comes from the clinic, not a global preferred day. If the
+   projected date is already past (the student is **overdue**), it rolls forward
+   by whole intervals — staying on that weekday — to the next future occurrence
+   and is flagged red. Markers roll forward automatically as check-ins arrive.
+
+   **Derived markers are not frozen** — they can be edited and moved like any
+   event. Clicking one opens the editor; **saving it materializes it** into a
+   real `calendar_event` (it has no id, so the save is a create). Dragging one
+   also materializes it at the dropped day/time. Once a student has a stored
+   `checkin` event dated today-or-later, the derived generator **stops emitting
+   its marker** for that student (the record takes over), so the two never
+   double up.
 
 There is deliberately **no derived "renovação"** source: the app models no
 student billing (invoices are the *clinic's* own Progresso subscription, managed
@@ -103,7 +111,8 @@ Calendar itself is paid.
 - API: `coach/calendar` (GET/POST), `coach/calendar/[id]` (PATCH/DELETE),
   `coach/dashboard` (extended), `admin/clinics/[id]/limits` (+calendar).
 - UI: `/coach/calendar` page (month/week/day, event modal, upcoming panel, upsell
-  state), the gated "Calendário" nav item, the two dashboard cards, and the admin
+  state, `@dnd-kit` drag-and-drop reschedule + materialize-on-drag/click), the
+  gated "Calendário" nav item, the two dashboard cards, and the admin
   clinic-limits "Calendário" toggle.
 - Tests: `tests/calendar.test.ts` (pure date math + `computeCheckinDue`),
   `tests/calendar.integration.test.ts` (CRUD isolation, derived markers, gate),

@@ -1,10 +1,9 @@
-import { and, eq, gte, lte, max } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lte, max } from "drizzle-orm";
 
 import { schema } from "@/db";
 import {
   computeCheckinDue,
   todayYmd,
-  WEEKDAY_INDEX,
   type CalendarDto,
   type CalendarEventInput,
   type CalendarItemDto,
@@ -120,10 +119,7 @@ export async function getCalendar(
 
   // 2. Derived check-in markers, from the clinic cadence + active students.
   const [clinicRow] = await ctx.db
-    .select({
-      frequency: schema.clinic.feedbackFrequency,
-      preferredDay: schema.clinic.feedbackPreferredDay,
-    })
+    .select({ frequency: schema.clinic.feedbackFrequency })
     .from(schema.clinic)
     .where(eq(schema.clinic.id, ctx.clinicId));
 
@@ -153,19 +149,35 @@ export async function getCalendar(
   const lastByStudent = new Map(lastCheckins.map((r) => [r.studentId, r.last]));
 
   const today = todayYmd();
-  const preferredDayIndex = clinicRow
-    ? WEEKDAY_INDEX[clinicRow.preferredDay]
-    : WEEKDAY_INDEX.monday;
   const frequency = clinicRow?.frequency ?? "semanal";
+
+  // A student whose upcoming check-in the coach has already MATERIALIZED (a
+  // stored `checkin` event dated today or later) no longer gets a derived
+  // marker — the manual record takes over, so the two never double up. See the
+  // "materialize on edit/drag" flow in the calendar page.
+  const materializedRows = await ctx.db
+    .select({ studentId: schema.calendarEvent.studentId })
+    .from(schema.calendarEvent)
+    .where(
+      and(
+        eq(schema.calendarEvent.clinicId, ctx.clinicId),
+        eq(schema.calendarEvent.type, "checkin"),
+        gte(schema.calendarEvent.date, today),
+        isNotNull(schema.calendarEvent.studentId),
+      ),
+    );
+  const materialized = new Set(
+    materializedRows.map((r) => r.studentId).filter((id): id is string => !!id),
+  );
 
   const derived: CalendarItemDto[] = [];
   for (const s of activeStudents) {
+    if (materialized.has(s.id)) continue;
     const due = computeCheckinDue({
       today,
       lastCheckinDate: lastByStudent.get(s.id) ?? null,
       createdDate: todayYmd(s.createdAt),
       frequency,
-      preferredDayIndex,
     });
     if (due.date < from || due.date > to) continue;
     derived.push({
