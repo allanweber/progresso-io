@@ -18,6 +18,7 @@ const ROUTES = [
   "/privacy",
   "/invite/accept",
   "/coach",
+  "/coach/calendar",
   "/coach/students",
   "/coach/students/new",
   "/coach/diets",

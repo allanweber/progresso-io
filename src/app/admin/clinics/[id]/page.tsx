@@ -1043,6 +1043,9 @@ function LimitsForm({
   const [archive, setArchive] = useState<"inherit" | "yes" | "no">(
     triState(limits.archiveOverride),
   );
+  const [calendar, setCalendar] = useState<"inherit" | "yes" | "no">(
+    triState(limits.calendarOverride),
+  );
 
   const save = useMutation({
     mutationFn: () =>
@@ -1057,6 +1060,7 @@ function LimitsForm({
               maxCoachesOverride: coaches.trim() === "" ? null : Number(coaches),
               whatsappOverride: fromTriState(whatsapp),
               archiveOverride: fromTriState(archive),
+              calendarOverride: fromTriState(calendar),
             }),
           ),
         },
@@ -1068,7 +1072,8 @@ function LimitsForm({
     students !== overrideInput(limits.maxStudentsOverride) ||
     coaches !== overrideInput(limits.maxCoachesOverride) ||
     whatsapp !== triState(limits.whatsappOverride) ||
-    archive !== triState(limits.archiveOverride);
+    archive !== triState(limits.archiveOverride) ||
+    calendar !== triState(limits.calendarOverride);
   const banner = save.error instanceof ApiError ? save.error.message : undefined;
 
   return (
@@ -1136,6 +1141,24 @@ function LimitsForm({
               </SelectItem>
               <SelectItem value="yes">Permitir</SelectItem>
               <SelectItem value="no">Não (excluir)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lim-calendar">Calendário</Label>
+          <Select
+            value={calendar}
+            onValueChange={(v) => setCalendar(v as "inherit" | "yes" | "no")}
+          >
+            <SelectTrigger id="lim-calendar">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inherit">
+                Padrão do plano ({limits.planCalendar ? "incluído" : "não"})
+              </SelectItem>
+              <SelectItem value="yes">Incluído</SelectItem>
+              <SelectItem value="no">Não</SelectItem>
             </SelectContent>
           </Select>
         </div>

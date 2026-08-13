@@ -62,6 +62,17 @@ export const PLAN_DEFAULT_ARCHIVE: Record<Plan, boolean> = {
   enterprise: true,
 };
 
+/**
+ * Whether each plan gets the coach Calendar/Agenda. Free is excluded; every paid
+ * plan gets it. Used as the fallback when a `plan_limit` row is missing.
+ */
+export const PLAN_DEFAULT_CALENDAR: Record<Plan, boolean> = {
+  free: false,
+  solo: true,
+  clinica: true,
+  enterprise: true,
+};
+
 /** A used/limit pair, `limit: null` meaning unlimited. */
 export type UsageCounter = { used: number; limit: number | null };
 

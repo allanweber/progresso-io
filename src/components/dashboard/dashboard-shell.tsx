@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
+  CalendarDays,
   ClipboardList,
   Database,
   Dumbbell,
@@ -37,12 +38,29 @@ type ShellUser = {
   role?: string | null;
 };
 
+/** Plan-gated features that toggle chrome (e.g. the Calendar nav item). */
+type ShellCapabilities = {
+  calendar?: boolean;
+};
+
 /** Sidebar links for a role. Each area only ever links within itself. */
-function navItems(role: string | null | undefined) {
+function navItems(
+  role: string | null | undefined,
+  capabilities: ShellCapabilities,
+) {
   const home = homePathForRole(role);
   const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
   if (role === "coach") {
     items.push({ href: "/coach/students", label: "Alunos", icon: Users });
+    // Calendar is a paid-tier feature (Free excluded); hide the entry entirely
+    // when the plan doesn't include it.
+    if (capabilities.calendar) {
+      items.push({
+        href: "/coach/calendar",
+        label: "Calendário",
+        icon: CalendarDays,
+      });
+    }
     items.push({ href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed });
     items.push({ href: "/coach/workouts", label: "Treinos", icon: Dumbbell });
     items.push({
@@ -73,9 +91,11 @@ function navItems(role: string | null | undefined) {
  */
 export function DashboardShell({
   user,
+  capabilities = {},
   children,
 }: {
   user: ShellUser;
+  capabilities?: ShellCapabilities;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -86,7 +106,7 @@ export function DashboardShell({
 
   const roleLabel = ROLE_LABELS[user.role as Role] ?? user.role;
   const home = homePathForRole(user.role);
-  const items = navItems(user.role);
+  const items = navItems(user.role, capabilities);
 
   async function handleSignOut() {
     setSigningOut(true);

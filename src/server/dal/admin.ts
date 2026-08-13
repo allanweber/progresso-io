@@ -1632,10 +1632,12 @@ export type ClinicLimitsRow = {
   planMaxCoaches: number | null;
   planWhatsapp: boolean | null;
   planArchive: boolean | null;
+  planCalendar: boolean | null;
   maxStudentsOverride: number | null;
   maxCoachesOverride: number | null;
   whatsappOverride: boolean | null;
   archiveOverride: boolean | null;
+  calendarOverride: boolean | null;
 };
 
 /** Reads a clinic's plan defaults + overrides (left join, so a missing plan row is fine). */
@@ -1650,10 +1652,12 @@ export async function getClinicLimits(
       planMaxCoaches: schema.planLimit.maxCoaches,
       planWhatsapp: schema.planLimit.whatsapp,
       planArchive: schema.planLimit.archive,
+      planCalendar: schema.planLimit.calendar,
       maxStudentsOverride: schema.clinic.maxStudentsOverride,
       maxCoachesOverride: schema.clinic.maxCoachesOverride,
       whatsappOverride: schema.clinic.whatsappOverride,
       archiveOverride: schema.clinic.archiveOverride,
+      calendarOverride: schema.clinic.calendarOverride,
     })
     .from(schema.clinic)
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))

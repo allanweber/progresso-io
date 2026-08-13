@@ -52,6 +52,7 @@ describe("per-clinic limit overrides", () => {
       maxCoaches: 1,
       whatsapp: true,
       archive: true,
+      calendar: true,
     });
   });
 
@@ -75,6 +76,7 @@ describe("per-clinic limit overrides", () => {
       maxCoaches: 1, // inherited from plan
       whatsapp: false, // forced off for this clinic
       archive: true, // inherited from plan
+      calendar: true, // inherited from plan
     });
   });
 

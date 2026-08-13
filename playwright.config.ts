@@ -58,7 +58,7 @@ export default defineConfig({
     },
     {
       name: "coach",
-      testMatch: /(students|dashboard|settings|feedback)\.spec\.ts/,
+      testMatch: /(students|dashboard|settings|feedback|calendar)\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

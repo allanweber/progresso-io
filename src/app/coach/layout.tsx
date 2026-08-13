@@ -1,7 +1,7 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { StartersEnsure } from "@/components/dashboard/starters-ensure";
 import { requireRole } from "@/lib/session";
-import { clinics } from "@/server/dal";
+import { clinics, plans } from "@/server/dal";
 import { requireClinic } from "@/server/tenant";
 
 /**
@@ -20,11 +20,14 @@ export default async function CoachLayout({
 }) {
   const session = await requireRole(["coach"]);
   const ctx = await requireClinic();
-  const clinic = await clinics.getClinic(ctx);
+  const [clinic, calendar] = await Promise.all([
+    clinics.getClinic(ctx),
+    plans.canUseCalendar(ctx),
+  ]);
   const startersSeeded = Boolean(clinic?.startersSeededAt);
 
   return (
-    <DashboardShell user={session.user}>
+    <DashboardShell user={session.user} capabilities={{ calendar }}>
       <StartersEnsure seeded={startersSeeded} />
       {children}
     </DashboardShell>
