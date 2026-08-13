@@ -31,5 +31,6 @@ export const GET = withRoute("coach.planUsage.read", async () => {
     students: { used: studentCount, limit: limits.maxStudents },
     coaches: { used: coachCount, limit: limits.maxCoaches },
     whatsapp: limits.whatsapp,
+    archive: limits.archive,
   } satisfies PlanUsageDto);
 });

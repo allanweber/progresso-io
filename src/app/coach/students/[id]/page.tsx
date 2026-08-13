@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
@@ -11,6 +11,7 @@ import {
   RefreshCw,
   RotateCcw,
   Send,
+  Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ import {
 
 /** Canonical metric keys live in the Perfil card — skip them in the answers list. */
 const METRIC_KEY_SET = new Set<string>(PROFILE_METRIC_KEYS);
+import type { PlanUsageDto } from "@/lib/plans";
 import {
   ACCESS_LABELS,
   avatarColor,
@@ -67,9 +69,18 @@ function answerText(v: AnamnesisAnswerValue): string {
 
 export default function StudentProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templateId, setTemplateId] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // Archiving is a paid-tier feature; Free/Solo hard-delete instead.
+  const usage = useQuery({
+    queryKey: ["coach-plan-usage"],
+    queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
+  });
+  const canArchive = usage.data?.archive ?? true;
 
   const { data: student, isLoading, isError, error } = useQuery({
     queryKey: ["student", id],
@@ -105,6 +116,15 @@ export default function StudentProfilePage() {
   const archive = useMutation({
     mutationFn: () => apiFetch(`/api/students/${id}`, { method: "DELETE" }),
     onSuccess: invalidate,
+  });
+  const hardDelete = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/students/${id}/delete`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["coach-plan-usage"] });
+      router.push("/coach/students");
+    },
   });
   const reactivate = useMutation({
     mutationFn: () =>
@@ -239,10 +259,21 @@ export default function StudentProfilePage() {
             <RotateCcw className="size-4" />
             Reativar
           </Button>
-        ) : (
+        ) : canArchive ? (
           <Button variant="outline" onClick={() => archive.mutate()} disabled={busy}>
             <Archive className="size-4" />
             Arquivar
+          </Button>
+        ) : (
+          // Free/Solo can't archive — the only removal is a permanent delete.
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+            disabled={busy}
+          >
+            <Trash2 className="size-4" />
+            Excluir
           </Button>
         )}
       </div>
@@ -261,6 +292,46 @@ export default function StudentProfilePage() {
           }
         </p>
       )}
+
+      {/* Permanent-delete confirmation (Free/Solo only). */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir aluno</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Excluir{" "}
+              <span className="font-medium text-foreground">
+                {student.firstName} {student.lastName}
+              </span>{" "}
+              permanentemente? Todo o histórico (dietas, treinos, check-ins) e o
+              acesso do aluno serão removidos. Esta ação não pode ser desfeita.
+              Arquivar alunos está disponível nos planos pagos.
+            </p>
+            {hardDelete.error instanceof ApiError ? (
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+                {hardDelete.error.message}
+              </div>
+            ) : null}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={hardDelete.isPending}
+                onClick={() => hardDelete.mutate()}
+              >
+                {hardDelete.isPending ? "Excluindo…" : "Excluir permanentemente"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-6">
         <StudentTabs studentId={student.id} />

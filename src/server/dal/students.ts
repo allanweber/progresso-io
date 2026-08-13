@@ -315,6 +315,37 @@ export async function archiveStudent(
 }
 
 /**
+ * Hard-deletes a student and everything tied to it — the destructive path for
+ * plans that can't archive (Free/Solo). Tenant-scoped: only a student in this
+ * clinic can be removed. In one transaction: the `students` row (its invitations
+ * cascade away with it), then the aluno's login if activated (sessions/accounts
+ * cascade). Returns false when the id isn't in this clinic.
+ */
+export async function hardDeleteStudent(
+  ctx: TenantContext,
+  id: string,
+): Promise<boolean> {
+  return ctx.db.transaction(async (tx) => {
+    const [student] = await tx
+      .select({ id: schema.students.id, userId: schema.students.userId })
+      .from(schema.students)
+      .where(
+        and(
+          eq(schema.students.clinicId, ctx.clinicId),
+          eq(schema.students.id, id),
+        ),
+      );
+    if (!student) return false;
+
+    await tx.delete(schema.students).where(eq(schema.students.id, id));
+    if (student.userId) {
+      await tx.delete(schema.user).where(eq(schema.user.id, student.userId));
+    }
+    return true;
+  });
+}
+
+/**
  * Links a student row to the aluno's newly-created login and marks them active.
  * Part of the invite-accept bootstrap (no session exists yet), so it takes a
  * raw db handle and an explicit `clinicId` — which comes from the invitation,

@@ -5,8 +5,9 @@ import {
   studentStatusSchema,
   toStudentDto,
 } from "@/lib/students";
-import { students } from "@/server/dal";
+import { plans, students } from "@/server/dal";
 import {
+  apiError,
   fieldConflict,
   forbidden,
   isUuid,
@@ -100,6 +101,15 @@ export const DELETE = withRoute<Params>("students.archive", async (_request, { p
   if (ctx.role !== "coach") return forbidden();
   const { id } = await params;
   if (!isUuid(id)) return notFound();
+
+  // Archiving is a paid-tier feature; Free/Solo hard-delete instead (see the
+  // /delete route). Guard here too so the API can't be driven around the UI.
+  if (!(await plans.canArchiveStudents(ctx))) {
+    return apiError(
+      "Arquivar alunos está disponível nos planos pagos. Exclua o aluno para liberar a vaga.",
+      403,
+    );
+  }
 
   // Soft-remove: the row and its history are kept, just archived.
   const archived = await students.archiveStudent(ctx, id);

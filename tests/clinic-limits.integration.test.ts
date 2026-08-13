@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
-import { admin, plans } from "@/server/dal";
+import { admin, plans, students as studentsDal } from "@/server/dal";
 import type { TenantContext } from "@/server/tenant";
 
 import { createTestDb, type TestDb } from "./pglite";
@@ -51,6 +51,7 @@ describe("per-clinic limit overrides", () => {
       maxStudents: 50,
       maxCoaches: 1,
       whatsapp: true,
+      archive: true,
     });
   });
 
@@ -60,6 +61,7 @@ describe("per-clinic limit overrides", () => {
       maxStudentsOverride: 200,
       maxCoachesOverride: null, // inherit
       whatsappOverride: false,
+      archiveOverride: null,
     });
     expect(row).toMatchObject({
       maxStudentsOverride: 200,
@@ -72,6 +74,7 @@ describe("per-clinic limit overrides", () => {
       maxStudents: 200, // override
       maxCoaches: 1, // inherited from plan
       whatsapp: false, // forced off for this clinic
+      archive: true, // inherited from plan
     });
   });
 
@@ -81,6 +84,7 @@ describe("per-clinic limit overrides", () => {
       maxStudentsOverride: null,
       maxCoachesOverride: 5,
       whatsappOverride: null,
+      archiveOverride: null,
     });
     const limits = await admin.getClinicLimits(h, ctx.clinicId);
     expect(limits).toMatchObject({
@@ -90,5 +94,45 @@ describe("per-clinic limit overrides", () => {
       maxCoachesOverride: 5,
       maxStudentsOverride: null,
     });
+  });
+});
+
+describe("student archive capability + hard delete", () => {
+  it("resolves the archive capability from the per-clinic override", async () => {
+    const ctx = await ownerContext("archive@example.com", "solo");
+    // The plan_limit row here defaults archive=true; forcing the override off.
+    await admin.updateClinicLimits(h, ctx.clinicId, {
+      maxStudentsOverride: null,
+      maxCoachesOverride: null,
+      whatsappOverride: null,
+      archiveOverride: false,
+    });
+    expect(await plans.canArchiveStudents(ctx)).toBe(false);
+
+    await admin.updateClinicLimits(h, ctx.clinicId, {
+      maxStudentsOverride: null,
+      maxCoachesOverride: null,
+      whatsappOverride: null,
+      archiveOverride: null,
+    });
+    expect(await plans.canArchiveStudents(ctx)).toBe(true); // back to plan default
+  });
+
+  it("hard-deletes a student, scoped to the clinic", async () => {
+    const ctx = await ownerContext("harddel@example.com", "solo");
+    const s = await studentsDal.createStudent(ctx, {
+      firstName: "Del",
+      lastName: "Eter",
+    });
+    expect(await studentsDal.hardDeleteStudent(ctx, s.id)).toBe(true);
+
+    const rows = await h
+      .select()
+      .from(schema.students)
+      .where(eq(schema.students.id, s.id));
+    expect(rows).toHaveLength(0);
+
+    // Already gone (and never in another clinic) → false, not a throw.
+    expect(await studentsDal.hardDeleteStudent(ctx, s.id)).toBe(false);
   });
 });

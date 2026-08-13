@@ -1007,6 +1007,16 @@ function overrideInput(value: number | null): string {
   return value === null ? "" : String(value);
 }
 
+/** A nullable boolean override → the 3-state select value. */
+function triState(value: boolean | null): "inherit" | "yes" | "no" {
+  return value === null ? "inherit" : value ? "yes" : "no";
+}
+
+/** The 3-state select value → a nullable boolean override. */
+function fromTriState(value: "inherit" | "yes" | "no"): boolean | null {
+  return value === "inherit" ? null : value === "yes";
+}
+
 /** A plan default rendered for the input placeholder ("Padrão: 50" / "ilimitado"). */
 function planDefaultHint(value: number | null): string {
   return `Padrão: ${value === null ? "ilimitado" : value}`;
@@ -1028,11 +1038,10 @@ function LimitsForm({
     overrideInput(limits.maxCoachesOverride),
   );
   const [whatsapp, setWhatsapp] = useState<"inherit" | "yes" | "no">(
-    limits.whatsappOverride === null
-      ? "inherit"
-      : limits.whatsappOverride
-        ? "yes"
-        : "no",
+    triState(limits.whatsappOverride),
+  );
+  const [archive, setArchive] = useState<"inherit" | "yes" | "no">(
+    triState(limits.archiveOverride),
   );
 
   const save = useMutation({
@@ -1046,8 +1055,8 @@ function LimitsForm({
               maxStudentsOverride:
                 students.trim() === "" ? null : Number(students),
               maxCoachesOverride: coaches.trim() === "" ? null : Number(coaches),
-              whatsappOverride:
-                whatsapp === "inherit" ? null : whatsapp === "yes",
+              whatsappOverride: fromTriState(whatsapp),
+              archiveOverride: fromTriState(archive),
             }),
           ),
         },
@@ -1058,12 +1067,8 @@ function LimitsForm({
   const dirty =
     students !== overrideInput(limits.maxStudentsOverride) ||
     coaches !== overrideInput(limits.maxCoachesOverride) ||
-    whatsapp !==
-      (limits.whatsappOverride === null
-        ? "inherit"
-        : limits.whatsappOverride
-          ? "yes"
-          : "no");
+    whatsapp !== triState(limits.whatsappOverride) ||
+    archive !== triState(limits.archiveOverride);
   const banner = save.error instanceof ApiError ? save.error.message : undefined;
 
   return (
@@ -1073,7 +1078,7 @@ function LimitsForm({
           {banner}
         </div>
       ) : null}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1.5">
           <Label htmlFor="lim-students">Máx. alunos</Label>
           <Input
@@ -1113,6 +1118,24 @@ function LimitsForm({
               </SelectItem>
               <SelectItem value="yes">Incluído</SelectItem>
               <SelectItem value="no">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lim-archive">Arquivar alunos</Label>
+          <Select
+            value={archive}
+            onValueChange={(v) => setArchive(v as "inherit" | "yes" | "no")}
+          >
+            <SelectTrigger id="lim-archive">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inherit">
+                Padrão do plano ({limits.planArchive ? "sim" : "não"})
+              </SelectItem>
+              <SelectItem value="yes">Permitir</SelectItem>
+              <SelectItem value="no">Não (excluir)</SelectItem>
             </SelectContent>
           </Select>
         </div>

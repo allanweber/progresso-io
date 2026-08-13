@@ -317,6 +317,7 @@ export const clinic = pgTable(
     maxStudentsOverride: integer("max_students_override"),
     maxCoachesOverride: integer("max_coaches_override"),
     whatsappOverride: boolean("whatsapp_override"),
+    archiveOverride: boolean("archive_override"),
     // When the clinic's starter templates (anamneses + diets + workouts) were
     // seeded. NULL until the first coach sign-in triggers the one-shot background
     // seed (see `ensureClinicStarters`); set to the completion time once all
@@ -399,6 +400,9 @@ export const planLimit = pgTable("plan_limit", {
   maxCoaches: integer("max_coaches"),
   // Whether the plan may send over WhatsApp (paid plans) or e-mail only (free).
   whatsapp: boolean("whatsapp").default(true).notNull(),
+  // Whether the plan may ARCHIVE (soft-remove) students. Free/Solo can't — they
+  // hard-delete instead; Clínica/Enterprise can keep archived history.
+  archive: boolean("archive").default(true).notNull(),
 });
 
 /* -------------------------------------------------------------------------- */
