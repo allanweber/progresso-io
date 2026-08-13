@@ -2,12 +2,14 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -33,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateInput, TimeInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
@@ -83,6 +86,7 @@ function groupByDay(items: CalendarItemDto[]): Map<string, CalendarItemDto[]> {
 
 export default function CoachCalendarPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [view, setView] = useState<View>("month");
   const [anchor, setAnchor] = useState<string>(() => todayYmd());
@@ -95,9 +99,14 @@ export default function CoachCalendarPage() {
 
   // The item currently being dragged (for the drag preview).
   const [dragging, setDragging] = useState<CalendarItemDto | null>(null);
-  // A small move threshold so a click still opens the editor (vs. a drag).
+  // Mouse: a small move threshold so a click still opens the editor. Touch: a
+  // short press-and-hold starts the drag (a plain tap stays a click, and a
+  // scroll gesture isn't hijacked) — required for drag-and-drop on mobile.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
   );
 
   // The visible range for the current view.
@@ -189,9 +198,14 @@ export default function CoachCalendarPage() {
     reschedule.mutate({ item, date: target.date, startTime: nextStart });
   }
 
-  // Clicking any item opens the editor. A derived check-in has no id, so saving
-  // it CREATES a record — materializing the marker into a real event.
+  // Clicking an event opens the editor. A derived check-in has no id, so saving
+  // it CREATES a record — materializing the marker into a real event. Invoice
+  // markers are read-only (managed in billing) — clicking jumps to Faturas.
   function openItem(item: CalendarItemDto) {
+    if (item.source === "invoice-due") {
+      router.push("/coach/settings");
+      return;
+    }
     setDialog({ mode: "edit", item });
   }
 
@@ -467,9 +481,12 @@ function EventChip({
   item: CalendarItemDto;
   onClick: () => void;
 }) {
+  // Invoices are managed in billing — their markers are read-only (no drag).
+  const draggable = item.source !== "invoice-due";
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.key,
     data: { item },
+    disabled: !draggable,
   });
   return (
     <button
@@ -477,8 +494,14 @@ function EventChip({
       type="button"
       onClick={onClick}
       title={item.title}
-      className="cursor-grab text-left active:cursor-grabbing"
-      style={{ opacity: isDragging ? 0.35 : 1, touchAction: "none" }}
+      className={cn(
+        "text-left",
+        draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+      )}
+      style={{
+        opacity: isDragging ? 0.35 : 1,
+        touchAction: draggable ? "none" : undefined,
+      }}
       {...listeners}
       {...attributes}
     >
@@ -840,26 +863,24 @@ function EventDialog({
           <div className="grid grid-cols-2 gap-3">
             <form.Field name="date">
               {(field) => (
-                <Field
+                <DateInput
                   id="date"
                   label="Data"
-                  type="date"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(v) => field.handleChange(v)}
                   error={fieldError(field, serverErrors?.date)}
                 />
               )}
             </form.Field>
             <form.Field name="startTime">
               {(field) => (
-                <Field
+                <TimeInput
                   id="startTime"
                   label="Horário"
-                  type="time"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(v) => field.handleChange(v)}
                   error={fieldError(field, serverErrors?.startTime)}
                 />
               )}

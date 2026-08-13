@@ -13,14 +13,18 @@ import type { TenantContext } from "@/server/tenant";
 
 /**
  * Calendar / Agenda access. Clinic-scoped (every coach in the clinic sees all
- * events — attribution only, never access control). Two data sources are merged
- * on read:
+ * events — attribution only, never access control). Three data sources are
+ * merged on read:
  *
  *  1. Stored `calendar_event` rows — the ad-hoc events a coach types in.
- *  2. Derived, read-only "próximo check-in" markers — one per ACTIVE student,
- *     computed live from the clinic's cadence (`feedbackFrequency` +
- *     `feedbackPreferredDay`) and the student's last check-in. Never stored, so
- *     they roll forward automatically as check-ins arrive.
+ *  2. Derived "próximo check-in" markers — one per ACTIVE student, computed live
+ *     from the clinic's cadence interval (`feedbackFrequency`) and the student's
+ *     last check-in, keeping the student's own weekday. Never stored; they roll
+ *     forward as check-ins arrive, and can be edited/dragged to materialize into
+ *     a real row.
+ *  3. Derived invoice markers — each pending fatura on its due date, as a
+ *     read-only "Administrativo" appointment (managed in billing, never editable
+ *     here).
  *
  * Every query filters by `ctx.clinicId`; the caller derives that from the
  * session, never from client input. The plan gate (`canUseCalendar`) is enforced
@@ -196,11 +200,45 @@ export async function getCalendar(
     });
   }
 
+  // 3. Derived invoice markers: each unpaid (pending) fatura shows on its due
+  //    date as a read-only "Administrativo" (amber) appointment, so the coach
+  //    sees upcoming cobranças/renovações. Managed in billing, not here — these
+  //    are never draggable/editable (the calendar page routes clicks to Faturas).
+  const invoiceRows = await ctx.db
+    .select({
+      id: schema.invoice.id,
+      number: schema.invoice.number,
+      dueDate: schema.invoice.dueDate,
+    })
+    .from(schema.invoice)
+    .where(
+      and(
+        eq(schema.invoice.clinicId, ctx.clinicId),
+        eq(schema.invoice.status, "pending"),
+        gte(schema.invoice.dueDate, from),
+        lte(schema.invoice.dueDate, to),
+      ),
+    );
+  const invoices: CalendarItemDto[] = invoiceRows.map((r) => ({
+    key: `invoice:${r.id}`,
+    id: null,
+    source: "invoice-due",
+    type: "admin",
+    title: `Fatura #${String(r.number).padStart(4, "0")}`,
+    date: r.dueDate,
+    startTime: null,
+    endTime: null,
+    notes: null,
+    studentId: null,
+    studentName: null,
+    overdue: r.dueDate < today,
+  }));
+
   const students: CalendarStudentOption[] = activeStudents
     .map((s) => ({ id: s.id, firstName: s.firstName, lastName: s.lastName }))
     .sort((a, b) => a.firstName.localeCompare(b.firstName, "pt-BR"));
 
-  const items = [...manual, ...derived].sort(compareItems);
+  const items = [...manual, ...derived, ...invoices].sort(compareItems);
   return { from, to, items, students };
 }
 

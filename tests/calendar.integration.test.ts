@@ -218,6 +218,34 @@ describe("derived check-in markers", () => {
     ).toBe(true);
   });
 
+  it("shows a pending fatura as a read-only admin marker on its due date", async () => {
+    const ctx = await ownerContext("cal-invoice@example.com", "clinica");
+    const billing = await import("@/server/dal/billing");
+    const dueDate = addDays(todayYmd(), 5);
+    await billing.createInvoice(
+      ctx.db,
+      ctx.clinicId,
+      {
+        competencia: `${todayYmd().slice(0, 7)}-01`,
+        issuedAt: todayYmd(),
+        dueDate,
+        planSnapshot: "clinica",
+        discountCents: 0,
+        discountReason: null,
+        notes: null,
+        lineItems: [{ description: "Assinatura", amountCents: 39900 }],
+      },
+      ctx.userId,
+    );
+
+    const cal = await calendarEvents.getCalendar(ctx, WIDE_RANGE);
+    const marker = cal.items.find((i) => i.source === "invoice-due");
+    expect(marker).toBeTruthy();
+    expect(marker?.type).toBe("admin");
+    expect(marker?.date).toBe(dueDate);
+    expect(marker?.id).toBeNull(); // read-only
+  });
+
   it("does not project markers for archived students", async () => {
     const ctx = await ownerContext("cal-archived@example.com", "clinica");
     const student = await studentsDal.createStudent(ctx, {

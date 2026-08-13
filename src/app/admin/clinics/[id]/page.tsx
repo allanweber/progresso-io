@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -719,23 +720,21 @@ function InvoiceDialog({
             </form.Field>
             <form.Field name="issuedAt">
               {(field) => (
-                <Field
+                <DateInput
                   id="issued-at"
                   label="Emissão"
-                  type="date"
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(v) => field.handleChange(v)}
                 />
               )}
             </form.Field>
             <form.Field name="dueDate">
               {(field) => (
-                <Field
+                <DateInput
                   id="due-date"
                   label="Vencimento"
-                  type="date"
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(v) => field.handleChange(v)}
                 />
               )}
             </form.Field>
@@ -948,12 +947,11 @@ function MarkPaidDialog({
           )}
           <form.Field name="paidAt">
             {(field) => (
-              <Field
+              <DateInput
                 id="paid-at"
                 label="Data do pagamento"
-                type="date"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
+                onChange={(v) => field.handleChange(v)}
               />
             )}
           </form.Field>
