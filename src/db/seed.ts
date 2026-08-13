@@ -624,11 +624,12 @@ async function seed() {
     maxCoaches: number | null;
     whatsapp: boolean;
     archive: boolean;
+    calendar: boolean;
   }[] = [
-    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false },
-    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false },
-    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true },
-    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true },
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false, calendar: false },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false, calendar: true },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true, calendar: true },
+    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true, calendar: true },
   ];
   for (const limit of planLimits) {
     await db
@@ -641,6 +642,7 @@ async function seed() {
           maxCoaches: limit.maxCoaches,
           whatsapp: limit.whatsapp,
           archive: limit.archive,
+          calendar: limit.calendar,
         },
       });
   }
@@ -849,6 +851,46 @@ async function seed() {
         }
       }
     }
+  }
+
+  // Demo calendar events (the Calendar is a paid-tier feature; the clinic is on
+  // Clínica). A few ad-hoc events over the next two weeks so the coach agenda has
+  // content. The recurring "próximo check-in" markers are derived live from the
+  // clinic cadence + Ana's check-in history, so they are never seeded here.
+  const calendarEventsDal = await import("@/server/dal/calendar-events");
+  const { todayYmd, addDays } = await import("@/lib/calendar");
+  const calRange = { from: addDays(todayYmd(), -30), to: addDays(todayYmd(), 60) };
+  const seededCal = await calendarEventsDal.getCalendar(coachCtx, calRange);
+  if (!seededCal.items.some((i) => i.source === "manual")) {
+    const today = todayYmd();
+    await calendarEventsDal.createEvent(coachCtx, {
+      type: "presencial",
+      title: "Avaliação física — Ana",
+      date: addDays(today, 2),
+      startTime: "09:00",
+      endTime: null,
+      studentId,
+      notes: "Dobras cutâneas + circunferências.",
+    });
+    await calendarEventsDal.createEvent(coachCtx, {
+      type: "admin",
+      title: "Renovação — Ana",
+      date: addDays(today, 9),
+      startTime: null,
+      endTime: null,
+      studentId,
+      notes: null,
+    });
+    await calendarEventsDal.createEvent(coachCtx, {
+      type: "presencial",
+      title: "Consultoria online",
+      date: today,
+      startTime: "16:30",
+      endTime: null,
+      studentId: null,
+      notes: null,
+    });
+    console.info("✓ seeded demo calendar events");
   }
 
   // Manual billing demo: two invoices on the coach's clinic — one already paid

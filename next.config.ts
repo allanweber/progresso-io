@@ -18,14 +18,20 @@ const gaConnect = gaConfigured
  * are `frame-ancestors 'none'` (clickjacking), `object-src 'none'`, `base-uri
  * 'self'` and `form-action 'self'`. Tighten `img-src` to the exact R2 domain and
  * move scripts to a nonce if/when a middleware nonce pipeline is added.
+ *
+ * `'unsafe-eval'` is added in **development only**: React dev mode + Turbopack
+ * HMR rely on `eval()`, so omitting it breaks `next dev` (and e2e) under this
+ * policy. Production React never evals, so the deployed policy stays strict.
  */
+const devEval = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "img-src 'self' data: https:", // exercise/check-in images (R2/CDN) + data URIs
-  `script-src 'self' 'unsafe-inline'${gaScript}`,
+  `script-src 'self' 'unsafe-inline'${devEval}${gaScript}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind inline styles
   `connect-src 'self'${gaConnect}`,
   "form-action 'self'",

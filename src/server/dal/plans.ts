@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { schema } from "@/db";
-import { PLAN_DEFAULT_ARCHIVE } from "@/lib/plans";
+import { PLAN_DEFAULT_ARCHIVE, PLAN_DEFAULT_CALENDAR } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -21,6 +21,8 @@ export type PlanLimits = {
   whatsapp: boolean;
   /** Whether the plan may archive (soft-remove) students. */
   archive: boolean;
+  /** Whether the plan may use the coach Calendar/Agenda (Free excluded). */
+  calendar: boolean;
 };
 
 /**
@@ -39,23 +41,28 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
       planMaxCoaches: schema.planLimit.maxCoaches,
       planWhatsapp: schema.planLimit.whatsapp,
       planArchive: schema.planLimit.archive,
+      planCalendar: schema.planLimit.calendar,
       overStudents: schema.clinic.maxStudentsOverride,
       overCoaches: schema.clinic.maxCoachesOverride,
       overWhatsapp: schema.clinic.whatsappOverride,
       overArchive: schema.clinic.archiveOverride,
+      overCalendar: schema.clinic.calendarOverride,
     })
     .from(schema.clinic)
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
     .where(eq(schema.clinic.id, ctx.clinicId));
 
-  // A missing plan_limit row (`planArchive` null) falls back to the plan default.
+  // A missing plan_limit row (`planArchive`/`planCalendar` null) falls back to
+  // the plan default.
   const archiveFallback = row ? PLAN_DEFAULT_ARCHIVE[row.plan] : true;
+  const calendarFallback = row ? PLAN_DEFAULT_CALENDAR[row.plan] : true;
 
   return {
     maxStudents: row?.overStudents ?? row?.planMaxStudents ?? null,
     maxCoaches: row?.overCoaches ?? row?.planMaxCoaches ?? null,
     whatsapp: row?.overWhatsapp ?? row?.planWhatsapp ?? true,
     archive: row?.overArchive ?? row?.planArchive ?? archiveFallback,
+    calendar: row?.overCalendar ?? row?.planCalendar ?? calendarFallback,
   };
 }
 
@@ -87,4 +94,12 @@ export async function canUseWhatsapp(ctx: TenantContext): Promise<boolean> {
  */
 export async function canArchiveStudents(ctx: TenantContext): Promise<boolean> {
   return (await getPlanLimits(ctx)).archive;
+}
+
+/**
+ * Whether the current clinic may use the coach Calendar/Agenda. Free clinics are
+ * excluded; every paid plan (and a missing row) may use it.
+ */
+export async function canUseCalendar(ctx: TenantContext): Promise<boolean> {
+  return (await getPlanLimits(ctx)).calendar;
 }

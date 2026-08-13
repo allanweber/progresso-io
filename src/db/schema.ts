@@ -318,6 +318,7 @@ export const clinic = pgTable(
     maxCoachesOverride: integer("max_coaches_override"),
     whatsappOverride: boolean("whatsapp_override"),
     archiveOverride: boolean("archive_override"),
+    calendarOverride: boolean("calendar_override"),
     // When the clinic's starter templates (anamneses + diets + workouts) were
     // seeded. NULL until the first coach sign-in triggers the one-shot background
     // seed (see `ensureClinicStarters`); set to the completion time once all
@@ -403,6 +404,9 @@ export const planLimit = pgTable("plan_limit", {
   // Whether the plan may ARCHIVE (soft-remove) students. Free/Solo can't — they
   // hard-delete instead; Clínica/Enterprise can keep archived history.
   archive: boolean("archive").default(true).notNull(),
+  // Whether the plan may use the coach Calendar/Agenda. Free is excluded; every
+  // paid plan (Solo/Clínica/Enterprise) gets it.
+  calendar: boolean("calendar").default(true).notNull(),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -1938,6 +1942,73 @@ export const studentCheckinPhotoRelations = relations(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  Calendar / Agenda (coach scheduling)                                       */
+/*                                                                            */
+/*  A coach-created calendar event. Clinic-scoped (every coach in the clinic   */
+/*  sees them all — attribution only, not access control). The recurring       */
+/*  weekly check-in markers the calendar also shows are NOT stored here: they   */
+/*  are derived live from the clinic's cadence + each student's check-in        */
+/*  history (see src/server/dal/calendar-events.ts). Only ad-hoc events the     */
+/*  coach types in live in this table. `studentId` is an optional link (the     */
+/*  event can stand alone); it also gives the later WhatsApp-reminder engine a   */
+/*  concrete student+phone to message with no schema change.                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The category of a manual calendar event — drives the colour in the UI.
+ *
+ * - `checkin`    — a one-off check-in the coach pins by hand (green). Distinct
+ *   from the auto-derived weekly check-in markers, which are computed, not stored.
+ * - `presencial` — an in-person session / avaliação física (purple).
+ * - `admin`      — administrative / renovação (amber): a client renewing their
+ *   coaching (paid to the coach offline — students never pay in-app), a meeting.
+ */
+export const CALENDAR_EVENT_TYPES = ["checkin", "presencial", "admin"] as const;
+export type CalendarEventType = (typeof CALENDAR_EVENT_TYPES)[number];
+
+export const calendarEvent = pgTable(
+  "calendar_event",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // Optional student this event is about. Set null if the student is removed —
+    // the event stays on the calendar (its title still describes it).
+    studentId: uuid("student_id").references(() => students.id, {
+      onDelete: "set null",
+    }),
+    // Optional coach the event is attributed to (NOT access control — every
+    // coach in the clinic sees all events). Null if that user is later deleted.
+    coachId: text("coach_id").references(() => user.id, { onDelete: "set null" }),
+    type: text("type")
+      .$type<CalendarEventType>()
+      .default("presencial")
+      .notNull(),
+    title: text("title").notNull(),
+    // The calendar day (no time) — always required; the timeline/grid index.
+    date: date("date", { mode: "string" }).notNull(),
+    // Optional wall-clock time (HH:MM, clinic-local). Null = an all-day event,
+    // pinned at the top of the day in the week/day views.
+    startTime: text("start_time"),
+    endTime: text("end_time"),
+    notes: text("notes"),
+    // The user who created the event (audit; kept even if they leave).
+    createdByUserId: text("created_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The calendar always reads a clinic's events within a date range.
+    index("calendar_event_clinic_date_idx").on(t.clinicId, t.date),
+    index("calendar_event_student_idx").on(t.studentId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -2002,3 +2073,5 @@ export type StudentCheckinPhoto = typeof studentCheckinPhoto.$inferSelect;
 export type NewStudentCheckinPhoto = typeof studentCheckinPhoto.$inferInsert;
 export type CheckinAssessment = typeof checkinAssessment.$inferSelect;
 export type NewCheckinAssessment = typeof checkinAssessment.$inferInsert;
+export type CalendarEvent = typeof calendarEvent.$inferSelect;
+export type NewCalendarEvent = typeof calendarEvent.$inferInsert;

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import type { Plan } from "@/db/schema";
 import type { AdminClinicLimitsDto } from "@/lib/admin";
-import { PLAN_DEFAULT_ARCHIVE, PLAN_META } from "@/lib/plans";
+import { PLAN_DEFAULT_ARCHIVE, PLAN_DEFAULT_CALENDAR, PLAN_META } from "@/lib/plans";
 import { admin, billing } from "@/server/dal";
 import { forbidden, isUuid, notFound } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
@@ -21,10 +21,12 @@ function toLimitsDto(
     planMaxCoaches: row?.planMaxCoaches ?? null,
     planWhatsapp: row?.planWhatsapp ?? true,
     planArchive: row?.planArchive ?? PLAN_DEFAULT_ARCHIVE[plan],
+    planCalendar: row?.planCalendar ?? PLAN_DEFAULT_CALENDAR[plan],
     maxStudentsOverride: row?.maxStudentsOverride ?? null,
     maxCoachesOverride: row?.maxCoachesOverride ?? null,
     whatsappOverride: row?.whatsappOverride ?? null,
     archiveOverride: row?.archiveOverride ?? null,
+    calendarOverride: row?.calendarOverride ?? null,
   };
 }
 

@@ -171,10 +171,22 @@ export type MissingPlanStudent = {
   missingWorkout: boolean;
 };
 
+/** A student check-in awaiting the coach's feedback (dashboard triage). */
+export type PendingCheckin = {
+  id: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  date: string;
+  weightKg: number | null;
+};
+
 /** The real (data-backed) part of the coach dashboard. */
 export type CoachDashboard = {
   activeCount: number;
   missingPlans: MissingPlanStudent[];
+  /** Aluno-submitted check-ins with no coach response yet (newest first). */
+  pendingCheckins: PendingCheckin[];
 };
 
 /**
@@ -187,7 +199,7 @@ export type CoachDashboard = {
 export async function getCoachDashboard(
   ctx: TenantContext,
 ): Promise<CoachDashboard> {
-  const [active, dietRows, workoutRows] = await Promise.all([
+  const [active, dietRows, workoutRows, pendingRows] = await Promise.all([
     ctx.db
       .select({
         id: schema.students.id,
@@ -221,6 +233,29 @@ export async function getCoachDashboard(
           eq(schema.studentWorkout.status, "active"),
         ),
       ),
+    // Aluno-submitted check-ins the coach hasn't answered yet (feedback pending).
+    ctx.db
+      .select({
+        id: schema.studentCheckin.id,
+        studentId: schema.studentCheckin.studentId,
+        date: schema.studentCheckin.date,
+        weightKg: schema.studentCheckin.weightKg,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+      })
+      .from(schema.studentCheckin)
+      .innerJoin(
+        schema.students,
+        eq(schema.students.id, schema.studentCheckin.studentId),
+      )
+      .where(
+        and(
+          eq(schema.studentCheckin.clinicId, ctx.clinicId),
+          eq(schema.studentCheckin.author, "student"),
+          isNull(schema.studentCheckin.feedbackAt),
+        ),
+      )
+      .orderBy(desc(schema.studentCheckin.date)),
   ]);
 
   const hasDiet = new Set(dietRows.map((r) => r.studentId));
@@ -237,7 +272,16 @@ export async function getCoachDashboard(
     }))
     .filter((s) => s.missingDiet || s.missingWorkout);
 
-  return { activeCount: active.length, missingPlans };
+  const pendingCheckins: PendingCheckin[] = pendingRows.map((r) => ({
+    id: r.id,
+    studentId: r.studentId,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    date: r.date,
+    weightKg: r.weightKg,
+  }));
+
+  return { activeCount: active.length, missingPlans, pendingCheckins };
 }
 
 export async function createStudent(

@@ -10,24 +10,27 @@ removes coaches.
 `plan_limit` is reference data (not tenant-scoped), keyed by the lowercase plan
 name, so limits are edited in the database rather than hardcoded. Seeded values:
 
-| Plan       | `max_students` | `max_coaches` | `whatsapp` |
-| ---------- | -------------: | ------------: | :--------: |
-| free       |              3 |             1 |   false    |
-| solo       |             50 |             1 |    true    |
-| clinica    |            100 |             3 |    true    |
-| enterprise |     null (∞)   |    null (∞)   |    true    |
+| Plan       | `max_students` | `max_coaches` | `whatsapp` | `calendar` |
+| ---------- | -------------: | ------------: | :--------: | :--------: |
+| free       |              3 |             1 |   false    |   false    |
+| solo       |             50 |             1 |    true    |    true    |
+| clinica    |            100 |             3 |    true    |    true    |
+| enterprise |     null (∞)   |    null (∞)   |    true    |    true    |
 
 `null` means **unlimited** — for a cap that's explicitly uncapped, and also when
 no row exists (a missing limit must never block). Read them through
 `plans.getPlanLimits(ctx)` (or the `getStudentLimit` / `getCoachLimit` /
-`canUseWhatsapp` shortcuts), always derived from the session's clinic.
+`canUseWhatsapp` / `canUseCalendar` shortcuts), always derived from the session's
+clinic. The `calendar` capability gates the coach Calendar/Agenda (Free
+excluded) — see `docs/calendar.md`.
 
 ### Per-clinic overrides (admin clinic detail)
 
 A platform admin sets limits for **one clinic** from `/admin/clinics/[id]` →
-"Limites desta clínica": máx. alunos, máx. coaches and WhatsApp. Each is stored
-as a nullable override column on `clinic` (`max_students_override`,
-`max_coaches_override`, `whatsapp_override`) — **`null` = inherit the plan
+"Limites desta clínica": máx. alunos, máx. coaches, WhatsApp, arquivar and
+Calendário. Each is stored as a nullable override column on `clinic`
+(`max_students_override`, `max_coaches_override`, `whatsapp_override`,
+`archive_override`, `calendar_override`) — **`null` = inherit the plan
 default**; a value wins for that clinic only, without changing its plan.
 `getPlanLimits` resolves `override ?? plan_default`, so overrides layer on top of
 `plan_limit`. Backed by `PUT /api/admin/clinics/[id]/limits` (admin-gated); the

@@ -79,6 +79,7 @@ describe("plan limits (coach cap + WhatsApp gate)", () => {
       maxCoaches: 3,
       whatsapp: true,
       archive: true,
+      calendar: true,
     });
     expect(await plans.getCoachLimit(owner)).toBe(3);
     expect(await plans.canUseWhatsapp(owner)).toBe(true);

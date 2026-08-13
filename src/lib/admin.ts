@@ -421,10 +421,12 @@ export type AdminClinicLimitsDto = {
   planMaxCoaches: number | null;
   planWhatsapp: boolean;
   planArchive: boolean;
+  planCalendar: boolean;
   maxStudentsOverride: number | null;
   maxCoachesOverride: number | null;
   whatsappOverride: boolean | null;
   archiveOverride: boolean | null;
+  calendarOverride: boolean | null;
 };
 
 /**
@@ -445,5 +447,6 @@ export const clinicLimitsUpdateSchema = z.object({
     .nullable(),
   whatsappOverride: z.boolean().nullable(),
   archiveOverride: z.boolean().nullable(),
+  calendarOverride: z.boolean().nullable(),
 });
 export type ClinicLimitsUpdateInput = z.output<typeof clinicLimitsUpdateSchema>;

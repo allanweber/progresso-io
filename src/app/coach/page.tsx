@@ -86,6 +86,7 @@ export default function CoachDashboardPage() {
   });
 
   const missingPlans = data?.missingPlans ?? [];
+  const pendingCheckins = data?.pendingCheckins ?? [];
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -154,31 +155,87 @@ export default function CoachDashboardPage() {
             {isLoading ? "…" : missingPlans.length}
           </div>
         </div>
-        {[
-          { label: "Check-ins pendentes" },
-          { label: "WhatsApp aguardando" },
-        ].map((k) => (
-          <div
-            key={k.label}
-            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
-          >
-            <div className="text-[13px] text-muted-foreground">{k.label}</div>
-            <div className="mt-1.5 font-heading text-3xl font-bold text-[#CBD5E1]">
-              —
-            </div>
-            <div className="text-[11px] font-medium text-muted-foreground">
-              em breve
-            </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="text-[13px] text-muted-foreground">
+            Check-ins pendentes
           </div>
-        ))}
+          <div
+            className={`mt-1.5 font-heading text-3xl font-bold ${
+              pendingCheckins.length > 0 ? "text-destructive" : "text-foreground"
+            }`}
+          >
+            {isLoading ? "…" : pendingCheckins.length}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="text-[13px] text-muted-foreground">
+            WhatsApp aguardando
+          </div>
+          <div className="mt-1.5 font-heading text-3xl font-bold text-[#CBD5E1]">
+            —
+          </div>
+          <div className="text-[11px] font-medium text-muted-foreground">
+            em breve
+          </div>
+        </div>
       </div>
 
       {/* Two-column body, faithful to the mockup */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         {/* Left column */}
         <div className="flex flex-col gap-4">
-          <SectionCard title="Check-ins aguardando resposta">
-            <ComingSoon />
+          <SectionCard
+            title="Check-ins aguardando resposta"
+            badge={
+              pendingCheckins.length > 0 ? (
+                <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                  {pendingCheckins.length}
+                </span>
+              ) : undefined
+            }
+          >
+            {isLoading ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            ) : pendingCheckins.length === 0 ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Nenhum check-in aguardando resposta. 🎉
+              </div>
+            ) : (
+              <ul>
+                {pendingCheckins.map((c) => (
+                  <li
+                    key={c.id}
+                    className="border-b border-[#F1F5F9] last:border-0"
+                  >
+                    <Link
+                      href={`/coach/students/${c.studentId}/feedback`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light"
+                    >
+                      <div
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
+                        style={{ background: avatarColor(c.studentId) }}
+                      >
+                        {studentInitials(c.firstName, c.lastName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {c.firstName} {c.lastName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {c.date.slice(8, 10)}/{c.date.slice(5, 7)}
+                          {c.weightKg != null ? ` · ${c.weightKg} kg` : ""}
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-[11px] font-semibold text-[#B45309]">
+                        responder
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </SectionCard>
           <SectionCard title="Peso destoando da meta" aside="últimos 14 dias">
             <ComingSoon />
