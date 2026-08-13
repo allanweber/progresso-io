@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { APIError } from "better-auth/api";
 
-import { auth } from "@/lib/auth";
+import { auth, withSignUpPlan } from "@/lib/auth";
+import { SIGNUP_PLAN_IDS } from "@/lib/plans";
 import { homePathForRole } from "@/lib/roles";
 import { logger, withAction } from "@/server/observability";
 import { clientIp, hit } from "@/server/rate-limit";
@@ -57,6 +58,10 @@ const signUpSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome completo."),
   email: emailSchema,
   password: newPasswordSchema,
+  // The plan chosen in the wizard. Only the self-selectable plans are accepted
+  // (never `enterprise`); a missing/unknown value falls back to `free` so a
+  // malformed request never grants a paid plan.
+  plan: z.enum(SIGNUP_PLAN_IDS).catch("free"),
 });
 
 const signInSchema = z.object({
@@ -118,16 +123,21 @@ export const signUpCoach = withAction(
   async (_prev: ActionState, formData: FormData): Promise<ActionState> => {
     const parsed = parseForm(signUpSchema, formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
-    const { name, email, password } = parsed.data;
+    const { name, email, password, plan } = parsed.data;
 
     // Cap account creation per IP (each sign-up also e-mails a verification OTP).
     if (!hit(`signup:${await clientIp()}`, 5, HOUR)) return TOO_MANY;
 
+    const requestHeaders = await headers();
     try {
-      await auth.api.signUpEmail({
-        body: { name, email, password },
-        headers: await headers(),
-      });
+      // The clinic is created by Better Auth's `user.create.after` hook; thread
+      // the chosen plan through so the new clinic starts on it (not the default).
+      await withSignUpPlan(plan, () =>
+        auth.api.signUpEmail({
+          body: { name, email, password },
+          headers: requestHeaders,
+        }),
+      );
     } catch (error) {
       logger.warn("auth.signup.failed", { code: errorCode(error) });
       return authError(error);

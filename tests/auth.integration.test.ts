@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
-import { createAuth, withoutVerificationEmail } from "@/lib/auth";
+import { createAuth, withoutVerificationEmail, withSignUpPlan } from "@/lib/auth";
 import { students as studentsDal } from "@/server/dal";
 
 import { createTestDb, type TestDb } from "./pglite";
@@ -140,6 +140,35 @@ describe("clinic tenant bootstrap", () => {
       .where(eq(schema.clinic.id, coach.clinicId!));
     expect(clinic.ownerUserId).toBe(coach.id);
     expect(clinic.name).toContain("Thiago");
+  });
+
+  it("defaults the clinic plan to free when no plan is threaded in", async () => {
+    const [coach] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, coachEmail));
+    const [clinic] = await db
+      .select()
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, coach.clinicId!));
+    expect(clinic.plan).toBe("free");
+  });
+
+  it("starts the clinic on the plan chosen at sign-up (withSignUpPlan)", async () => {
+    const email = "solo-signup@example.com";
+    await withSignUpPlan("solo", () =>
+      auth.api.signUpEmail({ body: { name: "Solo Coach", email, password } }),
+    );
+
+    const [coach] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, email));
+    const [clinic] = await db
+      .select()
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, coach.clinicId!));
+    expect(clinic.plan).toBe("solo");
   });
 
   it("gives the ADMIN_EMAIL sign-up the admin role and no clinic", async () => {

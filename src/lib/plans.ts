@@ -41,13 +41,15 @@ export const PLAN_META: Record<Plan, PlanMeta> = {
 
 /**
  * Plans a coach can pick during sign-up. Enterprise is a "contact us" plan, so
- * it is not self-selectable (it never appears here).
+ * it is not self-selectable (it never appears here). `SIGNUP_PLAN_IDS` is the
+ * server-side allow-list the sign-up action validates the submitted plan against
+ * — a coach can only self-select one of these, never `enterprise`.
  */
-export const SIGNUP_PLANS: PlanMeta[] = [
-  PLAN_META.free,
-  PLAN_META.solo,
-  PLAN_META.clinica,
-];
+export const SIGNUP_PLAN_IDS = ["free", "solo", "clinica"] as const;
+
+export const SIGNUP_PLANS: PlanMeta[] = SIGNUP_PLAN_IDS.map(
+  (id) => PLAN_META[id],
+);
 
 /**
  * Whether each plan may archive (soft-remove) students. Free/Solo can't — they
