@@ -144,19 +144,23 @@ function CoachInvoicesCard() {
       {data && data.length > 0 && (
         <ul className="divide-y divide-border">
           {data.map((inv) => (
-            <li
-              key={inv.id}
-              className="flex items-center justify-between gap-3 py-2.5"
-            >
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-foreground">
-                  #{inv.number} · {formatCompetencia(inv.competencia)}
+            <li key={inv.id}>
+              <a
+                href={`/api/coach/invoices/${inv.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir fatura em PDF"
+                className="flex items-center justify-between gap-3 rounded-lg py-2.5 transition-colors hover:bg-surface-light"
+              >
+                <div className="min-w-0 pl-1">
+                  <div className="text-sm font-medium text-foreground">
+                    #{inv.number} · {formatCompetencia(inv.competencia)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Vence {formatDateBR(inv.dueDate)}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Vence {formatDateBR(inv.dueDate)}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex flex-col items-end gap-0.5 pr-1">
                 <span className="text-sm font-semibold text-foreground">
                   {formatBRL(inv.totalCents)}
                 </span>
@@ -174,7 +178,8 @@ function CoachInvoicesCard() {
                     ? "Vencida"
                     : INVOICE_STATUS_LABELS[inv.status]}
                 </span>
-              </div>
+                </div>
+              </a>
             </li>
           ))}
         </ul>

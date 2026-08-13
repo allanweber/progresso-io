@@ -58,6 +58,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Don't advertise the framework/version.
   poweredByHeader: false,
+  // pdfkit (invoice PDFs) reads its bundled .afm font metrics from disk at
+  // runtime; keeping it external stops the bundler from breaking those requires
+  // and ensures the whole package is traced into the standalone output.
+  serverExternalPackages: ["pdfkit"],
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

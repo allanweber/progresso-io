@@ -36,9 +36,12 @@ The calendar merges two things on **read**; only the first is stored.
    its due date as a read-only **"Administrativo"** (amber) appointment
    (`Fatura #NNNN`), so the coach sees upcoming cobranças/renovações. Faturas are
    the *clinic's* own Progresso subscription invoices, managed by a platform
-   admin — so these markers are **not** draggable or editable; clicking one jumps
-   to the **Faturas** card in `/coach/settings`. Only `pending` invoices appear
-   (paid/canceled don't); an overdue one is flagged red.
+   admin — so these markers are **not** draggable or editable; clicking one opens
+   the **fatura PDF** (`GET /api/coach/invoices/[id]/pdf`, coach-only + clinic-
+   scoped, rendered with pdfkit — see `src/server/invoice-pdf.ts`). The same PDF
+   opens from each row of the **Faturas** card in `/coach/settings`. Only
+   `pending` invoices appear on the calendar (paid/canceled don't); an overdue
+   one is flagged red.
 
 ## Dates & times are locale-proof
 
