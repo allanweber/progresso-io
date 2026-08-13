@@ -32,9 +32,22 @@ The calendar merges two things on **read**; only the first is stored.
    its marker** for that student (the record takes over), so the two never
    double up.
 
-There is deliberately **no derived "renovação"** source: the app models no
-student billing (invoices are the *clinic's* own Progresso subscription, managed
-by a platform admin), so administrativo/renovação events are manual only.
+3. **Derived invoice markers** (never stored) — each **pending fatura** shows on
+   its due date as a read-only **"Administrativo"** (amber) appointment
+   (`Fatura #NNNN`), so the coach sees upcoming cobranças/renovações. Faturas are
+   the *clinic's* own Progresso subscription invoices, managed by a platform
+   admin — so these markers are **not** draggable or editable; clicking one jumps
+   to the **Faturas** card in `/coach/settings`. Only `pending` invoices appear
+   (paid/canceled don't); an overdue one is flagged red.
+
+## Dates & times are locale-proof
+
+Native `<input type="date">` / `type="time"` render in the **browser's** locale
+(a US device shows `mm/dd/yyyy` + `9:30 AM`), which can't be overridden. So the
+app uses `DateInput` / `TimeInput` (`src/components/ui/date-input.tsx`) — masked
+text inputs that always display **dd/mm/aaaa** and **24h HH:MM** regardless of
+device locale, while storing the canonical `yyyy-mm-dd` / `HH:MM`. Use them in
+place of native date/time inputs everywhere (calendar event modal, admin billing).
 
 ## Tenancy & visibility
 

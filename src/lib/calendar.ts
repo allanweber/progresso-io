@@ -73,7 +73,7 @@ export type CalendarItemDto = {
   key: string;
   /** The row id for stored events; `null` for derived markers (read-only). */
   id: string | null;
-  source: "manual" | "checkin-due";
+  source: "manual" | "checkin-due" | "invoice-due";
   type: CalendarEventType;
   title: string;
   /** Clinic-local calendar day, `YYYY-MM-DD`. */
