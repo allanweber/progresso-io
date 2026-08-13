@@ -56,8 +56,9 @@ test.describe("clinic settings", () => {
       has: page.getByRole("heading", { name: "Plano atual" }),
     });
     await expect(planCard).toBeVisible();
-    await expect(planCard.getByText("Alunos")).toBeVisible();
-    await expect(planCard.getByText("Coaches")).toBeVisible();
+    // Exact match: the plan description also contains "…alunos…/…coaches…".
+    await expect(planCard.getByText("Alunos", { exact: true })).toBeVisible();
+    await expect(planCard.getByText("Coaches", { exact: true })).toBeVisible();
     await expect(planCard.getByText("Incluído")).toBeVisible();
 
     // Faturas is a read-only card fed by the admin's manual ledger. The seed

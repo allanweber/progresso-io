@@ -1,10 +1,30 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
+import type { Plan } from "@/db/schema";
+import type { AdminClinicLimitsDto } from "@/lib/admin";
+import { PLAN_META } from "@/lib/plans";
 import { admin, billing } from "@/server/dal";
 import { forbidden, isUuid, notFound } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
 import { getAdminSession } from "@/server/admin";
+
+/** Maps the DAL limits row into the client DTO (adds the plan display name). */
+function toLimitsDto(
+  plan: Plan,
+  row: Awaited<ReturnType<typeof admin.getClinicLimits>>,
+): AdminClinicLimitsDto {
+  return {
+    plan,
+    planName: PLAN_META[plan]?.name ?? plan,
+    planMaxStudents: row?.planMaxStudents ?? null,
+    planMaxCoaches: row?.planMaxCoaches ?? null,
+    planWhatsapp: row?.planWhatsapp ?? true,
+    maxStudentsOverride: row?.maxStudentsOverride ?? null,
+    maxCoachesOverride: row?.maxCoachesOverride ?? null,
+    whatsappOverride: row?.whatsappOverride ?? null,
+  };
+}
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -25,11 +45,13 @@ export const GET = withRoute<Params>(
     const clinic = await admin.getClinicAdminRow(db, id);
     if (!clinic) return notFound("Clínica não encontrada.");
 
-    const [planChanges, invoices] = await Promise.all([
+    const [planChanges, invoices, limitsRow] = await Promise.all([
       billing.listPlanChanges(db, id),
       billing.listInvoicesForClinic(db, id),
+      admin.getClinicLimits(db, id),
     ]);
-    return NextResponse.json({ clinic, planChanges, invoices });
+    const limits = toLimitsDto(clinic.plan, limitsRow);
+    return NextResponse.json({ clinic, planChanges, invoices, limits });
   },
 );
 

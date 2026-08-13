@@ -176,6 +176,13 @@
       "when": 1786561397678,
       "tag": "0024_plan_limits_coach_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786572778290,
+      "tag": "0025_clinic_limit_overrides",
+      "breakpoints": true
     }
   ]
 }

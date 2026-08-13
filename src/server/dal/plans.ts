@@ -21,24 +21,31 @@ export type PlanLimits = {
 };
 
 /**
- * The current clinic's plan capabilities. A missing `plan_limit` row must never
- * block: caps fall back to unlimited and WhatsApp stays enabled (paid default).
+ * The current clinic's effective plan capabilities: the plan defaults
+ * (`plan_limit`) with any per-clinic override applied on top. A `null` override
+ * column means "inherit the plan"; a set value wins for this clinic only. A
+ * missing `plan_limit` row must never block — caps fall back to unlimited and
+ * WhatsApp stays enabled (paid default). Left join, so an override still resolves
+ * even if the plan row is absent.
  */
 export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
   const [row] = await ctx.db
     .select({
-      maxStudents: schema.planLimit.maxStudents,
-      maxCoaches: schema.planLimit.maxCoaches,
-      whatsapp: schema.planLimit.whatsapp,
+      planMaxStudents: schema.planLimit.maxStudents,
+      planMaxCoaches: schema.planLimit.maxCoaches,
+      planWhatsapp: schema.planLimit.whatsapp,
+      overStudents: schema.clinic.maxStudentsOverride,
+      overCoaches: schema.clinic.maxCoachesOverride,
+      overWhatsapp: schema.clinic.whatsappOverride,
     })
     .from(schema.clinic)
-    .innerJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
+    .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
     .where(eq(schema.clinic.id, ctx.clinicId));
 
   return {
-    maxStudents: row?.maxStudents ?? null,
-    maxCoaches: row?.maxCoaches ?? null,
-    whatsapp: row?.whatsapp ?? true,
+    maxStudents: row?.overStudents ?? row?.planMaxStudents ?? null,
+    maxCoaches: row?.overCoaches ?? row?.planMaxCoaches ?? null,
+    whatsapp: row?.overWhatsapp ?? row?.planWhatsapp ?? true,
   };
 }
 

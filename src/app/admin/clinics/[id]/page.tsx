@@ -38,7 +38,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { Plan } from "@/db/schema";
-import type { AdminClinicDto } from "@/lib/admin";
+import {
+  type AdminClinicDto,
+  type AdminClinicLimitsDto,
+  clinicLimitsUpdateSchema,
+} from "@/lib/admin";
 import { PLAN_META } from "@/lib/plans";
 import {
   centsToReais,
@@ -60,6 +64,7 @@ type ClinicDetailResponse = {
   clinic: AdminClinicDto;
   planChanges: PlanChangeDto[];
   invoices: InvoiceDto[];
+  limits: AdminClinicLimitsDto;
 };
 
 /** Today's month ("YYYY-MM") and day ("YYYY-MM-DD") for prefilling invoice dates. */
@@ -146,7 +151,7 @@ export default function AdminClinicDetailPage() {
     );
   }
 
-  const { clinic, planChanges, invoices } = detail.data;
+  const { clinic, planChanges, invoices, limits } = detail.data;
 
   return (
     <div className="space-y-6">
@@ -197,6 +202,18 @@ export default function AdminClinicDetailPage() {
             </ul>
           </div>
         )}
+      </section>
+
+      {/* Per-clinic limit overrides */}
+      <section className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <h2 className="text-lg font-semibold text-foreground">
+          Limites desta clínica
+        </h2>
+        <p className="text-[13px] text-muted-foreground">
+          Ajuste os limites só para esta clínica, sem trocar o plano. Deixe em
+          branco (ou “Padrão do plano”) para herdar o plano {limits.planName}.
+        </p>
+        <LimitsForm clinicId={id} limits={limits} onDone={invalidate} />
       </section>
 
       {/* Invoices */}
@@ -978,5 +995,137 @@ function MarkPaidDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Per-clinic limit overrides                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** "50" or "" — the input value for an override cap (empty = inherit the plan). */
+function overrideInput(value: number | null): string {
+  return value === null ? "" : String(value);
+}
+
+/** A plan default rendered for the input placeholder ("Padrão: 50" / "ilimitado"). */
+function planDefaultHint(value: number | null): string {
+  return `Padrão: ${value === null ? "ilimitado" : value}`;
+}
+
+function LimitsForm({
+  clinicId,
+  limits,
+  onDone,
+}: {
+  clinicId: string;
+  limits: AdminClinicLimitsDto;
+  onDone: () => void;
+}) {
+  const [students, setStudents] = useState(
+    overrideInput(limits.maxStudentsOverride),
+  );
+  const [coaches, setCoaches] = useState(
+    overrideInput(limits.maxCoachesOverride),
+  );
+  const [whatsapp, setWhatsapp] = useState<"inherit" | "yes" | "no">(
+    limits.whatsappOverride === null
+      ? "inherit"
+      : limits.whatsappOverride
+        ? "yes"
+        : "no",
+  );
+
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch<{ limits: AdminClinicLimitsDto }>(
+        `/api/admin/clinics/${clinicId}/limits`,
+        {
+          method: "PUT",
+          body: JSON.stringify(
+            clinicLimitsUpdateSchema.parse({
+              maxStudentsOverride:
+                students.trim() === "" ? null : Number(students),
+              maxCoachesOverride: coaches.trim() === "" ? null : Number(coaches),
+              whatsappOverride:
+                whatsapp === "inherit" ? null : whatsapp === "yes",
+            }),
+          ),
+        },
+      ),
+    onSuccess: onDone,
+  });
+
+  const dirty =
+    students !== overrideInput(limits.maxStudentsOverride) ||
+    coaches !== overrideInput(limits.maxCoachesOverride) ||
+    whatsapp !==
+      (limits.whatsappOverride === null
+        ? "inherit"
+        : limits.whatsappOverride
+          ? "yes"
+          : "no");
+  const banner = save.error instanceof ApiError ? save.error.message : undefined;
+
+  return (
+    <div className="mt-4">
+      {banner ? (
+        <div className="mb-3 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+          {banner}
+        </div>
+      ) : null}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="lim-students">Máx. alunos</Label>
+          <Input
+            id="lim-students"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder={planDefaultHint(limits.planMaxStudents)}
+            value={students}
+            onChange={(e) => setStudents(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lim-coaches">Máx. coaches</Label>
+          <Input
+            id="lim-coaches"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder={planDefaultHint(limits.planMaxCoaches)}
+            value={coaches}
+            onChange={(e) => setCoaches(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lim-whatsapp">WhatsApp</Label>
+          <Select
+            value={whatsapp}
+            onValueChange={(v) => setWhatsapp(v as "inherit" | "yes" | "no")}
+          >
+            <SelectTrigger id="lim-whatsapp">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inherit">
+                Padrão do plano ({limits.planWhatsapp ? "incluído" : "não"})
+              </SelectItem>
+              <SelectItem value="yes">Incluído</SelectItem>
+              <SelectItem value="no">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Button
+          type="button"
+          disabled={!dirty || save.isPending}
+          onClick={() => save.mutate()}
+        >
+          {save.isPending ? "Salvando…" : "Salvar limites"}
+        </Button>
+      </div>
+    </div>
   );
 }

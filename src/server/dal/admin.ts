@@ -24,7 +24,6 @@ import type {
   FoodType,
   Muscle,
   Plan,
-  PlanLimit,
   Student,
   User,
 } from "@/db/schema";
@@ -1621,35 +1620,61 @@ export async function importStartersToClinic(
   };
 }
 
+
 /* -------------------------------------------------------------------------- */
-/*  Plan limits (reference data) — admin-managed per-plan capabilities         */
+/*  Per-clinic capability limits (plan defaults + per-clinic overrides)         */
 /* -------------------------------------------------------------------------- */
 
-/** Every `plan_limit` row (unordered — the caller sorts by plan). */
-export async function listPlanLimits(db: DB): Promise<PlanLimit[]> {
-  return db.select().from(schema.planLimit);
-}
-
-/** Values an admin may set for a plan. `null` caps = unlimited. */
-export type PlanLimitInput = {
-  maxStudents: number | null;
-  maxCoaches: number | null;
-  whatsapp: boolean;
+/** A clinic's plan defaults plus its per-clinic overrides (null = inherit). */
+export type ClinicLimitsRow = {
+  plan: Plan;
+  planMaxStudents: number | null;
+  planMaxCoaches: number | null;
+  planWhatsapp: boolean | null;
+  maxStudentsOverride: number | null;
+  maxCoachesOverride: number | null;
+  whatsappOverride: boolean | null;
 };
 
-/**
- * Upserts a plan's capabilities. Upsert (not update) so a plan whose row was
- * never seeded is created rather than silently ignored.
- */
-export async function upsertPlanLimit(
+/** Reads a clinic's plan defaults + overrides (left join, so a missing plan row is fine). */
+export async function getClinicLimits(
   db: DB,
-  plan: Plan,
-  input: PlanLimitInput,
-): Promise<PlanLimit> {
+  clinicId: string,
+): Promise<ClinicLimitsRow | null> {
   const [row] = await db
-    .insert(schema.planLimit)
-    .values({ plan, ...input })
-    .onConflictDoUpdate({ target: schema.planLimit.plan, set: input })
-    .returning();
-  return row;
+    .select({
+      plan: schema.clinic.plan,
+      planMaxStudents: schema.planLimit.maxStudents,
+      planMaxCoaches: schema.planLimit.maxCoaches,
+      planWhatsapp: schema.planLimit.whatsapp,
+      maxStudentsOverride: schema.clinic.maxStudentsOverride,
+      maxCoachesOverride: schema.clinic.maxCoachesOverride,
+      whatsappOverride: schema.clinic.whatsappOverride,
+    })
+    .from(schema.clinic)
+    .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
+    .where(eq(schema.clinic.id, clinicId));
+  return row ?? null;
+}
+
+/** The per-clinic overrides an admin may set (each `null` = inherit the plan). */
+export type ClinicLimitsOverrideInput = {
+  maxStudentsOverride: number | null;
+  maxCoachesOverride: number | null;
+  whatsappOverride: boolean | null;
+};
+
+/** Writes a clinic's overrides; returns the fresh limits, or null if unknown. */
+export async function updateClinicLimits(
+  db: DB,
+  clinicId: string,
+  input: ClinicLimitsOverrideInput,
+): Promise<ClinicLimitsRow | null> {
+  const rows = await db
+    .update(schema.clinic)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(schema.clinic.id, clinicId))
+    .returning({ id: schema.clinic.id });
+  if (rows.length === 0) return null;
+  return getClinicLimits(db, clinicId);
 }
