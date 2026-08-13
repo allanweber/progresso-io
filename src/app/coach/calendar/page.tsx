@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -86,7 +85,6 @@ function groupByDay(items: CalendarItemDto[]): Map<string, CalendarItemDto[]> {
 
 export default function CoachCalendarPage() {
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const [view, setView] = useState<View>("month");
   const [anchor, setAnchor] = useState<string>(() => todayYmd());
@@ -203,10 +201,11 @@ export default function CoachCalendarPage() {
 
   // Clicking an event opens the editor. A derived check-in has no id, so saving
   // it CREATES a record — materializing the marker into a real event. Invoice
-  // markers are read-only (managed in billing) — clicking jumps to Faturas.
+  // markers are read-only (managed in billing) — clicking opens the fatura PDF.
   function openItem(item: CalendarItemDto) {
     if (item.source === "invoice-due") {
-      router.push("/coach/settings");
+      const invoiceId = item.key.split(":")[1];
+      if (invoiceId) window.open(`/api/coach/invoices/${invoiceId}/pdf`, "_blank");
       return;
     }
     setDialog({ mode: "edit", item });
