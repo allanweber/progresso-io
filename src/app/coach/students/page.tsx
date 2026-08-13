@@ -207,12 +207,22 @@ export default function StudentsPage() {
               {formatUsage(usage.students.used, usage.students.limit)} alunos
             </span>
           ) : null}
-          <Button asChild>
-            <Link href="/coach/students/new">
+          {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
+            <Button
+              disabled
+              title={`Limite de ${usage.students.limit} alunos do plano ${usage.planName} atingido. Faça upgrade para adicionar mais.`}
+            >
               <Plus className="size-4" />
               Adicionar aluno
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/coach/students/new">
+                <Plus className="size-4" />
+                Adicionar aluno
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
