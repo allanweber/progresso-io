@@ -79,32 +79,43 @@ describe("month grid", () => {
 });
 
 describe("computeCheckinDue", () => {
-  const preferredDayIndex = WEEKDAY_INDEX.monday;
-
-  it("projects the next due date forward, snapped to the preferred weekday", () => {
+  it("projects forward by the interval, keeping the base weekday", () => {
+    // 2026-08-13 is a Thursday; +7 days stays Thursday, in the future.
     const due = computeCheckinDue({
-      today: "2026-08-13", // a Thursday
+      today: "2026-08-13",
       lastCheckinDate: null,
       createdDate: "2026-08-13",
       frequency: "semanal",
-      preferredDayIndex,
     });
     expect(due.overdue).toBe(false);
-    expect(weekdayOf(due.date)).toBe(1); // a Monday
-    expect(due.date > "2026-08-13").toBe(true);
+    expect(due.date).toBe("2026-08-20");
+    expect(weekdayOf(due.date)).toBe(weekdayOf("2026-08-13"));
   });
 
-  it("flags an overdue student and surfaces the marker on/after today", () => {
+  it("keeps the last check-in's weekday (not a global preferred day)", () => {
+    // Last check-in on a Wednesday → next due is the following Wednesday.
+    const base = "2026-08-12"; // Wednesday
     const due = computeCheckinDue({
       today: "2026-08-13",
-      lastCheckinDate: "2026-01-05", // months ago
+      lastCheckinDate: base,
       createdDate: "2026-01-01",
       frequency: "semanal",
-      preferredDayIndex,
+    });
+    expect(weekdayOf(due.date)).toBe(weekdayOf(base));
+    expect(due.date).toBe("2026-08-19");
+  });
+
+  it("rolls an overdue student forward on the same weekday, flagged red", () => {
+    const base = "2026-01-05"; // a Monday, months ago
+    const due = computeCheckinDue({
+      today: "2026-08-13",
+      lastCheckinDate: base,
+      createdDate: "2026-01-01",
+      frequency: "semanal",
     });
     expect(due.overdue).toBe(true);
     expect(due.date >= "2026-08-13").toBe(true);
-    expect(weekdayOf(due.date)).toBe(1);
+    expect(weekdayOf(due.date)).toBe(weekdayOf(base)); // still a Monday
   });
 
   it("respects the cadence interval (mensal ≈ 4 weeks out)", () => {
@@ -113,14 +124,12 @@ describe("computeCheckinDue", () => {
       lastCheckinDate: "2026-08-10",
       createdDate: "2026-08-10",
       frequency: "semanal",
-      preferredDayIndex,
     });
     const monthly = computeCheckinDue({
       today: "2026-08-13",
       lastCheckinDate: "2026-08-10",
       createdDate: "2026-08-10",
       frequency: "mensal",
-      preferredDayIndex,
     });
     expect(monthly.date > weekly.date).toBe(true);
   });

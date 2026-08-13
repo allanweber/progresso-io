@@ -250,32 +250,28 @@ export type CheckinDueInput = {
   /** Fallback base when there's no history (the student's join day). */
   createdDate: string;
   frequency: FeedbackFrequency;
-  /** Clinic's preferred check-in weekday, as a JS index (Sunday = 0). */
-  preferredDayIndex: number;
 };
 
 export type CheckinDue = { date: string; overdue: boolean };
 
 /**
- * The next check-in due date for one student: last check-in (or join day) +
- * the cadence interval, snapped forward to the clinic's preferred weekday. If
- * that lands in the past the student is overdue — we surface the marker on the
- * next preferred day on/after today (so it stays visible + actionable) and flag
- * it red rather than burying it weeks back.
+ * The next check-in due date for one student: their last check-in (or, with no
+ * history, their join day) plus the clinic's cadence **interval**. The interval
+ * is always a whole number of weeks (7 / 14 / 28), so the result keeps the SAME
+ * WEEKDAY the student was registered / last checked in on — the day is the
+ * student's own, only the interval comes from the clinic preference. If the
+ * projected date is already past (the student is overdue), it rolls forward by
+ * whole intervals — staying on that weekday — to the next future occurrence and
+ * is flagged red.
  */
 export function computeCheckinDue(input: CheckinDueInput): CheckinDue {
+  const step = FREQUENCY_DAYS[input.frequency];
   const base = input.lastCheckinDate ?? input.createdDate;
-  const due = snapToWeekday(
-    addDays(base, FREQUENCY_DAYS[input.frequency]),
-    input.preferredDayIndex,
-  );
-  if (due < input.today) {
-    return {
-      date: snapToWeekday(input.today, input.preferredDayIndex),
-      overdue: true,
-    };
-  }
-  return { date: due, overdue: false };
+  let due = addDays(base, step);
+  if (due >= input.today) return { date: due, overdue: false };
+  // Overdue: advance by whole intervals (preserving the weekday) into the future.
+  while (due < input.today) due = addDays(due, step);
+  return { date: due, overdue: true };
 }
 
 /* ----------------------------- view helpers ------------------------------- */

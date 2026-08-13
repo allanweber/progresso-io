@@ -174,6 +174,50 @@ describe("derived check-in markers", () => {
     expect(marker?.overdue).toBe(true);
   });
 
+  it("suppresses the derived marker once its check-in is materialized", async () => {
+    const ctx = await ownerContext("cal-materialize@example.com", "clinica");
+    const student = await studentsDal.createStudent(ctx, {
+      firstName: "Materializa",
+      lastName: "Aluno",
+      email: "materializa@example.com",
+    });
+
+    // The derived marker shows before materialization.
+    let cal = await calendarEvents.getCalendar(ctx, WIDE_RANGE);
+    expect(
+      cal.items.some(
+        (i) => i.source === "checkin-due" && i.studentId === student.id,
+      ),
+    ).toBe(true);
+
+    // Materialize it: a stored `checkin` event for this student in the future.
+    await calendarEvents.createEvent(ctx, {
+      type: "checkin",
+      title: "Check-in — Materializa",
+      date: addDays(todayYmd(), 3),
+      startTime: null,
+      endTime: null,
+      studentId: student.id,
+      notes: null,
+    });
+
+    // Now the derived marker is gone; the stored record takes over.
+    cal = await calendarEvents.getCalendar(ctx, WIDE_RANGE);
+    expect(
+      cal.items.some(
+        (i) => i.source === "checkin-due" && i.studentId === student.id,
+      ),
+    ).toBe(false);
+    expect(
+      cal.items.some(
+        (i) =>
+          i.source === "manual" &&
+          i.type === "checkin" &&
+          i.studentId === student.id,
+      ),
+    ).toBe(true);
+  });
+
   it("does not project markers for archived students", async () => {
     const ctx = await ownerContext("cal-archived@example.com", "clinica");
     const student = await studentsDal.createStudent(ctx, {

@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -73,7 +82,6 @@ function groupByDay(items: CalendarItemDto[]): Map<string, CalendarItemDto[]> {
 }
 
 export default function CoachCalendarPage() {
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [view, setView] = useState<View>("month");
@@ -84,6 +92,13 @@ export default function CoachCalendarPage() {
   const [dialog, setDialog] = useState<
     { mode: "create"; date: string } | { mode: "edit"; item: CalendarItemDto } | null
   >(null);
+
+  // The item currently being dragged (for the drag preview).
+  const [dragging, setDragging] = useState<CalendarItemDto | null>(null);
+  // A small move threshold so a click still opens the editor (vs. a drag).
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
 
   // The visible range for the current view.
   const range = useMemo(() => {
@@ -126,12 +141,57 @@ export default function CoachCalendarPage() {
     queryClient.invalidateQueries({ queryKey: ["coach-dashboard"] });
   }
 
-  function openItem(item: CalendarItemDto) {
-    if (item.source === "checkin-due") {
-      // Derived markers are read-only: jump to the student's Feedback tab.
-      if (item.studentId) router.push(`/coach/students/${item.studentId}/feedback`);
+  // Reschedule (drag-drop): PATCH a stored event, or CREATE (materialize) a
+  // derived check-in marker at the dropped day/time. Same body either way.
+  const reschedule = useMutation({
+    mutationFn: ({
+      item,
+      date,
+      startTime,
+    }: {
+      item: CalendarItemDto;
+      date: string;
+      startTime: string | null;
+    }) => {
+      const body = {
+        type: item.type,
+        title: item.title,
+        date,
+        startTime: startTime ?? "",
+        studentId: item.studentId ?? "",
+        notes: item.notes ?? "",
+      };
+      return apiFetch(
+        item.id ? `/api/coach/calendar/${item.id}` : "/api/coach/calendar",
+        {
+          method: item.id ? "PATCH" : "POST",
+          body: JSON.stringify(body),
+        },
+      );
+    },
+    onSuccess: invalidate,
+  });
+
+  function handleDragEnd(e: DragEndEvent) {
+    setDragging(null);
+    const item = e.active.data.current?.item as CalendarItemDto | undefined;
+    const target = e.over?.data.current as
+      | { date: string; startTime?: string | null; keepTime?: boolean }
+      | undefined;
+    if (!item || !target) return;
+    const nextStart = target.keepTime
+      ? item.startTime
+      : (target.startTime ?? null);
+    // No-op if it didn't actually move.
+    if (item.date === target.date && (item.startTime ?? null) === nextStart) {
       return;
     }
+    reschedule.mutate({ item, date: target.date, startTime: nextStart });
+  }
+
+  // Clicking any item opens the editor. A derived check-in has no id, so saving
+  // it CREATES a record — materializing the marker into a real event.
+  function openItem(item: CalendarItemDto) {
     setDialog({ mode: "edit", item });
   }
 
@@ -202,54 +262,60 @@ export default function CoachCalendarPage() {
         </div>
       </div>
 
-      {planLocked ? (
-        <CalendarUpsell />
-      ) : calendar.isLoading ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white px-4 py-16 text-center text-sm text-muted-foreground">
-          Carregando…
-        </div>
-      ) : calendar.isError ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white px-4 py-16 text-center text-sm text-destructive">
-          {(calendar.error as Error).message}
-        </div>
-      ) : view === "month" ? (
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_280px]">
-          <MonthGrid
-            anchor={anchor}
+      <DndContext
+        sensors={sensors}
+        onDragStart={(e) =>
+          setDragging(
+            (e.active.data.current?.item as CalendarItemDto | undefined) ?? null,
+          )
+        }
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDragging(null)}
+      >
+        {planLocked ? (
+          <CalendarUpsell />
+        ) : calendar.isLoading ? (
+          <div className="mt-6 rounded-2xl border border-border bg-white px-4 py-16 text-center text-sm text-muted-foreground">
+            Carregando…
+          </div>
+        ) : calendar.isError ? (
+          <div className="mt-6 rounded-2xl border border-border bg-white px-4 py-16 text-center text-sm text-destructive">
+            {(calendar.error as Error).message}
+          </div>
+        ) : view === "month" ? (
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_280px]">
+            <MonthGrid
+              anchor={anchor}
+              today={today}
+              byDay={byDay}
+              onSelectDay={(date) => setDialog({ mode: "create", date })}
+              onOpenItem={openItem}
+            />
+            <UpcomingPanel
+              items={upcoming.data?.items ?? []}
+              today={today}
+              onOpenItem={openItem}
+            />
+          </div>
+        ) : (
+          <TimeGrid
+            days={view === "week" ? weekDays(anchor) : [anchor]}
             today={today}
             byDay={byDay}
+            onOpenItem={openItem}
             onSelectDay={(date) => setDialog({ mode: "create", date })}
-            onOpenItem={openItem}
           />
-          <UpcomingPanel
-            items={upcoming.data?.items ?? []}
-            today={today}
-            onOpenItem={openItem}
-          />
-        </div>
-      ) : view === "week" ? (
-        <TimeGrid
-          days={weekDays(anchor)}
-          today={today}
-          byDay={byDay}
-          onOpenItem={openItem}
-          onSelectDay={(date) => setDialog({ mode: "create", date })}
-        />
-      ) : (
-        <TimeGrid
-          days={[anchor]}
-          today={today}
-          byDay={byDay}
-          onOpenItem={openItem}
-          onSelectDay={(date) => setDialog({ mode: "create", date })}
-        />
-      )}
+        )}
+        <DragOverlay dropAnimation={null}>
+          {dragging ? <ChipBody item={dragging} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       {!planLocked && <Legend />}
 
       {dialog && (
         <EventDialog
-          key={dialog.mode === "edit" ? dialog.item.id : `new-${dialog.date}`}
+          key={dialog.mode === "edit" ? dialog.item.key : `new-${dialog.date}`}
           initial={
             dialog.mode === "edit"
               ? dialog.item
@@ -263,6 +329,29 @@ export default function CoachCalendarPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/** A drop target: a day cell (month) or a time slot (week/day). Highlights on hover. */
+function DroppableCell({
+  id,
+  data,
+  className,
+  children,
+}: {
+  id: string;
+  data: { date: string; startTime?: string | null; keepTime?: boolean };
+  className?: string;
+  children: ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id, data });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(className, isOver && "ring-2 ring-inset ring-primary/50")}
+    >
+      {children}
     </div>
   );
 }
@@ -307,8 +396,10 @@ function MonthGrid({
           const inMonth = isSameMonth(day, anchor);
           const isToday = day === today;
           return (
-            <div
+            <DroppableCell
               key={day}
+              id={`day::${day}`}
+              data={{ date: day, keepTime: true }}
               className={cn(
                 "group min-h-[92px] border-b border-r border-[#F1F5F9] p-1.5 [&:nth-child(7n)]:border-r-0",
                 inMonth ? "bg-white" : "bg-[#FAFBFC]",
@@ -341,7 +432,7 @@ function MonthGrid({
                   <EventChip key={item.key} item={item} onClick={() => onOpenItem(item)} />
                 ))}
               </div>
-            </div>
+            </DroppableCell>
           );
         })}
       </div>
@@ -349,7 +440,26 @@ function MonthGrid({
   );
 }
 
-/** A compact one-line coloured chip for a calendar item. */
+/** The chip's coloured label — shared by the draggable chip and the drag overlay. */
+function ChipBody({ item }: { item: CalendarItemDto }) {
+  const { accent, soft } = itemColors(item);
+  return (
+    <span
+      className="block truncate rounded border-l-[3px] px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight shadow-sm"
+      style={{ background: soft, color: accent, borderColor: accent }}
+    >
+      {timePrefix(item)}
+      {item.title}
+      {item.overdue ? " · atrasado" : ""}
+    </span>
+  );
+}
+
+/**
+ * A draggable, clickable calendar chip. A small drag threshold (see the
+ * PointerSensor) keeps a plain click opening the editor; a real drag reschedules
+ * the event (or materializes a derived check-in) at the dropped day/time.
+ */
 function EventChip({
   item,
   onClick,
@@ -357,18 +467,22 @@ function EventChip({
   item: CalendarItemDto;
   onClick: () => void;
 }) {
-  const { accent, soft } = itemColors(item);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: item.key,
+    data: { item },
+  });
   return (
     <button
+      ref={setNodeRef}
       type="button"
       onClick={onClick}
       title={item.title}
-      className="truncate rounded border-l-[3px] px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight"
-      style={{ background: soft, color: accent, borderColor: accent }}
+      className="cursor-grab text-left active:cursor-grabbing"
+      style={{ opacity: isDragging ? 0.35 : 1, touchAction: "none" }}
+      {...listeners}
+      {...attributes}
     >
-      {timePrefix(item)}
-      {item.title}
-      {item.overdue ? " · atrasado" : ""}
+      <ChipBody item={item} />
     </button>
   );
 }
@@ -442,13 +556,18 @@ function TimeGrid({
         {days.map((day) => {
           const allDay = (byDay.get(day) ?? []).filter((i) => !i.startTime);
           return (
-            <div key={day} className="min-h-[38px] border-l border-border p-1">
+            <DroppableCell
+              key={day}
+              id={`allday::${day}`}
+              data={{ date: day, startTime: null }}
+              className="min-h-[38px] border-l border-border p-1"
+            >
               <div className="flex flex-col gap-1">
                 {allDay.map((item) => (
                   <EventChip key={item.key} item={item} onClick={() => onOpenItem(item)} />
                 ))}
               </div>
-            </div>
+            </DroppableCell>
           );
         })}
       </div>
@@ -469,7 +588,12 @@ function TimeGrid({
                 (i) => hourOf(i) === hour,
               );
               return (
-                <div key={day} className="min-h-[44px] border-l border-[#F1F5F9] p-1">
+                <DroppableCell
+                  key={day}
+                  id={`slot::${day}::${hour}`}
+                  data={{ date: day, startTime: `${String(hour).padStart(2, "0")}:00` }}
+                  className="min-h-[44px] border-l border-[#F1F5F9] p-1"
+                >
                   <div className="flex flex-col gap-1">
                     {slot.map((item) => (
                       <EventChip
@@ -479,7 +603,7 @@ function TimeGrid({
                       />
                     ))}
                   </div>
-                </div>
+                </DroppableCell>
               );
             })}
           </div>
