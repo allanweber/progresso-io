@@ -286,6 +286,7 @@ function ConfirmStep({
       <input type="hidden" name="name" value={account.name} />
       <input type="hidden" name="email" value={account.email} />
       <input type="hidden" name="password" value={account.password} />
+      <input type="hidden" name="plan" value={plan} />
 
       <div className="mx-auto mb-4 flex size-[60px] items-center justify-center rounded-full bg-[#DCFCE7]">
         <Check className="size-7 text-primary" strokeWidth={2.5} />

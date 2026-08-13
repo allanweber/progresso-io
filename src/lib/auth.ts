@@ -8,6 +8,7 @@ import { admin } from "better-auth/plugins/admin";
 import { emailOTP } from "better-auth/plugins/email-otp";
 
 import { db as defaultDb, schema, type DB } from "@/db";
+import type { Plan } from "@/db/schema";
 import { sendOtpEmail, type SendOtp } from "@/lib/email";
 import {
   ADMIN_ROLES,
@@ -37,6 +38,23 @@ const suppressVerificationEmail = new AsyncLocalStorage<true>();
  */
 export function withoutVerificationEmail<T>(fn: () => Promise<T>): Promise<T> {
   return suppressVerificationEmail.run(true, fn);
+}
+
+/**
+ * Carries the plan a coach picked at sign-up into the clinic-bootstrap hook
+ * below. `signUpEmail` only takes name/email/password, so the chosen plan can't
+ * ride on its body — this async store hands it to the `user.create.after` hook
+ * that creates the clinic. Absent (e.g. an invite-accept sign-up) → the clinic
+ * falls back to the plan default (`free`).
+ */
+const signUpPlan = new AsyncLocalStorage<Plan>();
+
+/**
+ * Runs `fn` (the coach self sign-up `auth.api.signUpEmail` call) with the
+ * selected plan available to the clinic-bootstrap hook.
+ */
+export function withSignUpPlan<T>(plan: Plan, fn: () => Promise<T>): Promise<T> {
+  return signUpPlan.run(plan, fn);
 }
 
 type CreateAuthOptions = {
@@ -176,6 +194,10 @@ export function createAuth({
             const clinic = await createClinicForOwner(database, {
               ownerUserId: u.id,
               name: `Clínica de ${firstName}`,
+              // The plan the coach chose in the sign-up wizard, threaded in via
+              // `withSignUpPlan`. Undefined for invite-accept sign-ups (and any
+              // path that doesn't set it) → `createClinicForOwner` defaults free.
+              plan: signUpPlan.getStore(),
             });
             await attachUserToClinic(database, u.id, clinic.id);
             // Starter templates (anamneses + diets + workouts) are NOT seeded

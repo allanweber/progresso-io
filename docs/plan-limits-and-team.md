@@ -138,6 +138,14 @@ The pricing table (`src/lib/landing-content.ts`) and the sign-up wizard
 (`src/lib/plans.ts`) reflect the caps above, and the landing adds an "Equipe de
 Coaches" feature highlighting the `Clínica` multi-coach team.
 
+The plan the coach picks in the wizard is **honoured** at sign-up: the confirm
+step submits it, `signUpCoach` validates it against `SIGNUP_PLAN_IDS` (only
+`free`/`solo`/`clinica` — never `enterprise`; anything else falls back to
+`free`), and threads it through `withSignUpPlan` into Better Auth's
+clinic-bootstrap hook so the new clinic starts on the chosen plan instead of the
+`free` default. Sign-up paths that don't set it (invite-accept, Google) keep the
+`free` default, and a platform admin can still change any clinic's plan later.
+
 ## Files
 
 - Schema: `plan_limit` (+`max_coaches`, `whatsapp`), `coach_invitation`
