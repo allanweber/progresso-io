@@ -92,9 +92,12 @@ export default function CoachCalendarPage() {
   const [anchor, setAnchor] = useState<string>(() => todayYmd());
   const today = useMemo(() => todayYmd(), []);
 
-  // Dialog state: an item to edit, a preset date to create on, or closed.
+  // Dialog state: an item to edit, a preset date (+ optional time) to create on,
+  // or closed.
   const [dialog, setDialog] = useState<
-    { mode: "create"; date: string } | { mode: "edit"; item: CalendarItemDto } | null
+    | { mode: "create"; date: string; startTime?: string }
+    | { mode: "edit"; item: CalendarItemDto }
+    | null
   >(null);
 
   // The item currently being dragged (for the drag preview).
@@ -318,6 +321,9 @@ export default function CoachCalendarPage() {
             byDay={byDay}
             onOpenItem={openItem}
             onSelectDay={(date) => setDialog({ mode: "create", date })}
+            onSelectSlot={(date, startTime) =>
+              setDialog({ mode: "create", date, startTime })
+            }
           />
         )}
         <DragOverlay dropAnimation={null}>
@@ -333,7 +339,7 @@ export default function CoachCalendarPage() {
           initial={
             dialog.mode === "edit"
               ? dialog.item
-              : { date: dialog.date }
+              : { date: dialog.date, startTime: dialog.startTime }
           }
           students={students}
           onClose={() => setDialog(null)}
@@ -347,23 +353,34 @@ export default function CoachCalendarPage() {
   );
 }
 
-/** A drop target: a day cell (month) or a time slot (week/day). Highlights on hover. */
+/**
+ * A drop target: a day cell (month) or a time slot (week/day). Highlights on
+ * hover-drag. Clicking the empty space opens the add-event modal (`onEmptyClick`)
+ * — chips inside stop propagation so they open the editor instead.
+ */
 function DroppableCell({
   id,
   data,
   className,
+  onEmptyClick,
   children,
 }: {
   id: string;
   data: { date: string; startTime?: string | null; keepTime?: boolean };
   className?: string;
+  onEmptyClick?: () => void;
   children: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id, data });
   return (
     <div
       ref={setNodeRef}
-      className={cn(className, isOver && "ring-2 ring-inset ring-primary/50")}
+      onClick={onEmptyClick}
+      className={cn(
+        className,
+        onEmptyClick && "cursor-pointer",
+        isOver && "ring-2 ring-inset ring-primary/50",
+      )}
     >
       {children}
     </div>
@@ -414,6 +431,7 @@ function MonthGrid({
               key={day}
               id={`day::${day}`}
               data={{ date: day, keepTime: true }}
+              onEmptyClick={() => onSelectDay(day)}
               className={cn(
                 "group min-h-[92px] border-b border-r border-[#F1F5F9] p-1.5 [&:nth-child(7n)]:border-r-0",
                 inMonth ? "bg-white" : "bg-[#FAFBFC]",
@@ -432,14 +450,12 @@ function MonthGrid({
                 >
                   {dayNumber(day)}
                 </span>
-                <button
-                  type="button"
-                  aria-label={`Novo evento em ${day}`}
-                  onClick={() => onSelectDay(day)}
-                  className="text-primary opacity-0 transition-opacity hover:text-primary/70 group-hover:opacity-100"
+                <span
+                  aria-hidden
+                  className="text-primary opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   <Plus className="size-3.5" />
-                </button>
+                </span>
               </div>
               <div className="flex flex-col gap-1">
                 {dayItems.map((item) => (
@@ -492,7 +508,11 @@ function EventChip({
     <button
       ref={setNodeRef}
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        // Don't let the click bubble to the day cell (which opens "new event").
+        e.stopPropagation();
+        onClick();
+      }}
       title={item.title}
       className={cn(
         "text-left",
@@ -527,12 +547,14 @@ function TimeGrid({
   byDay,
   onOpenItem,
   onSelectDay,
+  onSelectSlot,
 }: {
   days: string[];
   today: string;
   byDay: Map<string, CalendarItemDto[]>;
   onOpenItem: (item: CalendarItemDto) => void;
   onSelectDay: (date: string) => void;
+  onSelectSlot: (date: string, startTime: string) => void;
 }) {
   const cols = days.length;
   return (
@@ -583,6 +605,7 @@ function TimeGrid({
               key={day}
               id={`allday::${day}`}
               data={{ date: day, startTime: null }}
+              onEmptyClick={() => onSelectDay(day)}
               className="min-h-[38px] border-l border-border p-1"
             >
               <div className="flex flex-col gap-1">
@@ -615,6 +638,9 @@ function TimeGrid({
                   key={day}
                   id={`slot::${day}::${hour}`}
                   data={{ date: day, startTime: `${String(hour).padStart(2, "0")}:00` }}
+                  onEmptyClick={() =>
+                    onSelectSlot(day, `${String(hour).padStart(2, "0")}:00`)
+                  }
                   className="min-h-[44px] border-l border-[#F1F5F9] p-1"
                 >
                   <div className="flex flex-col gap-1">
@@ -763,7 +789,7 @@ function EventDialog({
   onClose,
   onSaved,
 }: {
-  initial: CalendarItemDto | { date: string };
+  initial: CalendarItemDto | { date: string; startTime?: string };
   students: CalendarDto["students"];
   onClose: () => void;
   onSaved: () => void;
@@ -784,7 +810,7 @@ function EventDialog({
           type: "presencial",
           title: "",
           date: initial.date,
-          startTime: "",
+          startTime: initial.startTime ?? "",
           studentId: "",
           notes: "",
         };
