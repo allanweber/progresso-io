@@ -103,12 +103,22 @@ export default function CoachDashboardPage() {
           <Button asChild variant="outline">
             <Link href="/coach/students">Ver todos os alunos</Link>
           </Button>
-          <Button asChild>
-            <Link href="/coach/students/new">
+          {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
+            <Button
+              disabled
+              title={`Limite de ${usage.students.limit} alunos do plano ${usage.planName} atingido. Faça upgrade para adicionar mais.`}
+            >
               <Plus className="size-4" />
               Convidar aluno
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/coach/students/new">
+                <Plus className="size-4" />
+                Convidar aluno
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

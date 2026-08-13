@@ -200,51 +200,68 @@ const studentBaseObject = z.object({
 });
 
 /**
- * Online students need both identifiers (WhatsApp for the links, e-mail for the
- * portal login); offline students may have either or neither.
+ * Online students normally need both identifiers (WhatsApp for the links, e-mail
+ * for the portal login); offline students may have either or neither. This
+ * requirement is **conditional on the clinic having WhatsApp**: on the free plan
+ * WhatsApp isn't available, so neither identifier is required even for an online
+ * student (`requireContact = false`). The caller derives that from the plan.
  */
-function requireOnlineContact(
-  val: { modality: Modality; email: string | null; phone: string | null },
-  ctx: z.RefinementCtx,
-) {
-  if (val.modality !== "online") return;
-  if (!val.email) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["email"],
-      message: "E-mail é obrigatório para alunos online.",
-    });
-  }
-  if (!val.phone) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["phone"],
-      message: "WhatsApp é obrigatório para alunos online.",
-    });
-  }
+function requireOnlineContact(requireContact: boolean) {
+  return (
+    val: { modality: Modality; email: string | null; phone: string | null },
+    ctx: z.RefinementCtx,
+  ) => {
+    if (!requireContact) return;
+    if (val.modality !== "online") return;
+    if (!val.email) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["email"],
+        message: "E-mail é obrigatório para alunos online.",
+      });
+    }
+    if (!val.phone) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["phone"],
+        message: "WhatsApp é obrigatório para alunos online.",
+      });
+    }
+  };
 }
 
 /**
- * Edit (PUT) posts this shape — the profile edit form drives it. `status` is
- * never set here; it changes through the dedicated status/archive endpoints.
+ * Edit (PUT) form schema. `requireContact` (default true) toggles the online
+ * WhatsApp/e-mail requirement — free clinics pass false.
  */
-export const studentFormSchema = studentBaseObject.superRefine(
-  requireOnlineContact,
-);
+export function makeStudentFormSchema(requireContact = true) {
+  return studentBaseObject.superRefine(requireOnlineContact(requireContact));
+}
+export const studentFormSchema = makeStudentFormSchema(true);
 
 export type StudentFormInput = z.input<typeof studentFormSchema>;
 export type StudentFormValues = z.output<typeof studentFormSchema>;
 
 /**
- * Registration (the merged "Convidar novo aluno" screen) posts the base fields
- * plus the anamnese to assign (always required — the clinic always has a starter
- * set). The same online/offline contact rule applies.
+ * Registration (the merged "Convidar novo aluno" screen). The anamnese is
+ * **optional** — the form sends a string (possibly empty); empty becomes null (no
+ * anamnese assigned yet, the coach can add one later), a non-empty value must be
+ * a valid id. The conditional online/offline contact rule applies: pass
+ * `requireContact = false` for a free clinic (no WhatsApp) so an online student
+ * needs neither WhatsApp nor e-mail.
  */
-export const studentRegistrationSchema = studentBaseObject
-  .extend({
-    anamnesisId: z.string().uuid("Selecione uma anamnese."),
-  })
-  .superRefine(requireOnlineContact);
+const optionalAnamnesisId = z
+  .string()
+  .trim()
+  .transform((v) => (v === "" ? null : v))
+  .pipe(z.union([z.null(), z.uuid("Anamnese inválida.")]));
+
+export function makeStudentRegistrationSchema(requireContact = true) {
+  return studentBaseObject
+    .extend({ anamnesisId: optionalAnamnesisId })
+    .superRefine(requireOnlineContact(requireContact));
+}
+export const studentRegistrationSchema = makeStudentRegistrationSchema(true);
 
 export type StudentRegistrationInput = z.input<typeof studentRegistrationSchema>;
 export type StudentRegistrationValues = z.output<typeof studentRegistrationSchema>;

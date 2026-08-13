@@ -6,6 +6,7 @@ import {
   deriveAccess,
   deriveStudentState,
   isAtStudentLimit,
+  makeStudentRegistrationSchema,
   studentFormSchema,
   studentInitials,
   studentStatusSchema,
@@ -134,6 +135,41 @@ describe("deriveStudentState", () => {
     expect(
       deriveStudentState({ status: "inactive", hasAccount: true, pendingInvite: false }).key,
     ).toBe("inactive");
+  });
+});
+
+describe("makeStudentRegistrationSchema — plan-aware + optional anamnese", () => {
+  const online = {
+    firstName: "Ana",
+    lastName: "Aluna",
+    email: "",
+    phone: "",
+    goal: "",
+    modality: "online" as const,
+    anamnesisId: "",
+  };
+
+  it("requires WhatsApp + e-mail for an online student on a WhatsApp plan", () => {
+    const res = makeStudentRegistrationSchema(true).safeParse(online);
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      const paths = res.error.issues.map((i) => i.path.join("."));
+      expect(paths).toEqual(expect.arrayContaining(["email", "phone"]));
+    }
+  });
+
+  it("requires neither on a free plan (no WhatsApp)", () => {
+    const res = makeStudentRegistrationSchema(false).safeParse(online);
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data.anamnesisId).toBeNull();
+  });
+
+  it("keeps the anamnese optional (empty → null) but validates a bad id", () => {
+    const free = makeStudentRegistrationSchema(false);
+    expect(free.safeParse({ ...online, anamnesisId: "" }).success).toBe(true);
+    expect(free.safeParse({ ...online, anamnesisId: "not-a-uuid" }).success).toBe(
+      false,
+    );
   });
 });
 

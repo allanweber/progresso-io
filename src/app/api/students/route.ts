@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   isAtStudentLimit,
-  studentRegistrationSchema,
+  makeStudentRegistrationSchema,
   toStudentDto,
 } from "@/lib/students";
 import { plans, students, studentAnamneses } from "@/server/dal";
@@ -46,7 +46,10 @@ export const POST = withRoute("students.register", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 
-  const parsed = studentRegistrationSchema.safeParse(body.data);
+  // The online WhatsApp/e-mail requirement is conditional on the plan: free
+  // clinics have no WhatsApp, so an online student needs neither identifier.
+  const hasWhatsapp = await plans.canUseWhatsapp(ctx);
+  const parsed = makeStudentRegistrationSchema(hasWhatsapp).safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 
@@ -84,18 +87,22 @@ export const POST = withRoute("students.register", async (request) => {
     coachId: ctx.role === "coach" ? ctx.userId : null,
   });
 
-  // Snapshot the chosen anamnese onto the new student.
-  const assign = await studentAnamneses.assignAnamnesis(
-    ctx,
-    created.id,
-    data.anamnesisId,
-  );
-  if (!assign.ok) return apiError("Anamnese selecionada não encontrada.", 422);
+  // Snapshot the chosen anamnese onto the new student (optional — the coach can
+  // add one later).
+  if (data.anamnesisId) {
+    const assign = await studentAnamneses.assignAnamnesis(
+      ctx,
+      created.id,
+      data.anamnesisId,
+    );
+    if (!assign.ok) return apiError("Anamnese selecionada não encontrada.", 422);
+  }
 
-  // Online students are invited to fill their anamnese now; offline students
-  // aren't (the coach fills it next). Portal access follows on first publish.
+  // Online students with an anamnese are invited to fill it now (WhatsApp only —
+  // skipped on the free plan); offline students aren't. Portal access follows on
+  // first publish.
   let sent = false;
-  if (data.modality === "online") {
+  if (data.modality === "online" && data.anamnesisId) {
     const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
     const result = await sendAnamnesisInvite(ctx, created.id, base);
     sent = result.ok;
