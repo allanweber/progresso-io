@@ -193,23 +193,30 @@ unknown number — + a preview), and clicking it opens `/coach/whatsapp`.
   unauthenticated by design; always answers 200. A `GET` handles Meta's
   `hub.challenge` verification handshake.
 
-### Simular mensagem recebida (dev)
+### Admin simulator (`/admin/whatsapp/simulator`)
 
-Since no provider is wired, use the **guarded dev endpoint** to simulate an
-inbound message — it runs the *same* `ingestInboundMessage` path a real webhook
-would, so one call flips a closed conversation to **open** and makes free-text
-sending legal again.
+Since no provider is wired, the **admin messaging simulator** is the way to
+exercise a coach↔student conversation. It's a single self-contained page
+(`src/app/admin/whatsapp/simulator/page.tsx` — delete the file and the feature
+is gone), **admin-only** (`getAdminSession`), always available to platform
+admins — **no env flag**. An admin picks any active student, sees their thread
+with their coach, and sends messages **as that student**; each send runs the
+same `ingestInboundMessage` path a real webhook would, so it lands in the owning
+coach's inbox (`/coach/whatsapp`), and the coach's replies show back here. It's
+linked from the admin WhatsApp overview (`/admin/whatsapp`) via a **"Simulador
+de mensagens"** button.
+
+### Simular mensagem recebida — coach dev endpoint
+
+There's also a coach-scoped dev endpoint that injects an inbound message into
+the **caller's own** clinic (the same `ingestInboundMessage` path):
 
 `POST /api/whatsapp/dev/simulate-inbound`
 
-- **Guard:** a plain `404` (as if the route didn't exist) unless
-  `WHATSAPP_ALLOW_SIMULATE === "1"`. That opt-in flag is only set on a testing
-  deployment, so the simulator stays off in real production by default — but it
-  *can* be turned on for a live testing deploy (progresso.allanweber.dev), which
-  is the point. When enabled it's still coach-only + plan-gated + tenant-scoped,
-  so it can only write into the caller's own clinic. The admin overview
-  (`/admin/whatsapp`) shows a **"Simulador de mensagens"** link when the flag is
-  on.
+- **Guard:** a plain `404` unless `WHATSAPP_ALLOW_SIMULATE === "1"` — this one is
+  still opt-in behind the flag (it's coach-scoped, not the admin console). Still
+  coach-only + plan-gated + tenant-scoped, so it can only write into the caller's
+  own clinic.
 - **Body:** `{ "phone": "+55 11 99999-0000", "body": "..." }` — **no `studentId`**
   (a real webhook only gives you the sender's number; the student is resolved by
   phone).

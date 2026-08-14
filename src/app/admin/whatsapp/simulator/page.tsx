@@ -21,21 +21,17 @@ import { whatsapp } from "@/server/dal";
  * coach's inbox (/coach/whatsapp). The coach's replies come back here (the
  * coach's outbound messages render as "received"), so you can play both sides.
  *
- * The screen exists ONLY when `WHATSAPP_ALLOW_SIMULATE=1` (a plain 404
- * otherwise, in every environment). It's admin-only on top of that (the /admin
- * layout gates the subtree; we re-check here and in the action). An admin has no
- * clinic, so this injects into the TARGET student's clinic directly — that's why
- * it's a small standalone tool rather than the coach-scoped dev endpoint.
+ * Admin-only: the /admin layout gates the subtree and we re-check the admin
+ * session here and in the action (a 404 otherwise). An admin has no clinic, so
+ * this injects into the TARGET student's clinic directly — that's why it's a
+ * small standalone tool rather than the coach-scoped dev endpoint. Linked from
+ * the admin WhatsApp overview (/admin/whatsapp).
  *
  * Reach it at /admin/whatsapp/simulator.
  */
 
-// Always evaluated per-request (reads env + DB); never statically cached.
+// Always evaluated per-request (reads the DB); never statically cached.
 export const dynamic = "force-dynamic";
-
-function simulateEnabled(): boolean {
-  return process.env.WHATSAPP_ALLOW_SIMULATE === "1";
-}
 
 /** HH:MM (24h) for a message timestamp, locale-proof. */
 function hhmm(iso: string): string {
@@ -72,7 +68,6 @@ async function loadStudents() {
 /** Send a message AS the selected student → lands in their coach's inbox. */
 async function sendAsStudent(formData: FormData) {
   "use server";
-  if (!simulateEnabled()) notFound();
   const session = await getAdminSession();
   if (!session) notFound();
 
@@ -112,7 +107,6 @@ export default async function AdminWhatsappSimulatorPage({
 }: {
   searchParams: Promise<{ studentId?: string }>;
 }) {
-  if (!simulateEnabled()) notFound();
   const session = await getAdminSession();
   if (!session) notFound();
 

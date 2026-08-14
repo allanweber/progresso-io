@@ -16,9 +16,5 @@ export const GET = withRoute("admin.whatsapp.overview", async () => {
   if (!session) return forbidden();
 
   const overview = await whatsapp.getAdminOverview(db);
-  return NextResponse.json({
-    ...overview,
-    // Runtime flag — drives the "Simulador de mensagens" link (dev/testing only).
-    simulateEnabled: process.env.WHATSAPP_ALLOW_SIMULATE === "1",
-  });
+  return NextResponse.json(overview);
 });

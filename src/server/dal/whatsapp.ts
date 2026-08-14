@@ -708,7 +708,7 @@ export async function listWaiting(
  */
 export async function getAdminOverview(
   db: DB,
-): Promise<Omit<AdminWhatsAppOverviewDto, "simulateEnabled">> {
+): Promise<AdminWhatsAppOverviewDto> {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const windowThreshold = new Date(now.getTime() - WHATSAPP_WINDOW_MS);
