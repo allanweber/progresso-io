@@ -4,7 +4,9 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
+import type { Weekday } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
+import { WEEKDAY_INDEX, weekdayOf } from "@/lib/calendar";
 import { normalizePhone } from "@/lib/phone";
 import { isWindowOpen } from "@/lib/whatsapp-inbox";
 import { plans, whatsapp } from "@/server/dal";
@@ -12,9 +14,26 @@ import {
   WhatsAppInboundError,
   WhatsAppSendError,
 } from "@/server/dal/whatsapp";
+import { runCheckinReminders } from "@/server/whatsapp-automations";
 import type { TenantContext } from "@/server/tenant";
 
 import { createTestDb, type TestDb } from "./pglite";
+
+/** The schema `Weekday` name for a `YYYY-MM-DD` (mirrors the automation). */
+function weekdayNameOf(ymd: string): Weekday {
+  const idx = weekdayOf(ymd);
+  return (Object.keys(WEEKDAY_INDEX) as Weekday[]).find(
+    (w) => WEEKDAY_INDEX[w] === idx,
+  )!;
+}
+
+/** Inserts a base (app-wide, `clinicId = null`) approved template. */
+async function addBaseTemplate(key: string, title: string, body: string) {
+  await db
+    .insert(schema.whatsappTemplate)
+    .values({ clinicId: null, key, title, body, status: "approved" })
+    .onConflictDoNothing();
+}
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 
@@ -323,5 +342,232 @@ describe("admin overview", () => {
     expect(row!.messagesThisMonth).toBeGreaterThanOrEqual(1);
     expect(row!.openWindows).toBeGreaterThanOrEqual(1);
     expect(overview.connectedCount).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("template resolution (base + clinic)", () => {
+  it("resolves the base row, and a clinic override wins by key", async () => {
+    const ctx = await ownerContext("wa-resolve@example.com", "clinica");
+    await addBaseTemplate("diet_published", "Base", "Base: {nome}");
+
+    // Only a base row exists → resolves to it.
+    const base = await whatsapp.resolveTemplate(ctx, "diet_published");
+    expect(base?.body).toBe("Base: {nome}");
+
+    // A clinic-specific row with the same key overrides the base.
+    await db.insert(schema.whatsappTemplate).values({
+      clinicId: ctx.clinicId,
+      key: "diet_published",
+      title: "Clínica",
+      body: "Clínica: {nome}",
+      status: "approved",
+    });
+    const overridden = await whatsapp.resolveTemplate(ctx, "diet_published");
+    expect(overridden?.body).toBe("Clínica: {nome}");
+
+    // listResolvedTemplates carries exactly one row for the key (the override).
+    const list = await whatsapp.listResolvedTemplates(ctx);
+    const matches = list.filter((t) => t.key === "diet_published");
+    expect(matches).toHaveLength(1);
+    expect(matches[0].body).toBe("Clínica: {nome}");
+  });
+
+  it("ignores an unapproved clinic row and falls back to the base", async () => {
+    const ctx = await ownerContext("wa-resolve-approved@example.com", "clinica");
+    await addBaseTemplate("welcome_access", "Base", "Base welcome {link}");
+    await db.insert(schema.whatsappTemplate).values({
+      clinicId: ctx.clinicId,
+      key: "welcome_access",
+      title: "Pendente",
+      body: "Rascunho",
+      status: "pending",
+    });
+    const resolved = await whatsapp.resolveTemplate(ctx, "welcome_access");
+    expect(resolved?.body).toBe("Base welcome {link}");
+  });
+
+  it("does not leak another clinic's template", async () => {
+    const a = await ownerContext("wa-resolve-iso-a@example.com", "clinica");
+    const b = await ownerContext("wa-resolve-iso-b@example.com", "clinica");
+    await db.insert(schema.whatsappTemplate).values({
+      clinicId: a.clinicId,
+      key: "session_confirm",
+      title: "A only",
+      body: "A: {nome}",
+      status: "approved",
+    });
+    expect(await whatsapp.resolveTemplate(b, "session_confirm")).toBeNull();
+  });
+});
+
+describe("sendTemplateToStudent", () => {
+  it("renders {nome}/{link}, records an outbound template, and reuses the thread", async () => {
+    const ctx = await ownerContext("wa-send-tpl@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11966660001", "Carla");
+    await addBaseTemplate(
+      "checkin_feedback",
+      "Retorno",
+      "{nome}, veja seu retorno: {link}",
+    );
+
+    const sent = await whatsapp.sendTemplateToStudent(
+      ctx,
+      studentId,
+      "checkin_feedback",
+      { link: "https://app/x" },
+    );
+    expect(sent).not.toBeNull();
+
+    const thread = await whatsapp.getThread(ctx, sent!.conversationId);
+    expect(thread!.messages).toHaveLength(1);
+    expect(thread!.messages[0].direction).toBe("outbound");
+    expect(thread!.messages[0].type).toBe("template");
+    expect(thread!.messages[0].templateKey).toBe("checkin_feedback");
+    expect(thread!.messages[0].body).toBe("Carla, veja seu retorno: https://app/x");
+    // A template send never opens the window nor bumps unread.
+    expect(thread!.conversation.windowOpen).toBe(false);
+    expect(thread!.conversation.unreadCount).toBe(0);
+
+    // A second send reuses the same conversation.
+    const again = await whatsapp.sendTemplateToStudent(
+      ctx,
+      studentId,
+      "checkin_feedback",
+      { link: "https://app/y" },
+    );
+    expect(again!.conversationId).toBe(sent!.conversationId);
+  });
+
+  it("no-ops (null) when the student has no phone or the template is unknown", async () => {
+    const ctx = await ownerContext("wa-send-tpl-none@example.com", "clinica");
+    const [noPhone] = await db
+      .insert(schema.students)
+      .values({
+        clinicId: ctx.clinicId,
+        firstName: "Sem",
+        lastName: "Fone",
+        phone: null,
+        status: "active",
+      })
+      .returning({ id: schema.students.id });
+    await addBaseTemplate("diet_published", "D", "{nome}, dieta no ar");
+
+    expect(
+      await whatsapp.sendTemplateToStudent(ctx, noPhone.id, "diet_published"),
+    ).toBeNull();
+
+    const withPhone = await addStudent(ctx, "11966660002");
+    expect(
+      await whatsapp.sendTemplateToStudent(ctx, withPhone, "does_not_exist"),
+    ).toBeNull();
+  });
+});
+
+describe("scheduled check-in reminders", () => {
+  // A date whose weekday we align the clinic's preferred day to. Deliberately a
+  // Tuesday — NOT the schema default (`monday`) — so the other test clinics
+  // (which keep the default preferred day) are never swept in. Kept in the
+  // recent past so the dedupe window (message timestamps are real "now") holds.
+  const today = "2026-08-11";
+
+  /** A clinic whose preferred check-in day is `today`, with one overdue student. */
+  async function setupClinic(email: string, plan: schema.Plan) {
+    const ctx = await ownerContext(email, plan);
+    await db
+      .update(schema.clinic)
+      .set({
+        feedbackPreferredDay: weekdayNameOf(today),
+        feedbackFrequency: "semanal",
+      })
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    const studentId = await addStudent(ctx, "11955550001", "Dora");
+    // Registered long ago, never checked in → overdue for a weekly check-in.
+    await db
+      .update(schema.students)
+      .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
+      .where(eq(schema.students.id, studentId));
+    return { ctx, studentId };
+  }
+
+  it("messages a due student once, then dedupes within the cadence period", async () => {
+    await addBaseTemplate(
+      "checkin_reminder",
+      "Lembrete",
+      "Oi {nome}! Check-in {periodo}?",
+    );
+    const { ctx, studentId } = await setupClinic("wa-cron@example.com", "clinica");
+
+    const first = await runCheckinReminders(h, today);
+    expect(first.remindersSent).toBeGreaterThanOrEqual(1);
+
+    // The reminder landed as an outbound template on the student's thread.
+    const [conv] = await db
+      .select({ id: schema.whatsappConversation.id })
+      .from(schema.whatsappConversation)
+      .where(
+        and(
+          eq(schema.whatsappConversation.clinicId, ctx.clinicId),
+          eq(schema.whatsappConversation.studentId, studentId),
+        ),
+      );
+    const thread = await whatsapp.getThread(ctx, conv.id);
+    expect(thread!.messages.some((m) => m.templateKey === "checkin_reminder")).toBe(
+      true,
+    );
+    expect(thread!.messages[0].body).toBe("Oi Dora! Check-in da semana?");
+
+    // Re-running the same day (within the period) sends nothing new.
+    const countBefore = thread!.messages.length;
+    await runCheckinReminders(h, today);
+    const after = await whatsapp.getThread(ctx, conv.id);
+    expect(after!.messages.length).toBe(countBefore);
+  });
+
+  it("skips clinics whose preferred day isn't today, and Free clinics", async () => {
+    await addBaseTemplate(
+      "checkin_reminder",
+      "Lembrete",
+      "Oi {nome}! Check-in {periodo}?",
+    );
+
+    // Different preferred day → not processed at all.
+    const other = await ownerContext("wa-cron-otherday@example.com", "clinica");
+    const otherDay = weekdayNameOf("2026-08-12"); // the day AFTER `today`
+    await db
+      .update(schema.clinic)
+      .set({ feedbackPreferredDay: otherDay })
+      .where(eq(schema.clinic.id, other.clinicId));
+    const otherStudent = await addStudent(other, "11955550009", "Zed");
+    await db
+      .update(schema.students)
+      .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
+      .where(eq(schema.students.id, otherStudent));
+
+    // Free clinic on the right day → gated out.
+    const free = await ownerContext("wa-cron-free@example.com", "free");
+    await db
+      .update(schema.clinic)
+      .set({ feedbackPreferredDay: weekdayNameOf(today) })
+      .where(eq(schema.clinic.id, free.clinicId));
+    const freeStudent = await addStudent(free, "11955550008", "Gil");
+    await db
+      .update(schema.students)
+      .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
+      .where(eq(schema.students.id, freeStudent));
+
+    await runCheckinReminders(h, today);
+
+    for (const clinicId of [other.clinicId, free.clinicId]) {
+      const rows = await db
+        .select({ id: schema.whatsappMessage.id })
+        .from(schema.whatsappMessage)
+        .where(
+          and(
+            eq(schema.whatsappMessage.clinicId, clinicId),
+            eq(schema.whatsappMessage.templateKey, "checkin_reminder"),
+          ),
+        );
+      expect(rows).toHaveLength(0);
+    }
   });
 });

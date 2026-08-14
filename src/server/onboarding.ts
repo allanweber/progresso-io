@@ -1,6 +1,13 @@
 import { sendInviteEmail } from "@/lib/email";
 import { sendStudentOnboardingWhatsApp } from "@/lib/whatsapp";
-import { clinics, invitations, plans, students, studentAnamneses } from "@/server/dal";
+import {
+  clinics,
+  invitations,
+  plans,
+  students,
+  studentAnamneses,
+  whatsapp,
+} from "@/server/dal";
 import { INVITE_TTL_DAYS } from "@/server/dal/invitations";
 import { logger } from "@/server/observability";
 import type { TenantContext } from "@/server/tenant";
@@ -107,14 +114,18 @@ export async function sendPortalInvite(
   }
 
   // WhatsApp is a paid-plan channel; the portal link is always e-mailed above,
-  // so a free clinic still onboards — it just skips the WhatsApp copy.
+  // so a free clinic still onboards — it just skips the WhatsApp copy. The send
+  // goes through the `welcome_access` template (base or clinic override) so it
+  // also lands in the coach's inbox; the outbox keeps the "invite" kind the
+  // invite→accept e2e reads.
   if (await plans.canUseWhatsapp(ctx)) {
-    await sendStudentOnboardingWhatsApp({
-      to: student.phone,
-      clinicName,
-      firstName: student.firstName,
-      portalUrl,
-    });
+    await whatsapp.sendTemplateToStudent(
+      ctx,
+      studentId,
+      "welcome_access",
+      { nome: student.firstName, link: portalUrl },
+      "invite",
+    );
   }
 
   logger.info("student.portal_invite_sent", { studentId });

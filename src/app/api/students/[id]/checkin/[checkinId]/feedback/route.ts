@@ -5,8 +5,8 @@ import {
   coachFeedbackSchema,
   type CheckinDetailDto,
 } from "@/lib/student-checkins";
-import { sendCheckinFeedbackWhatsApp } from "@/lib/whatsapp";
-import { coachCheckins, plans, students } from "@/server/dal";
+import { coachCheckins } from "@/server/dal";
+import { notifyCheckinFeedback } from "@/server/whatsapp-automations";
 import type { AssessmentWriteInput } from "@/server/dal/coach-checkins";
 import {
   forbidden,
@@ -59,20 +59,11 @@ export const POST = withRoute<Params>(
     });
     if (!detail) return notFound("Check-in não encontrado.");
 
-    // Deliver the feedback to the student on WhatsApp (logged in dev). Paid-plan
-    // channel only — free clinics keep feedback in-portal.
-    const student = await students.getStudent(ctx, id);
-    if (student?.phone && (await plans.canUseWhatsapp(ctx))) {
-      const origin = new URL(request.url).origin;
-      await sendCheckinFeedbackWhatsApp({
-        to: student.phone,
-        firstName: student.firstName,
-        feedback: parsed.data.feedback,
-        portalUrl: `${origin}/student`,
-      }).catch((err) =>
-        logger.error("coach.checkin.whatsapp_failed", { err, studentId: id }),
-      );
-    }
+    // Notify the student on WhatsApp that their check-in was answered — the
+    // `checkin_feedback` template points to the portal (the feedback text lives
+    // there). Best-effort + plan-gated inside the helper.
+    const origin = new URL(request.url).origin;
+    await notifyCheckinFeedback(ctx, id, `${origin}/student`);
 
     return NextResponse.json(detail satisfies CheckinDetailDto);
   },

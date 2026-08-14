@@ -121,25 +121,43 @@ export const WHATSAPP_TEMPLATE_STATUS_LABEL: Record<
 /*  Templates                                                                 */
 /* -------------------------------------------------------------------------- */
 
-/** A template variable available for substitution when a template is sent. */
-export type TemplateVars = { nome?: string };
+/** Variables a template body can reference; filled at send time. */
+export type TemplateVars = { nome?: string; periodo?: string; link?: string };
 
 /**
- * Renders a template body, substituting `{nome}` (and any future placeholders)
- * with the provided values. An unknown placeholder is left untouched. Missing
- * `nome` falls back to a neutral "aluno(a)" so the message is never broken.
+ * Renders a template body, substituting `{nome}` / `{periodo}` / `{link}` with
+ * the provided values. Missing `nome` falls back to a neutral "aluno(a)"; a
+ * placeholder with no value provided is left untouched (never broken output).
  */
 export function renderTemplate(body: string, vars: TemplateVars): string {
   return body.replace(/\{(\w+)\}/g, (match, key: string) => {
     if (key === "nome") return vars.nome?.trim() || "aluno(a)";
+    if (key === "periodo") return vars.periodo?.trim() || match;
+    if (key === "link") return vars.link?.trim() || match;
     return match;
   });
 }
 
 /**
- * The base catalog seeded into every paid clinic's `whatsapp_template` table.
- * Mirrors the mock's three generic templates. Kept here (client-safe) so the
- * seed and any future UI share one source of truth.
+ * The `{periodo}` fragment for the check-in reminder, from the clinic's cadence
+ * (`clinic.feedbackFrequency`) — carries the article so the grammar stays clean
+ * ("check-in da semana / da quinzena / do mês").
+ */
+export const CHECKIN_PERIODO: Record<
+  "semanal" | "quinzenal" | "mensal",
+  string
+> = {
+  semanal: "da semana",
+  quinzenal: "da quinzena",
+  mensal: "do mês",
+};
+
+/**
+ * The base catalog — seeded ONCE globally (`clinicId = null`) as app-wide
+ * templates; a clinic may later add its own row with the same `key` to override.
+ * Kept here (client-safe) so the seed, the resolver, and any UI share one source
+ * of truth. Placeholders: `{nome}` (all), `{periodo}` (checkin_reminder), and
+ * `{link}` (checkin_feedback, welcome_access, anamnesis_reminder).
  */
 export const BASE_WHATSAPP_TEMPLATES: ReadonlyArray<{
   key: string;
@@ -149,17 +167,37 @@ export const BASE_WHATSAPP_TEMPLATES: ReadonlyArray<{
   {
     key: "checkin_reminder",
     title: "Lembrete de check-in",
-    body: "Oi {nome}! Bora preencher seu check-in da semana? 📋",
+    body: "Oi {nome}! Bora preencher seu check-in {periodo}? 📋 Leva só um minutinho.",
+  },
+  {
+    key: "diet_published",
+    title: "Nova dieta publicada",
+    body: "{nome}, sua nova dieta já está no ar! 🥗 Confira tudo no seu portal.",
+  },
+  {
+    key: "workout_published",
+    title: "Novo treino publicado",
+    body: "{nome}, publiquei seu treino novo! 💪 Confere lá no portal e bora treinar.",
+  },
+  {
+    key: "checkin_feedback",
+    title: "Retorno do check-in",
+    body: "{nome}, respondi o seu check-in! 📝 Veja meu retorno no portal: {link}",
   },
   {
     key: "session_confirm",
     title: "Confirmação de sessão",
-    body: "Olá {nome}, confirma sua sessão de amanhã?",
+    body: "Olá {nome}! Consegue confirmar sua sessão de amanhã? 🗓️",
   },
   {
-    key: "new_workout",
-    title: "Novo treino publicado",
-    body: "{nome}, publiquei seu treino novo! Confira no portal 💪",
+    key: "welcome_access",
+    title: "Boas-vindas / acesso",
+    body: "Olá {nome}! Seu acesso ao portal está pronto. 🎉 É só entrar por aqui: {link}",
+  },
+  {
+    key: "anamnesis_reminder",
+    title: "Lembrete de anamnese",
+    body: "Oi {nome}! Faltou preencher sua anamnese. 📝 Leva 5 minutinhos: {link}",
   },
 ];
 

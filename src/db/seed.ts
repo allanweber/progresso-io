@@ -958,12 +958,16 @@ async function seed() {
   // 24h window has CLOSED (so its composer falls back to templates). Idempotent:
   // skipped once the clinic has any conversation.
   {
-    // Base templates (approved) — one source of truth with the app's catalog.
+    // Base templates (approved) — seeded ONCE globally as app-wide rows
+    // (`clinicId = null`); a clinic may later add its own row with the same key
+    // to override. The resolver (`resolveTemplate`) reads clinic-then-base, so
+    // every clinic sees this catalog. Idempotent via the partial unique index on
+    // (key) where clinic_id is null.
     await db
       .insert(schema.whatsappTemplate)
       .values(
         BASE_WHATSAPP_TEMPLATES.map((t) => ({
-          clinicId: coachClinic.id,
+          clinicId: null,
           key: t.key,
           title: t.title,
           body: t.body,

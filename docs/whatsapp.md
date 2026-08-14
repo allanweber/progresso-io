@@ -41,10 +41,19 @@ it via the DAL, `src/server/dal/whatsapp.ts`):
 - **`whatsapp_message`** — each message: `direction` (inbound/outbound), `type`
   (text/template), `body` (rendered), `templateKey`, `status`
   (queued/sent/delivered/read/failed), `providerMessageId`.
-- **`whatsapp_template`** — per-clinic templates with an approval `status`
-  (approved/pending/rejected, mirroring Meta's lifecycle). Seeded with a base
-  catalog (`BASE_WHATSAPP_TEMPLATES`); only `approved` templates can be sent. No
-  editor UI yet — the shape is ready for a future "submit for approval" flow.
+- **`whatsapp_template`** — the message catalog, **base + clinic** (migration
+  `0029`): `clinicId` is **nullable**. A `NULL` row is an app-wide **base**
+  template; a row with a `clinicId` is that clinic's **override** of the same
+  `key`. Uniqueness is split — a partial unique index on `(key) WHERE clinic_id
+  is null` (one base row per key) plus a unique index on `(clinic_id, key)` (one
+  override per clinic per key). Each row has a stable `key` (e.g.
+  `checkin_reminder`, used to correlate templates from code), a `title`, a
+  `body` with `{nome}`/`{periodo}`/`{link}` placeholders, and an approval
+  `status` (approved/pending/rejected, mirroring Meta's lifecycle); only
+  `approved` rows can be sent. The base catalog (`BASE_WHATSAPP_TEMPLATES`, seven
+  templates) is seeded **once globally** with `clinicId = null`. There is **no
+  template-editor UI/CRUD yet** — the base+override shape is ready for a future
+  per-clinic customization flow.
 - **`whatsapp_connection`** — one row per clinic: `provider`, `status`
   (connected/pending/disconnected), display `phone`, `metaAccountName`,
   `connectedAt`. The home for real provider credentials later; powers the coach
@@ -66,13 +75,85 @@ included, with the per-clinic `clinic.whatsapp_override` still applying.
 `getWhatsAppProvider()` picks the implementation from `WHATSAPP_PROVIDER`
 (unset/unknown → the `dev` provider, which logs and returns `delivered: false`,
 so nothing breaks for lack of configuration). A real vendor becomes **one new
-file + one `case`**, with zero caller changes. The existing outbound helpers
-(`sendStudentOnboardingWhatsApp`, `sendCheckinFeedbackWhatsApp` in
-`src/lib/whatsapp.ts`) route through the same port.
+file + one `case`**, with zero caller changes. The onboarding helper
+(`sendStudentOnboardingWhatsApp` in `src/lib/whatsapp.ts`, still used for the
+anamnese-fill invite) routes through the same port, as does the template send
+path (`sendTemplateToStudent`, below).
 
 Because the dev provider can't confirm delivery, every outbound persists as
 status **`sent`**; a real provider later upgrades it to delivered/read/failed via
 status webhooks.
+
+## Templates: base + clinic resolution
+
+One resolver is the single source of truth for "which template body does this
+clinic send for `key`?", so the coach composer and every automation agree:
+
+- **`resolveTemplate(ctx, key)`** — returns the clinic's own **approved** row for
+  `key` if it has one, else the app-wide **base** (`clinicId is null`) approved
+  row, else `null`. Used by `sendMessage` (composer) and `sendTemplateToStudent`
+  (automations).
+- **`listResolvedTemplates(ctx)`** — the effective catalog for a clinic: every
+  base template with a clinic override merged in by `key`. Powers the composer's
+  template picker (`GET /api/coach/whatsapp` → `templates`).
+
+Both are clinic-scoped: a clinic never sees or sends another clinic's override.
+
+### The base catalog (seven templates)
+
+`BASE_WHATSAPP_TEMPLATES` (in `src/lib/whatsapp-inbox.ts`, client-safe) is the
+seeded base set. Placeholders are filled by `renderTemplate` at send time —
+`{nome}` (falls back to a neutral "aluno(a)"), `{periodo}` (the check-in cadence
+fragment, from `CHECKIN_PERIODO[clinic.feedbackFrequency]` — "da semana / da
+quinzena / do mês"), and `{link}`:
+
+| key                 | when it fires                                   |
+| ------------------- | ----------------------------------------------- |
+| `checkin_reminder`  | scheduled reminder on the clinic's preferred day |
+| `diet_published`    | coach publishes a diet version                  |
+| `workout_published` | coach publishes a workout version               |
+| `checkin_feedback`  | coach answers a check-in (manual note or feedback) |
+| `welcome_access`    | portal access/invite sent to the student        |
+| `session_confirm`   | composer-only (session confirmation)            |
+| `anamnesis_reminder`| composer-only (anamnese fill reminder)          |
+
+### Sending a template to a student (`sendTemplateToStudent`)
+
+`sendTemplateToStudent(ctx, studentId, key, vars, outboxKind?)` is the path every
+**event automation** uses. It resolves the template (clinic → base), renders the
+placeholders, sends via the port's `sendTemplateMessage`, and records the message
+on the student's conversation (creating it if needed) as an **outbound template**
+— so automated sends show up in the coach's inbox. Templates **bypass the 24h
+window** (that's their purpose), and the send never touches `lastInboundAt` or
+`unreadCount`. Returns `null` (a silent no-op) if the student has no phone or the
+template can't be resolved. Any `{link}` is captured to the test-outbox so the
+invite→accept e2e keeps working; `outboxKind` overrides that label (the welcome
+send keeps the legacy `invite` kind).
+
+## Event automations
+
+The messages a clinic sends on its own behalf, all through the resolver above
+(`src/server/whatsapp-automations.ts`):
+
+- **In-request** (best-effort, plan-gated, never throw so they can't fail the
+  coach's action): `notifyCheckinFeedback` (from the two check-in routes),
+  `notifyDietPublished` / `notifyWorkoutPublished` (from the publish routes). The
+  portal-access welcome is wired directly in `sendPortalInvite`
+  (`src/server/onboarding.ts`), which already owns the invite + e-mail flow.
+- **Scheduled** — `runCheckinReminders(db?, today?)`: cross-tenant, session-less.
+  For each clinic whose `feedbackPreferredDay` is `today` (and whose plan
+  includes WhatsApp), it builds a per-clinic `TenantContext` attributed to the
+  clinic owner, finds every active student with a phone who is **due or overdue**
+  for a check-in (`computeCheckinDue`, from their own history + the clinic
+  cadence), and sends `checkin_reminder`. It **coalesces**: a student already
+  reminded within the current cadence period is skipped (query-based, no extra
+  column), so an overdue student is nudged at most once per period rather than
+  daily. Idempotent within a period.
+
+  Triggered by **`POST /api/cron/whatsapp-reminders`**, guarded by a shared
+  secret: `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret`). With no
+  `CRON_SECRET` set it only runs under the dev flag (`WHATSAPP_ALLOW_SIMULATE=1`)
+  so it stays triggerable in testing; in production without a secret it refuses.
 
 ## Inbound: real webhook + the shared ingest path
 
@@ -168,18 +249,27 @@ without a manual refresh.
 ## Files
 
 - Schema: `whatsapp_conversation` / `whatsapp_message` / `whatsapp_template` /
-  `whatsapp_connection`, migration `0028_whatsapp_inbox`.
+  `whatsapp_connection`, migrations `0028_whatsapp_inbox` +
+  `0029_whatsapp_base_templates` (templates → base + clinic override model).
 - lib: `whatsapp-inbox.ts` (client-safe: enums, DTOs, 24h-window math, template
-  rendering + base catalog, zod), `whatsapp-provider.ts` (the port + dev
-  provider), `whatsapp.ts` (outbound helpers, now on the port).
+  rendering + base catalog + `CHECKIN_PERIODO`, zod), `whatsapp-provider.ts` (the
+  port + dev provider), `whatsapp.ts` (the anamnese-invite helper, on the port).
 - DAL: `whatsapp.ts` (inbox/thread reads, `sendMessage` with window+template
-  enforcement, `ingestInboundMessage`, `listWaiting`, `getAdminOverview`).
+  enforcement, `resolveTemplate` / `listResolvedTemplates`,
+  `sendTemplateToStudent`, `ingestInboundMessage`, `listWaiting`,
+  `getAdminOverview`).
+- Automations: `src/server/whatsapp-automations.ts` (`notifyCheckinFeedback` /
+  `notifyDietPublished` / `notifyWorkoutPublished` in-request helpers +
+  `runCheckinReminders` scheduled job); welcome wired in `src/server/onboarding.ts`.
 - API: `coach/whatsapp` (+`[id]`), `whatsapp/webhook`,
-  `whatsapp/dev/simulate-inbound`, `admin/whatsapp`; `coach/dashboard` extended.
+  `whatsapp/dev/simulate-inbound`, `admin/whatsapp`, `cron/whatsapp-reminders`
+  (secret-guarded); `coach/dashboard` + the check-in/diet/workout routes extended
+  to fire template automations.
 - UI: `/coach/whatsapp` page + gated nav item, the dashboard "WhatsApp
   aguardando" widget, `/admin/whatsapp` page + admin nav item.
 - Tests: `tests/whatsapp.test.ts` (window/template/schema units),
   `tests/whatsapp.integration.test.ts` (ingest, window enforcement, template
-  approval, tenant isolation, read state, admin overview),
+  approval, base+clinic resolution, `sendTemplateToStudent`, scheduled reminders,
+  tenant isolation, read state, admin overview),
   `e2e/whatsapp.spec.ts` + `e2e/admin-whatsapp.spec.ts` (both viewports +
   screenshots).

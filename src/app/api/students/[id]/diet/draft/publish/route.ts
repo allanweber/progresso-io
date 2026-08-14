@@ -14,6 +14,7 @@ import {
 import { logger, withRoute } from "@/server/observability";
 import { sendPortalInviteOnFirstPrescription } from "@/server/onboarding";
 import { getTenantContext } from "@/server/tenant";
+import { notifyDietPublished } from "@/server/whatsapp-automations";
 
 /**
  * Publishes the in-flight draft: saves the payload, numbers the version and
@@ -62,6 +63,9 @@ export const POST = withRoute<Params>(
     // First prescription → grant portal access (best-effort; never fails publish).
     const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
     await sendPortalInviteOnFirstPrescription(ctx, id, base);
+
+    // Nudge the student on WhatsApp that a new diet is up (best-effort + gated).
+    await notifyDietPublished(ctx, id);
 
     return NextResponse.json({ dietId: result.dietId, version: result.version });
   },

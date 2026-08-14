@@ -2119,14 +2119,17 @@ export const whatsappTemplate = pgTable(
   "whatsapp_template",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // Tenant key — every query MUST filter by this.
-    clinicId: uuid("clinic_id")
-      .notNull()
-      .references(() => clinic.id, { onDelete: "cascade" }),
-    // Stable per-clinic key (e.g. "checkin_reminder").
+    // Two-tier: NULL = an app-wide BASE template (seeded once); a set clinicId =
+    // a clinic-specific override/addition. Resolution prefers the clinic row,
+    // falling back to base by `key` — the foods/exercises base-vs-clinic idiom.
+    clinicId: uuid("clinic_id").references(() => clinic.id, {
+      onDelete: "cascade",
+    }),
+    // Stable text code the frontend/automations correlate on (e.g.
+    // "checkin_reminder"). Unique per scope (once globally, once per clinic).
     key: text("key").notNull(),
     title: text("title").notNull(),
-    // Body with `{nome}`-style placeholders, substituted at send time.
+    // Body with `{nome}`/`{periodo}`/`{link}` placeholders, filled at send time.
     body: text("body").notNull(),
     status: text("status")
       .$type<WhatsAppTemplateStatus>()
@@ -2136,6 +2139,11 @@ export const whatsappTemplate = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (t) => [
+    // One base row per key (partial unique where clinic is null) …
+    uniqueIndex("whatsapp_template_base_key_uq")
+      .on(t.key)
+      .where(sql`${t.clinicId} is null`),
+    // … and one row per (clinic, key) for clinic-specific templates.
     uniqueIndex("whatsapp_template_clinic_key_uq").on(t.clinicId, t.key),
   ],
 );

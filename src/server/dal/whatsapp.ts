@@ -1,18 +1,21 @@
-import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 
 import { schema, type DB } from "@/db";
 import { formatPhone, normalizePhone } from "@/lib/phone";
+import { captureOutbox } from "@/lib/test-outbox";
 import { studentInitials } from "@/lib/students";
 import {
   isWindowOpen,
   renderTemplate,
   WHATSAPP_WINDOW_MS,
   type AdminWhatsAppOverviewDto,
+  type TemplateVars,
   type WhatsAppConnectionDto,
   type WhatsAppConversationDto,
   type WhatsAppInboxDto,
   type WhatsAppMessageDto,
   type WhatsAppSendInput,
+  type WhatsAppTemplateDto,
   type WhatsAppThreadDto,
 } from "@/lib/whatsapp-inbox";
 import { getWhatsAppProvider } from "@/lib/whatsapp-provider";
@@ -172,6 +175,91 @@ export async function getConnection(
   };
 }
 
+/** A template resolved for a clinic (clinic-specific row, else the base row). */
+export type ResolvedTemplate = { key: string; title: string; body: string };
+
+/**
+ * Resolves ONE template `key` for a clinic: the clinic's own approved row if it
+ * has one, else the app-wide **base** (`clinicId is null`) approved row, else
+ * null. The single source of truth used by the composer send AND every event
+ * automation — so all of them are "aware" of base + clinic templates.
+ */
+export async function resolveTemplate(
+  ctx: TenantContext,
+  key: string,
+): Promise<ResolvedTemplate | null> {
+  const rows = await ctx.db
+    .select({
+      key: schema.whatsappTemplate.key,
+      title: schema.whatsappTemplate.title,
+      body: schema.whatsappTemplate.body,
+      clinicId: schema.whatsappTemplate.clinicId,
+    })
+    .from(schema.whatsappTemplate)
+    .where(
+      and(
+        eq(schema.whatsappTemplate.key, key),
+        eq(schema.whatsappTemplate.status, "approved"),
+        or(
+          isNull(schema.whatsappTemplate.clinicId),
+          eq(schema.whatsappTemplate.clinicId, ctx.clinicId),
+        ),
+      ),
+    );
+  // Prefer the clinic's own row over the base row.
+  const chosen = rows.find((r) => r.clinicId === ctx.clinicId) ?? rows[0];
+  return chosen
+    ? { key: chosen.key, title: chosen.title, body: chosen.body }
+    : null;
+}
+
+/**
+ * The effective approved template catalog for a clinic: every base template,
+ * with a clinic-specific row overriding the base of the same `key`. Sorted by
+ * title. Powers the composer's template picker.
+ */
+export async function listResolvedTemplates(
+  ctx: TenantContext,
+): Promise<WhatsAppTemplateDto[]> {
+  const rows = await ctx.db
+    .select({
+      id: schema.whatsappTemplate.id,
+      key: schema.whatsappTemplate.key,
+      title: schema.whatsappTemplate.title,
+      body: schema.whatsappTemplate.body,
+      status: schema.whatsappTemplate.status,
+      clinicId: schema.whatsappTemplate.clinicId,
+    })
+    .from(schema.whatsappTemplate)
+    .where(
+      and(
+        eq(schema.whatsappTemplate.status, "approved"),
+        or(
+          isNull(schema.whatsappTemplate.clinicId),
+          eq(schema.whatsappTemplate.clinicId, ctx.clinicId),
+        ),
+      ),
+    );
+
+  // Clinic row wins over the base row for the same key.
+  const byKey = new Map<string, WhatsAppTemplateDto>();
+  for (const r of rows) {
+    const existing = byKey.get(r.key);
+    if (!existing || r.clinicId === ctx.clinicId) {
+      byKey.set(r.key, {
+        id: r.id,
+        key: r.key,
+        title: r.title,
+        body: r.body,
+        status: r.status,
+      });
+    }
+  }
+  return [...byKey.values()].sort((a, b) =>
+    a.title.localeCompare(b.title, "pt-BR"),
+  );
+}
+
 /**
  * The coach inbox: conversations (newest first) + templates + connection. The
  * `simulateEnabled` flag is added by the route (runtime env), not here.
@@ -190,21 +278,9 @@ export async function getInbox(
     .where(eq(schema.whatsappConversation.clinicId, ctx.clinicId))
     .orderBy(desc(schema.whatsappConversation.lastMessageAt));
 
-  const templateRows = await ctx.db
-    .select({
-      id: schema.whatsappTemplate.id,
-      key: schema.whatsappTemplate.key,
-      title: schema.whatsappTemplate.title,
-      body: schema.whatsappTemplate.body,
-      status: schema.whatsappTemplate.status,
-    })
-    .from(schema.whatsappTemplate)
-    .where(eq(schema.whatsappTemplate.clinicId, ctx.clinicId))
-    .orderBy(schema.whatsappTemplate.title);
-
   return {
     conversations: rows.map((r) => toConversationDto(r, now)),
-    templates: templateRows,
+    templates: await listResolvedTemplates(ctx),
     connection: await getConnection(ctx),
   };
 }
@@ -311,19 +387,8 @@ export async function sendMessage(
       renderedBody,
     ));
   } else {
-    const [tpl] = await ctx.db
-      .select({
-        key: schema.whatsappTemplate.key,
-        body: schema.whatsappTemplate.body,
-      })
-      .from(schema.whatsappTemplate)
-      .where(
-        and(
-          eq(schema.whatsappTemplate.clinicId, ctx.clinicId),
-          eq(schema.whatsappTemplate.key, input.templateKey!),
-          eq(schema.whatsappTemplate.status, "approved"),
-        ),
-      );
+    // Resolve clinic-specific → base by key (approved only).
+    const tpl = await resolveTemplate(ctx, input.templateKey!);
     if (!tpl) throw new WhatsAppSendError("invalid_template");
     templateKey = tpl.key;
     renderedBody = renderTemplate(tpl.body, {
@@ -369,6 +434,119 @@ export async function sendMessage(
     );
 
   return toMessageDto(msg);
+}
+
+/**
+ * Sends an approved template to a student on behalf of the clinic — the path
+ * every EVENT AUTOMATION uses (welcome on invite, check-in feedback, diet /
+ * workout published, the scheduled check-in reminder). Resolves the template
+ * (clinic → base) by `key`, finds/creates the student's conversation, renders
+ * `{nome}`/`{periodo}`/`{link}` (nome defaults to the student's first name),
+ * and sends it. Templates bypass the 24h window (that's their purpose), so this
+ * never checks the window. Returns null if the student has no phone or the
+ * template can't be resolved (the automation just no-ops).
+ *
+ * The plan gate (`canUseWhatsapp`) is the CALLER's responsibility. Any `{link}`
+ * is also captured to the test-outbox so the invite→accept e2e keeps working;
+ * `outboxKind` overrides the capture label (defaults to the template `key`) for
+ * callers that replaced a legacy free-text send whose outbox kind is asserted.
+ */
+export async function sendTemplateToStudent(
+  ctx: TenantContext,
+  studentId: string,
+  key: string,
+  vars: TemplateVars = {},
+  outboxKind: string = key,
+): Promise<{ conversationId: string; messageId: string } | null> {
+  const [student] = await ctx.db
+    .select({
+      phone: schema.students.phone,
+      firstName: schema.students.firstName,
+    })
+    .from(schema.students)
+    .where(
+      and(
+        eq(schema.students.id, studentId),
+        eq(schema.students.clinicId, ctx.clinicId),
+      ),
+    );
+  if (!student?.phone) return null;
+
+  const tpl = await resolveTemplate(ctx, key);
+  if (!tpl) return null;
+
+  const renderedBody = renderTemplate(tpl.body, {
+    nome: vars.nome ?? student.firstName,
+    periodo: vars.periodo,
+    link: vars.link,
+  });
+
+  // Surface any actionable link to the test outbox (e2e reads invite links).
+  if (vars.link) {
+    captureOutbox({
+      to: student.phone,
+      subject: "WhatsApp",
+      kind: outboxKind,
+      url: vars.link,
+    });
+  }
+
+  const { providerMessageId } = await getWhatsAppProvider().sendTemplateMessage(
+    student.phone,
+    tpl.key,
+    renderedBody,
+  );
+
+  // Find or create the conversation for this student's phone.
+  let [conv] = await ctx.db
+    .select({ id: schema.whatsappConversation.id })
+    .from(schema.whatsappConversation)
+    .where(
+      and(
+        eq(schema.whatsappConversation.clinicId, ctx.clinicId),
+        eq(schema.whatsappConversation.phone, student.phone),
+      ),
+    );
+  if (!conv) {
+    const [created] = await ctx.db
+      .insert(schema.whatsappConversation)
+      .values({ clinicId: ctx.clinicId, studentId, phone: student.phone })
+      .returning({ id: schema.whatsappConversation.id });
+    conv = created;
+  }
+
+  const now = new Date();
+  const [msg] = await ctx.db
+    .insert(schema.whatsappMessage)
+    .values({
+      clinicId: ctx.clinicId,
+      conversationId: conv.id,
+      direction: "outbound",
+      type: "template",
+      body: renderedBody,
+      templateKey: tpl.key,
+      status: "sent",
+      providerMessageId: providerMessageId ?? null,
+      createdByUserId: ctx.userId,
+    })
+    .returning({ id: schema.whatsappMessage.id });
+
+  await ctx.db
+    .update(schema.whatsappConversation)
+    .set({
+      lastMessageAt: now,
+      lastMessagePreview: preview(renderedBody),
+      lastMessageDirection: "outbound",
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(schema.whatsappConversation.id, conv.id),
+        eq(schema.whatsappConversation.clinicId, ctx.clinicId),
+      ),
+    );
+
+  return { conversationId: conv.id, messageId: msg.id };
 }
 
 /**
