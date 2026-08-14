@@ -89,6 +89,8 @@ describe("notifications DAL", () => {
   it("newest first, carrying the payload", async () => {
     const list = await notifications.listNotifications(ctxOther);
     expect(list.items[0].type).toBe("anamnesis_completed");
-    expect(list.items[0].data.studentName).toBe("Carla");
+    expect((list.items[0].data as { studentName: string }).studentName).toBe(
+      "Carla",
+    );
   });
 });

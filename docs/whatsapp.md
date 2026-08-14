@@ -83,6 +83,13 @@ always derived from the phone, never passed in, exactly as production will),
 appends the inbound message, sets `lastInboundAt = now` (reopening the window),
 and bumps `unreadCount`.
 
+It also raises a clinic-scoped **bell notification** (`whatsapp_received`) so the
+coach is alerted — but **coalesced**: only when the conversation transitions
+`0 → unread`. A rapid back-and-forth therefore rings once; once the coach opens
+the thread (`unreadCount → 0`), the next inbound rings again. The payload is
+denormalized (`contactName` — the student's name, or the formatted phone for an
+unknown number — + a preview), and clicking it opens `/coach/whatsapp`.
+
 - `POST /api/whatsapp/webhook` — the real provider webhook. Delegates to
   `provider.parseInboundWebhook`; inert until a vendor is configured (the `dev`
   provider parses nothing). Multi-tenant routing (mapping an event to a clinic via

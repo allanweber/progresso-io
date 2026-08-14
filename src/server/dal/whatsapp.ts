@@ -17,6 +17,7 @@ import {
 } from "@/lib/whatsapp-inbox";
 import { getWhatsAppProvider } from "@/lib/whatsapp-provider";
 import type { TenantContext } from "@/server/tenant";
+import { createNotification } from "./notifications";
 
 /**
  * WhatsApp inbox access. Clinic-scoped — every query filters by `ctx.clinicId`,
@@ -386,7 +387,11 @@ export async function ingestInboundMessage(
   if (!phone) throw new WhatsAppInboundError("invalid_phone");
 
   let [conv] = await ctx.db
-    .select({ id: schema.whatsappConversation.id })
+    .select({
+      id: schema.whatsappConversation.id,
+      unreadCount: schema.whatsappConversation.unreadCount,
+      studentId: schema.whatsappConversation.studentId,
+    })
     .from(schema.whatsappConversation)
     .where(
       and(
@@ -395,9 +400,16 @@ export async function ingestInboundMessage(
       ),
     );
 
+  // The matched student's name, resolved once, for the notification below.
+  let contactName: string | null = null;
+
   if (!conv) {
     const [student] = await ctx.db
-      .select({ id: schema.students.id })
+      .select({
+        id: schema.students.id,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+      })
       .from(schema.students)
       .where(
         and(
@@ -413,8 +425,13 @@ export async function ingestInboundMessage(
         phone,
       })
       .returning({ id: schema.whatsappConversation.id });
-    conv = created;
+    conv = { id: created.id, unreadCount: 0, studentId: student?.id ?? null };
+    if (student) contactName = `${student.firstName} ${student.lastName}`;
   }
+
+  // Coalesce the bell: only notify when the thread transitions 0 → unread, so a
+  // rapid back-and-forth rings once (until the coach opens it, resetting unread).
+  const wasUnreadZero = conv.unreadCount === 0;
 
   const now = new Date();
   await ctx.db.insert(schema.whatsappMessage).values({
@@ -443,6 +460,35 @@ export async function ingestInboundMessage(
         eq(schema.whatsappConversation.clinicId, ctx.clinicId),
       ),
     );
+
+  if (wasUnreadZero) {
+    // Resolve the contact's display name (student name, else formatted phone).
+    if (!contactName && conv.studentId) {
+      const [s] = await ctx.db
+        .select({
+          firstName: schema.students.firstName,
+          lastName: schema.students.lastName,
+        })
+        .from(schema.students)
+        .where(
+          and(
+            eq(schema.students.id, conv.studentId),
+            eq(schema.students.clinicId, ctx.clinicId),
+          ),
+        );
+      if (s) contactName = `${s.firstName} ${s.lastName}`;
+    }
+    await createNotification(ctx.db, {
+      clinicId: ctx.clinicId,
+      type: "whatsapp_received",
+      data: {
+        conversationId: conv.id,
+        studentId: conv.studentId,
+        contactName: contactName ?? (formatPhone(phone) || phone),
+        preview: preview(event.body),
+      },
+    });
+  }
 
   return { conversationId: conv.id };
 }

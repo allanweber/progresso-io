@@ -3,14 +3,15 @@
  *
  * Notifications are **clinic-scoped**: every coach in the clinic sees them in
  * their bell, and read-state is tracked per coach. The model is generic (a
- * `type` + a `data` payload) so future events can reuse it; only one event is
- * wired today — `anamnesis_completed`, raised when an online student submits
- * their anamnese via the public link (a coach filling it in never notifies).
+ * `type` + a `data` payload) so events can reuse it: an online student
+ * submitting their anamnese, a student submitting a check-in, and a new inbound
+ * WhatsApp message (coalesced — only when the conversation goes 0 → unread).
  */
 
 export const NOTIFICATION_TYPES = [
   "anamnesis_completed",
   "checkin_submitted",
+  "whatsapp_received",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -29,8 +30,24 @@ export type CheckinSubmittedData = {
   checkinDate: string;
 };
 
-/** The discriminated payload union. */
-export type NotificationData = AnamnesisCompletedData | CheckinSubmittedData;
+/**
+ * Payload for `whatsapp_received`. Raised only when a conversation transitions
+ * from 0 → unread (coalesced), so a rapid back-and-forth rings the bell once.
+ * `studentId` is null for an unknown-number thread; `contactName` is then the
+ * formatted phone. Denormalized so the bell needs no joins.
+ */
+export type WhatsappReceivedData = {
+  conversationId: string;
+  studentId: string | null;
+  contactName: string;
+  preview: string;
+};
+
+/** The payload union (keyed by the row's `type`). */
+export type NotificationData =
+  | AnamnesisCompletedData
+  | CheckinSubmittedData
+  | WhatsappReceivedData;
 
 /** A notification row as the bell reads it, plus this coach's read flag. */
 export type NotificationDto = {
@@ -54,9 +71,11 @@ export function notificationTitle(n: {
 }): string {
   switch (n.type) {
     case "anamnesis_completed":
-      return `${n.data.studentName} preencheu a anamnese`;
+      return `${(n.data as AnamnesisCompletedData).studentName} preencheu a anamnese`;
     case "checkin_submitted":
-      return `${n.data.studentName} enviou um check-in`;
+      return `${(n.data as CheckinSubmittedData).studentName} enviou um check-in`;
+    case "whatsapp_received":
+      return `${(n.data as WhatsappReceivedData).contactName} enviou uma mensagem no WhatsApp`;
     default:
       return "Nova notificação";
   }
@@ -69,9 +88,11 @@ export function notificationHref(n: {
 }): string {
   switch (n.type) {
     case "anamnesis_completed":
-      return `/coach/students/${n.data.studentId}`;
+      return `/coach/students/${(n.data as AnamnesisCompletedData).studentId}`;
     case "checkin_submitted":
-      return `/coach/students/${n.data.studentId}/feedback`;
+      return `/coach/students/${(n.data as CheckinSubmittedData).studentId}/feedback`;
+    case "whatsapp_received":
+      return "/coach/whatsapp";
     default:
       return "/coach";
   }

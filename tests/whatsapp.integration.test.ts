@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
@@ -243,6 +243,61 @@ describe("tenant isolation + read state", () => {
     expect(await whatsapp.markRead(ctx, conversationId)).toBe(true);
     const afterRead = await whatsapp.listWaiting(ctx);
     expect(afterRead.some((c) => c.id === conversationId)).toBe(false);
+  });
+});
+
+describe("bell notification (coalesced)", () => {
+  async function waNotifCount(clinicId: string): Promise<number> {
+    const rows = await db
+      .select({ id: schema.notification.id })
+      .from(schema.notification)
+      .where(
+        and(
+          eq(schema.notification.clinicId, clinicId),
+          eq(schema.notification.type, "whatsapp_received"),
+        ),
+      );
+    return rows.length;
+  }
+
+  it("rings once per 0→unread transition, not per message", async () => {
+    const ctx = await ownerContext("wa-notif@example.com", "clinica");
+    await addStudent(ctx, "11900000010", "Ana");
+
+    // First inbound: 0 → unread → one notification.
+    const { conversationId } = await whatsapp.ingestInboundMessage(ctx, {
+      from: "11900000010",
+      body: "oi coach",
+    });
+    expect(await waNotifCount(ctx.clinicId)).toBe(1);
+
+    // Second inbound while still unread → coalesced, no new notification.
+    await whatsapp.ingestInboundMessage(ctx, {
+      from: "11900000010",
+      body: "ainda tá aí?",
+    });
+    expect(await waNotifCount(ctx.clinicId)).toBe(1);
+
+    // Coach opens the thread (unread → 0); next inbound rings again.
+    await whatsapp.markRead(ctx, conversationId);
+    await whatsapp.ingestInboundMessage(ctx, {
+      from: "11900000010",
+      body: "voltei",
+    });
+    expect(await waNotifCount(ctx.clinicId)).toBe(2);
+
+    // The payload carries the student's name + a link target.
+    const [row] = await db
+      .select({ data: schema.notification.data })
+      .from(schema.notification)
+      .where(
+        and(
+          eq(schema.notification.clinicId, ctx.clinicId),
+          eq(schema.notification.type, "whatsapp_received"),
+        ),
+      )
+      .limit(1);
+    expect((row.data as { contactName: string }).contactName).toContain("Ana");
   });
 });
 
