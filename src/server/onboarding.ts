@@ -1,5 +1,4 @@
 import { sendInviteEmail } from "@/lib/email";
-import { sendStudentOnboardingWhatsApp } from "@/lib/whatsapp";
 import {
   clinics,
   invitations,
@@ -68,15 +67,19 @@ export async function sendAnamnesisInvite(
   const fillToken = await studentAnamneses.issueFillToken(ctx, studentId);
   if (!fillToken) return { ok: false, reason: "no_anamnesis" };
 
-  const clinic = await clinics.getClinic(ctx);
-  const clinicName = clinic?.name ?? "Seu coach";
-
-  await sendStudentOnboardingWhatsApp({
-    to: student.phone,
-    clinicName,
-    firstName: student.firstName,
-    anamnesisUrl: `${baseUrl}/anamnesis/fill?token=${fillToken}`,
-  });
+  // Send through the `anamnesis_reminder` template so it lands in the coach's
+  // WhatsApp inbox as a conversation (like every other automation), not just a
+  // provider log. Keeps the "anamnesis_fill" outbox kind the intake e2e reads.
+  await whatsapp.sendTemplateToStudent(
+    ctx,
+    studentId,
+    "anamnesis_reminder",
+    {
+      nome: student.firstName,
+      link: `${baseUrl}/anamnesis/fill?token=${fillToken}`,
+    },
+    "anamnesis_fill",
+  );
 
   logger.info("student.anamnesis_invite_sent", { studentId });
   return { ok: true };

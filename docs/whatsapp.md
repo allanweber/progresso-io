@@ -85,6 +85,15 @@ Because the dev provider can't confirm delivery, every outbound persists as
 status **`sent`**; a real provider later upgrades it to delivered/read/failed via
 status webhooks.
 
+The provider's `canDeliver` flag (false for `dev`) is surfaced to the coach
+inbox as `deliveryEnabled` and drives the **"WhatsApp em desenvolvimento —
+mensagens não são entregues de verdade"** banner: it shows whenever no real
+vendor is wired, so a coach on a live deploy with only the dev provider is never
+left wondering why a message logged but didn't arrive. Wiring a real provider
+(setting `WHATSAPP_PROVIDER` + implementing its adapter) flips `canDeliver` true
+and the banner disappears. Note that actual delivery ALSO needs each clinic's
+own connected number (`whatsapp_connection`), which the dev provider ignores.
+
 ## Templates: base + clinic resolution
 
 One resolver is the single source of truth for "which template body does this
@@ -116,8 +125,8 @@ quinzena / do mês"), and `{link}`:
 | `workout_published` | coach publishes a workout version               |
 | `checkin_feedback`  | coach answers a check-in (manual note or feedback) |
 | `welcome_access`    | portal access/invite sent to the student        |
+| `anamnesis_reminder`| student registration — the anamnese-fill invite |
 | `session_confirm`   | composer-only (session confirmation)            |
-| `anamnesis_reminder`| composer-only (anamnese fill reminder)          |
 
 ### Sending a template to a student (`sendTemplateToStudent`)
 
@@ -140,8 +149,11 @@ The messages a clinic sends on its own behalf, all through the resolver above
 - **In-request** (best-effort, plan-gated, never throw so they can't fail the
   coach's action): `notifyCheckinFeedback` (from the two check-in routes),
   `notifyDietPublished` / `notifyWorkoutPublished` (from the publish routes). The
-  portal-access welcome is wired directly in `sendPortalInvite`
-  (`src/server/onboarding.ts`), which already owns the invite + e-mail flow.
+  onboarding sends live in `src/server/onboarding.ts` and go through the same
+  `sendTemplateToStudent` path: `sendAnamnesisInvite` → `anamnesis_reminder` (at
+  registration) and `sendPortalInvite` → `welcome_access`. So **every** automated
+  send lands in the coach's inbox as a conversation — there is no free-text
+  onboarding path anymore.
 - **Scheduled** — `runCheckinReminders(db?, today?)`: cross-tenant, session-less.
   For each clinic whose `feedbackPreferredDay` is `today` (and whose plan
   includes WhatsApp), it builds a per-clinic `TenantContext` attributed to the
@@ -255,9 +267,12 @@ without a manual refresh.
   `0029_whatsapp_base_templates` (templates → base + clinic override model).
 - lib: `whatsapp-inbox.ts` (client-safe: enums, DTOs, 24h-window math, template
   rendering + `CHECKIN_PERIODO`, zod), `whatsapp-provider.ts` (the port + dev
-  provider), `whatsapp.ts` (the anamnese-invite helper, on the port).
-- Seed data: `drizzle/data/whatsapp-templates.json` (base catalog) loaded by
-  `src/server/whatsapp/base-templates.ts`.
+  provider, with `canDeliver`).
+- Seed data: `drizzle/data/whatsapp-templates.json` (base catalog), loaded by
+  `src/server/whatsapp/base-templates.ts` for the dev seed **and** by
+  `scripts/migrate.mjs` (`seedWhatsappTemplates`) on every deploy — so a
+  production DB, which never runs the dev seed, still gets the base templates
+  (without them no automation can build a message).
 - DAL: `whatsapp.ts` (inbox/thread reads, `sendMessage` with window+template
   enforcement, `resolveTemplate` / `listResolvedTemplates`,
   `sendTemplateToStudent`, `ingestInboundMessage`, `listWaiting`,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getWhatsAppProvider } from "@/lib/whatsapp-provider";
 import { plans, whatsapp } from "@/server/dal";
 import { forbidden, unauthorized } from "@/server/api";
 import { withRoute } from "@/server/observability";
@@ -26,7 +27,8 @@ export const GET = withRoute("coach.whatsapp.inbox", async () => {
   const inbox = await whatsapp.getInbox(ctx);
   return NextResponse.json({
     ...inbox,
-    // Runtime env — drives the coach dev/testing banner (only shown when on).
-    simulateEnabled: process.env.WHATSAPP_ALLOW_SIMULATE === "1",
+    // Whether the active provider can actually deliver. `false` on the dev
+    // provider (no vendor wired) → drives the "nothing is delivered yet" banner.
+    deliveryEnabled: getWhatsAppProvider().canDeliver,
   });
 });
