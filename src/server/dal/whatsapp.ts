@@ -171,8 +171,13 @@ export async function getConnection(
   };
 }
 
-/** The coach inbox: conversations (newest first) + templates + connection. */
-export async function getInbox(ctx: TenantContext): Promise<WhatsAppInboxDto> {
+/**
+ * The coach inbox: conversations (newest first) + templates + connection. The
+ * `simulateEnabled` flag is added by the route (runtime env), not here.
+ */
+export async function getInbox(
+  ctx: TenantContext,
+): Promise<Omit<WhatsAppInboxDto, "simulateEnabled">> {
   const now = Date.now();
   const rows = await ctx.db
     .select(conversationColumns)

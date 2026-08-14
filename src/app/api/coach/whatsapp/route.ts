@@ -24,5 +24,9 @@ export const GET = withRoute("coach.whatsapp.inbox", async () => {
   if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();
 
   const inbox = await whatsapp.getInbox(ctx);
-  return NextResponse.json(inbox);
+  return NextResponse.json({
+    ...inbox,
+    // Runtime env — drives the coach dev/testing banner (only shown when on).
+    simulateEnabled: process.env.WHATSAPP_ALLOW_SIMULATE === "1",
+  });
 });
