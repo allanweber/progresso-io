@@ -33,6 +33,13 @@ import type {
 } from "@/lib/checkin-assessment";
 import type { NotificationData, NotificationType } from "@/lib/notifications";
 import type { DietStructure } from "@/lib/student-diets";
+import type {
+  WhatsAppConnectionStatus,
+  WhatsAppMessageDirection,
+  WhatsAppMessageStatus,
+  WhatsAppMessageType,
+  WhatsAppTemplateStatus,
+} from "@/lib/whatsapp-inbox";
 import type { WorkoutStructure } from "@/lib/student-workouts";
 import type { WorkoutReps } from "@/lib/workouts";
 import type { WorkoutTechnique } from "@/lib/workout-techniques";
@@ -2009,6 +2016,163 @@ export const calendarEvent = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  WhatsApp inbox                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A WhatsApp conversation thread — one per (clinic, phone). Linked to a student
+ * when the number matches one (`studentId`), else kept as an unknown-number
+ * thread (studentId null) so nothing inbound is ever lost. The 24h free-text
+ * window is NOT stored — it's derived from `lastInboundAt` on read. The
+ * `last*` columns denormalize the newest message for a cheap list render.
+ */
+export const whatsappConversation = pgTable(
+  "whatsapp_conversation",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // The student behind the number, when known. Set null if the student is
+    // removed — the thread survives as an unknown-number conversation.
+    studentId: uuid("student_id").references(() => students.id, {
+      onDelete: "set null",
+    }),
+    // Normalized phone (digits only, see @/lib/phone) — the thread's identity.
+    phone: text("phone").notNull(),
+    // When the person last messaged us — the 24h window anchor. Null = never.
+    lastInboundAt: timestamp("last_inbound_at"),
+    // Newest message (either direction) for the list preview + ordering.
+    lastMessageAt: timestamp("last_message_at"),
+    lastMessagePreview: text("last_message_preview"),
+    lastMessageDirection: text("last_message_direction")
+      .$type<WhatsAppMessageDirection>(),
+    // Unanswered inbound counter; reset to 0 when the coach opens the thread.
+    unreadCount: integer("unread_count").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("whatsapp_conversation_clinic_phone_uq").on(
+      t.clinicId,
+      t.phone,
+    ),
+    index("whatsapp_conversation_clinic_last_idx").on(
+      t.clinicId,
+      t.lastMessageAt,
+    ),
+    index("whatsapp_conversation_student_idx").on(t.studentId),
+  ],
+);
+
+/**
+ * A single WhatsApp message in a thread. `direction` is who sent it; `type`
+ * distinguishes a free-text session message from a template send; `status`
+ * tracks outbound delivery (a real provider upgrades it via status webhooks).
+ */
+export const whatsappMessage = pgTable(
+  "whatsapp_message",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => whatsappConversation.id, { onDelete: "cascade" }),
+    direction: text("direction").$type<WhatsAppMessageDirection>().notNull(),
+    type: text("type").$type<WhatsAppMessageType>().default("text").notNull(),
+    // The rendered, sent/received text (template variables already substituted).
+    body: text("body").notNull(),
+    // The template key when `type = template`, else null.
+    templateKey: text("template_key"),
+    status: text("status")
+      .$type<WhatsAppMessageStatus>()
+      .default("sent")
+      .notNull(),
+    // The vendor's message id, when returned — the key status webhooks match on.
+    providerMessageId: text("provider_message_id"),
+    // The coach who sent an outbound message (audit; null for inbound).
+    createdByUserId: text("created_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("whatsapp_message_clinic_conv_idx").on(
+      t.clinicId,
+      t.conversationId,
+      t.createdAt,
+    ),
+    index("whatsapp_message_provider_idx").on(t.providerMessageId),
+  ],
+);
+
+/**
+ * A pre-approved template message, per clinic. Only `approved` templates may be
+ * sent (esp. when the 24h window is closed). Seeded with a base catalog; a
+ * future editor + Meta submission flow reuses `status`.
+ */
+export const whatsappTemplate = pgTable(
+  "whatsapp_template",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // Stable per-clinic key (e.g. "checkin_reminder").
+    key: text("key").notNull(),
+    title: text("title").notNull(),
+    // Body with `{nome}`-style placeholders, substituted at send time.
+    body: text("body").notNull(),
+    status: text("status")
+      .$type<WhatsAppTemplateStatus>()
+      .default("approved")
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("whatsapp_template_clinic_key_uq").on(t.clinicId, t.key),
+  ],
+);
+
+/**
+ * A clinic's WhatsApp-number connection. One row per clinic (unique). Holds the
+ * chosen provider + status + display number + Meta account — the home for real
+ * provider credentials later. Absent row = never connected. Powers the coach
+ * page's status dot and the admin per-tenant overview.
+ */
+export const whatsappConnection = pgTable(
+  "whatsapp_connection",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — one connection per clinic.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // The vendor backing this connection (e.g. "meta"), null until chosen.
+    provider: text("provider"),
+    status: text("status")
+      .$type<WhatsAppConnectionStatus>()
+      .default("disconnected")
+      .notNull(),
+    // The clinic's WhatsApp Business display number (normalized), when connected.
+    phone: text("phone"),
+    metaAccountName: text("meta_account_name"),
+    connectedAt: timestamp("connected_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("whatsapp_connection_clinic_uq").on(t.clinicId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -2075,3 +2239,11 @@ export type CheckinAssessment = typeof checkinAssessment.$inferSelect;
 export type NewCheckinAssessment = typeof checkinAssessment.$inferInsert;
 export type CalendarEvent = typeof calendarEvent.$inferSelect;
 export type NewCalendarEvent = typeof calendarEvent.$inferInsert;
+export type WhatsappConversation = typeof whatsappConversation.$inferSelect;
+export type NewWhatsappConversation = typeof whatsappConversation.$inferInsert;
+export type WhatsappMessage = typeof whatsappMessage.$inferSelect;
+export type NewWhatsappMessage = typeof whatsappMessage.$inferInsert;
+export type WhatsappTemplate = typeof whatsappTemplate.$inferSelect;
+export type NewWhatsappTemplate = typeof whatsappTemplate.$inferInsert;
+export type WhatsappConnection = typeof whatsappConnection.$inferSelect;
+export type NewWhatsappConnection = typeof whatsappConnection.$inferInsert;

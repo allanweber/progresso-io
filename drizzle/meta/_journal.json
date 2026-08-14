@@ -197,6 +197,13 @@
       "when": 1786622152758,
       "tag": "0027_calendar_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1786693990287,
+      "tag": "0028_whatsapp_inbox",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ import type { WorkoutReps } from "@/lib/workouts";
 import type { AnamnesisSection } from "@/lib/anamneses";
 import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import { normalizePhone } from "@/lib/phone";
+import { BASE_WHATSAPP_TEMPLATES } from "@/lib/whatsapp-inbox";
 import type { TenantContext } from "@/server/tenant";
 
 config({ path: ".env.local" });
@@ -947,6 +948,151 @@ async function seed() {
       admin.id,
     );
     console.info("✓ seeded demo invoices (one paid, one overdue)");
+  }
+
+  // Demo WhatsApp inbox (paid-tier feature; the clinic is on Clínica). Seeds the
+  // base template catalog, a connected connection, and three conversations that
+  // cover both window states so the inbox + admin overview + dashboard widget
+  // have real content: Ana (open window, unanswered → shows in "WhatsApp
+  // aguardando"), an unknown number (open window), and an unknown number whose
+  // 24h window has CLOSED (so its composer falls back to templates). Idempotent:
+  // skipped once the clinic has any conversation.
+  {
+    // Base templates (approved) — one source of truth with the app's catalog.
+    await db
+      .insert(schema.whatsappTemplate)
+      .values(
+        BASE_WHATSAPP_TEMPLATES.map((t) => ({
+          clinicId: coachClinic.id,
+          key: t.key,
+          title: t.title,
+          body: t.body,
+          status: "approved" as const,
+        })),
+      )
+      .onConflictDoNothing();
+
+    // A connected WhatsApp Business connection for the clinic.
+    await db
+      .insert(schema.whatsappConnection)
+      .values({
+        clinicId: coachClinic.id,
+        provider: "meta",
+        status: "connected",
+        phone: normalizePhone("1130000001"),
+        metaAccountName: coachClinic.name,
+        connectedAt: new Date(),
+      })
+      .onConflictDoNothing();
+
+    const existingConvs = await db
+      .select({ id: schema.whatsappConversation.id })
+      .from(schema.whatsappConversation)
+      .where(eq(schema.whatsappConversation.clinicId, coachClinic.id))
+      .limit(1);
+
+    if (existingConvs.length === 0) {
+      const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000);
+      const anaPhone = normalizePhone("11999990000")!; // matches the seeded aluno
+
+      // Helper: create a conversation + its messages with explicit timestamps.
+      async function seedConversation(opts: {
+        studentId: string | null;
+        phone: string;
+        lastInboundMinAgo: number; // window: < 24h ago = open
+        unread: number;
+        messages: Array<{
+          direction: "inbound" | "outbound";
+          body: string;
+          minAgo: number;
+          type?: "text" | "template";
+          templateKey?: string;
+        }>;
+      }) {
+        const last = opts.messages[opts.messages.length - 1];
+        const [conv] = await db
+          .insert(schema.whatsappConversation)
+          .values({
+            clinicId: coachClinic.id,
+            studentId: opts.studentId,
+            phone: opts.phone,
+            lastInboundAt: minutesAgo(opts.lastInboundMinAgo),
+            lastMessageAt: minutesAgo(last.minAgo),
+            lastMessagePreview: last.body,
+            lastMessageDirection: last.direction,
+            unreadCount: opts.unread,
+          })
+          .returning({ id: schema.whatsappConversation.id });
+        await db.insert(schema.whatsappMessage).values(
+          opts.messages.map((m) => ({
+            clinicId: coachClinic.id,
+            conversationId: conv.id,
+            direction: m.direction,
+            type: m.type ?? ("text" as const),
+            body: m.body,
+            templateKey: m.templateKey ?? null,
+            status: (m.direction === "inbound" ? "delivered" : "sent") as
+              | "delivered"
+              | "sent",
+            createdByUserId: m.direction === "outbound" ? coach.id : null,
+            createdAt: minutesAgo(m.minAgo),
+          })),
+        );
+      }
+
+      // Ana — open window, last message inbound + unread (dashboard "aguardando").
+      await seedConversation({
+        studentId,
+        phone: anaPhone,
+        lastInboundMinAgo: 45,
+        unread: 1,
+        messages: [
+          { direction: "outbound", body: "Oi Ana! Como foi o treino B?", minAgo: 90 },
+          {
+            direction: "inbound",
+            body: "Coach, terminei o treino B hoje 💪 mandei o check-in!",
+            minAgo: 45,
+          },
+        ],
+      });
+
+      // Unknown number — open window, a prospective student reaching out.
+      await seedConversation({
+        studentId: null,
+        phone: normalizePhone("11988887777")!,
+        lastInboundMinAgo: 120,
+        unread: 1,
+        messages: [
+          {
+            direction: "inbound",
+            body: "Olá! Vi seu perfil e queria saber sobre a consultoria online.",
+            minAgo: 120,
+          },
+        ],
+      });
+
+      // Unknown number — CLOSED window (last inbound > 24h ago) → template-only.
+      await seedConversation({
+        studentId: null,
+        phone: normalizePhone("11977776666")!,
+        lastInboundMinAgo: 30 * 60, // 30h ago → window closed
+        unread: 0,
+        messages: [
+          {
+            direction: "inbound",
+            body: "Bom dia! Posso remarcar minha avaliação?",
+            minAgo: 30 * 60,
+          },
+          {
+            direction: "outbound",
+            body: "Claro! Consigo terça às 10h, fica bom?",
+            minAgo: 29 * 60,
+          },
+        ],
+      });
+
+      console.info("✓ seeded demo WhatsApp inbox (templates, connection, 3 conversations)");
+    }
   }
 
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec

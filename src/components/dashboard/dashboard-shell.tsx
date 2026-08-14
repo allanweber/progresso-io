@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   Settings,
   ShieldCheck,
   UtensilsCrossed,
@@ -38,9 +39,10 @@ type ShellUser = {
   role?: string | null;
 };
 
-/** Plan-gated features that toggle chrome (e.g. the Calendar nav item). */
+/** Plan-gated features that toggle chrome (e.g. the Calendar/WhatsApp nav items). */
 type ShellCapabilities = {
   calendar?: boolean;
+  whatsapp?: boolean;
 };
 
 /** Sidebar links for a role. Each area only ever links within itself. */
@@ -61,6 +63,14 @@ function navItems(
         icon: CalendarDays,
       });
     }
+    // WhatsApp is a paid-tier feature (Free excluded), gated like the Calendar.
+    if (capabilities.whatsapp) {
+      items.push({
+        href: "/coach/whatsapp",
+        label: "WhatsApp",
+        icon: MessageCircle,
+      });
+    }
     items.push({ href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed });
     items.push({ href: "/coach/workouts", label: "Treinos", icon: Dumbbell });
     items.push({
@@ -76,6 +86,7 @@ function navItems(
     items.push({ href: "/admin/students", label: "Alunos", icon: Users });
     items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
     items.push({ href: "/admin/exercises", label: "Exercícios", icon: Dumbbell });
+    items.push({ href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle });
     items.push({ href: "/admin/maintenance", label: "Manutenção", icon: Database });
     items.push({ href: "/admin/admins", label: "Admins", icon: ShieldCheck });
   }

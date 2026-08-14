@@ -20,14 +20,15 @@ export default async function CoachLayout({
 }) {
   const session = await requireRole(["coach"]);
   const ctx = await requireClinic();
-  const [clinic, calendar] = await Promise.all([
+  const [clinic, calendar, whatsapp] = await Promise.all([
     clinics.getClinic(ctx),
     plans.canUseCalendar(ctx),
+    plans.canUseWhatsapp(ctx),
   ]);
   const startersSeeded = Boolean(clinic?.startersSeededAt);
 
   return (
-    <DashboardShell user={session.user} capabilities={{ calendar }}>
+    <DashboardShell user={session.user} capabilities={{ calendar, whatsapp }}>
       <StartersEnsure seeded={startersSeeded} />
       {children}
     </DashboardShell>

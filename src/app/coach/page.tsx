@@ -87,6 +87,7 @@ export default function CoachDashboardPage() {
 
   const missingPlans = data?.missingPlans ?? [];
   const pendingCheckins = data?.pendingCheckins ?? [];
+  const waWaiting = data?.waWaiting ?? [];
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -171,11 +172,12 @@ export default function CoachDashboardPage() {
           <div className="text-[13px] text-muted-foreground">
             WhatsApp aguardando
           </div>
-          <div className="mt-1.5 font-heading text-3xl font-bold text-[#CBD5E1]">
-            —
-          </div>
-          <div className="text-[11px] font-medium text-muted-foreground">
-            em breve
+          <div
+            className={`mt-1.5 font-heading text-3xl font-bold ${
+              waWaiting.length > 0 ? "text-primary" : "text-foreground"
+            }`}
+          >
+            {isLoading ? "…" : waWaiting.length}
           </div>
         </div>
       </div>
@@ -250,8 +252,54 @@ export default function CoachDashboardPage() {
           <SectionCard title="Esta semana">
             <ComingSoon />
           </SectionCard>
-          <SectionCard title="WhatsApp aguardando">
-            <ComingSoon />
+          <SectionCard
+            title="WhatsApp aguardando"
+            badge={
+              waWaiting.length > 0 ? (
+                <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  {waWaiting.length}
+                </span>
+              ) : undefined
+            }
+          >
+            {isLoading ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            ) : waWaiting.length === 0 ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Nenhuma conversa aguardando resposta.
+              </div>
+            ) : (
+              <ul>
+                {waWaiting.map((c) => (
+                  <li
+                    key={c.conversationId}
+                    className="border-b border-[#F1F5F9] last:border-0"
+                  >
+                    <Link
+                      href="/coach/whatsapp"
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light"
+                    >
+                      <div
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold uppercase text-white"
+                        style={{ background: avatarColor(c.conversationId) }}
+                      >
+                        {c.initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {c.name}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {c.preview ?? "—"}
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </SectionCard>
 
           {/* The one real list */}

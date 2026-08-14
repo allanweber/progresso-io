@@ -27,4 +27,5 @@ export * as studentDiets from "./student-diets";
 export * as studentPortal from "./student-portal";
 export * as students from "./students";
 export * as studentWorkouts from "./student-workouts";
+export * as whatsapp from "./whatsapp";
 export * as workouts from "./workouts";
