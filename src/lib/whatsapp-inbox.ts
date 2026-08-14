@@ -125,6 +125,18 @@ export const WHATSAPP_TEMPLATE_STATUS_LABEL: Record<
 export type TemplateVars = { nome?: string; periodo?: string; link?: string };
 
 /**
+ * The templates a coach may send BY HAND from the closed-window composer. Every
+ * other template is fired by an automation (welcome, anamnese, diet/workout
+ * published, check-in reminder/feedback) — and most carry a `{link}`/`{periodo}`
+ * the manual composer can't fill — so they'd render with broken placeholders and
+ * don't belong in the picker. Only templates whose placeholders are all
+ * fillable from the conversation (`{nome}` alone) qualify.
+ */
+export const COMPOSER_TEMPLATE_KEYS: ReadonlySet<string> = new Set([
+  "session_confirm",
+]);
+
+/**
  * Renders a template body, substituting `{nome}` / `{periodo}` / `{link}` with
  * the provided values. Missing `nome` falls back to a neutral "aluno(a)"; a
  * placeholder with no value provided is left untouched (never broken output).
@@ -248,6 +260,13 @@ export type AdminWhatsAppOverviewDto = {
   connectedCount: number;
   totalMessagesThisMonth: number;
   totalOpenWindows: number;
+  /**
+   * Whether the dev messaging simulator is enabled (`WHATSAPP_ALLOW_SIMULATE=1`).
+   * Drives the "Simulador de mensagens" link on the admin overview — hidden
+   * otherwise (the simulator page itself 404s when the flag is off). Set by the
+   * route (runtime env), not the DAL.
+   */
+  simulateEnabled: boolean;
 };
 
 /* -------------------------------------------------------------------------- */

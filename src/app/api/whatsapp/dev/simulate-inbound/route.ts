@@ -21,17 +21,15 @@ import { getTenantContext } from "@/server/tenant";
  * inbound message, and reopens the 24h window — so one call flips a closed
  * conversation to open and makes free-text sending legal again.
  *
- * Guarded hard: a plain 404 (as if the route didn't exist) unless BOTH
- * `NODE_ENV !== "production"` and `WHATSAPP_ALLOW_SIMULATE === "1"`. When enabled
- * it's still coach-only + plan-gated + tenant-scoped, so it can only ever write
- * into the caller's own clinic. The body is `{ phone, body }` — never a
+ * Guarded by an opt-in env flag: a plain 404 (as if the route didn't exist)
+ * unless `WHATSAPP_ALLOW_SIMULATE === "1"`. That flag is only ever set on a
+ * testing deployment, so this stays off in real production by default — and even
+ * when on it's coach-only + plan-gated + tenant-scoped, so it can only ever
+ * write into the caller's own clinic. The body is `{ phone, body }` — never a
  * `studentId`: the student is resolved from the phone, exactly like production.
  */
 function simulateEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.WHATSAPP_ALLOW_SIMULATE === "1"
-  );
+  return process.env.WHATSAPP_ALLOW_SIMULATE === "1";
 }
 
 export const POST = withRoute("whatsapp.dev.simulate", async (request) => {
