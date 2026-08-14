@@ -20,6 +20,11 @@
     "body": "{nome}, respondi o seu check-in! 📝 Veja meu retorno no portal: {link}"
   },
   {
+    "key": "anamnesis_welcome",
+    "title": "Boas-vindas / anamnese",
+    "body": "Olá {nome}! Seja muito bem-vindo(a)! 🎉 Para começarmos, preencha sua anamnese — leva só uns minutinhos: {link}"
+  },
+  {
     "key": "session_confirm",
     "title": "Confirmação de sessão",
     "body": "Olá {nome}! Consegue confirmar sua sessão de amanhã? 🗓️"

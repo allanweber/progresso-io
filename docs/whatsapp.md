@@ -125,7 +125,8 @@ quinzena / do mês"), and `{link}`:
 | `workout_published` | coach publishes a workout version               |
 | `checkin_feedback`  | coach answers a check-in (manual note or feedback) |
 | `welcome_access`    | portal access/invite sent to the student        |
-| `anamnesis_reminder`| student registration — the anamnese-fill invite |
+| `anamnesis_welcome` | student registration — friendly welcome + fill invite |
+| `anamnesis_reminder`| composer-only (nudge a still-pending anamnese)  |
 | `session_confirm`   | composer-only (session confirmation)            |
 
 ### Sending a template to a student (`sendTemplateToStudent`)
@@ -150,7 +151,7 @@ The messages a clinic sends on its own behalf, all through the resolver above
   coach's action): `notifyCheckinFeedback` (from the two check-in routes),
   `notifyDietPublished` / `notifyWorkoutPublished` (from the publish routes). The
   onboarding sends live in `src/server/onboarding.ts` and go through the same
-  `sendTemplateToStudent` path: `sendAnamnesisInvite` → `anamnesis_reminder` (at
+  `sendTemplateToStudent` path: `sendAnamnesisInvite` → `anamnesis_welcome` (at
   registration) and `sendPortalInvite` → `welcome_access`. So **every** automated
   send lands in the coach's inbox as a conversation — there is no free-text
   onboarding path anymore.
@@ -201,10 +202,14 @@ sending legal again.
 
 `POST /api/whatsapp/dev/simulate-inbound`
 
-- **Guard:** a plain `404` (as if the route didn't exist) unless **both**
-  `NODE_ENV !== "production"` **and** `WHATSAPP_ALLOW_SIMULATE === "1"`. When
-  enabled it's still coach-only + plan-gated + tenant-scoped, so it can only write
-  into the caller's own clinic.
+- **Guard:** a plain `404` (as if the route didn't exist) unless
+  `WHATSAPP_ALLOW_SIMULATE === "1"`. That opt-in flag is only set on a testing
+  deployment, so the simulator stays off in real production by default — but it
+  *can* be turned on for a live testing deploy (progresso.allanweber.dev), which
+  is the point. When enabled it's still coach-only + plan-gated + tenant-scoped,
+  so it can only write into the caller's own clinic. The admin overview
+  (`/admin/whatsapp`) shows a **"Simulador de mensagens"** link when the flag is
+  on.
 - **Body:** `{ "phone": "+55 11 99999-0000", "body": "..." }` — **no `studentId`**
   (a real webhook only gives you the sender's number; the student is resolved by
   phone).

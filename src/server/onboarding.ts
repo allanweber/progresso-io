@@ -67,13 +67,14 @@ export async function sendAnamnesisInvite(
   const fillToken = await studentAnamneses.issueFillToken(ctx, studentId);
   if (!fillToken) return { ok: false, reason: "no_anamnesis" };
 
-  // Send through the `anamnesis_reminder` template so it lands in the coach's
-  // WhatsApp inbox as a conversation (like every other automation), not just a
-  // provider log. Keeps the "anamnesis_fill" outbox kind the intake e2e reads.
+  // First contact → a friendly WELCOME + request to fill the anamnese (not the
+  // "you forgot" reminder). Sent through the template path so it lands in the
+  // coach's WhatsApp inbox as a conversation like every other automation. Keeps
+  // the "anamnesis_fill" outbox kind the intake e2e reads.
   await whatsapp.sendTemplateToStudent(
     ctx,
     studentId,
-    "anamnesis_reminder",
+    "anamnesis_welcome",
     {
       nome: student.firstName,
       link: `${baseUrl}/anamnesis/fill?token=${fillToken}`,

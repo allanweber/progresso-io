@@ -8,6 +8,7 @@ import { Construction, Lock, MessageCircle, Send, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import {
+  COMPOSER_TEMPLATE_KEYS,
   isWindowOpen,
   windowLabel,
   type WhatsAppInboxDto,
@@ -78,8 +79,14 @@ export default function CoachWhatsappPage() {
   const active = thread.data?.conversation ?? null;
   // Derive the window live so the 24h boundary flips without waiting for a poll.
   const windowOpen = active ? isWindowOpen(active.lastInboundAt) : false;
-  const approvedTemplates = useMemo(
-    () => (inbox.data?.templates ?? []).filter((t) => t.status === "approved"),
+  // The closed-window composer only offers templates a coach can send by hand
+  // (COMPOSER_TEMPLATE_KEYS) — the automation-only ones (and their unfillable
+  // `{link}`/`{periodo}` placeholders) never show here.
+  const composerTemplates = useMemo(
+    () =>
+      (inbox.data?.templates ?? []).filter(
+        (t) => t.status === "approved" && COMPOSER_TEMPLATE_KEYS.has(t.key),
+      ),
     [inbox.data],
   );
 
@@ -268,38 +275,40 @@ export default function CoachWhatsappPage() {
                       <Lock className="size-3.5" />
                       Janela de 24h fechada — só templates pré-aprovados
                     </div>
-                    {approvedTemplates.length === 0 ? (
+                    {composerTemplates.length === 0 ? (
                       <p className="px-1 text-xs text-muted-foreground">
-                        Nenhum template aprovado disponível.
+                        Nenhum template disponível para envio manual.
                       </p>
                     ) : (
-                      approvedTemplates.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          data-testid="wa-template"
-                          disabled={send.isPending}
-                          onClick={() =>
-                            send.mutate({
-                              type: "template",
-                              templateKey: t.key,
-                            })
-                          }
-                          className="flex items-center gap-3 rounded-xl bg-white px-3.5 py-2.5 text-left shadow-sm transition-colors hover:bg-primary-light/30 disabled:opacity-60"
-                        >
-                          <div className="flex-1">
-                            <div className="text-xs font-semibold">
-                              {t.title}
+                      <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
+                        {composerTemplates.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            data-testid="wa-template"
+                            disabled={send.isPending}
+                            onClick={() =>
+                              send.mutate({
+                                type: "template",
+                                templateKey: t.key,
+                              })
+                            }
+                            className="flex items-center gap-3 rounded-xl bg-white px-3.5 py-2.5 text-left shadow-sm transition-colors hover:bg-primary-light/30 disabled:opacity-60"
+                          >
+                            <div className="flex-1">
+                              <div className="text-xs font-semibold">
+                                {t.title}
+                              </div>
+                              <div className="mt-0.5 text-xs text-muted-foreground">
+                                {t.body}
+                              </div>
                             </div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              {t.body}
-                            </div>
-                          </div>
-                          <span className="flex-shrink-0 text-[11px] font-semibold text-primary">
-                            Enviar →
-                          </span>
-                        </button>
-                      ))
+                            <span className="flex-shrink-0 text-[11px] font-semibold text-primary">
+                              Enviar →
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
@@ -377,7 +386,9 @@ function MessageList({
                 template
               </span>
             )}
-            <p className="whitespace-pre-wrap text-foreground">{m.body}</p>
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-foreground">
+              {m.body}
+            </p>
             <div className="mt-1 text-right text-[10px] text-muted-foreground">
               {messageTime(m.createdAt)}
             </div>

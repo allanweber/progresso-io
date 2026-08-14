@@ -406,14 +406,20 @@ async function seedWhatsappTemplates(sql) {
   }
   if (!Array.isArray(templates) || templates.length === 0) return;
 
-  const [{ count }] = await sql`
-    select count(*)::int as count from whatsapp_template where clinic_id is null`;
-  if (count > 0) {
-    console.log(`✓ Base WhatsApp templates already seeded (${count}) — skipping.`);
+  // Top up only the MISSING base keys — never touch existing rows (a clinic may
+  // have edited the shared bodies, and we must not clobber them). This makes
+  // adding a new base template a simple deploy: it inserts on the next run even
+  // though other base rows already exist.
+  const existing = await sql`
+    select key from whatsapp_template where clinic_id is null`;
+  const have = new Set(existing.map((r) => r.key));
+  const missing = templates.filter((t) => !have.has(t.key));
+  if (missing.length === 0) {
+    console.log(`✓ Base WhatsApp templates already up to date (${have.size}).`);
     return;
   }
 
-  const rows = templates.map((t) => ({
+  const rows = missing.map((t) => ({
     clinic_id: null,
     key: t.key,
     title: t.title,
@@ -421,7 +427,9 @@ async function seedWhatsappTemplates(sql) {
     status: "approved",
   }));
   await sql`insert into whatsapp_template ${sql(rows)}`;
-  console.log(`✓ Base WhatsApp templates seeded: ${rows.length}.`);
+  console.log(
+    `✓ Base WhatsApp templates: ${rows.length} new (${have.size} already present).`,
+  );
 }
 
 const sql = postgres(url, { max: 1 });
