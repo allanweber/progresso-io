@@ -1,28 +1,21 @@
 import { captureOutbox } from "@/lib/test-outbox";
-import { logger } from "@/server/observability";
+import { getWhatsAppProvider } from "@/lib/whatsapp-provider";
 
 /**
- * WhatsApp delivery port. Server-only.
+ * Outbound WhatsApp helpers. Server-only.
  *
  * WhatsApp is the channel a student receives their portal access link and/or
- * anamnese fill link on. Mirroring the e-mail helper: when no provider is
- * configured (local dev / tests) the message is logged and its actionable links
- * are captured in the test outbox so e2e can drive the flow — a real provider
- * (Meta Cloud API / Twilio / Z-API) is wired later behind this same interface,
- * with no caller change. `sendWhatsApp` never throws in the unconfigured path,
- * so a missing provider can't break registration.
+ * anamnese fill link on. Actual delivery goes through the provider **port**
+ * (`@/lib/whatsapp-provider`) — which vendor sits behind it (Meta Cloud API /
+ * Twilio / Z-API) is undecided, and until one is wired the `dev` provider logs
+ * and never delivers. These helpers add the app-level concerns on top of the
+ * port: capturing actionable links in the test outbox (so e2e can drive the
+ * flow) and composing the onboarding / feedback bodies. `sendWhatsApp` never
+ * throws in the unconfigured path, so a missing provider can't break
+ * registration.
  */
 
 type WhatsAppLink = { kind: string; url: string };
-
-/**
- * Masks all but the last four digits of a phone number for logging — full
- * numbers are PII and must not reach the log stream (see M-2). `+5511998887766`
- * → `•••••••••7766`.
- */
-function maskPhone(p: string): string {
-  return p.replace(/\d(?=\d{4})/g, "•");
-}
 
 export type WhatsAppMessage = {
   /** Normalized destination number (see @/lib/phone). */
@@ -33,14 +26,12 @@ export type WhatsAppMessage = {
   links?: WhatsAppLink[];
 };
 
-/** Whether a real provider is configured. Only its presence is checked here. */
-const providerConfigured =
-  !!process.env.WHATSAPP_API_URL && !!process.env.WHATSAPP_API_TOKEN;
-
 /**
- * Sends a WhatsApp message. Returns whether it was actually delivered by a
- * provider (`false` in the logged/dev path). Captures each link in the test
- * outbox first, so e2e can read the generated links regardless of provider.
+ * Sends a free-text WhatsApp message through the provider port. Returns whether
+ * a provider actually delivered it (`false` in the logged/dev path). Captures
+ * each link in the test outbox first, so e2e can read the generated links
+ * regardless of provider. Delegates the send (and its masked logging) to the
+ * port, so there's a single place a real vendor is wired.
  */
 export async function sendWhatsApp(
   msg: WhatsAppMessage,
@@ -48,33 +39,11 @@ export async function sendWhatsApp(
   for (const link of msg.links ?? []) {
     captureOutbox({ to: msg.to, subject: "WhatsApp", kind: link.kind, url: link.url });
   }
-
-  if (!providerConfigured) {
-    console.info(`[whatsapp:dev] to ${maskPhone(msg.to)}: ${msg.body}`);
-    logger.info("whatsapp.logged", {
-      to: maskPhone(msg.to),
-      links: msg.links?.length ?? 0,
-    });
-    return { delivered: false };
-  }
-
-  try {
-    // Provider call goes here (fetch to WHATSAPP_API_URL with the token). Kept
-    // abstract until a vendor is chosen; the caller contract stays the same.
-    await fetch(process.env.WHATSAPP_API_URL as string, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-      },
-      body: JSON.stringify({ to: msg.to, body: msg.body }),
-    });
-    logger.info("whatsapp.sent", { to: maskPhone(msg.to) });
-    return { delivered: true };
-  } catch (error) {
-    logger.error("whatsapp.send_failed", { err: error, to: maskPhone(msg.to) });
-    throw error;
-  }
+  const { delivered } = await getWhatsAppProvider().sendSessionMessage(
+    msg.to,
+    msg.body,
+  );
+  return { delivered };
 }
 
 export type SendWhatsApp = typeof sendWhatsApp;
@@ -109,36 +78,6 @@ export async function sendStudentOnboardingWhatsApp({
   if (anamnesisUrl) {
     lines.push(`\n📝 Preencha sua anamnese: ${anamnesisUrl}`);
     links.push({ kind: "anamnesis_fill", url: anamnesisUrl });
-  }
-  return sendWhatsApp({ to, body: lines.join("\n"), links });
-}
-
-type CheckinFeedbackArgs = {
-  to: string;
-  firstName: string;
-  /** The coach's feedback text (or a manual check-in's note). */
-  feedback: string;
-  /** Link back to the student's portal (Evolução). */
-  portalUrl?: string;
-};
-
-/**
- * Sends the coach's check-in feedback to the student on WhatsApp. WhatsApp isn't
- * wired to a provider yet, so in dev/tests this only logs (and captures the
- * portal link in the test outbox) — the caller contract is stable for when a
- * provider is added. Never throws in the unconfigured path.
- */
-export async function sendCheckinFeedbackWhatsApp({
-  to,
-  firstName,
-  feedback,
-  portalUrl,
-}: CheckinFeedbackArgs): Promise<{ delivered: boolean }> {
-  const lines = [`Oi, ${firstName}! Seu coach respondeu seu check-in:`, "", feedback];
-  const links: WhatsAppLink[] = [];
-  if (portalUrl) {
-    lines.push("", `📲 Veja no portal: ${portalUrl}`);
-    links.push({ kind: "checkin_feedback", url: portalUrl });
   }
   return sendWhatsApp({ to, body: lines.join("\n"), links });
 }

@@ -76,6 +76,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Cache the downloaded browser (~150 MB). Without this the install step
+      # re-downloads Chromium every run and is at the mercy of the CDN — usually
+      # ~30s, but it has spiked to 10 min. Keyed on the lockfile so a Playwright
+      # version bump busts the cache. On a hit the install below skips the
+      # download and only ensures the apt system deps.
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 

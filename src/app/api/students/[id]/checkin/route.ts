@@ -9,8 +9,8 @@ import {
   coachCheckinSchema,
   type CheckinListDto,
 } from "@/lib/student-checkins";
-import { sendCheckinFeedbackWhatsApp } from "@/lib/whatsapp";
-import { coachCheckins, plans, students } from "@/server/dal";
+import { coachCheckins } from "@/server/dal";
+import { notifyCheckinFeedback } from "@/server/whatsapp-automations";
 import type {
   AssessmentWriteInput,
   CreateCoachCheckinInput,
@@ -24,7 +24,7 @@ import {
   unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
+import { withRoute } from "@/server/observability";
 import { putCheckinPhoto, validateCheckinPhoto } from "@/server/r2";
 import { getTenantContext } from "@/server/tenant";
 
@@ -144,20 +144,12 @@ export const POST = withRoute<Params>(
     const created = await coachCheckins.createCoachCheckin(ctx, id, input);
     if (!created) return notFound("Aluno não encontrado.");
 
-    // Send the coach's note to the student on WhatsApp (logged in dev).
+    // Notify the student on WhatsApp that their check-in was answered — the
+    // `checkin_feedback` template points them to the portal (the note itself
+    // lives there). Best-effort + plan-gated inside the helper.
     if (parsed.data.note) {
-      const student = await students.getStudent(ctx, id);
-      if (student?.phone && (await plans.canUseWhatsapp(ctx))) {
-        const origin = new URL(request.url).origin;
-        await sendCheckinFeedbackWhatsApp({
-          to: student.phone,
-          firstName: student.firstName,
-          feedback: parsed.data.note,
-          portalUrl: `${origin}/student`,
-        }).catch((err) =>
-          logger.error("coach.checkin.whatsapp_failed", { err, studentId: id }),
-        );
-      }
+      const origin = new URL(request.url).origin;
+      await notifyCheckinFeedback(ctx, id, `${origin}/student`);
     }
 
     return NextResponse.json(created, { status: 201 });

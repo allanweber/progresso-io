@@ -1,0 +1,32 @@
+import { NextResponse } from "next/server";
+
+import { plans, whatsapp } from "@/server/dal";
+import { forbidden, unauthorized } from "@/server/api";
+import { withRoute } from "@/server/observability";
+import { getTenantContext } from "@/server/tenant";
+
+/** 403 shown when the clinic's plan doesn't include WhatsApp (Free). */
+export function whatsappLocked() {
+  return forbidden(
+    "Seu plano não inclui o WhatsApp. Faça upgrade para conversar com seus alunos.",
+  );
+}
+
+/**
+ * Coach WhatsApp inbox: the conversation list + templates + this clinic's
+ * connection. Coach-only, gated on the plan's `whatsapp` capability (Free
+ * excluded), tenant-scoped through the DAL. No external input to validate.
+ */
+export const GET = withRoute("coach.whatsapp.inbox", async () => {
+  const ctx = await getTenantContext();
+  if (!ctx) return unauthorized();
+  if (ctx.role !== "coach") return forbidden();
+  if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();
+
+  const inbox = await whatsapp.getInbox(ctx);
+  return NextResponse.json({
+    ...inbox,
+    // Runtime env — drives the coach dev/testing banner (only shown when on).
+    simulateEnabled: process.env.WHATSAPP_ALLOW_SIMULATE === "1",
+  });
+});

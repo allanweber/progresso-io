@@ -1,9 +1,10 @@
 /**
  * Client-facing DTOs for the coach dashboard (`GET /api/coach/dashboard`). The
  * data-backed cards are typed here — active-student count, the "sem treino ou
- * dieta" list, and the "check-ins aguardando resposta" queue. The mockup's
- * remaining sections (weight alerts, WhatsApp inbox) have no backend yet and
- * render an "em breve" state, so they carry no payload.
+ * dieta" list, the "check-ins aguardando resposta" queue, and the "WhatsApp
+ * aguardando" queue (conversations with unanswered inbound). The mockup's
+ * weight-alerts section has no backend yet and renders an "em breve" state, so
+ * it carries no payload.
  */
 
 export type MissingPlanStudentDto = {
@@ -26,8 +27,18 @@ export type PendingCheckinDto = {
   weightKg: number | null;
 };
 
+/** A WhatsApp conversation with unanswered inbound (awaiting a coach reply). */
+export type WaWaitingDto = {
+  conversationId: string;
+  studentId: string | null;
+  name: string;
+  initials: string;
+  preview: string | null;
+};
+
 export type CoachDashboardDto = {
   activeCount: number;
   missingPlans: MissingPlanStudentDto[];
   pendingCheckins: PendingCheckinDto[];
+  waWaiting: WaWaitingDto[];
 };
