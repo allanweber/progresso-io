@@ -30,15 +30,21 @@ test.describe("coach whatsapp inbox", () => {
     await expect(
       page.getByRole("heading", { name: "WhatsApp", exact: true }),
     ).toBeVisible();
-    // Seeded conversation linked to the demo aluno.
-    await expect(page.getByText("Ana Aluna").first()).toBeVisible();
 
-    // The default (newest) conversation has an OPEN window → free-text composer.
+    // Explicitly open the seeded aluno's OPEN-window thread. Don't rely on it
+    // being the auto-selected (newest) conversation: event automations
+    // (diet/workout published, check-in feedback) can append template-only
+    // threads that sort ahead of it. Its window stays open regardless — a
+    // template send never touches `lastInboundAt`.
+    await page.getByText("Ana Aluna").first().click();
+
     await expect(page.getByTestId("wa-window-badge")).toBeVisible();
     const composer = page.getByTestId("wa-composer-text");
     await expect(composer).toBeVisible();
     await composer.fill(reply);
-    await page.getByTestId("wa-send").click();
+    // Send with Enter rather than the send button: the button sits at the
+    // bottom edge where the (async) cookie banner can still intercept a click.
+    await composer.press("Enter");
     // The sent text lands in the thread (and the list preview) — first() is enough.
     await expect(page.getByText(reply).first()).toBeVisible();
 
