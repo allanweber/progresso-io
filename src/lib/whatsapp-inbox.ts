@@ -153,53 +153,13 @@ export const CHECKIN_PERIODO: Record<
 };
 
 /**
- * The base catalog — seeded ONCE globally (`clinicId = null`) as app-wide
- * templates; a clinic may later add its own row with the same `key` to override.
- * Kept here (client-safe) so the seed, the resolver, and any UI share one source
- * of truth. Placeholders: `{nome}` (all), `{periodo}` (checkin_reminder), and
- * `{link}` (checkin_feedback, welcome_access, anamnesis_reminder).
+ * The app-wide base template catalog lives in
+ * `drizzle/data/whatsapp-templates.json` and is loaded (server-side) by
+ * `@/server/whatsapp/base-templates` — it's seed data, kept out of this
+ * client-safe module. At runtime the effective catalog is read from the DB via
+ * the resolver (`resolveTemplate` / `listResolvedTemplates`), so nothing here
+ * needs the raw list.
  */
-export const BASE_WHATSAPP_TEMPLATES: ReadonlyArray<{
-  key: string;
-  title: string;
-  body: string;
-}> = [
-  {
-    key: "checkin_reminder",
-    title: "Lembrete de check-in",
-    body: "Oi {nome}! Bora preencher seu check-in {periodo}? 📋 Leva só um minutinho.",
-  },
-  {
-    key: "diet_published",
-    title: "Nova dieta publicada",
-    body: "{nome}, sua nova dieta já está no ar! 🥗 Confira tudo no seu portal.",
-  },
-  {
-    key: "workout_published",
-    title: "Novo treino publicado",
-    body: "{nome}, publiquei seu treino novo! 💪 Confere lá no portal e bora treinar.",
-  },
-  {
-    key: "checkin_feedback",
-    title: "Retorno do check-in",
-    body: "{nome}, respondi o seu check-in! 📝 Veja meu retorno no portal: {link}",
-  },
-  {
-    key: "session_confirm",
-    title: "Confirmação de sessão",
-    body: "Olá {nome}! Consegue confirmar sua sessão de amanhã? 🗓️",
-  },
-  {
-    key: "welcome_access",
-    title: "Boas-vindas / acesso",
-    body: "Olá {nome}! Seu acesso ao portal está pronto. 🎉 É só entrar por aqui: {link}",
-  },
-  {
-    key: "anamnesis_reminder",
-    title: "Lembrete de anamnese",
-    body: "Oi {nome}! Faltou preencher sua anamnese. 📝 Leva 5 minutinhos: {link}",
-  },
-];
 
 /* -------------------------------------------------------------------------- */
 /*  DTOs (API ↔ UI)                                                           */

@@ -20,7 +20,7 @@ import type { WorkoutReps } from "@/lib/workouts";
 import type { AnamnesisSection } from "@/lib/anamneses";
 import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import { normalizePhone } from "@/lib/phone";
-import { BASE_WHATSAPP_TEMPLATES } from "@/lib/whatsapp-inbox";
+import { BASE_WHATSAPP_TEMPLATES } from "@/server/whatsapp/base-templates";
 import type { TenantContext } from "@/server/tenant";
 
 config({ path: ".env.local" });

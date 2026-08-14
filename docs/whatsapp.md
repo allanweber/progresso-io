@@ -50,8 +50,9 @@ it via the DAL, `src/server/dal/whatsapp.ts`):
   `checkin_reminder`, used to correlate templates from code), a `title`, a
   `body` with `{nome}`/`{periodo}`/`{link}` placeholders, and an approval
   `status` (approved/pending/rejected, mirroring Meta's lifecycle); only
-  `approved` rows can be sent. The base catalog (`BASE_WHATSAPP_TEMPLATES`, seven
-  templates) is seeded **once globally** with `clinicId = null`. There is **no
+  `approved` rows can be sent. The base catalog (seven templates) lives in
+  `drizzle/data/whatsapp-templates.json` — seed data like every other seed file —
+  and is seeded **once globally** with `clinicId = null`. There is **no
   template-editor UI/CRUD yet** — the base+override shape is ready for a future
   per-clinic customization flow.
 - **`whatsapp_connection`** — one row per clinic: `provider`, `status`
@@ -101,8 +102,9 @@ Both are clinic-scoped: a clinic never sees or sends another clinic's override.
 
 ### The base catalog (seven templates)
 
-`BASE_WHATSAPP_TEMPLATES` (in `src/lib/whatsapp-inbox.ts`, client-safe) is the
-seeded base set. Placeholders are filled by `renderTemplate` at send time —
+The base set is authored as data in `drizzle/data/whatsapp-templates.json` and
+loaded by `@/server/whatsapp/base-templates` (`BASE_WHATSAPP_TEMPLATES`) for the
+seed. Placeholders are filled by `renderTemplate` at send time —
 `{nome}` (falls back to a neutral "aluno(a)"), `{periodo}` (the check-in cadence
 fragment, from `CHECKIN_PERIODO[clinic.feedbackFrequency]` — "da semana / da
 quinzena / do mês"), and `{link}`:
@@ -252,8 +254,10 @@ without a manual refresh.
   `whatsapp_connection`, migrations `0028_whatsapp_inbox` +
   `0029_whatsapp_base_templates` (templates → base + clinic override model).
 - lib: `whatsapp-inbox.ts` (client-safe: enums, DTOs, 24h-window math, template
-  rendering + base catalog + `CHECKIN_PERIODO`, zod), `whatsapp-provider.ts` (the
-  port + dev provider), `whatsapp.ts` (the anamnese-invite helper, on the port).
+  rendering + `CHECKIN_PERIODO`, zod), `whatsapp-provider.ts` (the port + dev
+  provider), `whatsapp.ts` (the anamnese-invite helper, on the port).
+- Seed data: `drizzle/data/whatsapp-templates.json` (base catalog) loaded by
+  `src/server/whatsapp/base-templates.ts`.
 - DAL: `whatsapp.ts` (inbox/thread reads, `sendMessage` with window+template
   enforcement, `resolveTemplate` / `listResolvedTemplates`,
   `sendTemplateToStudent`, `ingestInboundMessage`, `listWaiting`,

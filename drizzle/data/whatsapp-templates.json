@@ -1,0 +1,37 @@
+[
+  {
+    "key": "checkin_reminder",
+    "title": "Lembrete de check-in",
+    "body": "Oi {nome}! Bora preencher seu check-in {periodo}? 📋 Leva só um minutinho."
+  },
+  {
+    "key": "diet_published",
+    "title": "Nova dieta publicada",
+    "body": "{nome}, sua nova dieta já está no ar! 🥗 Confira tudo no seu portal."
+  },
+  {
+    "key": "workout_published",
+    "title": "Novo treino publicado",
+    "body": "{nome}, publiquei seu treino novo! 💪 Confere lá no portal e bora treinar."
+  },
+  {
+    "key": "checkin_feedback",
+    "title": "Retorno do check-in",
+    "body": "{nome}, respondi o seu check-in! 📝 Veja meu retorno no portal: {link}"
+  },
+  {
+    "key": "session_confirm",
+    "title": "Confirmação de sessão",
+    "body": "Olá {nome}! Consegue confirmar sua sessão de amanhã? 🗓️"
+  },
+  {
+    "key": "welcome_access",
+    "title": "Boas-vindas / acesso",
+    "body": "Olá {nome}! Seu acesso ao portal está pronto. 🎉 É só entrar por aqui: {link}"
+  },
+  {
+    "key": "anamnesis_reminder",
+    "title": "Lembrete de anamnese",
+    "body": "Oi {nome}! Faltou preencher sua anamnese. 📝 Leva 5 minutinhos: {link}"
+  }
+]
