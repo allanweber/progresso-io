@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, MessageCircle, Send, Sparkles } from "lucide-react";
+import { Construction, Lock, MessageCircle, Send, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { apiFetch, ApiError } from "@/lib/api-client";
@@ -86,7 +86,19 @@ export default function CoachWhatsappPage() {
   if (planLocked) return <WhatsappUpsell />;
 
   return (
-    <div className="flex h-[calc(100dvh-8rem)] min-h-[30rem] flex-col overflow-hidden rounded-2xl border border-border bg-white">
+    <div className="flex h-[calc(100dvh-8rem)] min-h-[32rem] flex-col gap-3">
+      {/* Dev-testing notice: sending works, but nothing is really delivered yet. */}
+      <div className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
+        <Construction className="mt-0.5 size-4 flex-shrink-0" />
+        <p>
+          <strong>WhatsApp em desenvolvimento e testes.</strong> Você pode enviar
+          mensagens, mas elas ainda <strong>não são entregues de verdade</strong>{" "}
+          — é apenas um ambiente de teste do time de desenvolvimento por
+          enquanto.
+        </p>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-white">
       {/* Header */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-muted/40 px-6 py-3">
         <h1 className="font-heading text-xl font-semibold tracking-tight">
@@ -295,6 +307,7 @@ export default function CoachWhatsappPage() {
             </>
           )}
         </section>
+      </div>
       </div>
     </div>
   );
