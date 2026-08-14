@@ -187,7 +187,7 @@ export default function CoachWhatsappPage() {
 
         {/* Chat */}
         <section
-          className={`min-w-0 flex-1 flex-col bg-[#ECE6DD] ${
+          className={`min-h-0 min-w-0 flex-1 flex-col bg-[#ECE6DD] ${
             selectedId ? "flex" : "hidden md:flex"
           }`}
         >
