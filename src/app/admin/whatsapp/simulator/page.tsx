@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { and, eq, isNotNull } from "drizzle-orm";
 
+import { MessageText } from "@/components/whatsapp/message-text";
 import { db, schema } from "@/db";
 import { formatPhone } from "@/lib/phone";
 import { z } from "@/lib/validation";
@@ -252,8 +253,8 @@ export default async function AdminWhatsappSimulatorPage({
                               template
                             </span>
                           )}
-                          <p className="whitespace-pre-wrap text-foreground">
-                            {m.body}
+                          <p className="whitespace-pre-wrap break-words text-foreground">
+                            <MessageText text={m.body} />
                           </p>
                           <div className="mt-1 text-right text-[10px] text-muted-foreground">
                             {hhmm(m.createdAt)}
