@@ -87,16 +87,18 @@ export default function CoachWhatsappPage() {
 
   return (
     <div className="flex h-[calc(100dvh-8rem)] min-h-[32rem] flex-col gap-3">
-      {/* Dev-testing notice — only in the testing env (WHATSAPP_ALLOW_SIMULATE=1):
-          sending works, but nothing is really delivered yet. */}
-      {inbox.data?.simulateEnabled ? (
+      {/* Under-development notice — shown whenever the active provider can't
+          deliver (the dev provider: no real WhatsApp vendor connected yet).
+          Sending records the message in the inbox but nothing reaches the
+          student until a provider is connected. */}
+      {inbox.data && !inbox.data.deliveryEnabled ? (
         <div className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
           <Construction className="mt-0.5 size-4 flex-shrink-0" />
           <p>
-            <strong>WhatsApp em desenvolvimento e testes.</strong> Você pode
-            enviar mensagens, mas elas ainda{" "}
-            <strong>não são entregues de verdade</strong> — é apenas um ambiente
-            de teste do time de desenvolvimento por enquanto.
+            <strong>WhatsApp em desenvolvimento.</strong> Você pode enviar
+            mensagens e elas ficam registradas aqui, mas ainda{" "}
+            <strong>não são entregues de verdade</strong> — a entrega será
+            ativada quando um provedor de WhatsApp for conectado.
           </p>
         </div>
       ) : null}

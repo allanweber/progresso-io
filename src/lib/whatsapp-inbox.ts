@@ -217,12 +217,13 @@ export type WhatsAppInboxDto = {
   templates: WhatsAppTemplateDto[];
   connection: WhatsAppConnectionDto;
   /**
-   * Whether the WhatsApp dev/testing mode is on (`WHATSAPP_ALLOW_SIMULATE=1`).
-   * Drives the coach "under development — nothing is really delivered" banner,
-   * so it only shows in the testing environment. Set by the route (runtime env),
-   * not the DAL.
+   * Whether the active provider can actually deliver messages
+   * (`getWhatsAppProvider().canDeliver`). It's `false` while the `dev` provider
+   * is in use (no real vendor wired) — which drives the coach "under development
+   * — nothing is really delivered yet" banner. Set by the route (runtime), not
+   * the DAL.
    */
-  simulateEnabled: boolean;
+  deliveryEnabled: boolean;
 };
 
 /** A single conversation's full thread. */

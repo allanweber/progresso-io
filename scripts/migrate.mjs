@@ -17,6 +17,7 @@ const SUBSTITUTIONS = "./drizzle/data/taco-substitutions.json";
 const MEASURES = "./drizzle/data/food-measures.json";
 const EXERCISES = "./drizzle/data/exercises-catalog.ndjson.gz";
 const EXERCISE_SUBS = "./drizzle/data/exercise-substitutions.json";
+const WHATSAPP_TEMPLATES = "./drizzle/data/whatsapp-templates.json";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -386,6 +387,43 @@ async function seedExerciseSubstitutions(sql) {
   );
 }
 
+/**
+ * Loads the app-wide base WhatsApp templates (`drizzle/data/whatsapp-templates.json`)
+ * as rows stamped `clinic_id = NULL` and `status = 'approved'`. These are the
+ * catalog the coach composer and every message automation resolve against
+ * (`resolveTemplate`, clinic-then-base) — so without them, on a production DB
+ * that never runs the dev seed, no automated WhatsApp message can be built.
+ * Independent of the food/exercise catalog. Idempotent: skips once any base
+ * template exists, so it's safe on every deploy.
+ */
+async function seedWhatsappTemplates(sql) {
+  let templates;
+  try {
+    templates = JSON.parse(readFileSync(WHATSAPP_TEMPLATES, "utf8"));
+  } catch {
+    console.log(`• No WhatsApp templates at ${WHATSAPP_TEMPLATES} — skipping.`);
+    return;
+  }
+  if (!Array.isArray(templates) || templates.length === 0) return;
+
+  const [{ count }] = await sql`
+    select count(*)::int as count from whatsapp_template where clinic_id is null`;
+  if (count > 0) {
+    console.log(`✓ Base WhatsApp templates already seeded (${count}) — skipping.`);
+    return;
+  }
+
+  const rows = templates.map((t) => ({
+    clinic_id: null,
+    key: t.key,
+    title: t.title,
+    body: t.body,
+    status: "approved",
+  }));
+  await sql`insert into whatsapp_template ${sql(rows)}`;
+  console.log(`✓ Base WhatsApp templates seeded: ${rows.length}.`);
+}
+
 const sql = postgres(url, { max: 1 });
 try {
   await migrate(drizzle(sql), { migrationsFolder: "./drizzle" });
@@ -396,6 +434,7 @@ try {
   await seedMeasures(sql);
   await seedExercises(sql);
   await seedExerciseSubstitutions(sql);
+  await seedWhatsappTemplates(sql);
   // Push the exercise images to R2 (idempotent; skips when R2 isn't configured
   // or already uploaded). Non-fatal: a failed upload must not fail the deploy —
   // the app falls back to the source CDN for images.

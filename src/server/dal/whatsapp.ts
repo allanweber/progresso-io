@@ -262,11 +262,11 @@ export async function listResolvedTemplates(
 
 /**
  * The coach inbox: conversations (newest first) + templates + connection. The
- * `simulateEnabled` flag is added by the route (runtime env), not here.
+ * `deliveryEnabled` flag is added by the route (runtime provider), not here.
  */
 export async function getInbox(
   ctx: TenantContext,
-): Promise<Omit<WhatsAppInboxDto, "simulateEnabled">> {
+): Promise<Omit<WhatsAppInboxDto, "deliveryEnabled">> {
   const now = Date.now();
   const rows = await ctx.db
     .select(conversationColumns)
