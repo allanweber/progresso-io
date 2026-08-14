@@ -66,17 +66,15 @@ export default function AdminWhatsappPage() {
             Conexões e uso por clínica.
           </p>
         </div>
-        {/* Dev messaging console — only when the simulate flag is on (the page
-            itself 404s otherwise, so the link is hidden). */}
-        {data?.simulateEnabled ? (
-          <Link
-            href="/admin/whatsapp/simulator"
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted/50"
-          >
-            <MessageSquare className="size-4 text-primary" />
-            Simulador de mensagens
-          </Link>
-        ) : null}
+        {/* Admin-only dev messaging console (student ↔ coach). Always available
+            to platform admins. */}
+        <Link
+          href="/admin/whatsapp/simulator"
+          className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted/50"
+        >
+          <MessageSquare className="size-4 text-primary" />
+          Simulador de mensagens
+        </Link>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -260,13 +260,6 @@ export type AdminWhatsAppOverviewDto = {
   connectedCount: number;
   totalMessagesThisMonth: number;
   totalOpenWindows: number;
-  /**
-   * Whether the dev messaging simulator is enabled (`WHATSAPP_ALLOW_SIMULATE=1`).
-   * Drives the "Simulador de mensagens" link on the admin overview — hidden
-   * otherwise (the simulator page itself 404s when the flag is off). Set by the
-   * route (runtime env), not the DAL.
-   */
-  simulateEnabled: boolean;
 };
 
 /* -------------------------------------------------------------------------- */
