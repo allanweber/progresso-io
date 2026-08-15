@@ -31,9 +31,15 @@ services:
       context: .
       dockerfile: Dockerfile
       # NEXT_PUBLIC_* must be present at build time (inlined into the bundle).
+      # The Sentry public DSN is also read at build to compute the CSP allow-list
+      # (ingest host + replay worker); org/project/token drive source-map upload.
       args:
         NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
         NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL: ${NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+        SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
     restart: unless-stopped
     # Values are set in Dokploy's Environment tab and interpolated here (same
     # pattern as TUNNEL_TOKEN below). Required for auth to work:
@@ -42,9 +48,14 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - DATABASE_URL=${DATABASE_URL}
-      # Observability: structured JSON logs to stdout. debug|info|warn|error
-      # (defaults to info in production). Docker/Dokploy captures the stream.
+      # Observability: console logs to stdout (Docker/Dokploy captures the
+      # stream). debug|info|warn|error, defaults to info in production.
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Sentry: the SERVER SDK reads SENTRY_DSN at runtime. The public DSN is
+      # build-inlined (see build.args) but is harmless to pass at runtime too.
+      # When unset, Sentry is a no-op. Use an EU (ingest.de.sentry.io) DSN.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
       # Optional (default to empty when unset):
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
