@@ -1,20 +1,25 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, DM_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 import { CookieConsent } from "@/components/cookie-consent";
 import { Providers } from "@/components/providers";
 
-const spaceGrotesk = Space_Grotesk({
+// Fonts are self-hosted (see src/app/fonts/README.md): next/font/google fetches
+// from fonts.gstatic.com at build time, which intermittently 404s in CI. These
+// are the variable (weight-axis) woff2 files, vendored into the repo.
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-latin-wght-normal.woff2",
   variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
+  display: "swap",
 });
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
+  src: "./fonts/dm-sans-latin-wght-normal.woff2",
   variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: "400 600",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
