@@ -54,9 +54,12 @@ test.describe("coach dashboard", () => {
 
     // The calendar agenda cards render (from the seeded events); their "Ver
     // agenda" shortcut links to the full calendar.
-    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    // `exact` so "Hoje" doesn't also match the "Sua fila de hoje" page title.
     await expect(
-      page.getByRole("heading", { name: "Esta semana" }),
+      page.getByRole("heading", { name: "Hoje", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Esta semana", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Ver agenda" }),
