@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   CalendarDays,
@@ -23,6 +23,7 @@ import {
 
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { apiFetch } from "@/lib/api-client";
 import {
   Sheet,
   SheetClose,
@@ -119,6 +120,20 @@ export function DashboardShell({
   const home = homePathForRole(user.role);
   const items = navItems(user.role, capabilities);
 
+  // WhatsApp sidebar badge: how many conversations await a coach reply. Only
+  // polled for a coach whose plan includes WhatsApp (the nav item only exists
+  // then); refetched on an interval + focus so the count stays fresh across
+  // pages without a manual reload.
+  const { data: waWaiting } = useQuery({
+    queryKey: ["coach-wa-waiting-count"],
+    queryFn: () =>
+      apiFetch<{ count: number }>("/api/coach/whatsapp/waiting-count"),
+    enabled: user.role === "coach" && !!capabilities.whatsapp,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const waWaitingCount = waWaiting?.count ?? 0;
+
   async function handleSignOut() {
     setSigningOut(true);
     try {
@@ -151,22 +166,38 @@ export function DashboardShell({
 
   /** Nav links, shared by the desktop rail and the mobile drawer. */
   function navLinks(onNavigate?: () => void) {
-    return items.map(({ href, label, icon: Icon }) => (
-      <Link
-        key={href}
-        href={href}
-        onClick={onNavigate}
-        aria-current={isActive(href) ? "page" : undefined}
-        className={
-          isActive(href)
-            ? "flex items-center gap-2.5 rounded-[10px] bg-primary-light px-3 py-2 font-medium text-primary"
-            : "flex items-center gap-2.5 rounded-[10px] px-3 py-2 font-medium text-[#334155] transition-colors hover:bg-secondary"
-        }
-      >
-        <Icon className="size-4" />
-        {label}
-      </Link>
-    ));
+    return items.map(({ href, label, icon: Icon }) => {
+      const badge =
+        href === "/coach/whatsapp" && waWaitingCount > 0
+          ? waWaitingCount > 9
+            ? "9+"
+            : String(waWaitingCount)
+          : null;
+      return (
+        <Link
+          key={href}
+          href={href}
+          onClick={onNavigate}
+          aria-current={isActive(href) ? "page" : undefined}
+          className={
+            isActive(href)
+              ? "flex items-center gap-2.5 rounded-[10px] bg-primary-light px-3 py-2 font-medium text-primary"
+              : "flex items-center gap-2.5 rounded-[10px] px-3 py-2 font-medium text-[#334155] transition-colors hover:bg-secondary"
+          }
+        >
+          <Icon className="size-4" />
+          {label}
+          {badge ? (
+            <span
+              className="ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground"
+              aria-label={`${waWaitingCount} conversas aguardando resposta`}
+            >
+              {badge}
+            </span>
+          ) : null}
+        </Link>
+      );
+    });
   }
 
   return (

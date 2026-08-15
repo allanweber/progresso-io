@@ -3,9 +3,10 @@ import { expect, test } from "@playwright/test";
 /**
  * The redesigned coach dashboard ("Sua fila de hoje"). Runs in the `coach`
  * project against the seeded coach's session + the real DB. Asserts the real,
- * data-backed cards (active count + "sem treino ou dieta" list) and the
- * coming-soon sections, and captures the desktop + mobile screenshots as a
- * byproduct (see the screenshots rule in AGENTS.md).
+ * data-backed cards (active count + "sem treino ou dieta" list + the "Hoje" /
+ * "Esta semana" calendar agenda) and the remaining coming-soon section, and
+ * captures the desktop + mobile screenshots as a byproduct (see the screenshots
+ * rule in AGENTS.md).
  */
 
 function uniqueEmail(prefix: string): string {
@@ -42,14 +43,24 @@ test.describe("coach dashboard", () => {
     ).toBeVisible();
     await expect(page.getByText("Alunos ativos")).toBeVisible();
 
-    // Coming-soon sections are rendered with an "Em breve" body.
     await expect(
       page.getByRole("heading", { name: "Check-ins aguardando resposta" }),
     ).toBeVisible();
+    // The "Peso destoando da meta" section is still a coming-soon body.
     await expect(
       page.getByRole("heading", { name: "Peso destoando da meta" }),
     ).toBeVisible();
     await expect(page.getByText("Em breve").first()).toBeVisible();
+
+    // The calendar agenda cards render (from the seeded events); their "Ver
+    // agenda" shortcut links to the full calendar.
+    await expect(page.getByRole("heading", { name: "Hoje" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Esta semana" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Ver agenda" }),
+    ).toHaveAttribute("href", "/coach/calendar");
 
     // The one real list surfaces the plan-less student with both badges. Scope
     // to this student's row — parallel tests add other plan-less students, so a

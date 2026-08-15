@@ -7,6 +7,13 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
+import {
+  CALENDAR_TYPE_META,
+  WEEKDAY_SHORT_LABELS,
+  dayNumber,
+  weekdayOf,
+  type CalendarItemDto,
+} from "@/lib/calendar";
 import type { CoachDashboardDto } from "@/lib/coach-dashboard";
 import { isAtLimit, type PlanUsageDto } from "@/lib/plans";
 import { avatarColor, studentInitials } from "@/lib/students";
@@ -72,6 +79,50 @@ function ComingSoon() {
   );
 }
 
+/**
+ * One calendar item in the "Hoje" / "Esta semana" agenda cards: a category dot,
+ * the title, and a muted line with the time (and weekday, in the week card) plus
+ * the linked aluno. `showDate` prefixes the weekday+day, for the multi-day list.
+ */
+function AgendaRow({
+  item,
+  showDate,
+}: {
+  item: CalendarItemDto;
+  showDate?: boolean;
+}) {
+  const meta = CALENDAR_TYPE_META[item.type];
+  const dateLabel = showDate
+    ? `${WEEKDAY_SHORT_LABELS[weekdayOf(item.date)]} ${dayNumber(item.date)}`
+    : null;
+  const time = item.startTime ?? "dia todo";
+  const student = item.source === "manual" ? item.studentName : null;
+  return (
+    <li className="border-b border-[#F1F5F9] last:border-0">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span
+          className="size-2.5 shrink-0 rounded-full"
+          style={{ background: meta.accent }}
+          aria-hidden
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-foreground">
+            {item.title}
+          </div>
+          <div className="truncate text-xs text-muted-foreground">
+            {[dateLabel, time, student].filter(Boolean).join(" · ")}
+          </div>
+        </div>
+        {item.overdue ? (
+          <span className="shrink-0 rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-semibold text-destructive">
+            atrasado
+          </span>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
 export default function CoachDashboardPage() {
   const today = useTodayLabel();
   const { data, isLoading, isError, error } = useQuery({
@@ -88,6 +139,8 @@ export default function CoachDashboardPage() {
   const missingPlans = data?.missingPlans ?? [];
   const pendingCheckins = data?.pendingCheckins ?? [];
   const waWaiting = data?.waWaiting ?? [];
+  const todayEvents = data?.todayEvents ?? [];
+  const weekEvents = data?.weekEvents ?? [];
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -246,11 +299,49 @@ export default function CoachDashboardPage() {
 
         {/* Right column */}
         <div className="flex flex-col gap-4">
-          <SectionCard title="Hoje" aside="calendário em breve">
-            <ComingSoon />
+          <SectionCard
+            title="Hoje"
+            aside={
+              <Link
+                href="/coach/calendar"
+                className="text-primary hover:underline"
+              >
+                Ver agenda
+              </Link>
+            }
+          >
+            {isLoading ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            ) : todayEvents.length === 0 ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Nada agendado para hoje.
+              </div>
+            ) : (
+              <ul>
+                {todayEvents.map((item) => (
+                  <AgendaRow key={item.key} item={item} />
+                ))}
+              </ul>
+            )}
           </SectionCard>
           <SectionCard title="Esta semana">
-            <ComingSoon />
+            {isLoading ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            ) : weekEvents.length === 0 ? (
+              <div className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Nada agendado para o restante da semana.
+              </div>
+            ) : (
+              <ul>
+                {weekEvents.map((item) => (
+                  <AgendaRow key={item.key} item={item} showDate />
+                ))}
+              </ul>
+            )}
           </SectionCard>
           <SectionCard
             title="WhatsApp aguardando"
