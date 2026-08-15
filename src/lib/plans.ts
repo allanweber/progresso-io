@@ -22,14 +22,14 @@ export const PLAN_META: Record<Plan, PlanMeta> = {
     id: "solo",
     name: "Solo",
     desc: "Até 50 alunos + WhatsApp",
-    price: "R$ 199",
+    price: "R$ 179",
     popular: true,
   },
   clinica: {
     id: "clinica",
     name: "Clínica",
     desc: "Até 100 alunos + 3 coaches",
-    price: "R$ 399",
+    price: "R$ 379",
   },
   enterprise: {
     id: "enterprise",

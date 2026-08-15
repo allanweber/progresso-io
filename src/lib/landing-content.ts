@@ -115,7 +115,7 @@ export const plans: Plan[] = [
   {
     name: "Solo",
     tagline: "Para coaches solo",
-    price: "R$ 199",
+    price: "R$ 179",
     priceSuffix: "/mês",
     features: [
       { label: "Até 50 alunos", included: true },
@@ -130,7 +130,7 @@ export const plans: Plan[] = [
   {
     name: "Clínica",
     tagline: "Para equipes",
-    price: "R$ 399",
+    price: "R$ 379",
     priceSuffix: "/mês",
     features: [
       { label: "Até 100 alunos", included: true },

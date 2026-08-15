@@ -920,7 +920,7 @@ async function seed() {
         discountCents: 0,
         discountReason: null,
         notes: null,
-        lineItems: [{ description: "Assinatura Clínica", amountCents: 39900 }],
+        lineItems: [{ description: "Assinatura Clínica", amountCents: 37900 }],
       },
       admin.id,
     );
@@ -943,7 +943,7 @@ async function seed() {
         discountCents: 0,
         discountReason: null,
         notes: null,
-        lineItems: [{ description: "Assinatura Clínica", amountCents: 39900 }],
+        lineItems: [{ description: "Assinatura Clínica", amountCents: 37900 }],
       },
       admin.id,
     );
