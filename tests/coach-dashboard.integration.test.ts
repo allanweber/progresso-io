@@ -78,6 +78,17 @@ describe("getCoachDashboard", () => {
     const s4 = await addStudent(ctx, "Inativo");
     await studentsDal.setStudentStatus(ctx, s4.id, "inactive");
 
+    // Stagger createdAt explicitly: rapid inserts can share a millisecond, which
+    // makes the `created_at desc` newest-first ordering tie-break randomly (UUID
+    // ids aren't monotonic). Fixed timestamps keep s3 strictly newer than s2.
+    const baseMs = Date.UTC(2026, 0, 1);
+    for (const [i, s] of [s1, s2, s3, s4].entries()) {
+      await db
+        .update(schema.students)
+        .set({ createdAt: new Date(baseMs + i * 60_000) })
+        .where(eq(schema.students.id, s.id));
+    }
+
     await giveActiveDiet(ctx, s1.id);
     await giveActiveWorkout(ctx, s1.id);
     await giveActiveDiet(ctx, s2.id);

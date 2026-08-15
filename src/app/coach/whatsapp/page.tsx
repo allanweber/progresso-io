@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Construction, Lock, MessageCircle, Send, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { MessageText } from "@/components/whatsapp/message-text";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import {
   COMPOSER_TEMPLATE_KEYS,
@@ -386,8 +387,8 @@ function MessageList({
                 template
               </span>
             )}
-            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-foreground">
-              {m.body}
+            <p className="whitespace-pre-wrap break-words text-foreground">
+              <MessageText text={m.body} />
             </p>
             <div className="mt-1 text-right text-[10px] text-muted-foreground">
               {messageTime(m.createdAt)}
