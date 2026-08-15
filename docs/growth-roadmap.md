@@ -4,6 +4,21 @@ Grounded in the product mock (heavy **AI**, WhatsApp, portal, video, check-ins,
 reminders, referral, a **R$ 597 "Pro"** tier, per-aluno pricing) and expanded
 beyond it. Integrations included.
 
+> **Ops note — self-hosted monitoring (Sentry / BetterStack alternative).**
+> Before paying for Sentry + BetterStack (~$10/mo in the cost model, see
+> `docs/monetization.md` §5), evaluate **[SigNoz](https://signoz.io)** — an
+> open-source, self-hostable observability stack (errors, traces, metrics, logs
+> **and** uptime/alerting in one app, OpenTelemetry-native). It replaces *both*
+> tools with a single service we run on our own infra, so the recurring SaaS
+> line drops to **~$0** (trading it for a small compute/disk footprint we
+> already operate). Lighter-weight combo if SigNoz is too heavy early on:
+> **[GlitchTip](https://glitchtip.com)** (drop-in Sentry-SDK compatible error
+> tracking, minimal footprint) + **[Uptime Kuma](https://github.com/louislam/uptime-kuma)**
+> (self-hosted uptime + status page, the BetterStack replacement). All three are
+> MIT/Apache-style OSS and dockerable next to the app. Trade-off: we own the
+> uptime of the monitor itself — host it **off** the main app's box (or on a
+> tiny separate VPS) so it can still alert when production is down.
+
 ## The two levers
 
 - **Free → Paid wall** — things a growing coach can't live without: WhatsApp

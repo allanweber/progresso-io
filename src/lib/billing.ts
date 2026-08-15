@@ -51,8 +51,8 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 /** Monthly plan price in BRL cents (null = "sob consulta", no prefill). */
 export const PLAN_PRICE_CENTS: Record<Plan, number | null> = {
   free: 0,
-  solo: 19900,
-  clinica: 39900,
+  solo: 17900,
+  clinica: 37900,
   enterprise: null,
 };
 

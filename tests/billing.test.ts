@@ -63,7 +63,8 @@ describe("derived totals + overdue", () => {
   });
 
   it("exposes a price per plan (null = sob consulta)", () => {
-    expect(PLAN_PRICE_CENTS.solo).toBe(19900);
+    expect(PLAN_PRICE_CENTS.solo).toBe(17900);
+    expect(PLAN_PRICE_CENTS.clinica).toBe(37900);
     expect(PLAN_PRICE_CENTS.free).toBe(0);
     expect(PLAN_PRICE_CENTS.enterprise).toBeNull();
   });

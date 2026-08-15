@@ -358,8 +358,9 @@ fixed stack ≈ **3 Solo clinics** (R$537 > R$477).
 
 ### 6.2 Recommended plans
 
-> The code's `PLAN_PRICE_CENTS` (Solo R$199 / Clínica R$399) are **placeholders**.
-> Cost- and market-justified recommendation:
+> Cost- and market-justified pricing — **now live** in `PLAN_PRICE_CENTS`
+> (`src/lib/billing.ts`) and the landing/sign-up UI (`plans.ts`,
+> `landing-content.ts`):
 
 | Plan | Monthly | Annual (~2 mo free) | Includes |
 | --- | --- | --- | --- |
@@ -427,8 +428,8 @@ use.
 | Payment fee — cartão | ~4.5% + R$0.49 | 3.5 – 4.99% | Recorrente; the biggest variable cost |
 | Payment gateway | Asaas (no monthly fee) | Vindi/Iugu ~R$100–300/mo floor | BR recurring-billing |
 | Tax on revenue | ~10% | 6% (Anexo III) – 15.5% (Anexo V) | Simples Nacional; **confirm w/ accountant** |
-| **Recommended price — Solo** | **R$179/mo** (R$1.790/yr) | R$149 – 199 | §6.2 (code placeholder: R$199) |
-| **Recommended price — Clínica** | **R$379/mo** (R$3.790/yr) | R$349 – 399 | §6.2 (code placeholder: R$399) |
+| **Price — Solo** | **R$179/mo** (R$1.790/yr) | R$149 – 199 | §6.2 · `PLAN_PRICE_CENTS.solo` (live) |
+| **Price — Clínica** | **R$379/mo** (R$3.790/yr) | R$349 – 399 | §6.2 · `PLAN_PRICE_CENTS.clinica` (live) |
 
 Code references: `src/server/whatsapp-automations.ts`,
 `drizzle/data/whatsapp-templates.json`, `src/server/dal/whatsapp.ts`,
@@ -436,3 +437,247 @@ Code references: `src/server/whatsapp-automations.ts`,
 `src/server/dal/student-checkins.ts`, `src/db/schema.ts` (row footprint:
 `student_checkin`, `student_checkin_photo`, `whatsapp_message`, `notification`,
 `student_diet_version`, `student_workout_version`).
+
+---
+---
+
+# 🇧🇷 Versão em Português — Plano de negócios (custos e precificação)
+
+*Tradução/adaptação da análise acima. Em caso de divergência numérica, a versão
+em inglês é a fonte canônica. Todas as taxas externas (Meta por mensagem, R2 por
+GB, câmbio BRL/USD, impostos) são **aproximadas e mudam com o tempo** — veja a
+tabela de [Premissas](#premissas--fontes-pt-br).*
+
+Documento de **economia unitária** do Progresso: quanto custa atender um cliente,
+quanto cada plano cobra, e a **margem bruta** resultante. Modela todo custo
+variável que a plataforma tem por conta da clínica — **mensageria WhatsApp**
+(Meta), **armazenamento de fotos** (Cloudflare R2), **dados relacionais**
+(PostgreSQL) e **processamento de pagamento** — confrontados com o **preço dos
+planos** para os dois clientes de referência:
+
+- **Solo** — clínica de um coach no limite de **50 alunos**.
+- **Clínica** — clínica multi-coach com **3 coaches** no limite de **100 alunos**.
+
+A clínica é o tenant (`clinicId`); todo custo escala com **alunos e sua
+atividade**, não com o número de coaches. Assume-se cadência de **feedback
+semanal** (`feedbackFrequency = "semanal"`), a mais pesada e o padrão do produto.
+
+## 1. Mensageria WhatsApp
+
+### 1.1 O que de fato envia mensagem
+
+Catálogo de 8 templates base (`drizzle/data/whatsapp-templates.json`), disparados
+pelas automações em `src/server/whatsapp-automations.ts`. Só alguns são
+recorrentes:
+
+| Template `key` | Quando dispara | Cadência | Recorrente? |
+| --- | --- | --- | --- |
+| `checkin_reminder` | Cron no dia preferido da clínica, **só** para alunos vencidos/atrasados; no máx. **1× por período** | Semanal | ✅ |
+| `checkin_feedback` | Coach responde um check-in | Por check-in → semanal | ✅ |
+| `diet_published` | Coach publica versão de dieta | Evento (~1×/mês) | ✅ |
+| `workout_published` | Coach publica versão de treino | Evento (~1×/mês) | ✅ |
+| `welcome_access` | Convite de acesso ao portal | 1× por aluno | ⏺ |
+| `anamnesis_welcome` | Cadastro | 1× por aluno | ⏺ |
+| `anamnesis_reminder` | Só composer (manual) | Avulso | ➖ |
+| `session_confirm` | Só composer (manual) | Avulso | ➖ |
+
+Dois fatos estruturais do código:
+
+1. **Lembrete e feedback são quase mutuamente exclusivos por semana.** O aluno
+   pontual não fica "vencido" no dia preferido → recebe só o `checkin_feedback`.
+   O aluno atrasado recebe o **lembrete**, faz o check-in, e então o feedback.
+   Logo o loop semanal é **1 msg/aluno/semana (pontual) → 2 (precisa de empurrão)**.
+2. **Coaches não multiplicam volume.** Envios são por aluno; 3 coaches dividem o
+   mesmo trabalho. A Clínica custa ~2× a Solo só por ter 2× os alunos.
+
+Base: **semanas/mês = 52 ÷ 12 = 4,33**. Publicação de dieta/treino ~1×/mês por
+aluno (comportamento do coach, ajustável).
+
+### 1.2 Volume mensal
+
+| Template | Por aluno/mês | **Solo (50)** | **Clínica (100)** |
+| --- | --- | --- | --- |
+| `checkin_feedback` (semanal) | 4,33 | 217 | 433 |
+| `checkin_reminder` (semanal, se vencido) | 0 – 4,33 | 0 – 217 | 0 – 433 |
+| `diet_published` (~1/mês) | 1 | 50 | 100 |
+| `workout_published` (~1/mês) | 1 | 50 | 100 |
+| **Total recorrente** | | **317 – 533** | **633 – 1.067** |
+
+- **Enxuto** = roster pontual (feedback + publicação), sem lembretes.
+- **Cheio** = todo aluno também é lembrado toda semana.
+- **Onboarding (1×)**: `welcome_access` + `anamnesis_welcome` = 2 × alunos → Solo
+  **+100**, Clínica **+200** mensagens ao encher o roster.
+
+### 1.3 Cobrança da Meta (Brasil, pós-julho/2025)
+
+A Meta cobra **por template entregue**, por categoria; texto livre dentro da
+janela de 24h é grátis. **Os 8 templates são Utility** (avisos de conta/serviço).
+
+| Categoria | Tarifa BR (US$/msg) | Nosso uso |
+| --- | --- | --- |
+| **Utility** | **~US$ 0,0080** | ✅ todos |
+| Marketing | ~US$ 0,0625 | só se reclassificado |
+| Authentication | ~US$ 0,0315 | nenhum |
+| Service (na janela) | **Grátis** | respostas do coach |
+
+Como a maioria dos envios é **proativa** (sem janela aberta), precificamos tudo
+como **Utility paga** — o teto conservador.
+
+### 1.4 Custo — caso-base (tudo Utility, US$ 0,0080/msg)
+
+| Cliente | Cenário | Msgs/mês | **US$/mês** | ≈ R$/mês |
+| --- | --- | --- | --- | --- |
+| **Solo (50)** | Enxuto | 317 | **US$ 2,54** | R$ 14 |
+| **Solo (50)** | Cheio | 533 | **US$ 4,26** | R$ 23 |
+| **Clínica (100)** | Enxuto | 633 | **US$ 5,06** | R$ 28 |
+| **Clínica (100)** | Cheio | 1.067 | **US$ 8,54** | R$ 47 |
+
+## 2. Armazenamento de fotos (Cloudflare R2)
+
+Só as **fotos de check-in** crescem (4 poses/check-in, semanal), comprimidas no
+cliente para ~1600px WebP (`image-compression.ts`) antes do upload (`putCheckinPhoto`).
+Logo da clínica é único e minúsculo; imagens de exercícios/alimentos são
+catálogo-base compartilhado (não por tenant).
+
+- Por aluno: **~4,3 MB/mês**, **~52 MB/ano** (base 250 KB/foto).
+
+| | Adiciona/mês | Adiciona/ano | Acumulado Ano 3 |
+| --- | --- | --- | --- |
+| **Solo (50)** | ~217 MB | ~2,5 GB | **~7,6 GB** |
+| **Clínica (100)** | ~433 MB | ~5,1 GB | **~15,2 GB** |
+
+**Custo R2** (armazenamento US$ 0,015/GB-mês, **egress grátis**): fim do Ano 1 ~
+US$ 0,04/mês (Solo) e ~US$ 0,08/mês (Clínica). **Centavos por cliente/mês.**
+Ponto de atenção: **não há política de retenção** — o acervo cresce para sempre.
+"Manter últimos 12 meses de fotos" limitaria a ~52 MB/aluno.
+
+## 3. Dados relacionais (PostgreSQL)
+
+O Postgres guarda **metadados e texto**, nunca os bytes das imagens (esses ficam
+no R2). Dados derivados (marcadores de agenda/fatura, nutrição ao vivo) são
+**calculados na leitura e nunca gravados**, então custam zero.
+
+- Por aluno recorrente: **~30 KB/mês** (check-ins, metadados de fotos, mensagens
+  WhatsApp, notificações, versões de dieta/treino — com overhead + índices).
+
+| | Por ano | Acumulado Ano 3 |
+| --- | --- | --- |
+| **Solo (50)** | ~18 MB | **~54 MB** |
+| **Clínica (100)** | ~36 MB | **~108 MB** |
+
+**Modelo mental:** Postgres gerenciado é **custo de instância fixa, não por GB**.
+54 MB/108 MB cabem folgados em qualquer tier de entrada por anos → **custo
+marginal por cliente ≈ R$ 0**. Compra-se uma instância dimensionada por
+*compute*, compartilhada entre todos os tenants.
+
+## 4. Custo variável por cliente (infra + pagamento + imposto)
+
+Três camadas escalam com cada cliente pagante. Em R$ a R$ 5,50/US$.
+
+**(a) Uso de infra** — WhatsApp + fotos R2 + Postgres marginal:
+
+| Linha | Solo | Clínica |
+| --- | --- | --- |
+| WhatsApp (Utility, enxuto → cheio) | R$ 14 – 23 | R$ 28 – 47 |
+| Fotos R2 | ~R$ 0,22 | ~R$ 0,44 |
+| Postgres (marginal) | ~R$ 0,06 | ~R$ 0,11 |
+| **Subtotal infra** | **~R$ 14 – 24** | **~R$ 28 – 48** |
+
+**(b) Processamento de pagamento** — taxa do gateway de cobrança recorrente
+brasileiro (ex.: **Asaas**; Vindi/Iugu/Stripe BR são mais caros). Depende do
+método e, no Brasil, **supera** o custo de infra:
+
+| Método | Taxa | Sobre R$ 179 (Solo) | Sobre R$ 379 (Clínica) |
+| --- | --- | --- | --- |
+| **Pix** | ~1% (ou R$ 1,99 fixo) | ~R$ 2 | ~R$ 4 |
+| Boleto | ~R$ 1,99 – 3,49 fixo | ~R$ 2 – 3 | ~R$ 2 – 3 |
+| **Cartão recorrente** | ~4,5% + R$ 0,49 | ~R$ 8 | ~R$ 17 |
+
+**(c) Impostos sobre a receita** — SaaS no **Simples Nacional** paga de ~6%
+(Anexo III, se fator-R ≥ 28%) a ~15,5% (Anexo V); regime só-ISS ~2–5%. Ponto de
+planejamento **~10% do preço** (*confirme com contador — é o maior custo depois
+do pagamento*): Solo ~R$ 18, Clínica ~R$ 38.
+
+## 5. Stack de infraestrutura fixa
+
+Uma stack compartilhada atende todos os tenants, dimensionada para
+**confiabilidade de produção** (gerenciada, com backup, região de São Paulo onde
+a latência importa) — não a opção mais barata. Mensal, a R$ 5,50/US$:
+
+| Item | Provedor exemplo | Por quê / confiabilidade | US$/mês | R$/mês |
+| --- | --- | --- | --- | --- |
+| Hospedagem app | Vercel Pro (edge GRU) | ~99,99%, edge SP = baixa latência BR | 25 | 138 |
+| Postgres gerenciado | Supabase Pro / Neon | backups diários + PITR, HA, `sa-east-1` | 25 | 138 |
+| Object storage | Cloudflare R2 | 99,9%, **egress grátis** | 5 | 28 |
+| E-mail transacional | Resend Pro (50k/mês) | convites + notificações | 20 | 110 |
+| Domínio | Registro.br `.com.br` + `.com` | — | ~1,5 | 8 |
+| Monitoramento + uptime | **SigNoz auto-hospedado** (ou Sentry + BetterStack) | erros + traces + uptime | 0 – 10 | 0 – 55 |
+| **Total fixo** | | | **~US$ 76 – 86** | **~R$ 420 – 477** |
+
+O gateway de cobrança (Asaas) **não tem mensalidade** — é por transação (§4b).
+*Nota:* auto-hospedar o monitoramento (SigNoz/GlitchTip + Uptime Kuma) zera essa
+linha — ver `docs/growth-roadmap.md`. Diluído por **N clínicas pagantes**: ~R$
+477 ÷ N por clínica. Break-even da stack fixa ≈ **3 clínicas Solo**.
+
+## 6. Recomendação de preços (mercado brasileiro)
+
+### 6.1 Piso, faixa e teto
+
+- **Piso de custo** (o que o plano precisa cobrir em escala): Solo **~R$ 46/mês**
+  (infra R$ 24 + cartão R$ 8 + imposto R$ 18); Clínica **~R$ 103/mês**.
+- **Faixa de mercado** (comparáveis BR aproximados): software de dieta para um
+  profissional (Dietbox, WebDiet, Nutrium) **R$ 40–130/mês**; plataformas globais
+  de coaching (Trainerize, Everfit) **~R$ 275–550/mês por ~100 clientes**; gestão
+  de academia (Tecnofit, Pacto) **R$ 200–1000+**. Este produto reúne dieta +
+  treino + automações WhatsApp + anamnese + check-ins com foto + microsite —
+  mais rico que app de dieta, mais leve que gestão de academia. Faixa justa:
+  **Solo R$ 100–250, Clínica R$ 300–550**.
+- **Teto de valor**: coach com 50 alunos a ~R$ 150 fatura ~R$ 7.500/mês, então
+  R$ 179 de software = **~2,4% da receita dele**.
+- **Benchmark por aluno**: no limite, R$ 179/50 = **R$ 3,6/aluno** e R$ 379/100 =
+  **R$ 3,8/aluno**, em linha com o ~R$ 3,3/cliente do Trainerize.
+
+### 6.2 Planos (vigentes no código)
+
+Preços justificados por custo e mercado — **já aplicados** em `PLAN_PRICE_CENTS`
+(`src/lib/billing.ts`) e na UI de landing/cadastro (`plans.ts`,
+`landing-content.ts`):
+
+| Plano | Mensal | Anual (~2 meses grátis) | Inclui |
+| --- | --- | --- | --- |
+| **Free** | R$ 0 | — | 1 coach, 3 alunos, teste de 14 dias dos recursos pagos |
+| **Solo** | **R$ 179** | **R$ 1.790** (~R$ 149/mês) | 1 coach, 50 alunos, WhatsApp + Agenda + microsite |
+| **Clínica** | **R$ 379** | **R$ 3.790** (~R$ 316/mês) | até 3 coaches, 100 alunos, tudo |
+| **Enterprise** | sob consulta | — | 3+ coaches / 100+ alunos, suporte prioritário |
+
+### 6.3 Margem nos preços atuais
+
+Pior caso de carga (todo aluno lembrado + publicação), pagamento **cartão**,
+imposto ~10%:
+
+| Plano | Preço | Contribuição* | Após imposto + fixo @ 50 clínicas | Em escala (→ ∞) |
+| --- | --- | --- | --- | --- |
+| **Solo** | R$ 179 | ~82% | **~67%** | ~71% |
+| **Clínica** | R$ 379 | ~83% | **~70%** | ~73% |
+
+*Contribuição = (preço − infra − pagamento) ÷ preço, antes de imposto e fixo.*
+
+Direcionar para **Pix + mensageria enxuta** eleva a contribuição a ~90% e a
+margem operacional para os **~75%**.
+
+**Conclusão:** a preços reais de mercado BR e totalmente custeado (infra +
+pagamento + imposto + fixo), a economia é de **padrão software — ~70% de margem
+operacional em escala modesta (~50 clínicas), subindo para ~80% conforme cresce**.
+Alavancas de margem, por impacto: (1) **método de pagamento** (Pix vs. cartão),
+(2) **regime tributário** (Anexo III vs. V — vale um contador), (3) **número de
+clientes** vs. a stack fixa (domina abaixo de ~10 clínicas). Uso de infra
+(armazenamento, banco, volume de mensagens) **não** é alavanca relevante.
+
+## Premissas & fontes (PT-BR)
+
+Ver a tabela **Assumptions & sources** (versão em inglês) — é a mesma lista de
+alavancas. Destaques que **precisam de validação local**: (a) preços de
+concorrentes vêm de conhecimento de mercado, não de coleta ao vivo — validar nas
+páginas atuais; (b) a **alíquota de imposto** depende do regime (Anexo III vs. V)
+e deve ser confirmada com contador — oscila a margem em ~10 pontos; (c) câmbio
+BRL/USD e tarifas Meta/R2 mudam periodicamente.
