@@ -107,6 +107,4 @@ export default withSentryConfig(nextConfig, {
   silent: !process.env.CI,
   // Upload a wider set of client bundles so minified frames resolve.
   widenClientFileUpload: true,
-  // Tree-shake the Sentry SDK's own debug logger out of the client bundle.
-  disableLogger: true,
 });
