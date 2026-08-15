@@ -15,20 +15,26 @@ included.
 > **free at first with zero load on our server** (the ~$10/mo monitoring line in
 > `docs/monetization.md` §5 starts at **$0**):
 >
-> - **Errors → [Sentry](https://sentry.io) free ("Developer").** Native
->   `@sentry/nextjs` (source maps, releases, app tracing, session replay) — the
->   day-one choice for our stack. Free tier ≈ 5k errors/mo, 1 user, 30-day
->   retention. **LGPD:** the app handles health data, so enable data scrubbing
->   (`sendDefaultPii: false`) + the **EU data region** before sending events.
+> - **Errors → [Sentry](https://sentry.io) free ("Developer"). ✅ Implemented.**
+>   `@sentry/nextjs` is wired (client/server/edge init, `global-error` boundary,
+>   `onRequestError`, tracing at 0.1 sample, Session Replay masked + on-error
+>   only). **LGPD** is honoured: `sendDefaultPii: false`, the **EU (Frankfurt)
+>   data region**, and a `beforeSend` scrub (`src/lib/sentry-scrub.ts`) that
+>   strips credentials/PII. Activates when `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN`
+>   are set (a no-op otherwise); source-map upload runs when `SENTRY_ORG` /
+>   `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` are present. Free tier ≈ 5k errors/mo,
+>   1 user, 30-day retention. See `.env.example` → "Sentry".
 > - **Uptime + status page → [BetterStack](https://betterstack.com)** (or
 >   UptimeRobot) **free.** External watchdog (~10 monitors, 3-min checks) hosted
 >   **off** our infra — so it still alerts when the box itself is down, which an
->   in-app monitor can't.
+>   in-app monitor can't. *(Not yet wired — external signup only.)*
 >
-> **LGPD-strict alternative** (keep error context, incl. request payloads,
-> in-house): self-host **[GlitchTip](https://glitchtip.com)** (Sentry-SDK
-> compatible, ~1 GB RAM — fits our Hetzner box) instead of Sentry cloud, still
-> paired with BetterStack/UptimeRobot free for uptime.
+> **In-Brazil residency upgrade path.** Sentry SaaS has only **US / EU** regions
+> (no Brazil), and we chose **EU** — LGPD-fine via DPA/adequacy. If in-country
+> storage ever becomes a hard requirement, self-host **[GlitchTip](https://glitchtip.com)**
+> (Sentry-SDK compatible, ~1 GB RAM) on a São Paulo box: the app code is
+> **identical** — it's a **DSN swap**, no rewrite. Pair either with
+> BetterStack/UptimeRobot free for uptime.
 >
 > **Scale-up only** when we need cross-service **distributed tracing**:
 > **[SigNoz](https://signoz.io)** (OpenTelemetry, all-in-one) on a **dedicated**

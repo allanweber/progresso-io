@@ -1,58 +1,89 @@
 # Observability
 
-The app emits **structured JSON logs to stdout** — one line per event. That's
-the whole transport: Docker (→ Dokploy) captures the stream, and any aggregator
-(Grafana Loki, CloudWatch, Datadog, …) can ingest it later with zero code
-changes. There is no vendor SDK and no metrics backend to run; metrics are
-derived from the logs for now (see [Metrics](#metrics-from-logs)).
+Error tracking runs on **[Sentry](https://sentry.io)** (`@sentry/nextjs`), with
+plain **`console`** logging for local/stdout visibility. The previous
+structured-JSON-logs-to-stdout system was removed in favour of Sentry as the
+error backend; what remains of the in-app layer is a thin request wrapper that
+provides a correlation id and a crash→500 safety net.
 
-## What gets logged
+## Sentry
 
-Every server request and action produces a correlated trail:
+Wired for all three products, activated by the DSN env vars (a **no-op** when
+unset, so local dev and DSN-less builds are unaffected — mirrors GA/Resend/R2):
 
-| Event            | When                                   | Key fields                          |
-| ---------------- | -------------------------------------- | ----------------------------------- |
-| `server.start`   | once per server instance at startup    | `runtime`, `nodeEnv`, `logLevel`    |
-| `request.start`  | an API route begins (debug)            | `requestId`, `method`, `route`, `path` |
-| `request.finish` | an API route returns                   | `status`, `durationMs`              |
-| `request.error`  | an API route throws (→ 500)            | `err`, `durationMs`                 |
-| `request.unhandled` | any server error Next catches globally | `err`, `digest`, `routeType`, `routePath` |
-| `action.finish`  | a server action returns/redirects      | `durationMs`, `redirected?`         |
-| `action.error`   | a server action throws                 | `err`, `durationMs`                 |
+| Concern | Where | Notes |
+| ------- | ----- | ----- |
+| Browser SDK | `src/instrumentation-client.ts` | errors + tracing + Session Replay |
+| Node server SDK | `sentry.server.config.ts` | loaded by `register()` |
+| Edge SDK | `sentry.edge.config.ts` | loaded by `register()` |
+| Server error catch | `src/instrumentation.ts` → `onRequestError` | `Sentry.captureRequestError` + `console.error` |
+| Root error boundary | `src/app/global-error.tsx` | `Sentry.captureException` |
+| Route/action throws | `src/server/observability/route.ts` | `withRoute`/`withAction` capture + re-shape to 500 |
+| PII scrub | `src/lib/sentry-scrub.ts` (`beforeSend`) | see below |
+| Build integration | `next.config.ts` → `withSentryConfig` | source-map upload (gated) |
 
-Plus **business events**, e.g. `student.created`, `student.archived`,
-`student.hard_deleted` (warn — irreversible), `invite.sent`, `invite.accepted`,
-`auth.signup.ok`, `auth.signin.ok` / `auth.signin.failed`, `auth.verify.ok`,
-`auth.password_reset.ok`, `email.sent` / `email.send_failed`.
+**Sampling & replay.** `tracesSampleRate` is `0.1` in production and `0` in dev.
+Session Replay is **masked** (`maskAllText` + `maskAllInputs` + `blockAllMedia`)
+and **on-error only** (`replaysSessionSampleRate: 0`, `replaysOnErrorSampleRate:
+1`) — nothing is recorded continuously, which suits a health app under LGPD and
+stays inside the free replay quota.
 
-### Correlation and tenant context
+**Data region.** Use an **EU (Frankfurt, `*.ingest.de.sentry.io`)** DSN. Sentry
+SaaS has no Brazil region; EU is LGPD-fine via DPA/adequacy. For hard in-country
+residency, self-hosting GlitchTip (Sentry-SDK compatible) is a **DSN swap** — no
+code change. See `docs/growth-roadmap.md`.
 
-Each request opens an [`AsyncLocalStorage`](https://nodejs.org/api/async_context.html)
-context, so **every** log line inside it automatically carries:
+**LGPD / secrets.** `sendDefaultPii: false` keeps the SDK from attaching IPs,
+cookies and headers. `scrubEvent` (`beforeSend`, browser + server) is a
+belt-and-suspenders backstop: it drops request cookies/headers/query-string
+wholesale and masks sensitive keys (`password`, `token`, `authorization`,
+`email`, `phone`, `whatsapp`, `first_name`, `cpf`, …) at any depth in request
+data / `extra` / `contexts`. Tenant identity is attached as **opaque UUIDs**
+(`Sentry.setUser({ id })` + `clinicId`/`role` tags) from `enrichRequestContext` —
+not personal data, so "which clinic hit this bug" is answerable.
 
-- `requestId` — one id per request (also returned on the `x-request-id`
-  response header, so a client error can be tied to server logs).
-- `method`, `route` (a stable logical name like `students.list`), `path`.
-- `userId`, `clinicId`, `role` — attached as soon as the session is resolved
-  (`requireClinic` / `getTenantContext` / `getAdminSession`).
+### Config (env)
 
-Call sites only pass what's specific to the event; the shared fields are merged
-in for free.
+Set on both the app and the build (see `.env.example` → "Sentry"):
 
-## Levels
+- `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` — the DSN (publishable). When unset,
+  Sentry is a no-op and the CSP stays tight (the ingest host + replay
+  `worker-src blob:` are only added when the DSN is configured).
+- `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` — source-map upload at
+  build time. Optional: a build without the auth token still succeeds and just
+  skips the upload.
 
-Set with `LOG_LEVEL` (`debug` | `info` | `warn` | `error`). Default: `info` in
-production, `debug` otherwise. It's wired through `docker-compose.yml`
-(`LOG_LEVEL=${LOG_LEVEL:-info}`) and settable in the Dokploy Environment tab.
+## Console logging
 
-## Secrets are never logged
+`logger` (`src/server/observability/logger.ts`) is a thin `console` shim keeping
+the `logger.info/warn/error/debug` surface, so existing call sites (business
+events like `student.created`, `invite.sent`, `email.sent`…) are unchanged. No
+JSON envelope, no redaction, no context-merge — just leveled console lines.
+Verbosity is gated by `LOG_LEVEL` (`debug`|`info`|`warn`|`error`; default `info`
+in production, `debug` otherwise), wired through `docker-compose.yml` and
+settable in the Dokploy Environment tab. Credentials/PII are still never passed
+to it by call sites (the one exception is the **dev-only** OTP e-mail fallback,
+active solely when `RESEND_API_KEY` is unset).
 
-`logger` deep-redacts sensitive keys at any depth (`password`, `otp`, `token`,
-`token_hash`, `secret`, `authorization`, `cookie`, `*_token`, `database_url`,
-provider secrets, …), replacing the value with `[redacted]`. Redaction is a
-backstop — call sites already avoid passing credentials or PII. (The one place
-raw codes are printed is the **dev-only** e-mail fallback, active solely when
-`RESEND_API_KEY` is unset.)
+## Request wrapper
+
+`withRoute` (API routes) and `withAction` (server actions) in
+`src/server/observability/route.ts` open an
+[`AsyncLocalStorage`](https://nodejs.org/api/async_context.html) request context
+and:
+
+- assign a `requestId` (from an incoming `x-request-id` or fresh) and echo it on
+  the `x-request-id` response header, so a client error can be tied to a Sentry
+  event;
+- on an uncaught throw, report to Sentry + `console.error` and convert it to a
+  clean **500** (`{ error: "Erro interno no servidor." }`) so a handler bug can't
+  leak a stack to the client. `withAction` re-throws instead (preserving Next's
+  redirect/notFound control flow); Sentry's Dedupe drops any duplicate that
+  `onRequestError` also captures.
+
+Tenant identity (`userId`/`clinicId`/`role`) is attached to the Sentry scope once
+the session is resolved (`requireClinic` / `getTenantContext` / `getAdminSession`
+→ `enrichRequestContext`).
 
 ## Health checks
 
@@ -62,40 +93,6 @@ raw codes are printed is the **dev-only** e-mail fallback, active solely when
   `db.latencyMs`; returns **503** when the DB is unreachable, so an orchestrator
   or uptime monitor can react.
 
-The route is wrapped with `withRoute("health", …, { quiet: true })`: a healthy
-`200` emits **no** `request.finish` line, so the every-few-seconds liveness probe
-doesn't bury real traffic. Anything abnormal still surfaces — a `4xx`/`5xx`
-response logs `request.finish` at `warn`, an uncaught throw logs `request.error`,
-and a failed deep check logs `health.db_unreachable`.
-
-## Metrics from logs
-
-Latency, throughput and error rate all live on the `request.finish` /
-`action.finish` events (`route`, `status`, `durationMs`), and business volume on
-the named events above. Point a log pipeline at stdout and build panels from
-those fields — for example, with Loki/Grafana:
-
-```logql
-# p95 API latency by route
-quantile_over_time(0.95, {app="progresso"} | json | msg="request.finish" | unwrap durationMs [5m]) by (route)
-
-# 5xx rate
-sum(rate({app="progresso"} | json | msg="request.finish" | status>=500 [5m]))
-```
-
-## Adding a scrape endpoint later
-
-If pull-based metrics become preferable to log-derived ones, add a
-`GET /api/metrics` route (token-guarded) backed by an in-process counter/histogram
-registry, incremented from the same `withRoute` wrapper. No call sites change —
-the wrapper is the single seam. This was intentionally deferred (logs first).
-
-## How it's wired
-
-- `src/server/observability/logger.ts` — the structured logger + redaction.
-- `src/server/observability/context.ts` — the `AsyncLocalStorage` request context.
-- `src/server/observability/route.ts` — `withRoute` (API routes) and
-  `withAction` (server actions) wrappers.
-- `src/instrumentation.ts` — Next's `register` (startup) and `onRequestError`
-  (global server-error capture).
-- `src/app/api/health/route.ts` — the health/readiness endpoint.
+Uptime itself is watched **externally** (BetterStack / UptimeRobot) so an alert
+still fires when the box is down — an in-app monitor can't. Not yet wired
+(external signup only); see `docs/growth-roadmap.md`.

@@ -422,7 +422,7 @@ use.
 | App hosting | $25/mo | $20 – 50 | Vercel Pro (GRU edge) or Fly.io |
 | Email (Resend) | $20/mo (Pro, 50k) | free (3k) – $20 | Transactional invites + notifications |
 | Domain | ~$1.5/mo | — | `.com.br` (Registro.br) + `.com` |
-| Monitoring + uptime | $10/mo | $0 – 26 | Sentry + BetterStack; free tier early |
+| Monitoring + uptime | $10/mo | $0 – 26 | Sentry **wired** (free tier, $0 early) + BetterStack (uptime, still external) |
 | **Fixed infra stack (total)** | **~R$477/mo (~$86)** | ~R$450 – 650 | Sum of the above; platform-wide, §5 |
 | Payment fee — Pix | ~1% | R$1.99 flat – 1.2% | Cheapest lever; Asaas-style gateway |
 | Payment fee — cartão | ~4.5% + R$0.49 | 3.5 – 4.99% | Recorrente; the biggest variable cost |
