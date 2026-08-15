@@ -4,20 +4,28 @@ Grounded in the product mock (heavy **AI**, WhatsApp, portal, video, check-ins,
 reminders, referral, a **R$ 597 "Pro"** tier, per-aluno pricing) and expanded
 beyond it. Integrations included.
 
-> **Ops note — self-hosted monitoring (Sentry / BetterStack alternative).**
-> Before paying for Sentry + BetterStack (~$10/mo in the cost model, see
-> `docs/monetization.md` §5), evaluate **[SigNoz](https://signoz.io)** — an
-> open-source, self-hostable observability stack (errors, traces, metrics, logs
-> **and** uptime/alerting in one app, OpenTelemetry-native). It replaces *both*
-> tools with a single service we run on our own infra, so the recurring SaaS
-> line drops to **~$0** (trading it for a small compute/disk footprint we
-> already operate). Lighter-weight combo if SigNoz is too heavy early on:
-> **[GlitchTip](https://glitchtip.com)** (drop-in Sentry-SDK compatible error
-> tracking, minimal footprint) + **[Uptime Kuma](https://github.com/louislam/uptime-kuma)**
-> (self-hosted uptime + status page, the BetterStack replacement). All three are
-> MIT/Apache-style OSS and dockerable next to the app. Trade-off: we own the
-> uptime of the monitor itself — host it **off** the main app's box (or on a
-> tiny separate VPS) so it can still alert when production is down.
+> **Ops note — monitoring: start free, self-host later.** Two pillars, both
+> **free at first with zero load on our server** (the ~$10/mo monitoring line in
+> `docs/monetization.md` §5 starts at **$0**):
+>
+> - **Errors → [Sentry](https://sentry.io) free ("Developer").** Native
+>   `@sentry/nextjs` (source maps, releases, app tracing, session replay) — the
+>   day-one choice for our stack. Free tier ≈ 5k errors/mo, 1 user, 30-day
+>   retention. **LGPD:** the app handles health data, so enable data scrubbing
+>   (`sendDefaultPii: false`) + the **EU data region** before sending events.
+> - **Uptime + status page → [BetterStack](https://betterstack.com)** (or
+>   UptimeRobot) **free.** External watchdog (~10 monitors, 3-min checks) hosted
+>   **off** our infra — so it still alerts when the box itself is down, which an
+>   in-app monitor can't.
+>
+> **LGPD-strict alternative** (keep error context, incl. request payloads,
+> in-house): self-host **[GlitchTip](https://glitchtip.com)** (Sentry-SDK
+> compatible, ~1 GB RAM — fits our Hetzner box) instead of Sentry cloud, still
+> paired with BetterStack/UptimeRobot free for uptime.
+>
+> **Scale-up only** when we need cross-service **distributed tracing**:
+> **[SigNoz](https://signoz.io)** (OpenTelemetry, all-in-one) on a **dedicated**
+> box — ClickHouse wants ~4 GB+ RAM, so **do not co-locate it with prod**.
 
 ## The two levers
 
@@ -71,8 +79,11 @@ Today faturas are the *clinic's* Progresso bill. Flip it: let coaches **charge
 their own students** — recurring + one-off, via **Pix / boleto / cartão**. Makes
 the coach money inside the product = maximum stickiness. Free = manual "copia e
 cola Pix"; Solo+ = automated recurring + payment links; Pro = split, contratos,
-retry de inadimplência.
-*Integration: Asaas / Pagar.me / Mercado Pago / Stripe + Pix.*
+retry de inadimplência. This is also the **paywall gateway** — the same provider
+collects the clinic's own Progresso subscription (see `docs/monetization.md` §4).
+*Integration: **Asaas** — the chosen BR gateway: recurring Pix/boleto/cartão,
+**no monthly fee** (pay-per-transaction), split payments, webhooks, and NFS-e
+hooks that feed #4. Alternativas avaliadas: Pagar.me / Mercado Pago / Stripe BR.*
 
 ### 4. Financeiro / cockpit do negócio · `TIER-UP (Pro/Clínica)`
 MRR, receita, inadimplência, LTV, churn, previsão — the "R$ 21,4k" screen from
