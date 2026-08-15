@@ -30,6 +30,7 @@ import {
   Plus,
   Save,
   Trash2,
+  TriangleAlert,
   X,
 } from "lucide-react";
 
@@ -646,6 +647,20 @@ export function DietBuilder({
       {(serverBanner || actionError) && (
         <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
           {serverBanner ?? actionError}
+        </div>
+      )}
+
+      {/* Student diet (adapter) is always an unpublished draft in the builder —
+          warn that saving/editing alone doesn't reach the aluno, only Publicar. */}
+      {adapter && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <p>
+            <span className="font-semibold">Só editar não basta.</span> Salvar
+            mantém as alterações como rascunho — a dieta só fica disponível para
+            o aluno depois que você clicar em{" "}
+            <span className="font-semibold">Publicar</span>.
+          </p>
         </div>
       )}
 

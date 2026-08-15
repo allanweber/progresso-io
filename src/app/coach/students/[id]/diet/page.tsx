@@ -199,11 +199,6 @@ export default function StudentDietPage() {
       ) : editing && draft ? (
         /* --- Builder: entered only by an explicit edit/new action --------- */
         <div className="mt-6">
-          <div className="mb-3 rounded-[10px] bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
-            {draft.isNewDiet
-              ? "Nova dieta em rascunho — o aluno ainda vê a dieta publicada anterior até você publicar."
-              : "Editando a dieta ativa — publique para gerar uma nova versão."}
-          </div>
           <DietBuilder
             mode="edit"
             diet={treeToDietDetail(
