@@ -195,21 +195,103 @@ the platform level for years.**
 
 ---
 
-## 3. Combined variable COGS per customer
+## 3. Relational data (PostgreSQL)
 
-Realistic monthly variable cost (base rates, full messaging + Year-1 storage):
+Distinct from R2: Postgres holds **metadata and text**, never the image bytes
+(those are R2; the DB only stores the `r2_key` string). So per-student the
+relational footprint is small — but it is priced completely differently: managed
+Postgres bills by **provisioned instance + allocated storage**, not per-GB usage.
 
-| Customer | WhatsApp/mo | Storage/mo | **Total/mo** | ≈ BRL/mo |
-| --- | --- | --- | --- | --- |
-| **Solo (50)** | $2.54 – $4.26 | ~$0.04 | **~$2.6 – $4.3** | **~R$14 – R$24** |
-| **Clínica (100)** | $5.06 – $8.54 | ~$0.08 | **~$5.1 – $8.6** | **~R$28 – R$47** |
+### 3.1 What grows per student (recurring rows)
+
+Derived rows (calendar check-in markers, invoice markers, live diet/workout
+nutrition) are **computed on read and never stored**, so they cost nothing. The
+tables that actually accumulate per student:
+
+| Table | Rows/student/mo | ~KB/row* | KB/student/mo |
+| --- | --- | --- | --- |
+| `student_checkin` | 4.33 | 0.6 | 2.6 |
+| `student_checkin_photo` (metadata only) | 17.3 | 0.35 | 6.1 |
+| `checkin_assessment` (when coach measures) | ~2 | 0.6 | 1.2 |
+| `whatsapp_message` (sends + inbound) | ~16 | 0.35 | 5.6 |
+| `notification` (+ read) | ~9 | 0.35 | 3.2 |
+| `student_diet_version` (jsonb structure) | 1 | 3.5 | 3.5 |
+| `student_workout_version` (jsonb structure) | 1 | 4.0 | 4.0 |
+| **Total** | | | **~26 KB** |
+
+*Including Postgres tuple overhead (~23 B header), alignment, and per-table
+indexes. Add ~20% for bloat/vacuum slack → **~30 KB/student/month on disk**.*
+
+One-time per student (row created once, not recurring): `students`,
+`student_diet` / `student_workout`, `student_anamnesis` (jsonb), the
+`whatsapp_conversation`, and Better Auth `user`/`account`/`session` ≈ **~5 KB**.
+
+### 3.2 Per-customer footprint
+
+At **~30 KB/student/month**:
+
+| | Per month | Per year | Cumulative Y3 |
+| --- | --- | --- | --- |
+| **Solo (50)** | ~1.5 MB | ~18 MB | **~54 MB** |
+| **Clínica (100)** | ~3.0 MB | ~36 MB | **~108 MB** |
+
+**Shared base catalog is separate and fixed** (one copy per database, *not* per
+tenant): the TACO food + nutrient tables, exercise catalog, base substitutions,
+starter diet/workout templates, anamnesis + WhatsApp base templates — on the
+order of **tens of MB total**, amortized across every clinic. It does not scale
+with customer count.
+
+### 3.3 Cost on a paid provider
+
+The important mental model: **managed Postgres is a fixed-instance cost, not
+per-GB like R2.** A Solo clinic's ~54 MB (3 yr) or a Clínica's ~108 MB is a
+rounding error against any instance's included storage — the whole platform
+(base catalog + hundreds of clinics) fits in an entry tier for years. So the
+**marginal storage cost per customer is effectively $0**; what you actually buy
+is one instance sized for *compute*, shared across all tenants.
+
+Representative entry tiers (fixed monthly, platform-wide — *approximate*):
+
+| Provider | Entry tier | Included storage | ≈ USD/mo |
+| --- | --- | --- | --- |
+| Supabase | Pro | 8 GB | ~$25 |
+| Neon | Launch | ~10 GB | ~$19 |
+| DigitalOcean Managed PG | 1 GB/1 vCPU | 10 GB | ~$15 |
+| AWS RDS `db.t4g.micro` + 20 GB gp3 | — | 20 GB | ~$15 |
+
+If you *do* want a pure per-GB figure (e.g. storage overage on Supabase
+$0.125/GB-mo or Neon $0.35/GB-mo), the Y3 footprint costs:
+
+| | Supabase overage | Neon rate |
+| --- | --- | --- |
+| Solo (54 MB) | ~$0.007/mo | ~$0.019/mo |
+| Clínica (108 MB) | ~$0.014/mo | ~$0.038/mo |
+
+i.e. **sub-cent to a few cents per customer per month** even priced as pure
+usage. In practice it's absorbed by the fixed instance: at, say, a $25/mo
+instance shared across 50 clinics, that's **~$0.50/clinic/mo of fixed DB cost**,
+falling as clinics are added.
+
+---
+
+## 4. Combined variable COGS per customer
+
+Realistic monthly cost (base rates, full messaging + Year-1 storage). "Postgres"
+here is the *marginal* per-customer share; the real bill is the fixed instance:
+
+| Customer | WhatsApp/mo | R2 photos/mo | Postgres/mo | **Total/mo** | ≈ BRL/mo |
+| --- | --- | --- | --- | --- | --- |
+| **Solo (50)** | $2.54 – $4.26 | ~$0.04 | ~$0.01 (or fixed share) | **~$2.6 – $4.3** | **~R$14 – R$24** |
+| **Clínica (100)** | $5.06 – $8.54 | ~$0.08 | ~$0.02 (or fixed share) | **~$5.1 – $8.6** | **~R$28 – R$47** |
 
 **Takeaway:** usage-driven variable cost is **trivial** — under **R$1/student/mo**
-even at the full messaging + storage load. Per-customer COGS is dominated by
-**fixed infrastructure**, not messaging or storage, which is excellent for gross
-margin. The only scenarios that move the needle are (a) templates reclassified as
-**Marketing** (~8× messaging) or (b) routing through a **BSP markup** — both
-avoidable by design.
+even at the full messaging + storage + DB load. Per-customer COGS is dominated by
+**fixed infrastructure** (the app server + the Postgres *instance*), not the
+per-customer messaging, blob, or relational data. The only scenarios that move
+the needle are (a) templates reclassified as **Marketing** (~8× messaging), (b)
+routing through a **BSP markup**, or (c) outgrowing the Postgres instance's
+*compute* (scale the tier — a step cost, not a per-customer one). All manageable
+by design.
 
 ---
 
@@ -228,8 +310,12 @@ avoidable by design.
 | Compressed photo | ~250 KB (base), 500 KB (heavy) | 1600px WebP q0.72; 3 MB server cap |
 | Photos per check-in | 4 | `student_checkin_photo` poses |
 | R2 storage | $0.015/GB-mo, egress free | Approx; verify Cloudflare pricing |
+| Postgres row footprint | ~30 KB/student/mo (on disk) | Row width + indexes + ~20% bloat |
+| Managed Postgres | fixed instance ($15–25/mo) + $0.125–0.35/GB-mo overage | Approx; Supabase/Neon/RDS/DO |
 
 Code references: `src/server/whatsapp-automations.ts`,
 `drizzle/data/whatsapp-templates.json`, `src/server/dal/whatsapp.ts`,
 `src/lib/image-compression.ts`, `src/server/r2.ts`,
-`src/server/dal/student-checkins.ts`.
+`src/server/dal/student-checkins.ts`, `src/db/schema.ts` (row footprint:
+`student_checkin`, `student_checkin_photo`, `whatsapp_message`, `notification`,
+`student_diet_version`, `student_workout_version`).
