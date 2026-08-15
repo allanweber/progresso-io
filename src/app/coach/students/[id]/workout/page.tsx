@@ -211,11 +211,6 @@ export default function StudentWorkoutPage() {
         </p>
       ) : editing && draft ? (
         <div className="mt-6">
-          <div className="mb-3 rounded-[10px] bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
-            {draft.isNewWorkout
-              ? "Novo treino em rascunho — o aluno ainda vê o treino publicado anterior até você publicar."
-              : "Editando o treino ativo — publique para gerar uma nova versão."}
-          </div>
           <WorkoutBuilder
             mode="edit"
             workout={draftToDetail(draft)}
