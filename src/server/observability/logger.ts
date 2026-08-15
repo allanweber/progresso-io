@@ -1,101 +1,50 @@
-import { getRequestContext } from "./context";
-
 /**
- * Structured, stdout-first logger. Every event is a single line of JSON so the
- * container runtime (Docker → Dokploy) captures it and any aggregator (Loki,
- * CloudWatch, Datadog…) can parse it — no vendor SDK required. Request-scoped
- * fields (requestId, tenant identity, route) are merged in automatically from
- * the async context, so call sites only pass what's specific to the event.
+ * Minimal console logger. The previous structured-JSON logger (with PII
+ * redaction and request-context field merging) was removed in favour of Sentry
+ * for error tracking; this keeps the same call surface (`logger.info/warn/error/
+ * debug`) so existing call sites are unchanged, emitting plain console lines.
+ * Genuine errors are additionally reported to Sentry by the route/action
+ * wrappers (see `route.ts`) and Next's `onRequestError` hook.
  *
- * Metrics are derived from these logs for now (durations and outcomes live on
- * `request.finish` / `action.finish` events); a scrape endpoint can be added
- * later without touching call sites.
+ * `LOG_LEVEL` (debug|info|warn|error) still gates verbosity; defaults to `info`
+ * in production and `debug` otherwise.
  */
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
-const ORDER: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 };
+const ORDER: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+};
 
-function configuredLevel(): LogLevel {
+function threshold(): number {
   const raw = process.env.LOG_LEVEL?.toLowerCase();
   if (raw === "debug" || raw === "info" || raw === "warn" || raw === "error") {
-    return raw;
+    return ORDER[raw];
   }
-  return process.env.NODE_ENV === "production" ? "info" : "debug";
+  return process.env.NODE_ENV === "production" ? ORDER.info : ORDER.debug;
 }
 
-const threshold = ORDER[configuredLevel()];
+const min = threshold();
 
-/** Extra fields for an event. `err` is special-cased into a serialized error. */
+/** Extra fields for an event. Passed through to the console as a second arg. */
 export type LogFields = Record<string, unknown> & { err?: unknown };
 
-/**
- * Keys whose values must never reach the logs. Matched case-insensitively on
- * the whole key name, at any depth. Keep this list ahead of what call sites
- * might accidentally pass (form bodies, headers, env-derived values).
- *
- * PII (GDPR): e-mail, phone and personal names are redacted here as a backstop
- * so a stray `logger.info("…", { email })` can't leak a data subject's identity
- * into the log stream. Note the intentional gap: the bare key `name` is NOT
- * matched — it collides with `Error.name` (a diagnostic, not PII) — so personal
- * names are logged under `firstName`/`lastName`/`studentName`/`fullName`, which
- * ARE matched. Correlate records by `userId`/`clinicId` instead of raw PII.
- */
-const SENSITIVE =
-  /^(password|otp|token|token_?hash|secret|authorization|cookie|set-cookie|access_?token|refresh_?token|id_?token|database_?url|better_auth_secret|resend_api_key|google_client_secret|phone|whatsapp|email|first_?name|last_?name|full_?name|student_?name)$/i;
-
-function serializeError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
-}
-
-/** Deep-copy with sensitive keys masked. Bounded depth guards against cycles. */
-function redact(value: unknown, depth = 0): unknown {
-  if (depth > 6 || value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
-  const out: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    out[key] = SENSITIVE.test(key) ? "[redacted]" : redact(val, depth + 1);
-  }
-  return out;
-}
-
-function write(level: LogLevel, msg: string, fields?: LogFields): void {
-  if (ORDER[level] < threshold) return;
-
-  const ctx = getRequestContext();
-  const { err, ...rest } = fields ?? {};
-
-  const record: Record<string, unknown> = {
-    level,
-    time: new Date().toISOString(),
-    msg,
-    // Request-scoped fields (undefined ones are dropped by JSON.stringify).
-    requestId: ctx?.requestId,
-    method: ctx?.method,
-    route: ctx?.route,
-    path: ctx?.path,
-    userId: ctx?.userId,
-    clinicId: ctx?.clinicId,
-    role: ctx?.role,
-    ...(redact(rest) as Record<string, unknown>),
-  };
-  if (err !== undefined) record.err = redact(serializeError(err));
-
-  // `console` keeps this cross-runtime (Node + Edge); each call is one JSON line.
-  const line = JSON.stringify(record);
-  if (level === "error") console.error(line);
-  else if (level === "warn") console.warn(line);
-  else console.log(line);
+function emit(level: LogLevel, msg: string, fields?: LogFields): void {
+  if (ORDER[level] < min) return;
+  const args: unknown[] = fields ? [msg, fields] : [msg];
+  if (level === "error") console.error(...args);
+  else if (level === "warn") console.warn(...args);
+  else console.log(...args);
 }
 
 export const logger = {
-  debug: (msg: string, fields?: LogFields) => write("debug", msg, fields),
-  info: (msg: string, fields?: LogFields) => write("info", msg, fields),
-  warn: (msg: string, fields?: LogFields) => write("warn", msg, fields),
-  error: (msg: string, fields?: LogFields) => write("error", msg, fields),
+  debug: (msg: string, fields?: LogFields) => emit("debug", msg, fields),
+  info: (msg: string, fields?: LogFields) => emit("info", msg, fields),
+  warn: (msg: string, fields?: LogFields) => emit("warn", msg, fields),
+  error: (msg: string, fields?: LogFields) => emit("error", msg, fields),
 };
 
 export type Logger = typeof logger;

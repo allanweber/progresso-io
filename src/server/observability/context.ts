@@ -1,8 +1,10 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import * as Sentry from "@sentry/nextjs";
+
 /**
- * Per-request context, carried implicitly through the async call tree so every
- * log line can be correlated without threading an id through every function.
+ * Per-request context, carried implicitly through the async call tree so the
+ * request id can be correlated without threading it through every function.
  * Populated by the route/action wrappers (see `route.ts`) and enriched with the
  * tenant identity once the session is resolved (see `requireClinic` /
  * `getTenantContext` / `getAdminSession`).
@@ -46,11 +48,17 @@ export function getRequestContext(): RequestContext | undefined {
 }
 
 /**
- * Merges fields into the active request context — used to attach the tenant
- * identity (userId/clinicId/role) to every subsequent log line once the session
- * is resolved. A no-op when there is no active context.
+ * Merges fields into the active request context and tags the current Sentry
+ * scope with the tenant identity, so every event from this request carries
+ * `userId`/`clinicId`/`role`. These are opaque UUIDs (not personal data), which
+ * keeps this LGPD-safe while making "which clinic hit this bug" answerable.
+ * A no-op on the context side when there is no active request context.
  */
 export function enrichRequestContext(fields: Partial<RequestContext>): void {
   const current = storage.getStore();
   if (current) Object.assign(current, fields);
+
+  if (fields.userId) Sentry.setUser({ id: fields.userId });
+  if (fields.clinicId) Sentry.setTag("clinicId", fields.clinicId);
+  if (fields.role) Sentry.setTag("role", fields.role);
 }

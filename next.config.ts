@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // Google Analytics (via @next/third-parties) loads gtag.js from these hosts and
 // beacons back to google-analytics.com — only allowed in the CSP when a GA id is
@@ -8,6 +9,14 @@ const gaScript = gaConfigured ? " https://www.googletagmanager.com" : "";
 const gaConnect = gaConfigured
   ? " https://www.google-analytics.com https://region1.google-analytics.com"
   : "";
+
+// Sentry's browser SDK beacons to the EU (Frankfurt) ingest host, and Session
+// Replay compresses recordings in a blob-URL web worker — both only allowed in
+// the CSP when a DSN is configured, so the default policy stays tight. Inlined
+// at BUILD time, so NEXT_PUBLIC_SENTRY_DSN must be set when the image is built.
+const sentryConfigured = !!process.env.NEXT_PUBLIC_SENTRY_DSN;
+const sentryConnect = sentryConfigured ? " https://*.ingest.de.sentry.io" : "";
+const sentryWorker = sentryConfigured ? "worker-src 'self' blob:" : "";
 
 /**
  * Content-Security-Policy.
@@ -33,9 +42,12 @@ const csp = [
   "img-src 'self' data: https:", // exercise/check-in images (R2/CDN) + data URIs
   `script-src 'self' 'unsafe-inline'${devEval}${gaScript}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind inline styles
-  `connect-src 'self'${gaConnect}`,
+  `connect-src 'self'${gaConnect}${sentryConnect}`,
+  sentryWorker, // Session Replay compression worker (blob:), empty unless configured
   "form-action 'self'",
-].join("; ");
+]
+  .filter(Boolean)
+  .join("; ");
 
 const securityHeaders = [
   {
@@ -84,4 +96,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Source-map upload for readable stack traces. Only runs when a build supplies
+  // all three (org/project/auth token) — a self-host build without them still
+  // succeeds and simply skips the upload.
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Stay quiet locally; speak up in CI.
+  silent: !process.env.CI,
+  // Upload a wider set of client bundles so minified frames resolve.
+  widenClientFileUpload: true,
+  // Tree-shake the Sentry SDK's own debug logger out of the client bundle.
+  disableLogger: true,
+});

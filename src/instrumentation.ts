@@ -1,21 +1,21 @@
 import type { Instrumentation } from "next";
-
-import { logger } from "@/server/observability";
+import * as Sentry from "@sentry/nextjs";
 
 /**
- * Next.js instrumentation hooks (see the app/instrumentation docs). `register`
- * runs once per server instance at startup; `onRequestError` is Next's global
- * catch for server-side errors — including those thrown during RSC/page render
- * or in Server Actions, which the route/action wrappers never see. Together
- * they guarantee no server error goes unlogged.
+ * Next.js instrumentation hooks. `register` loads the Sentry SDK for the active
+ * server runtime (Node or Edge). `onRequestError` is Next's global catch for
+ * server-side errors — including those thrown during RSC/page render or in
+ * Server Actions, which the route/action wrappers never see — so no server error
+ * goes unreported: we log it to the console and forward it to Sentry.
  */
 
-export function register(): void {
-  logger.info("server.start", {
-    runtime: process.env.NEXT_RUNTIME,
-    nodeEnv: process.env.NODE_ENV,
-    logLevel: process.env.LOG_LEVEL,
-  });
+export async function register(): Promise<void> {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("../sentry.server.config");
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("../sentry.edge.config");
+  }
 }
 
 export const onRequestError: Instrumentation.onRequestError = (
@@ -23,17 +23,10 @@ export const onRequestError: Instrumentation.onRequestError = (
   request,
   context,
 ) => {
-  const digest =
-    typeof err === "object" && err !== null && "digest" in err
-      ? String((err as { digest: unknown }).digest)
-      : undefined;
-
-  logger.error("request.unhandled", {
-    err,
-    digest,
+  console.error("request.error", {
     method: request.method,
     path: request.path,
-    routeType: context.routeType,
-    routePath: context.routePath,
+    err,
   });
+  Sentry.captureRequestError(err, request, context);
 };

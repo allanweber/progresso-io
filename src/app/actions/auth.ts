@@ -27,11 +27,11 @@ const TOO_MANY: ActionState = {
  * - `formError` — a banner message for errors not tied to a single field.
  * - `ok` — success while staying on the page.
  *
- * Every action is wrapped with `withAction`, which opens a request context and
- * logs a timed `action.finish` / `action.error` line (redirects are logged as a
- * normal finish, never as errors). Business events (signups, sign-ins, resets)
- * are logged explicitly at their decision points — never with the e-mail or any
- * credential, which the logger also redacts as a backstop.
+ * Every action is wrapped with `withAction`, which opens a request context and,
+ * on a genuine throw, reports it to Sentry + `console.error` (Next's
+ * redirect()/notFound() control-flow signals propagate untouched, never as
+ * errors). Business events (signups, sign-ins, resets) are logged explicitly at
+ * their decision points — never with the e-mail or any credential.
  */
 export type ActionState =
   | { formError?: string; fieldErrors?: FieldErrors; ok?: boolean }
