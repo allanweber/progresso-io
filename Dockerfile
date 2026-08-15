@@ -34,13 +34,20 @@ RUN npm run build
 # One-shot image that applies the Drizzle SQL migrations and exits. Run as its
 # own compose service before the app starts. Uses drizzle-orm's programmatic
 # migrator (drizzle-orm + postgres are prod deps), so it needs only node_modules,
-# the migration SQL in drizzle/, and the script. Idempotent.
+# the migration SQL in drizzle/, and the script — NOT the Next build.
+#
+# It deliberately does NOT copy from `builder`: doing so made this image depend
+# on the `RUN npm run build` stage, so `docker compose --build` ran `next build`
+# TWICE in parallel (once for the app, once here), doubling peak build memory and
+# OOM-ing constrained hosts. Sourcing node_modules from `dependencies` and the
+# data/scripts from the build context keeps this image build cheap and lets the
+# app be the only `next build`. Idempotent.
 FROM node:${NODE_VERSION} AS migrator
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/drizzle ./drizzle
-COPY --from=builder /app/scripts ./scripts
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY drizzle ./drizzle
+COPY scripts ./scripts
 CMD ["node", "scripts/migrate.mjs"]
 
 # ---- Runner ----
