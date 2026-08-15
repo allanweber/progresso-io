@@ -276,92 +276,124 @@ falling as clinics are added.
 
 ---
 
-## 4. Combined variable COGS per customer
+## 4. Variable cost per customer (infra + payment + tax)
 
-Realistic monthly cost (base rates, full messaging + Year-1 storage), in BRL at
-R$5.50/USD. Two infra lines (WhatsApp, storage) plus **payment processing** —
-the gateway fee on collecting the subscription, which in Brazil *outweighs* the
-infra cost and is method-dependent (Pix cheap, cartão dear):
+Three cost layers scale with each paying customer. In BRL at R$5.50/USD.
 
-| Line | Solo (R$199) | Clínica (R$399) | Note |
+**(a) Infra usage** — WhatsApp + R2 photos + Postgres marginal (§1–3):
+
+| Line | Solo | Clínica | Ref |
 | --- | --- | --- | --- |
-| WhatsApp (Utility, full) | R$14 – R$23 | R$28 – R$47 | §1.4 |
+| WhatsApp (Utility, lean → full) | R$14 – R$23 | R$28 – R$47 | §1.4 |
 | R2 photos | ~R$0.22 | ~R$0.44 | §2.4 |
 | Postgres (marginal) | ~R$0.06 | ~R$0.11 | §3.3 |
 | **Infra subtotal** | **~R$14 – R$24** | **~R$28 – R$48** | |
-| Payment — **Pix** (~1%) | ~R$2 | ~R$4 | cheapest lever |
-| Payment — **cartão** (~4%) | ~R$8 | ~R$16 | worst case |
-| **Variable COGS (Pix)** | **~R$16 – R$26** | **~R$32 – R$52** | |
-| **Variable COGS (cartão)** | **~R$22 – R$32** | **~R$44 – R$64** | |
 
-**Takeaway:** infra (messaging + storage + DB) is **trivial** — under
-**R$1/student/mo**. The largest *variable* cost is actually the **payment
-gateway**, and it's controllable: steering customers to **Pix** roughly halves
-total variable COGS vs. cartão. Everything else is dominated by **fixed
-infrastructure** (app server + Postgres *instance*), covered in §5.2.
+**(b) Payment processing** — the gateway fee to collect the subscription, via a
+low-cost Brazilian recurring-billing gateway (e.g. **Asaas**; Vindi/Iugu/Stripe
+BR are pricier). Method-dependent, and in Brazil this *outweighs* the infra cost:
 
-## 5. Plan pricing & gross margin
+| Method | Rate | On R$179 (Solo) | On R$379 (Clínica) |
+| --- | --- | --- | --- |
+| **Pix** | ~1% (or R$1.99 flat) | ~R$2 | ~R$4 |
+| Boleto | ~R$1.99 – 3.49 flat | ~R$2 – 3 | ~R$2 – 3 |
+| **Cartão recorrente** | ~4.5% + R$0.49 | ~R$8 | ~R$17 |
 
-Monthly plan prices (from `PLAN_PRICE_CENTS`, `src/lib/billing.ts`):
+**(c) Taxes on revenue** — a Brazilian SaaS under **Simples Nacional** pays from
+~6% (Anexo III, if fator-R ≥ 28%) up to ~15.5% (Anexo V, tech/low-payroll) of
+revenue; an ISS-only regime is ~2–5%. Planning midpoint **~10% of price**
+(*confirm with an accountant for your regime — this is the single biggest cost
+after payment*):
 
-| Plan | Price/mo | Student cap |
+| | On R$179 (Solo) | On R$379 (Clínica) |
 | --- | --- | --- |
-| Free | R$0 | (entry) |
-| **Solo** | **R$199,00** | 50 |
-| **Clínica** | **R$399,00** | 100 |
-| Enterprise | sob consulta | — |
+| Tax @ ~10% | ~R$18 | ~R$38 |
 
-### 5.1 Contribution margin (variable COGS only)
+Tax is a deduction from revenue, not strictly COGS — shown so the operating
+margin in §6 is honest.
 
-Price − variable COGS, at the **full-load** worst case (every student nudged +
-publishing). Shown for both payment methods:
+## 5. Fixed infrastructure cost stack
 
-| Plan | Price | Var. COGS (Pix) | **Margin (Pix)** | Var. COGS (cartão) | **Margin (cartão)** |
-| --- | --- | --- | --- | --- | --- |
-| **Solo** | R$199 | ~R$26 | **~87%** | ~R$32 | **~84%** |
-| **Clínica** | R$399 | ~R$52 | **~87%** | ~R$64 | **~84%** |
+One shared stack serves every tenant, sized for **production reliability**
+(managed, backed-up, São-Paulo region where latency matters for Brazilian
+users) — not the absolute cheapest option. Monthly, at R$5.50/USD:
 
-Both plans land at **~84–90% contribution margin** (higher in the *lean*
-messaging scenario). The margin is essentially **flat across plans** — Clínica
-costs ~2× Solo to serve and prices at ~2× — which is a clean, scalable pricing
-structure. Contribution stays positive from the very first customer.
+| Item | Example provider | Why / reliability | USD/mo | BRL/mo |
+| --- | --- | --- | --- | --- |
+| App hosting | Vercel Pro (GRU edge) | ~99.99%, SP edge = low BR latency, zero-ops deploy | $25 | R$138 |
+| Managed Postgres | Supabase Pro / Neon | daily backups + PITR, HA, `sa-east-1` | $25 | R$138 |
+| Object storage | Cloudflare R2 | 99.9%, **zero egress** | $5 | R$28 |
+| Transactional email | Resend Pro (50k/mo) | invites + portal/check-in notifications | $20 | R$110 |
+| Domain | Registro.br `.com.br` + `.com` | — | ~$1.5 | R$8 |
+| Monitoring + uptime | Sentry + BetterStack | error tracking + downtime alerts | $10 | R$55 |
+| **Total fixed** | | | **~$86** | **~R$477** |
 
-### 5.2 Fully-loaded margin (fixed costs overlaid)
+The recurring-billing gateway (Asaas) adds **no monthly fee** — it's pay-per-
+transaction, already in §4(b). Vindi/Iugu alternatives carry a ~R$100–300/mo
+floor. Budget a band of **~R$450–650/mo** as monitoring/tiers grow; the next
+step-cost is a **larger Postgres compute tier** once total students climb (a
+tier bump, ~+$25–50/mo, not a per-customer cost).
 
-Contribution margin ignores the **shared fixed stack** — one app host, one
-Postgres instance, email, R2 base — that exists regardless of customer count:
+Amortized across **N paying clinics**: ~R$477 ÷ N per clinic. Break-even on the
+fixed stack ≈ **3 Solo clinics** (R$537 > R$477).
 
-| Fixed item | ~USD/mo | ~BRL/mo |
-| --- | --- | --- |
-| App hosting | ~$25 | ~R$138 |
-| Postgres instance | ~$25 | ~R$138 |
-| Email (Resend) | ~$20 | ~R$110 |
-| R2 base + misc | ~$10 | ~R$55 |
-| **Fixed total** | **~$80** | **~R$440** |
+## 6. Pricing recommendation (Brazilian market)
 
-Amortized across **N paying clinics**, fixed/clinic = ~R$440 ÷ N. Fully-loaded
-Solo margin (cartão, full messaging → ~R$32 variable):
+### 6.1 The floor, the band, the ceiling
 
-| Paying clinics | Fixed/clinic | Solo fully-loaded margin |
-| --- | --- | --- |
-| 5 | ~R$88 | ~40% |
-| 10 | ~R$44 | ~62% |
-| 25 | ~R$18 | ~75% |
-| 50 | ~R$9 | ~80% |
-| 100 | ~R$4 | ~82% |
-| → ∞ | R$0 | **~84%** (= contribution margin) |
+- **Cost floor** (what a plan must clear at scale, fixed → 0): Solo
+  **~R$46/mo** (infra R$24 + cartão R$8 + tax R$18); Clínica **~R$103/mo**. Any
+  price above these is structurally profitable.
+- **Market band** (approximate BR comparables): single-professional diet
+  software (Dietbox, WebDiet, Nutrium) **R$40–130/mo**; global coaching
+  platforms (Trainerize, Everfit, PT Distinction) **~R$275–550/mo per ~100
+  clients**; full gym-management (Tecnofit, Pacto, W12) **R$200–1000+**. This
+  product bundles diet + workout + WhatsApp automations + anamnese + photo
+  check-ins + branded microsite — richer than a diet app, lighter than gym
+  management. Fair band: **Solo R$100–250, Clínica R$300–550**.
+- **Value ceiling**: a coach with 50 alunos at ~R$150 each bills ~R$7.500/mo, so
+  R$179 software = **~2.4% of their revenue** — high willingness to pay.
+- **Per-aluno benchmark**: at cap, R$179/50 = **R$3.6/aluno** and R$379/100 =
+  **R$3.8/aluno**, in line with Trainerize's ~R$3.3/client.
 
-The classic SaaS curve: **fixed cost dominates below ~10 customers, then margin
-climbs toward the ~84–90% contribution ceiling.** Break-even on the fixed stack
-is ~3 Solo clinics (R$597 revenue > R$440 fixed). A single Clínica plus a
-handful of Solos already clears it.
+### 6.2 Recommended plans
 
-**Bottom line for the plan:** unit economics are **software-grade** — ~85%+
-gross margin at any real scale. The margin levers, in order of impact, are
-(1) **payment method** (Pix vs. cartão, ~3–4 pts), (2) **customer count** vs. the
-fixed stack (dominant below ~10 clinics), and (3) **WhatsApp template category**
-(Utility vs. Marketing, only if misclassified). Infra usage (storage, DB,
-messaging volume) is **not** a meaningful lever.
+> The code's `PLAN_PRICE_CENTS` (Solo R$199 / Clínica R$399) are **placeholders**.
+> Cost- and market-justified recommendation:
+
+| Plan | Monthly | Annual (~2 mo free) | Includes |
+| --- | --- | --- | --- |
+| **Free** | R$0 | — | 1 coach, 3 alunos, 14-day trial of paid features — acquisition hook |
+| **Solo** | **R$179** | **R$1.790** (~R$149/mo) | 1 coach, 50 alunos, WhatsApp + Calendar + branded microsite |
+| **Clínica** | **R$379** | **R$3.790** (~R$316/mo) | up to 3 coaches, 100 alunos, all features |
+| **Enterprise** | sob consulta | — | 3+ coaches / 100+ alunos, priority support, custom |
+
+(R$197 / R$397 are viable premium anchors — a few points more margin at some
+adoption cost. Validate the exact point with a real price test.)
+
+### 6.3 Margin at the recommended prices
+
+Full-load worst case (every student nudged + publishing), **cartão** payment,
+~10% tax:
+
+| Plan | Price | Contribution* | After tax + fixed @ 50 clinics | At scale (→ ∞) |
+| --- | --- | --- | --- | --- |
+| **Solo** | R$179 | ~82% | **~67%** | ~71% |
+| **Clínica** | R$379 | ~83% | **~70%** | ~73% |
+
+*Contribution = (price − infra − payment) ÷ price, before tax & fixed.*
+
+Steering to **Pix + lean messaging** lifts contribution to ~90% and operating
+margin into the **mid-70s%**. The margin is essentially **flat across plans**
+(Clínica costs ~2× and prices ~2×) — a clean, scalable structure.
+
+**Bottom line:** at realistic BR-market prices and *fully* costed (infra +
+payment + tax + fixed), unit economics are **software-grade — ~70% operating
+margin at modest scale (~50 clinics), climbing toward the low-80s% as you grow**.
+Margin levers, in order of impact: (1) **payment method** (Pix vs. cartão), (2)
+**tax regime** (Anexo III vs. V — worth an accountant), (3) **customer count** vs.
+the fixed stack (dominant below ~10 clinics). Infra usage (storage, DB, message
+volume) is **not** a meaningful lever.
 
 ---
 
@@ -385,12 +417,18 @@ use.
 | Photos per check-in | 4 | fixed | `student_checkin_photo` poses |
 | R2 storage | $0.015/GB-mo | egress free | Cloudflare list price |
 | Postgres row footprint | 30 KB/student/mo | 25 – 40 KB | Row width + indexes + ~20% bloat |
-| Managed Postgres | fixed $15–25/mo instance | +$0.125–0.35/GB-mo overage | Supabase/Neon/RDS/DO; marginal ≈ $0 |
-| **Plan price — Solo** | **R$199,00/mo** | — | `PLAN_PRICE_CENTS.solo` |
-| **Plan price — Clínica** | **R$399,00/mo** | — | `PLAN_PRICE_CENTS.clinica` |
-| Payment fee — Pix | ~1% | 0.99 – 1.2% | Cheapest; some gateways flat/free |
-| Payment fee — cartão | ~4% | 3.5 – 4.5% + fixed | Worst case; the biggest variable lever |
-| Fixed infra stack | ~R$440/mo (~$80) | ~$60 – $120 | App host + PG instance + email + R2 base; platform-wide |
+| Managed Postgres | fixed ~$25/mo instance | +$0.125–0.35/GB-mo overage | Supabase Pro / Neon; marginal ≈ $0 |
+| App hosting | $25/mo | $20 – 50 | Vercel Pro (GRU edge) or Fly.io |
+| Email (Resend) | $20/mo (Pro, 50k) | free (3k) – $20 | Transactional invites + notifications |
+| Domain | ~$1.5/mo | — | `.com.br` (Registro.br) + `.com` |
+| Monitoring + uptime | $10/mo | $0 – 26 | Sentry + BetterStack; free tier early |
+| **Fixed infra stack (total)** | **~R$477/mo (~$86)** | ~R$450 – 650 | Sum of the above; platform-wide, §5 |
+| Payment fee — Pix | ~1% | R$1.99 flat – 1.2% | Cheapest lever; Asaas-style gateway |
+| Payment fee — cartão | ~4.5% + R$0.49 | 3.5 – 4.99% | Recorrente; the biggest variable cost |
+| Payment gateway | Asaas (no monthly fee) | Vindi/Iugu ~R$100–300/mo floor | BR recurring-billing |
+| Tax on revenue | ~10% | 6% (Anexo III) – 15.5% (Anexo V) | Simples Nacional; **confirm w/ accountant** |
+| **Recommended price — Solo** | **R$179/mo** (R$1.790/yr) | R$149 – 199 | §6.2 (code placeholder: R$199) |
+| **Recommended price — Clínica** | **R$379/mo** (R$3.790/yr) | R$349 – 399 | §6.2 (code placeholder: R$399) |
 
 Code references: `src/server/whatsapp-automations.ts`,
 `drizzle/data/whatsapp-templates.json`, `src/server/dal/whatsapp.ts`,
