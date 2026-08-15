@@ -28,6 +28,18 @@ ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 # this so custom (uploaded) images resolve too.
 ARG NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=""
 ENV NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=$NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL
+# Sentry public DSN: inlined into the client bundle AND read by next.config to
+# add the ingest host + replay worker to the CSP — so it must be set at build.
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+# Sentry source-map upload (optional): when all three are set, withSentryConfig
+# uploads readable stack traces at build; unset = build still succeeds, no upload.
+ARG SENTRY_ORG=""
+ENV SENTRY_ORG=$SENTRY_ORG
+ARG SENTRY_PROJECT=""
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
+ARG SENTRY_AUTH_TOKEN=""
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 RUN npm run build
 
 # ---- Migrator ----
