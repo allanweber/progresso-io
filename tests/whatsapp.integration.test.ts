@@ -258,10 +258,13 @@ describe("tenant isolation + read state", () => {
 
     const waiting = await whatsapp.listWaiting(ctx);
     expect(waiting.some((c) => c.id === conversationId)).toBe(true);
+    // The sidebar badge count mirrors listWaiting (uncapped) — 1 unanswered here.
+    expect(await whatsapp.countWaiting(ctx)).toBe(1);
 
     expect(await whatsapp.markRead(ctx, conversationId)).toBe(true);
     const afterRead = await whatsapp.listWaiting(ctx);
     expect(afterRead.some((c) => c.id === conversationId)).toBe(false);
+    expect(await whatsapp.countWaiting(ctx)).toBe(0);
   });
 });
 

@@ -700,6 +700,24 @@ export async function listWaiting(
 }
 
 /**
+ * How many conversations are awaiting a coach reply (unanswered inbound) — the
+ * total, uncapped, for the sidebar WhatsApp badge. Clinic-scoped; 0 for a clinic
+ * with no waiting conversations.
+ */
+export async function countWaiting(ctx: TenantContext): Promise<number> {
+  const [row] = await ctx.db
+    .select({ n: count() })
+    .from(schema.whatsappConversation)
+    .where(
+      and(
+        eq(schema.whatsappConversation.clinicId, ctx.clinicId),
+        gte(schema.whatsappConversation.unreadCount, 1),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
+/**
  * The platform-admin per-tenant WhatsApp overview — the ONE cross-tenant read
  * here (guarded by `getAdminSession()` in its route, not by a TenantContext).
  * Per clinic: connection status + display number (from `whatsapp_connection`),

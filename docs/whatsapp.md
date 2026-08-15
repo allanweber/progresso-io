@@ -266,6 +266,11 @@ without a manual refresh.
 - **Coach dashboard** — the "WhatsApp aguardando" KPI + card list unanswered
   conversations (unread inbound), linking into the inbox. Not plan-gated chrome,
   but empty for a Free clinic (no conversations).
+- **Sidebar badge** — the "WhatsApp" nav item carries a count badge of
+  conversations awaiting a coach reply, polled from
+  `GET /api/coach/whatsapp/waiting-count` (`whatsapp.countWaiting`, the uncapped
+  count) every 30s (+ on focus) so it stays fresh across pages. Only queried for
+  a coach whose plan includes WhatsApp; caps the label at "9+".
 - **`/admin/whatsapp`** — platform-admin overview: KPIs (conectados, msgs este
   mês, janelas abertas, clínicas) + a per-tenant table (studio, número, status,
   msgs este mês, janelas abertas). Status + number come from each clinic's

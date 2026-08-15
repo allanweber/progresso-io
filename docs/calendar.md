@@ -115,6 +115,18 @@ aluno-submitted check-ins with no coach feedback yet (`author = student`,
 These are **not** plan-gated (generic triage, available to Free too); only the
 Calendar itself is paid.
 
+### Agenda cards (Hoje / Esta semana)
+
+When the clinic's plan includes the Calendar, `GET /api/coach/dashboard` also
+returns **`todayEvents`** and **`weekEvents`** — the merged `getCalendar` items
+(manual events + derived check-in + invoice-due markers) for `[today, Saturday]`,
+split into today vs. the rest of the week. Both are empty for a plan without the
+Calendar, so the cards render a friendly empty state instead of the old "em
+breve" placeholder. The dashboard's right column renders them as the **Hoje** and
+**Esta semana** cards (each row: category dot, title, time — the week card also
+prefixes the weekday/day — plus an "atrasado" tag on overdue markers), with a
+"Ver agenda" shortcut to `/coach/calendar`.
+
 ## Files
 
 - Schema: `calendar_event` (+`plan_limit.calendar`, `clinic.calendar_override`),

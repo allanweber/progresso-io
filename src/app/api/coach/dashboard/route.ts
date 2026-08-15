@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { addDays, todayYmd, weekdayOf } from "@/lib/calendar";
+import type { CalendarItemDto } from "@/lib/calendar";
 import type { CoachDashboardDto, WaWaitingDto } from "@/lib/coach-dashboard";
-import { plans, students, whatsapp } from "@/server/dal";
+import { calendarEvents, plans, students, whatsapp } from "@/server/dal";
 import { forbidden, unauthorized } from "@/server/api";
 import { withRoute } from "@/server/observability";
 import { getTenantContext } from "@/server/tenant";
@@ -20,9 +22,10 @@ export const GET = withRoute("coach.dashboard", async () => {
   if (!ctx) return unauthorized();
   if (ctx.role !== "coach") return forbidden();
 
-  const [base, canWhatsapp] = await Promise.all([
+  const [base, canWhatsapp, canCalendar] = await Promise.all([
     students.getCoachDashboard(ctx),
     plans.canUseWhatsapp(ctx),
+    plans.canUseCalendar(ctx),
   ]);
 
   const waWaiting: WaWaitingDto[] = canWhatsapp
@@ -35,6 +38,27 @@ export const GET = withRoute("coach.dashboard", async () => {
       }))
     : [];
 
-  const dashboard: CoachDashboardDto = { ...base, waWaiting };
+  // Agenda cards: today's items and the rest of this week (through Saturday).
+  // Empty for a plan without the calendar capability. `getCalendar` returns the
+  // merged list already sorted by date → time → title, so a filter keeps order.
+  let todayEvents: CalendarItemDto[] = [];
+  let weekEvents: CalendarItemDto[] = [];
+  if (canCalendar) {
+    const today = todayYmd();
+    const weekEnd = addDays(today, 6 - weekdayOf(today));
+    const { items } = await calendarEvents.getCalendar(ctx, {
+      from: today,
+      to: weekEnd,
+    });
+    todayEvents = items.filter((i) => i.date === today);
+    weekEvents = items.filter((i) => i.date > today);
+  }
+
+  const dashboard: CoachDashboardDto = {
+    ...base,
+    waWaiting,
+    todayEvents,
+    weekEvents,
+  };
   return NextResponse.json(dashboard);
 });
