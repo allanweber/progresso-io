@@ -1,9 +1,11 @@
 # Monetization & unit economics
 
-A business-planning document for the **variable cost of serving a customer** on
-Progresso. It models the two usage-driven costs the platform incurs on each
-clinic's behalf — **WhatsApp template messaging** (Meta charges) and **photo
-storage** (Cloudflare R2) — for the two reference customers:
+A business-planning document for the **unit economics of a customer** on
+Progresso: what it costs to serve one, what a plan charges, and the resulting
+**gross margin**. It models every usage-driven cost the platform incurs on a
+clinic's behalf — **WhatsApp template messaging** (Meta), **photo storage**
+(Cloudflare R2), **relational data** (PostgreSQL), and **payment processing** —
+then sets them against **plan pricing** (§5) for the two reference customers:
 
 - **Solo** — a one-coach clinic at its student cap of **50 students**.
 - **Clínica** — a multi-coach clinic with **3 coaches** at its cap of **100
@@ -276,42 +278,119 @@ falling as clinics are added.
 
 ## 4. Combined variable COGS per customer
 
-Realistic monthly cost (base rates, full messaging + Year-1 storage). "Postgres"
-here is the *marginal* per-customer share; the real bill is the fixed instance:
+Realistic monthly cost (base rates, full messaging + Year-1 storage), in BRL at
+R$5.50/USD. Two infra lines (WhatsApp, storage) plus **payment processing** —
+the gateway fee on collecting the subscription, which in Brazil *outweighs* the
+infra cost and is method-dependent (Pix cheap, cartão dear):
 
-| Customer | WhatsApp/mo | R2 photos/mo | Postgres/mo | **Total/mo** | ≈ BRL/mo |
+| Line | Solo (R$199) | Clínica (R$399) | Note |
+| --- | --- | --- | --- |
+| WhatsApp (Utility, full) | R$14 – R$23 | R$28 – R$47 | §1.4 |
+| R2 photos | ~R$0.22 | ~R$0.44 | §2.4 |
+| Postgres (marginal) | ~R$0.06 | ~R$0.11 | §3.3 |
+| **Infra subtotal** | **~R$14 – R$24** | **~R$28 – R$48** | |
+| Payment — **Pix** (~1%) | ~R$2 | ~R$4 | cheapest lever |
+| Payment — **cartão** (~4%) | ~R$8 | ~R$16 | worst case |
+| **Variable COGS (Pix)** | **~R$16 – R$26** | **~R$32 – R$52** | |
+| **Variable COGS (cartão)** | **~R$22 – R$32** | **~R$44 – R$64** | |
+
+**Takeaway:** infra (messaging + storage + DB) is **trivial** — under
+**R$1/student/mo**. The largest *variable* cost is actually the **payment
+gateway**, and it's controllable: steering customers to **Pix** roughly halves
+total variable COGS vs. cartão. Everything else is dominated by **fixed
+infrastructure** (app server + Postgres *instance*), covered in §5.2.
+
+## 5. Plan pricing & gross margin
+
+Monthly plan prices (from `PLAN_PRICE_CENTS`, `src/lib/billing.ts`):
+
+| Plan | Price/mo | Student cap |
+| --- | --- | --- |
+| Free | R$0 | (entry) |
+| **Solo** | **R$199,00** | 50 |
+| **Clínica** | **R$399,00** | 100 |
+| Enterprise | sob consulta | — |
+
+### 5.1 Contribution margin (variable COGS only)
+
+Price − variable COGS, at the **full-load** worst case (every student nudged +
+publishing). Shown for both payment methods:
+
+| Plan | Price | Var. COGS (Pix) | **Margin (Pix)** | Var. COGS (cartão) | **Margin (cartão)** |
 | --- | --- | --- | --- | --- | --- |
-| **Solo (50)** | $2.54 – $4.26 | ~$0.04 | ~$0.01 (or fixed share) | **~$2.6 – $4.3** | **~R$14 – R$24** |
-| **Clínica (100)** | $5.06 – $8.54 | ~$0.08 | ~$0.02 (or fixed share) | **~$5.1 – $8.6** | **~R$28 – R$47** |
+| **Solo** | R$199 | ~R$26 | **~87%** | ~R$32 | **~84%** |
+| **Clínica** | R$399 | ~R$52 | **~87%** | ~R$64 | **~84%** |
 
-**Takeaway:** usage-driven variable cost is **trivial** — under **R$1/student/mo**
-even at the full messaging + storage + DB load. Per-customer COGS is dominated by
-**fixed infrastructure** (the app server + the Postgres *instance*), not the
-per-customer messaging, blob, or relational data. The only scenarios that move
-the needle are (a) templates reclassified as **Marketing** (~8× messaging), (b)
-routing through a **BSP markup**, or (c) outgrowing the Postgres instance's
-*compute* (scale the tier — a step cost, not a per-customer one). All manageable
-by design.
+Both plans land at **~84–90% contribution margin** (higher in the *lean*
+messaging scenario). The margin is essentially **flat across plans** — Clínica
+costs ~2× Solo to serve and prices at ~2× — which is a clean, scalable pricing
+structure. Contribution stays positive from the very first customer.
+
+### 5.2 Fully-loaded margin (fixed costs overlaid)
+
+Contribution margin ignores the **shared fixed stack** — one app host, one
+Postgres instance, email, R2 base — that exists regardless of customer count:
+
+| Fixed item | ~USD/mo | ~BRL/mo |
+| --- | --- | --- |
+| App hosting | ~$25 | ~R$138 |
+| Postgres instance | ~$25 | ~R$138 |
+| Email (Resend) | ~$20 | ~R$110 |
+| R2 base + misc | ~$10 | ~R$55 |
+| **Fixed total** | **~$80** | **~R$440** |
+
+Amortized across **N paying clinics**, fixed/clinic = ~R$440 ÷ N. Fully-loaded
+Solo margin (cartão, full messaging → ~R$32 variable):
+
+| Paying clinics | Fixed/clinic | Solo fully-loaded margin |
+| --- | --- | --- |
+| 5 | ~R$88 | ~40% |
+| 10 | ~R$44 | ~62% |
+| 25 | ~R$18 | ~75% |
+| 50 | ~R$9 | ~80% |
+| 100 | ~R$4 | ~82% |
+| → ∞ | R$0 | **~84%** (= contribution margin) |
+
+The classic SaaS curve: **fixed cost dominates below ~10 customers, then margin
+climbs toward the ~84–90% contribution ceiling.** Break-even on the fixed stack
+is ~3 Solo clinics (R$597 revenue > R$440 fixed). A single Clínica plus a
+handful of Solos already clears it.
+
+**Bottom line for the plan:** unit economics are **software-grade** — ~85%+
+gross margin at any real scale. The margin levers, in order of impact, are
+(1) **payment method** (Pix vs. cartão, ~3–4 pts), (2) **customer count** vs. the
+fixed stack (dominant below ~10 clinics), and (3) **WhatsApp template category**
+(Utility vs. Marketing, only if misclassified). Infra usage (storage, DB,
+messaging volume) is **not** a meaningful lever.
 
 ---
 
 ## Assumptions & sources
 
-| Input | Value used | Source / note |
-| --- | --- | --- |
-| Feedback cadence | Weekly (`semanal`) | Heaviest cadence; product default |
-| Weeks per month | 4.33 | 52 ÷ 12 |
-| Solo cap | 50 students | Plan limit |
-| Clínica cap | 100 students, 3 coaches | Plan limit |
-| Diet/workout publish | ~1×/mo each per student | Assumption — adjust to taste |
-| Meta Utility (BR) | ~$0.0080/msg | Approx; verify Meta rate card |
-| Meta Marketing (BR) | ~$0.0625/msg | Approx; sensitivity only |
-| BRL/USD | ~R$5.50 | Approx; FX-dependent |
-| Compressed photo | ~250 KB (base), 500 KB (heavy) | 1600px WebP q0.72; 3 MB server cap |
-| Photos per check-in | 4 | `student_checkin_photo` poses |
-| R2 storage | $0.015/GB-mo, egress free | Approx; verify Cloudflare pricing |
-| Postgres row footprint | ~30 KB/student/mo (on disk) | Row width + indexes + ~20% bloat |
-| Managed Postgres | fixed instance ($15–25/mo) + $0.125–0.35/GB-mo overage | Approx; Supabase/Neon/RDS/DO |
+Every number below is a **lever** — change it here and the section it feeds
+updates. Ranges show the sensitivity band; the **base** value is what the tables
+use.
+
+| Input | Base value | Range / sensitivity | Source / note |
+| --- | --- | --- | --- |
+| Feedback cadence | Weekly (`semanal`) | weekly → mensal (÷4 volume) | Heaviest cadence; product default. Biweekly ≈ halves messaging |
+| Weeks per month | 4.33 | fixed | 52 ÷ 12 |
+| Solo cap | 50 students | — | Plan limit |
+| Clínica cap | 100 students, 3 coaches | — | Plan limit (coaches don't add volume) |
+| Diet/workout publish | ~1×/mo each | 0.5 – 1.5×/mo | Coach behavior; ±R$3–8/mo swing (Solo). Low driver |
+| Meta Utility (BR) | $0.0080/msg | $0.006 – $0.010 | Meta revises; **the** messaging driver |
+| Meta Marketing (BR) | $0.0625/msg | — | Sensitivity only — avoid by keeping templates Utility |
+| BRL/USD | R$5.50 | R$5.0 – R$6.0 | FX-dependent; scales all USD lines ±10% |
+| Compressed photo | 250 KB | 150 – 500 KB | 1600px WebP q0.72; 3 MB server cap. Storage only (cheap either way) |
+| Photos per check-in | 4 | fixed | `student_checkin_photo` poses |
+| R2 storage | $0.015/GB-mo | egress free | Cloudflare list price |
+| Postgres row footprint | 30 KB/student/mo | 25 – 40 KB | Row width + indexes + ~20% bloat |
+| Managed Postgres | fixed $15–25/mo instance | +$0.125–0.35/GB-mo overage | Supabase/Neon/RDS/DO; marginal ≈ $0 |
+| **Plan price — Solo** | **R$199,00/mo** | — | `PLAN_PRICE_CENTS.solo` |
+| **Plan price — Clínica** | **R$399,00/mo** | — | `PLAN_PRICE_CENTS.clinica` |
+| Payment fee — Pix | ~1% | 0.99 – 1.2% | Cheapest; some gateways flat/free |
+| Payment fee — cartão | ~4% | 3.5 – 4.5% + fixed | Worst case; the biggest variable lever |
+| Fixed infra stack | ~R$440/mo (~$80) | ~$60 – $120 | App host + PG instance + email + R2 base; platform-wide |
 
 Code references: `src/server/whatsapp-automations.ts`,
 `drizzle/data/whatsapp-templates.json`, `src/server/dal/whatsapp.ts`,
