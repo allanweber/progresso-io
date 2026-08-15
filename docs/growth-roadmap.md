@@ -1,8 +1,15 @@
 # Growth roadmap — 10 features to convert Free → Paid and lift tiers
 
 Grounded in the product mock (heavy **AI**, WhatsApp, portal, video, check-ins,
-reminders, referral, a **R$ 597 "Pro"** tier, per-aluno pricing) and expanded
-beyond it. Integrations included.
+reminders, referral, per-aluno pricing) and expanded beyond it. Integrations
+included.
+
+> **Pricing note.** The original mock floated a **R$ 597 "Pro"** tier. The
+> *shipped* ladder is **Free · Solo R$179 · Clínica R$379 · Enterprise**
+> (`PLAN_PRICE_CENTS`, see `docs/monetization.md` §6). Wherever a feature gate
+> below says **"Pro" it means the Clínica tier** — the top self-serve plan below
+> Enterprise. A premium R$597-class tier can be reintroduced later as a Clínica
+> add-on or an Enterprise floor, but it is **not** part of the current ladder.
 
 > **Ops note — monitoring: start free, self-host later.** Two pillars, both
 > **free at first with zero load on our server** (the ~$10/mo monitoring line in
@@ -32,7 +39,7 @@ beyond it. Integrations included.
 - **Free → Paid wall** — things a growing coach can't live without: WhatsApp
   delivery, AI drafting caps, and the **3-aluno cap**. Anything that grows the
   roster or automates communication pushes the coach over the wall.
-- **Tier-up (Solo → Clínica/Pro → Enterprise)** — "run my business" features: AI
+- **Tier-up (Solo → Clínica → Enterprise)** — "run my business" features: AI
   volume, getting paid, multi-coach, white-label, analytics.
 
 ## Gating is already solved
@@ -61,7 +68,7 @@ for `whatsapp` / `archive` / `calendar`. No new plumbing — just a gate.
 ### 1. AI Program Generator — treino + dieta por IA · `FREE→PAID + TIER-UP`
 Coach picks goal + anamnese → AI drafts a full **workout and diet** from the
 clinic's own catalog (TACO foods + exercise library already exist). Free = 3
-gerações/mês (taste it); Solo = more; Pro/Clínica = unlimited **+ AI-drafted
+gerações/mês (taste it); Solo = more; Clínica = unlimited **+ AI-drafted
 check-in feedback** and "reescrever em tom X". The mock's flagship (197 "IA"
 mentions).
 *Integration: Anthropic Claude API.*
@@ -78,35 +85,35 @@ Take Blip.*
 Today faturas are the *clinic's* Progresso bill. Flip it: let coaches **charge
 their own students** — recurring + one-off, via **Pix / boleto / cartão**. Makes
 the coach money inside the product = maximum stickiness. Free = manual "copia e
-cola Pix"; Solo+ = automated recurring + payment links; Pro = split, contratos,
+cola Pix"; Solo+ = automated recurring + payment links; Clínica = split, contratos,
 retry de inadimplência. This is also the **paywall gateway** — the same provider
 collects the clinic's own Progresso subscription (see `docs/monetization.md` §4).
 *Integration: **Asaas** — the chosen BR gateway: recurring Pix/boleto/cartão,
 **no monthly fee** (pay-per-transaction), split payments, webhooks, and NFS-e
 hooks that feed #4. Alternativas avaliadas: Pagar.me / Mercado Pago / Stripe BR.*
 
-### 4. Financeiro / cockpit do negócio · `TIER-UP (Pro/Clínica)`
+### 4. Financeiro / cockpit do negócio · `TIER-UP (Clínica)`
 MRR, receita, inadimplência, LTV, churn, previsão — the "R$ 21,4k" screen from
-the mock. Feeds off #3. Free/Solo = receita simples; Pro/Clínica = dashboard
+the mock. Feeds off #3. Free/Solo = receita simples; Clínica = dashboard
 completo + rateio entre coaches + **emissão de nota fiscal**.
 *Integration: NFS-e (NFe.io / Focus NFe), export contábil.*
 
 ### 5. Vídeo — biblioteca + feedback em vídeo · `TIER-UP (storage tiers)`
 Attach demo videos to exercises/workouts and let the coach record **personalized
 video feedback** on each check-in (the mock's "video" theme). Free = só link
-YouTube; Solo+ = upload hospedado (quota); Pro = feedback em vídeo + quota maior.
+YouTube; Solo+ = upload hospedado (quota); Clínica = feedback em vídeo + quota maior.
 *Integration: Cloudflare R2/Stream or Mux.*
 
 ### 6. Relatório de evolução do aluno (PDF branded, auto-mensal) · `TIER-UP`
 Reuse the pdfkit renderer already in the repo: a branded before/after report —
 peso, fotos, medidas, adesão — auto-generated monthly and **sent by WhatsApp**
-(ties #2). Free = nada; Solo = básico; Pro/Clínica = branded + automático.
+(ties #2). Free = nada; Solo = básico; Clínica = branded + automático.
 *Integration: pdfkit (installed) + WhatsApp.*
 
 ### 7. Integrações de saúde / wearables · `TIER-UP + retention`
 Auto-import weight (smart scale), passos, sono, FC — enriches check-ins with zero
 aluno effort and powers "peso destoando da meta" alerts. Free = manual; Solo+ = 1
-integração; Pro = todas + alertas automáticos.
+integração; Clínica = todas + alertas automáticos.
 *Integration: Google Fit / Health Connect, Apple HealthKit, Strava, Renpho/Xiaomi
 scales.*
 
@@ -120,13 +127,13 @@ free cap** → forces the Solo upgrade, while acquiring users for free.
 A public sales page per coach (planos, depoimentos, captação de leads) that turns
 visitors into alunos, with lead inbox → WhatsApp handoff → checkout via #3.
 Extends the branded microsite already shipped. Free = perfil simples; Solo =
-formulário de leads; Pro = funil completo (múltiplos planos, A/B).
+formulário de leads; Clínica = funil completo (múltiplos planos, A/B).
 *Integration: #2, #3, GA (já existe).*
 
 ### 10. App white-label do coach (PWA instalável + push) · `TIER-UP / Enterprise`
 The branded portal (shipped) → an **installable app** with the coach's logo/ícone
 na home do aluno e **push notifications**. Clínica = subdomínio branded (feito);
-Pro/Enterprise = PWA instalável + push; Enterprise = app nas lojas + SSO + API.
+Clínica/Enterprise = PWA instalável + push; Enterprise = app nas lojas + SSO + API.
 *Integration: web-push (VAPID); wrapper opcional (Capacitor/Median) para as lojas.*
 
 ---
