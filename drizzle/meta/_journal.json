@@ -225,6 +225,13 @@
       "when": 1786898430957,
       "tag": "0031_ai_program_generator",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786907914466,
+      "tag": "0032_drop_ai_generation_cost",
+      "breakpoints": true
     }
   ]
 }

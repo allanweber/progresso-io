@@ -106,8 +106,8 @@ const devProvider: LlmProvider = {
   },
 };
 
-/** Default request timeout. Generous — a program draft is a long completion. */
-const DEFAULT_TIMEOUT_MS = 90_000;
+/** Request timeout. Generous — a program draft is a long completion. */
+const TIMEOUT_MS = 90_000;
 
 /**
  * Reads the provider config, or `null` unless **all three** of key, base URL and
@@ -130,57 +130,12 @@ function openAiCompatibleEnv() {
     // path never doubles up.
     baseUrl: baseUrl.replace(/\/+$/, ""),
     model,
-    timeoutMs: Number(process.env.LLM_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS,
   };
 }
 
 /** Whether a real provider is configured — checked before spending a credit. */
 export function isLlmConfigured(): boolean {
   return openAiCompatibleEnv() !== null;
-}
-
-/**
- * Price per **million** tokens, in millionths of a USD, from
- * `LLM_PRICE_INPUT_PER_MTOK` / `LLM_PRICE_OUTPUT_PER_MTOK` /
- * `LLM_PRICE_CACHED_INPUT_PER_MTOK` (all decimal USD, e.g. `0.03`).
- *
- * Optional: with no tariff configured, generations still run and simply record
- * `costMicroUsd = null`.
- */
-function tariffMicroUsdPerMTok() {
-  const parse = (v?: string) => {
-    const raw = (v ?? "").trim();
-    // `Number("")` is 0, not NaN — without this guard an *unset* tariff reads as
-    // a configured zero and every generation records a cost of 0, which looks
-    // exactly like "AI is free" in the ledger.
-    if (raw === "") return null;
-    const n = Number(raw);
-    return Number.isFinite(n) && n >= 0 ? Math.round(n * 1_000_000) : null;
-  };
-  const input = parse(process.env.LLM_PRICE_INPUT_PER_MTOK);
-  const output = parse(process.env.LLM_PRICE_OUTPUT_PER_MTOK);
-  if (input === null || output === null) return null;
-  // Cache reads are cheaper; when unstated assume they bill as normal input,
-  // which over- rather than under-states the cost.
-  const cached = parse(process.env.LLM_PRICE_CACHED_INPUT_PER_MTOK) ?? input;
-  return { input, output, cached };
-}
-
-/**
- * What a generation cost, in millionths of a USD, or `null` when no tariff is
- * configured. Computed at write time and frozen on the audit row — deriving it
- * on read would silently reprice history the day a vendor changes its rates.
- */
-export function costMicroUsdFor(usage: LlmUsage): number | null {
-  const tariff = tariffMicroUsdPerMTok();
-  if (!tariff) return null;
-  const per = (tokens: number | null, rate: number) =>
-    ((tokens ?? 0) * rate) / 1_000_000;
-  return Math.round(
-    per(usage.inputTokens, tariff.input) +
-      per(usage.cachedInputTokens, tariff.cached) +
-      per(usage.outputTokens, tariff.output),
-  );
 }
 
 /**
@@ -201,7 +156,7 @@ function buildOpenAiCompatibleProvider(
     model: env.model,
     async generateJson(request) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), env.timeoutMs);
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
         const response = await fetch(`${env.baseUrl}/chat/completions`, {
           method: "POST",
@@ -318,21 +273,14 @@ function buildOpenAiCompatibleProvider(
 }
 
 /**
- * Resolves the active provider. `LLM_PROVIDER` picks the implementation; the
- * OpenAI-compatible one additionally needs its three env vars, without which we
- * fall back to `dev` rather than failing at request time — an unconfigured
- * install must degrade to "feature off", never to a 500.
+ * Resolves the active provider: the OpenAI-compatible one when its three env
+ * vars are set, else the no-op `dev` one. Falling back rather than throwing is
+ * deliberate — an unconfigured install must degrade to "feature off", never to
+ * a 500.
+ *
+ * To switch the feature off without deleting credentials, unset `LLM_MODEL`.
  */
 export function getLlmProvider(): LlmProvider {
-  const name = process.env.LLM_PROVIDER?.toLowerCase();
-  if (name === "dev") return devProvider;
-
   const env = openAiCompatibleEnv();
-  if (!env) return devProvider;
-
-  if (name === undefined || name === "" || name === "openai-compatible") {
-    return buildOpenAiCompatibleProvider(env);
-  }
-  logger.warn("llm.provider.unknown", { name });
-  return devProvider;
+  return env ? buildOpenAiCompatibleProvider(env) : devProvider;
 }

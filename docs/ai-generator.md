@@ -24,15 +24,12 @@ draft** the coach reviews and edits before anything reaches the aluno.
 | Admin overview (cross-tenant) | `ai.getAdminAiOverview`, `GET /api/admin/ai`, `src/app/admin/ai/page.tsx` |
 | Tests | `tests/ai-generator{,.integration}.test.ts`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
 
-Three traps worth knowing about, all found by tests during the build:
+Two traps worth knowing about, both found by tests during the build:
 
 - **`plan_limit.ai_generations` must be spelled out wherever the table is
   seeded** — `src/db/seed.ts` and two integration fixtures all wipe and re-insert
   it. A row that *exists* with a NULL there reads as **unlimited**, so omitting
   the column silently hands every Free clinic uncapped model calls.
-- **An unset tariff must parse as `null`, not `0`.** `Number("")` is `0`, so the
-  naive parse recorded every generation at cost zero — indistinguishable from
-  "AI is free" in the ledger.
 - **The button has to be on the "already has a program" screen too.** Both the
   Treino and Dieta tabs render four different states, and the first pass wired
   the generator into only two of them (no program yet, unpublished draft). The
@@ -221,11 +218,14 @@ open LGPD risk on Alibaba Cloud.
 Both the quota meter and the cost ledger. Per row: `clinicId` (tenant key),
 `studentId`, `coachId`, `kind`, `status`, `provider`, `model`, token counts
 (including **cached** input separately), `durationMs`, `repaired`, `errorCode`,
-**`catalogHash`**, **`anamnesisSnapshotId`**, and **`costMicroUsd`**.
+**`catalogHash`** and **`anamnesisSnapshotId`**.
 
-- **Cost is computed and frozen at generation time** from tokens × the configured
-  tariff — not derived at read time, which would silently reprice history when a
-  vendor changes its rates. `NULL` when no tariff is configured.
+- **Cost is deliberately NOT stored.** It is tokens × a vendor price, and the
+  price is the one half that can be looked up whenever it is actually wanted —
+  the tokens are the half that can only be measured as the call happens. An
+  earlier version carried a `cost_micro_usd` frozen from `LLM_PRICE_*` env vars;
+  those were never set, so the column could only ever say `NULL`, and a column
+  that can only say "unknown" gets read as "free". Dropped in migration 0032.
 - **The prompt itself is never stored.** The anamnese snapshot id and the catalog
   hash make it fully reconstructible without duplicating aluno health data into a
   second table, in plain text, in every backup. Same data-minimization logic as
@@ -246,16 +246,11 @@ uncheckable. This screen is the read side.
 | --- | --- |
 | **Taxa de cache** | The base-only catalog keeps the prompt prefix byte-identical, so it stays in the provider's cache. A ratio that sits low means the prefix is moving between calls — nothing else would say so. |
 | **Gerações vs. limite** (per clinic) | 1/10/25 is the right shape. Clinics pinned at the cap say it's stingy; a platform of 2-a-month coaches says it's generous. |
-| **Custo no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, built on ↯ prices and a guessed token count. |
+| **Tokens no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, whose token-per-generation figure was a guess. Multiply by the vendor's current price to check it. |
 | **Reparos / falhas** | The prompt still produces schema-valid JSON. A rising repair count is drift, and each repair is a second paid round-trip. |
 
-Three details that are not incidental:
+Two details that are not incidental:
 
-- **A partial cost total is labelled `parcial`, never silently summed.** A tariff
-  configured halfway through a month leaves earlier rows at `NULL`; adding them
-  as zero would under-report the bill by exactly the amount you can't see.
-  `unpricedGenerations` counts them. A `pending` row is excluded — it hasn't been
-  costed *yet*, which is not the same as having run with no tariff.
 - **`configured` rides along on the response.** An all-zero table means either
   "nobody generated anything" or "the feature was never switched on", and the
   admin needs to know which.

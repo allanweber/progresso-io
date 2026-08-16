@@ -10,9 +10,9 @@ import type { TenantContext } from "@/server/tenant";
 /**
  * AI generation accounting. Every row is tenant-scoped by `ctx.clinicId`.
  *
- * `ai_generation` is the quota meter, the audit trail and the cost ledger at
- * once — the monthly cap is a count of rows, never a stored counter, so nothing
- * needs resetting and nothing can drift out of step with reality.
+ * `ai_generation` is the quota meter and the usage ledger at once — the monthly
+ * cap is a count of rows, never a stored counter, so nothing needs resetting and
+ * nothing can drift out of step with reality.
  *
  * The lifecycle is deliberately two-phase:
  *
@@ -150,13 +150,11 @@ export async function startGeneration(
 /** What a settled generation records beyond its status. */
 export type GenerationOutcome = {
   usage: LlmUsage;
-  /** Frozen at write time — see `costMicroUsdFor`. `null` with no tariff set. */
-  costMicroUsd: number | null;
   durationMs: number;
   repaired: boolean;
 };
 
-/** Settles a generation as successful, recording what it actually cost. */
+/** Settles a generation as successful, recording what it actually consumed. */
 export async function finishGeneration(
   ctx: TenantContext,
   id: string,
@@ -169,7 +167,6 @@ export async function finishGeneration(
       inputTokens: outcome.usage.inputTokens,
       cachedInputTokens: outcome.usage.cachedInputTokens,
       outputTokens: outcome.usage.outputTokens,
-      costMicroUsd: outcome.costMicroUsd,
       durationMs: outcome.durationMs,
       repaired: outcome.repaired,
       updatedAt: new Date(),
@@ -201,7 +198,6 @@ export async function failGeneration(
       inputTokens: outcome?.usage?.inputTokens ?? null,
       cachedInputTokens: outcome?.usage?.cachedInputTokens ?? null,
       outputTokens: outcome?.usage?.outputTokens ?? null,
-      costMicroUsd: outcome?.costMicroUsd ?? null,
       durationMs: outcome?.durationMs ?? null,
       updatedAt: new Date(),
     })
@@ -223,14 +219,13 @@ export type AiGenerationRow = {
   inputTokens: number | null;
   cachedInputTokens: number | null;
   outputTokens: number | null;
-  costMicroUsd: number | null;
   catalogHash: string | null;
   createdAt: Date;
 };
 
 /**
  * This clinic's most recent generations, newest first — the audit read, and the
- * data the cost model in `docs/monetization.md` is checked against.
+ * token data the cost model in `docs/monetization.md` is checked against.
  */
 export async function listRecentGenerations(
   ctx: TenantContext,
@@ -246,7 +241,6 @@ export async function listRecentGenerations(
       inputTokens: schema.aiGeneration.inputTokens,
       cachedInputTokens: schema.aiGeneration.cachedInputTokens,
       outputTokens: schema.aiGeneration.outputTokens,
-      costMicroUsd: schema.aiGeneration.costMicroUsd,
       catalogHash: schema.aiGeneration.catalogHash,
       createdAt: schema.aiGeneration.createdAt,
     })
@@ -277,10 +271,6 @@ export type AdminAiTenantRow = {
   inputTokens: number;
   cachedInputTokens: number;
   outputTokens: number;
-  /** Summed cost of the rows that carry one. `null` when none do. */
-  costMicroUsd: number | null;
-  /** Rows with no recorded cost — i.e. how incomplete the number above is. */
-  unpricedGenerations: number;
 };
 
 export type AdminAiOverview = {
@@ -295,8 +285,6 @@ export type AdminAiOverview = {
     inputTokens: number;
     cachedInputTokens: number;
     outputTokens: number;
-    costMicroUsd: number | null;
-    unpricedGenerations: number;
     /** Clinics that have spent their whole allowance. */
     clinicsAtLimit: number;
   };
@@ -312,10 +300,6 @@ export type AdminAiOverview = {
  *
  * Admin-only and cross-tenant, so it takes a bare `DB` rather than a
  * `TenantContext` — same shape as `whatsapp.getAdminOverview`.
- *
- * Cost is summed only over rows that carry one, and `unpricedGenerations`
- * reports how many did not. A tariff configured halfway through a month, or not
- * at all, otherwise reads as "these generations were free".
  */
 export async function getAdminAiOverview(
   db: DB,
@@ -353,7 +337,6 @@ export async function getAdminAiOverview(
       inputTokens: schema.aiGeneration.inputTokens,
       cachedInputTokens: schema.aiGeneration.cachedInputTokens,
       outputTokens: schema.aiGeneration.outputTokens,
-      costMicroUsd: schema.aiGeneration.costMicroUsd,
     })
     .from(schema.aiGeneration)
     .where(gte(schema.aiGeneration.createdAt, since));
@@ -367,8 +350,6 @@ export async function getAdminAiOverview(
     inputTokens: 0,
     cachedInputTokens: 0,
     outputTokens: 0,
-    costMicroUsd: null,
-    unpricedGenerations: 0,
   });
 
   const byClinic = new Map<string, Acc>();
@@ -382,13 +363,6 @@ export async function getAdminAiOverview(
     acc.inputTokens += row.inputTokens ?? 0;
     acc.cachedInputTokens += row.cachedInputTokens ?? 0;
     acc.outputTokens += row.outputTokens ?? 0;
-    if (row.costMicroUsd === null) {
-      // Only settled rows are counted as unpriced: a `pending` row has not been
-      // costed *yet*, which is not the same as having no tariff.
-      if (row.status !== "pending") acc.unpricedGenerations += 1;
-    } else {
-      acc.costMicroUsd = (acc.costMicroUsd ?? 0) + row.costMicroUsd;
-    }
     byClinic.set(row.clinicId, acc);
   }
 
@@ -415,7 +389,6 @@ export async function getAdminAiOverview(
 
   const sum = (pick: (t: AdminAiTenantRow) => number) =>
     tenants.reduce((s, t) => s + pick(t), 0);
-  const priced = tenants.filter((t) => t.costMicroUsd !== null);
 
   return {
     monthStart: since.toISOString(),
@@ -428,10 +401,6 @@ export async function getAdminAiOverview(
       inputTokens: sum((t) => t.inputTokens),
       cachedInputTokens: sum((t) => t.cachedInputTokens),
       outputTokens: sum((t) => t.outputTokens),
-      costMicroUsd: priced.length
-        ? priced.reduce((s, t) => s + (t.costMicroUsd ?? 0), 0)
-        : null,
-      unpricedGenerations: sum((t) => t.unpricedGenerations),
       clinicsAtLimit: tenants.filter(
         (t) => t.limit !== null && t.used >= t.limit,
       ).length,

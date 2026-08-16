@@ -1109,8 +1109,8 @@ async function seed() {
   }
 
   // Demo AI generations, so /admin/ai has something to show. Deliberately mixed:
-  // one cold call (no cache hit) then warm ones, a failure, and one row with no
-  // recorded cost — the "parcial" case the screen has to be honest about.
+  // one cold call (no cache hit), two warm ones, and a failure — the failure
+  // matters because it must NOT count against the clinic's monthly credits.
   const existingAiGenerations = await db
     .select({ id: schema.aiGeneration.id })
     .from(schema.aiGeneration)
@@ -1137,7 +1137,6 @@ async function seed() {
         inputTokens: 16_400,
         cachedInputTokens: 0,
         outputTokens: 2_900,
-        costMicroUsd: 869,
         durationMs: 11_200,
         repaired: false,
         catalogHash: "seed-demo-catalog",
@@ -1155,7 +1154,6 @@ async function seed() {
         inputTokens: 820,
         cachedInputTokens: 15_600,
         outputTokens: 3_400,
-        costMicroUsd: 537,
         durationMs: 8_100,
         repaired: true,
         catalogHash: "seed-demo-catalog",
@@ -1186,16 +1184,13 @@ async function seed() {
         inputTokens: 790,
         cachedInputTokens: 15_600,
         outputTokens: 3_050,
-        // No tariff was configured when this one ran → the screen must show the
-        // clinic's cost as "parcial" rather than quietly under-reporting it.
-        costMicroUsd: null,
         durationMs: 7_600,
         repaired: false,
         catalogHash: "seed-demo-catalog",
         createdAt: minutesAgo(60 * 2),
       },
     ]);
-    console.info("✓ seeded demo AI generations (cold, cached, failed, unpriced)");
+    console.info("✓ seeded demo AI generations (cold, cached, failed)");
   }
 
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec

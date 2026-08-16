@@ -2256,24 +2256,18 @@ export const aiGeneration = pgTable(
       .default("pending")
       .notNull(),
     // Which provider/model served this call. Recorded per row because the
-    // provider is swappable at runtime — a cost is only interpretable next to
-    // the model that produced it.
+    // provider is swappable at runtime — token counts are only interpretable
+    // next to the model that produced them.
     provider: text("provider").notNull(),
     model: text("model").notNull(),
     // Input tokens billed at full rate, and the portion served from the
-    // provider's prompt cache (billed at a fraction). Split so the cost below
-    // is honest about what caching actually saved.
+    // provider's prompt cache (billed at a fraction). Split because the ratio
+    // between them IS the measure of whether the shared catalog prefix is
+    // staying cached. Cost is deliberately not stored: it is these numbers
+    // times a price, and a price is the one part that can be looked up later.
     inputTokens: integer("input_tokens"),
     cachedInputTokens: integer("cached_input_tokens"),
     outputTokens: integer("output_tokens"),
-    /**
-     * What this generation cost, in **millionths of a USD**, computed and frozen
-     * at write time from the token counts and the configured tariff.
-     *
-     * Frozen rather than derived on read: a vendor changing its rates must not
-     * silently reprice history. `null` when no tariff is configured.
-     */
-    costMicroUsd: integer("cost_micro_usd"),
     durationMs: integer("duration_ms"),
     // Whether the model's first answer had to be repaired (hallucinated a
     // catalog index). Free for the coach, but worth measuring: a model that

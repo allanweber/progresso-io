@@ -1,7 +1,6 @@
 import type { AiGenerationKind } from "@/db/schema";
 import type { AiGenerateInput } from "@/lib/ai-programs";
 import {
-  costMicroUsdFor,
   getLlmProvider,
   type LlmProvider,
   type LlmUsage,
@@ -253,7 +252,6 @@ export async function generateWorkout(
   if (!asked.ok) {
     await ai.failGeneration(ctx, generationId, asked.errorCode, {
       usage: asked.usage,
-      costMicroUsd: costMicroUsdFor(asked.usage),
       durationMs,
     });
     return { ok: false, failed: true, message: asked.message };
@@ -264,7 +262,6 @@ export async function generateWorkout(
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
       usage: asked.usage,
-      costMicroUsd: costMicroUsdFor(asked.usage),
       durationMs,
     });
     return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
@@ -296,7 +293,6 @@ export async function generateWorkout(
   if (!saved.ok) {
     await ai.failGeneration(ctx, generationId, saved.reason, {
       usage: asked.usage,
-      costMicroUsd: costMicroUsdFor(asked.usage),
       durationMs,
     });
     return { ok: false, failed: true, message: saved.message };
@@ -304,7 +300,6 @@ export async function generateWorkout(
 
   await ai.finishGeneration(ctx, generationId, {
     usage: asked.usage,
-    costMicroUsd: costMicroUsdFor(asked.usage),
     durationMs,
     repaired: asked.repaired,
   });
@@ -355,7 +350,6 @@ export async function generateDiet(
   if (!asked.ok) {
     await ai.failGeneration(ctx, generationId, asked.errorCode, {
       usage: asked.usage,
-      costMicroUsd: costMicroUsdFor(asked.usage),
       durationMs,
     });
     return { ok: false, failed: true, message: asked.message };
@@ -365,7 +359,6 @@ export async function generateDiet(
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
       usage: asked.usage,
-      costMicroUsd: costMicroUsdFor(asked.usage),
       durationMs,
     });
     return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
@@ -389,7 +382,6 @@ export async function generateDiet(
   if (!saved.ok) {
     await ai.failGeneration(ctx, generationId, saved.reason, {
       usage: asked.usage,
-      costMicroUsd: costMicroUsdFor(asked.usage),
       durationMs,
     });
     return { ok: false, failed: true, message: saved.message };
@@ -397,7 +389,6 @@ export async function generateDiet(
 
   await ai.finishGeneration(ctx, generationId, {
     usage: asked.usage,
-    costMicroUsd: costMicroUsdFor(asked.usage),
     durationMs,
     repaired: asked.repaired,
   });

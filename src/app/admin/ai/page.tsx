@@ -23,7 +23,6 @@ import { apiFetch } from "@/lib/api-client";
 import {
   cacheHitRatio,
   formatCacheHitRatio,
-  formatMicroUsd,
   formatTokens,
   type AdminAiOverviewDto,
   type AdminAiTenantDto,
@@ -34,16 +33,15 @@ import type { Plan } from "@/db/schema";
 /**
  * Platform-admin AI overview.
  *
- * The point of this screen is to replace two assumptions with measurements.
- * `docs/monetization.md` claims AI lands around 1% of Clínica revenue, and
+ * The point of this screen is to replace assumptions with measurements.
+ * `docs/monetization.md` guesses a token count per generation, and
  * `docs/ai-generator.md` claims the base-only catalog keeps the prompt prefix
- * in the provider's cache. Both were projections built on unverified prices and
- * a guessed token count; the columns below are how they get checked.
+ * in the provider's cache. The columns below are how both get checked.
  *
- * Read that way, the two most important numbers are **taxa de cache** (the
- * design working or not) and **gerações vs. limite** per clinic (whether
- * 1/10/25 is generous or stingy) — not the cost total, which is small either
- * way.
+ * There is deliberately no cost column: cost is tokens × a vendor price, and no
+ * price is stored anywhere in this app. Multiply **tokens no mês** by whatever
+ * the provider charges today — that stays correct across a price change, which
+ * a frozen per-row number would not.
  */
 
 const columnHelper = createColumnHelper<AdminAiTenantDto>();
@@ -164,26 +162,6 @@ export default function AdminAiPage() {
           );
         },
       }),
-      columnHelper.display({
-        id: "cost",
-        header: "Custo",
-        cell: (ctx) => {
-          const r = ctx.row.original;
-          return (
-            <span className="tabular-nums">
-              {formatMicroUsd(r.costMicroUsd)}
-              {r.unpricedGenerations > 0 && (
-                <span
-                  className="ml-1.5 text-xs text-muted-foreground"
-                  title={`${r.unpricedGenerations} geração(ões) sem tarifa registrada`}
-                >
-                  parcial
-                </span>
-              )}
-            </span>
-          );
-        },
-      }),
     ],
     [],
   );
@@ -211,7 +189,7 @@ export default function AdminAiPage() {
           IA
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Gerações, cache e custo por clínica{monthLabel && ` — ${monthLabel}`}.
+          Gerações, cache e tokens por clínica{monthLabel && ` — ${monthLabel}`}.
         </p>
       </div>
 
@@ -243,13 +221,17 @@ export default function AdminAiPage() {
           hint="tokens de entrada servidos do cache"
         />
         <Kpi
-          label="Custo no mês"
-          value={isLoading ? "…" : formatMicroUsd(totals?.costMicroUsd ?? null)}
-          hint={
-            totals && totals.unpricedGenerations > 0
-              ? `parcial — ${totals.unpricedGenerations} sem tarifa`
-              : undefined
+          label="Tokens no mês"
+          value={
+            isLoading
+              ? "…"
+              : formatTokens(
+                  (totals?.inputTokens ?? 0) +
+                    (totals?.cachedInputTokens ?? 0) +
+                    (totals?.outputTokens ?? 0),
+                )
           }
+          hint="entrada + saída, todas as clínicas"
         />
         <Kpi
           label="No limite"

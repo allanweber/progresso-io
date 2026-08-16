@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
+import { cacheHitRatio } from "@/lib/ai-programs";
 import { ai, plans } from "@/server/dal";
 import { monthStart } from "@/server/dal/ai";
 import { buildExerciseCatalog, buildFoodCatalog } from "@/server/ai/catalog";
@@ -162,7 +163,7 @@ describe("generation lifecycle", () => {
     expect(await ai.countGenerationsThisMonth(ctxB)).toBe(before);
   });
 
-  it("finish keeps the credit and records the frozen cost", async () => {
+  it("finish keeps the credit and records the token split", async () => {
     const id = await ai.startGeneration(ctxB, {
       studentId: studentB,
       kind: "workout",
@@ -173,7 +174,6 @@ describe("generation lifecycle", () => {
     });
     await ai.finishGeneration(ctxB, id, {
       usage: { inputTokens: 1000, cachedInputTokens: 9000, outputTokens: 500 },
-      costMicroUsd: 447,
       durationMs: 1234,
       repaired: true,
     });
@@ -183,7 +183,7 @@ describe("generation lifecycle", () => {
       .from(schema.aiGeneration)
       .where(eq(schema.aiGeneration.id, id));
     expect(row.status).toBe("succeeded");
-    expect(row.costMicroUsd).toBe(447);
+    expect(row.inputTokens).toBe(1000);
     expect(row.cachedInputTokens).toBe(9000);
     expect(row.repaired).toBe(true);
   });
@@ -406,7 +406,6 @@ describe("getAdminAiOverview", () => {
       inputTokens?: number;
       cachedInputTokens?: number;
       outputTokens?: number;
-      costMicroUsd?: number | null;
       repaired?: boolean;
     },
   ) {
@@ -420,7 +419,6 @@ describe("getAdminAiOverview", () => {
       inputTokens: usage.inputTokens ?? null,
       cachedInputTokens: usage.cachedInputTokens ?? null,
       outputTokens: usage.outputTokens ?? null,
-      costMicroUsd: usage.costMicroUsd ?? null,
       repaired: usage.repaired ?? false,
     });
   }
@@ -431,7 +429,7 @@ describe("getAdminAiOverview", () => {
     const overview = await ai.getAdminAiOverview(h);
     const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId);
     expect(row).toBeDefined();
-    expect(row).toMatchObject({ used: 0, succeeded: 0, costMicroUsd: null });
+    expect(row).toMatchObject({ used: 0, succeeded: 0, outputTokens: 0 });
     // Free's coded default, not "unlimited" — an absent number here would read
     // as an uncapped clinic on the screen.
     expect(row!.limit).toBe(1);
@@ -445,7 +443,6 @@ describe("getAdminAiOverview", () => {
       inputTokens: 1_000,
       cachedInputTokens: 9_000,
       outputTokens: 3_000,
-      costMicroUsd: 447,
     });
 
     const overview = await ai.getAdminAiOverview(h);
@@ -457,9 +454,8 @@ describe("getAdminAiOverview", () => {
       inputTokens: 1_000,
       cachedInputTokens: 9_000,
       outputTokens: 3_000,
-      costMicroUsd: 447,
     });
-    expect(rowB).toMatchObject({ used: 0, costMicroUsd: null });
+    expect(rowB).toMatchObject({ used: 0, inputTokens: 0, outputTokens: 0 });
   });
 
   it("counts pending as billed and failed as free — matching the gate", async () => {
@@ -478,18 +474,34 @@ describe("getAdminAiOverview", () => {
     expect(row.used).toBe(await ai.countGenerationsThisMonth(ctx));
   });
 
-  it("reports how much of a cost total is missing rather than under-stating it", async () => {
-    const { ctx, studentId } = await makeClinic("partial", "clinica");
-    await addPriced(ctx, studentId, { status: "succeeded", costMicroUsd: 500 });
-    await addPriced(ctx, studentId, { status: "succeeded", costMicroUsd: null });
-    // A pending row has not been costed *yet*; that is not the same as having
-    // run with no tariff, so it must not inflate the "missing" count.
-    await addPriced(ctx, studentId, { status: "pending", costMicroUsd: null });
+  it("sums the token split across a clinic's rows", async () => {
+    const { ctx, studentId } = await makeClinic("tokens", "clinica");
+    await addPriced(ctx, studentId, {
+      status: "succeeded",
+      inputTokens: 16_000,
+      cachedInputTokens: 0,
+      outputTokens: 2_000,
+    });
+    await addPriced(ctx, studentId, {
+      status: "succeeded",
+      inputTokens: 800,
+      cachedInputTokens: 15_200,
+      outputTokens: 3_000,
+    });
+    // A failed row records no usage at all — its nulls must read as 0, not
+    // poison the sum into NaN.
+    await addPriced(ctx, studentId, { status: "failed" });
 
     const overview = await ai.getAdminAiOverview(h);
     const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
-    expect(row.costMicroUsd).toBe(500);
-    expect(row.unpricedGenerations).toBe(1);
+    expect(row.inputTokens).toBe(16_800);
+    expect(row.cachedInputTokens).toBe(15_200);
+    expect(row.outputTokens).toBe(5_000);
+    // 15.200 of 32.000 input tokens served warm — the number the whole
+    // base-only catalog design exists to move.
+    expect(cacheHitRatio(row.inputTokens, row.cachedInputTokens)).toBeCloseTo(
+      0.475,
+    );
   });
 
   it("ignores rows from before the current month", async () => {
@@ -538,8 +550,8 @@ describe("getAdminAiOverview", () => {
       overview.tenants.reduce((s, t) => s + pick(t), 0);
     expect(overview.totals.generations).toBe(sum((t) => t.used));
     expect(overview.totals.outputTokens).toBe(sum((t) => t.outputTokens));
-    expect(overview.totals.unpricedGenerations).toBe(
-      sum((t) => t.unpricedGenerations),
+    expect(overview.totals.cachedInputTokens).toBe(
+      sum((t) => t.cachedInputTokens),
     );
   });
 });

@@ -5,10 +5,8 @@ import {
   cacheHitRatio,
   formatAiUsage,
   formatCacheHitRatio,
-  formatMicroUsd,
 } from "@/lib/ai-programs";
 import { resolveAiGenerations } from "@/lib/plans";
-import { costMicroUsdFor } from "@/lib/llm-provider";
 import { resolveIndices, type CatalogBlock } from "@/server/ai/catalog";
 import {
   dietIndices,
@@ -194,63 +192,6 @@ describe("aiGenerateSchema", () => {
   });
 });
 
-describe("costMicroUsdFor", () => {
-  it("is null when no tariff is configured", () => {
-    delete process.env.LLM_PRICE_INPUT_PER_MTOK;
-    delete process.env.LLM_PRICE_OUTPUT_PER_MTOK;
-    expect(
-      costMicroUsdFor({
-        inputTokens: 1000,
-        cachedInputTokens: 0,
-        outputTokens: 500,
-      }),
-    ).toBeNull();
-  });
-
-  it("prices input and output at their own rates", () => {
-    process.env.LLM_PRICE_INPUT_PER_MTOK = "0.03";
-    process.env.LLM_PRICE_OUTPUT_PER_MTOK = "0.13";
-    delete process.env.LLM_PRICE_CACHED_INPUT_PER_MTOK;
-    // 10k in @ $0.03/M = 300 µUSD; 3k out @ $0.13/M = 390 µUSD.
-    expect(
-      costMicroUsdFor({
-        inputTokens: 10_000,
-        cachedInputTokens: 0,
-        outputTokens: 3_000,
-      }),
-    ).toBe(690);
-  });
-
-  it("bills cache hits at the cached rate when one is set", () => {
-    process.env.LLM_PRICE_INPUT_PER_MTOK = "0.03";
-    process.env.LLM_PRICE_OUTPUT_PER_MTOK = "0.13";
-    process.env.LLM_PRICE_CACHED_INPUT_PER_MTOK = "0.003";
-    // 9k cached @ $0.003/M = 27; 1k fresh @ $0.03/M = 30; 3k out = 390.
-    expect(
-      costMicroUsdFor({
-        inputTokens: 1_000,
-        cachedInputTokens: 9_000,
-        outputTokens: 3_000,
-      }),
-    ).toBe(447);
-  });
-
-  it("falls back to the full input rate when no cached rate is set", () => {
-    process.env.LLM_PRICE_INPUT_PER_MTOK = "0.03";
-    process.env.LLM_PRICE_OUTPUT_PER_MTOK = "0.13";
-    delete process.env.LLM_PRICE_CACHED_INPUT_PER_MTOK;
-    // Over-stating is the safe direction for an unknown discount:
-    // 1k fresh + 9k cached, both at $0.03/M = 10k × 30 µUSD/1k = 300.
-    expect(
-      costMicroUsdFor({
-        inputTokens: 1_000,
-        cachedInputTokens: 9_000,
-        outputTokens: 0,
-      }),
-    ).toBe(300);
-  });
-});
-
 describe("formatAiUsage", () => {
   it("is singular at one", () => {
     expect(formatAiUsage(1, 10)).toBe("1 de 10 geração usada este mês");
@@ -276,22 +217,6 @@ describe("cacheHitRatio", () => {
   it("is 0 when every input token was billed fresh", () => {
     expect(cacheHitRatio(16_000, 0)).toBe(0);
     expect(formatCacheHitRatio(0)).toBe("0%");
-  });
-});
-
-describe("formatMicroUsd", () => {
-  it("keeps a single cheap generation visible instead of rounding to zero", () => {
-    // 690 µUSD is a real generation; two decimals would show "US$ 0,00".
-    expect(formatMicroUsd(690)).toBe("US$ 0,000690");
-  });
-
-  it("drops precision as the amount grows", () => {
-    expect(formatMicroUsd(50_000)).toBe("US$ 0,0500");
-    expect(formatMicroUsd(2_500_000)).toBe("US$ 2,50");
-  });
-
-  it("shows an em dash when no cost was recorded", () => {
-    expect(formatMicroUsd(null)).toBe("—");
   });
 });
 

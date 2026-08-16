@@ -5,19 +5,19 @@ import { expect, test } from "@playwright/test";
  * admin's session + the real DB.
  *
  * The seed writes four demo generations for the demo coach clinic — one cold
- * (all input billed fresh), two warm (prefix served from cache), one failed, and
- * one with no recorded cost. That mix is deliberate: it is exactly the set of
- * cases the screen has to render honestly, and the assertions below check each.
+ * (all input billed fresh), two warm (prefix served from cache) and one failed.
+ * That mix is deliberate: it is exactly the set of cases the screen has to
+ * render honestly, and the assertions below check each.
  *
  * The e2e environment has no LLM configured, so the "not configured" banner is
  * asserted too — an all-zero table would otherwise be ambiguous.
  *
- * The demo clinic's row is found by its "parcial" marker, **not** by name: the
+ * The demo clinic's row is found by its "reparo" marker, **not** by name: the
  * `coach` project runs concurrently and `settings.spec.ts` renames that clinic
- * mid-run. It is the only clinic the seed gives an unpriced generation to.
+ * mid-run. It is the only clinic the seed gives a repaired generation to.
  */
 test.describe("admin ai overview", () => {
-  test("renders KPIs, per-tenant usage and the partial-cost flag (desktop + mobile)", async ({
+  test("renders KPIs and per-tenant usage (desktop + mobile)", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -36,19 +36,17 @@ test.describe("admin ai overview", () => {
     // KPI header.
     await expect(page.getByText("Gerações no mês")).toBeVisible();
     await expect(page.getByText("Taxa de cache")).toBeVisible();
-    await expect(page.getByText("Custo no mês")).toBeVisible();
+    await expect(page.getByText("Tokens no mês")).toBeVisible();
     await expect(page.getByText("No limite")).toBeVisible();
 
     await expect(page.getByText("Uso de IA por tenant")).toBeVisible();
-    const row = page.getByRole("row").filter({ hasText: "parcial" });
+    const row = page.getByRole("row").filter({ hasText: "reparo" });
     await expect(row).toHaveCount(1);
 
     // 3 of the seed's 4 rows are billed — the failed one is free, which is the
     // whole point of settling failures as `failed` rather than `succeeded`.
     await expect(row).toContainText("3 / 25");
-    // One of the successes only landed after the repair retry.
-    await expect(row).toContainText("reparo");
-    // 1 failure, shown next to the successes.
+    // 1 failure, shown next to the 2 successes.
     await expect(row).toContainText("2");
 
     // Cache hit rate: 31.200 of 49.210 input tokens came back cached → 63%.
