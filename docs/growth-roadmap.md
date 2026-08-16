@@ -89,11 +89,11 @@ itself (`clinic.plan`, read live by every `plan_limit` gate), the `invoice` /
 `invoice_line_item` schema with derived totals, the `clinic_plan_change` audit
 trail, and the coach's read-only **Faturas** page. See `docs/billing.md`.
 
-#### Phase 1 — cobrança manual · buildable now, no gateway needed
+#### Phase 1 — cobrança manual · ✅ Implemented (migration `0030`)
 
-- **Trial de 14 dias.** Advertised at `/register` today — *"14 dias grátis, sem
-  cartão"* — and **implemented nowhere** (no `trial_ends_at`, no trial logic).
-  We are currently selling something that does not exist. Model it as
+- **Trial de 14 dias.** Advertised at `/register` (*"14 dias grátis, sem
+  cartão"*) and, until this shipped, implemented nowhere — we were selling
+  something that did not exist. Modelled as
   **`clinic.trial_ends_at` with the effective plan resolved on read**
   (`trial ativo → limites Solo`), **never** by flipping `clinic.plan`: one source
   of truth, the `clinic_plan_change` audit stays meaningful, and correctness
@@ -115,6 +115,10 @@ trail, and the coach's read-only **Faturas** page. See `docs/billing.md`.
   worst failure available. **Trial expiry stays automatic** — a pure date, no
   payment ambiguity. Non-payment becomes automatic only in Phase 2, when the
   webhook makes payment state authoritative.
+- **Sign-up no longer grants a paid plan.** The wizard pick is stored as
+  `clinic.intended_plan` (intent only) and surfaced on `/admin/clinics/[id]` so
+  the fatura bills the right plan — before this, picking "Solo" at sign-up handed
+  out the paid plan for free.
 - *Not here:* fatura vencimento reminders by e-mail/WhatsApp — **#2 already owns
   them**; building them twice splits the automation.
 

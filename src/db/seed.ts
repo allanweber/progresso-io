@@ -693,6 +693,10 @@ async function seed() {
     .update(schema.clinic)
     .set({
       plan: "clinica",
+      // A paying clinic, so no trial: sign-up granted one, but the plan below
+      // supersedes it (a trial only applies while the plan is still `free`).
+      // Cleared anyway so the demo data says exactly what it means.
+      trialEndsAt: null,
       portalSubdomain: "studio-forja",
       headline: "Treinamento e nutrição personalizados",
       description:

@@ -73,6 +73,38 @@ export const PLAN_DEFAULT_CALENDAR: Record<Plan, boolean> = {
   enterprise: true,
 };
 
+/**
+ * Trial: length, and the plan whose limits a trialing clinic gets.
+ *
+ * Advertised at `/register` as "14 dias grátis, sem cartão", so these two must
+ * stay in step with that copy. The trial grants **Solo** (not Clínica): it is
+ * the conversion target, its feature set is what a solo coach evaluates, and
+ * trialing the top tier would make the drop at expiry feel worse.
+ */
+export const TRIAL_DAYS = 14;
+export const TRIAL_PLAN = "solo" satisfies Plan;
+
+/** The end of a trial starting now — used when a clinic is created. */
+export function trialEndsAtFrom(start: Date): Date {
+  const end = new Date(start);
+  end.setDate(end.getDate() + TRIAL_DAYS);
+  return end;
+}
+
+/**
+ * Whole days left in the trial, rounded **up** so a trial ending in 6 hours
+ * still reads "1 dia" rather than "0". `0` means it has run out.
+ */
+export function trialDaysLeft(trialEndsAt: Date, now: Date): number {
+  const ms = trialEndsAt.getTime() - now.getTime();
+  return ms <= 0 ? 0 : Math.ceil(ms / 86_400_000);
+}
+
+/** "1 dia restante" / "5 dias restantes" — PT-BR, singular-aware. */
+export function formatTrialDaysLeft(days: number): string {
+  return days === 1 ? "1 dia restante" : `${days} dias restantes`;
+}
+
 /** A used/limit pair, `limit: null` meaning unlimited. */
 export type UsageCounter = { used: number; limit: number | null };
 
@@ -83,11 +115,42 @@ export type UsageCounter = { used: number; limit: number | null };
 export type PlanUsageDto = {
   plan: Plan;
   planName: string;
+  /** The plan the limits came from — `TRIAL_PLAN` while a trial is running. */
+  effectivePlan: Plan;
   students: UsageCounter;
   coaches: UsageCounter;
   whatsapp: boolean;
   /** Whether the clinic may archive students (else hard-delete only). */
   archive: boolean;
+  trial: TrialDto;
+  /**
+   * The invoice the coach still owes, if any — the oldest unpaid one, so the
+   * banner nags about the longest-overdue first. `null` when nothing is due.
+   * Collection is manual (roadmap item 0 Phase 1): the platform admin issues
+   * and settles it, this is read-only for the coach.
+   */
+  openInvoice: OpenInvoiceDto | null;
+};
+
+/** Trial state for the billing banner. */
+export type TrialDto = {
+  /** A trial is running right now. */
+  active: boolean;
+  /** ISO timestamp, whether or not it has already passed. `null` = no trial. */
+  endsAt: string | null;
+  /** Whole days left, rounded up. `0` once it has run out. */
+  daysLeft: number;
+  /** The trial ran and is over, and the clinic never upgraded. */
+  expired: boolean;
+};
+
+/** The minimum an unpaid invoice needs for the banner. */
+export type OpenInvoiceDto = {
+  id: string;
+  number: number;
+  dueDate: string;
+  totalCents: number;
+  overdue: boolean;
 };
 
 /** "34 / 50", or just "34" when the cap is unlimited. */

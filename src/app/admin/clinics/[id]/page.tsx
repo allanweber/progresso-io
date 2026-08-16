@@ -181,6 +181,33 @@ export default function AdminClinicDetailPage() {
           <Badge variant="base">{PLAN_META[clinic.plan as Plan].name}</Badge>
         </div>
 
+        {/* Subscription context for issuing the fatura by hand: what the coach
+            asked for at sign-up, and whether a trial is still carrying them. */}
+        {(clinic.intendedPlan || clinic.trialEndsAt) && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[10px] bg-secondary px-3 py-2 text-[13px] text-muted-foreground">
+            {clinic.intendedPlan && (
+              <span>
+                Plano escolhido no cadastro:{" "}
+                <span className="font-semibold text-foreground">
+                  {PLAN_META[clinic.intendedPlan as Plan].name}
+                </span>{" "}
+                <span className="text-muted-foreground">(intenção — nunca concedido)</span>
+              </span>
+            )}
+            {clinic.trialEndsAt && (
+              <span>
+                Teste grátis:{" "}
+                <span className="font-semibold text-foreground">
+                  {clinic.plan === "free" &&
+                  new Date(clinic.trialEndsAt) > new Date()
+                    ? `ativo até ${formatDateBR(clinic.trialEndsAt.slice(0, 10))}`
+                    : `encerrado em ${formatDateBR(clinic.trialEndsAt.slice(0, 10))}`}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
+
         <PlanForm clinicId={id} currentPlan={clinic.plan as Plan} onDone={invalidate} />
 
         {planChanges.length > 0 && (

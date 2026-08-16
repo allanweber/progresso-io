@@ -36,12 +36,51 @@ Automating this is **item 0** in `docs/growth-roadmap.md` ("Assinatura & paywall
   dunning ladder. Blocked because Asaas **subcontas are CNPJ-only** and the
   margin model in `docs/monetization.md` §4(c) assumes Simples Nacional.
 
-> **⚠️ Known gap — the trial is advertised but not implemented.**
-> `src/app/register/page.tsx` sells *"14 dias grátis, sem cartão"*, and there is
-> no `trial_ends_at` column and no trial logic anywhere. Every new clinic starts
-> on **Free (3 alunos)** with no trial of paid features. Until item 0 Phase 1
-> lands, granting a trial means an **admin flipping the plan by hand** — and
-> remembering to flip it back.
+## The 14-day trial (item 0 Phase 1 — shipped)
+
+Every clinic created at sign-up starts on **`free` with `clinic.trial_ends_at`
+set 14 days out**, matching what `/register` advertises ("14 dias grátis, sem
+cartão"). While that date is in the future **and the plan is still `free`**, the
+clinic resolves to **Solo** limits — 50 alunos, WhatsApp, Agenda, microsite.
+
+The trial is **not a plan value**, deliberately:
+
+- `clinic.plan` is never rewritten, so **`clinic_plan_change` keeps auditing only
+  real plan changes** and the stored plan always reflects what is actually paid for.
+- Expiry is a **date comparison inside `getPlanLimits`** — correct even if no job
+  ever runs. A cron is only ever needed for a "faltam N dias" nudge, never for
+  correctness.
+- Expiry is **non-destructive**. The cap drops back to 3, but the student cap is
+  only checked when *creating* a student, so alunos added during the trial stay
+  active and their portals keep working — the clinic simply can't add more.
+
+A per-clinic override still beats the trial: an admin who capped a clinic meant it.
+
+**Sign-up never grants a paid plan.** The plan picked in the wizard is stored as
+`clinic.intended_plan` — *intent only* — and shown on the clinic's admin page so
+the manual fatura bills the right thing. (Before this, picking "Solo" at sign-up
+handed out the paid plan for free.)
+
+## Managing a subscription (admin)
+
+Everything is on the clinic's detail page, `/admin/clinics/[id]`:
+
+| To… | Do |
+| --- | --- |
+| See what they asked for | The **Plano** card shows *"Plano escolhido no cadastro"* (intent) and the trial's state (active until / ended on) |
+| Give access | Set the plan — it takes effect instantly |
+| Bill | Create an invoice, then mark it paid when the money lands |
+| Bend the rules for one clinic | The per-clinic limit overrides |
+
+The coach sees a banner in-app while a trial is running or a fatura is open, with
+an **"Assinar"** button pointing at `/contact` — there is no checkout until item 0
+Phase 2, so the CTA reaches a human.
+
+> **Downgrade for non-payment is deliberately manual.** Paid/unpaid is
+> human-entered here and therefore lossy (a Pix that landed but wasn't recorded),
+> and auto-downgrading a paying customer over a bookkeeping lag is the worst
+> failure available. It becomes automatic in Phase 2, when the gateway webhook
+> makes payment state authoritative.
 
 ## Data (migration `0023`)
 

@@ -154,7 +154,7 @@ describe("clinic tenant bootstrap", () => {
     expect(clinic.plan).toBe("free");
   });
 
-  it("starts the clinic on the plan chosen at sign-up (withSignUpPlan)", async () => {
+  it("records the sign-up plan as intent WITHOUT granting it", async () => {
     const email = "solo-signup@example.com";
     await withSignUpPlan("solo", () =>
       auth.api.signUpEmail({ body: { name: "Solo Coach", email, password } }),
@@ -168,7 +168,35 @@ describe("clinic tenant bootstrap", () => {
       .select()
       .from(schema.clinic)
       .where(eq(schema.clinic.id, coach.clinicId!));
-    expect(clinic.plan).toBe("solo");
+
+    // Picking "Solo" in the wizard must never hand out a paid plan — it is only
+    // remembered so the manual fatura bills the right thing.
+    expect(clinic.plan).toBe("free");
+    expect(clinic.intendedPlan).toBe("solo");
+  });
+
+  it("grants the 14-day trial to every new clinic", async () => {
+    const email = "trial-signup@example.com";
+    const before = Date.now();
+    await auth.api.signUpEmail({
+      body: { name: "Trial Coach", email, password },
+    });
+
+    const [coach] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, email));
+    const [clinic] = await db
+      .select()
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, coach.clinicId!));
+
+    expect(clinic.trialEndsAt).not.toBeNull();
+    // Measured from just BEFORE sign-up, so the gap is 14 days plus however
+    // long sign-up took — a tolerance either side, not an exact equality.
+    const days = (clinic.trialEndsAt!.getTime() - before) / 86_400_000;
+    expect(days).toBeGreaterThan(13.9);
+    expect(days).toBeLessThan(14.1);
   });
 
   it("gives the ADMIN_EMAIL sign-up the admin role and no clinic", async () => {
