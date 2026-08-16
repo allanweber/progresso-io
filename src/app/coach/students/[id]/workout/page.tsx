@@ -226,6 +226,9 @@ export default function StudentWorkoutPage() {
         </div>
       ) : current ? (
         <CurrentView
+          studentId={id}
+          goal={student.data?.goal}
+          onGenerated={invalidate}
           current={current}
           draft={draft}
           history={history}
@@ -374,6 +377,9 @@ export default function StudentWorkoutPage() {
 }
 
 function CurrentView({
+  studentId,
+  goal,
+  onGenerated,
   current,
   draft,
   history,
@@ -388,6 +394,9 @@ function CurrentView({
   onViewVersion,
   onExerciseClick,
 }: {
+  studentId: string;
+  goal: string | null | undefined;
+  onGenerated: () => void;
   current: NonNullable<StudentWorkoutStateDto["current"]>;
   draft: StudentWorkoutStateDto["draft"];
   history: StudentWorkoutStateDto["history"];
@@ -476,6 +485,16 @@ function CurrentView({
           <FileText className="size-4" />
           Da minha lista
         </Button>
+        {/* Not disabled by `hasDraft` like its neighbours: those two would start
+            a *second* treino, which is what the draft blocks. The generator
+            writes into the draft, and asks before replacing it. */}
+        <AiGenerateButton
+          studentId={studentId}
+          kind="workout"
+          hasDraft={hasDraft}
+          defaultObjective={goal}
+          onGenerated={onGenerated}
+        />
         <span className="text-xs text-muted-foreground">
           {hasDraft
             ? "Publique ou descarte o rascunho atual antes de começar outro treino."

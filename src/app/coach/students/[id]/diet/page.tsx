@@ -220,6 +220,9 @@ export default function StudentDietPage() {
       ) : current ? (
         /* --- An active published diet → read view + history -------------- */
         <CurrentView
+          studentId={id}
+          goal={student.data?.goal}
+          onGenerated={invalidate}
           current={current}
           draft={draft}
           history={history}
@@ -384,6 +387,9 @@ export default function StudentDietPage() {
 /* -------------------------------------------------------------------------- */
 
 function CurrentView({
+  studentId,
+  goal,
+  onGenerated,
   current,
   draft,
   history,
@@ -397,6 +403,9 @@ function CurrentView({
   onSaveAsTemplate,
   onViewVersion,
 }: {
+  studentId: string;
+  goal: string | null | undefined;
+  onGenerated: () => void;
   current: NonNullable<StudentDietStateDto["current"]>;
   draft: StudentDietStateDto["draft"];
   history: StudentDietStateDto["history"];
@@ -499,6 +508,16 @@ function CurrentView({
           <FileText className="size-4" />
           Da minha lista
         </Button>
+        {/* Not disabled by `hasDraft` like its neighbours: those two would start
+            a *second* diet, which is what the draft blocks. The generator writes
+            into the draft, and asks before replacing it. */}
+        <AiGenerateButton
+          studentId={studentId}
+          kind="diet"
+          hasDraft={hasDraft}
+          defaultObjective={goal}
+          onGenerated={onGenerated}
+        />
         <span className="text-xs text-muted-foreground">
           {hasDraft
             ? "Publique ou descarte o rascunho atual antes de começar outra dieta."

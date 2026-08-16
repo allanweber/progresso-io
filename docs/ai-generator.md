@@ -21,8 +21,9 @@ draft** the coach reviews and edits before anything reaches the aluno.
 | Quota + audit lifecycle | `src/server/dal/ai.ts` |
 | Routes | `POST /api/students/[id]/{workout,diet}/generate` |
 | UI | `src/components/ai/ai-generate-button.tsx` |
+| Tests | `tests/ai-generator{,.integration}.test.ts`, `e2e/ai-generator.spec.ts` |
 
-Two traps worth knowing about, both found by tests during the build:
+Three traps worth knowing about, all found by tests during the build:
 
 - **`plan_limit.ai_generations` must be spelled out wherever the table is
   seeded** — `src/db/seed.ts` and two integration fixtures all wipe and re-insert
@@ -31,6 +32,12 @@ Two traps worth knowing about, both found by tests during the build:
 - **An unset tariff must parse as `null`, not `0`.** `Number("")` is `0`, so the
   naive parse recorded every generation at cost zero — indistinguishable from
   "AI is free" in the ledger.
+- **The button has to be on the "already has a program" screen too.** Both the
+  Treino and Dieta tabs render four different states, and the first pass wired
+  the generator into only two of them (no program yet, unpublished draft). The
+  state it missed — an aluno with a *published* program — is the steady state
+  for every established aluno, and "regenerate for the next cycle" is the whole
+  point. `e2e/ai-generator.spec.ts` caught it.
 
 ---
 

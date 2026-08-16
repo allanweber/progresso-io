@@ -4,12 +4,13 @@
 // system user, since the server refuses to run as root), migrates it, and seeds
 // a verified coach. In CI: set DATABASE_URL to a Postgres service and this skips
 // the local cluster and uses it directly. Either way it then runs Playwright,
-// whose webServer (`next dev`) inherits the env below — notably DATABASE_URL and
-// ENABLE_TEST_OUTBOX, which lets the invite→accept test read the emailed link.
+// whose webServer (the standalone production server) inherits the env below —
+// notably DATABASE_URL and ENABLE_TEST_OUTBOX, which lets the invite→accept test
+// read the emailed link.
 //
 // Usage: node scripts/e2e.mjs [extra playwright args]
 import { spawnSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { cpSync, existsSync, rmSync } from "node:fs";
 
 const PG_BIN = "/usr/lib/postgresql/16/bin";
 const PG_ROOT = "/tmp/progresso-e2e-pg";
@@ -101,14 +102,22 @@ try {
   console.info("→ Seeding a verified coach…");
   run("npx", ["tsx", "src/db/seed.ts"], { env });
 
-  // Playwright serves a PRODUCTION build (`next start`), not `next dev` — a dev
-  // server compiles each route on its first request, which cost the suite more
-  // wall clock than the whole build does. `.next` is incremental, so a rerun
-  // with no source changes is cheap. Skip with E2E_SKIP_BUILD=1 when iterating
-  // on specs alone.
+  // Playwright serves a PRODUCTION build, not `next dev` — a dev server
+  // compiles each route on its first request, which cost the suite more wall
+  // clock than the whole build does. `.next` is incremental, so a rerun with no
+  // source changes is cheap. Skip with E2E_SKIP_BUILD=1 when iterating on specs
+  // alone.
+  //
+  // Specifically the STANDALONE server (next.config.ts sets `output:
+  // "standalone"`), which is the artifact that actually gets deployed —
+  // `next start` refuses to serve a standalone build anyway. Next only traces
+  // server files into it, so the static assets and `public/` have to be copied
+  // in by hand; that's documented in the self-hosting guide, not automatic.
   if (process.env.E2E_SKIP_BUILD !== "1") {
     console.info("→ Building the app…");
     run("npm", ["run", "build"], { env });
+    cpSync("public", ".next/standalone/public", { recursive: true });
+    cpSync(".next/static", ".next/standalone/.next/static", { recursive: true });
   }
 
   console.info("→ Running Playwright…");

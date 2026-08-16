@@ -27,12 +27,12 @@ const ADMIN_STORAGE = "e2e/.auth/admin.json";
  * (`npm run test:e2e`), which boots + migrates + seeds the DB, builds the app
  * and serves it with `ENABLE_TEST_OUTBOX=true` so the invite→accept loop is
  * drivable. Running `playwright test` directly (no DB) only fits the `public`
- * project, and still needs a `.next` build present.
+ * project, and still needs a standalone build present.
  */
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
-  // The suite runs against a PRODUCTION build (`next start`), not `next dev`.
+  // The suite runs against a PRODUCTION build, not `next dev`.
   // Turbopack's on-demand dev compile dominated the wall clock — every first
   // navigation to a route paid for compiling it, and specs raced that compile
   // hard enough to need route pre-warming and a 60s timeout. A prebuilt server
@@ -117,6 +117,16 @@ export default defineConfig({
       },
     },
     {
+      name: "ai",
+      testMatch: /ai-generator\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: COACH_STORAGE,
+      },
+    },
+    {
       name: "admin",
       testMatch: /admin-(maintenance|admins|billing|whatsapp)\.spec\.ts/,
       dependencies: ["setup"],
@@ -128,7 +138,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run start -- --port ${PORT}`,
+    // The standalone server built by `scripts/e2e.mjs` — the same artifact that
+    // gets deployed. It takes its port from the environment, not a flag.
+    command: "node .next/standalone/server.js",
+    env: { PORT: String(PORT) },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
