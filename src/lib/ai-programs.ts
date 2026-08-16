@@ -130,6 +130,10 @@ export type AdminAiTenantDto = {
   inputTokens: number;
   cachedInputTokens: number;
   outputTokens: number;
+  /** Priced against `provider_price` at read time. `null` = nothing priceable. */
+  costMicroUsd: number | null;
+  /** Generations whose model had no price in force when they ran. */
+  unpricedGenerations: number;
 };
 
 export type AdminAiOverviewDto = {
@@ -145,6 +149,8 @@ export type AdminAiOverviewDto = {
     inputTokens: number;
     cachedInputTokens: number;
     outputTokens: number;
+    costMicroUsd: number | null;
+    unpricedGenerations: number;
     clinicsAtLimit: number;
   };
 };

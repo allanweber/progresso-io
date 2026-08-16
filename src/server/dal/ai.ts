@@ -5,6 +5,7 @@ import type { DB } from "@/db";
 import { schema } from "@/db";
 import type { LlmUsage } from "@/lib/llm-provider";
 import { TRIAL_PLAN, isTrialActive, resolveAiGenerations } from "@/lib/plans";
+import { costMicroUsd, priceAt } from "@/lib/provider-prices";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -271,6 +272,13 @@ export type AdminAiTenantRow = {
   inputTokens: number;
   cachedInputTokens: number;
   outputTokens: number;
+  /**
+   * Summed cost of the rows a `provider_price` covered, in micro-USD. `null`
+   * when none were — which is different from zero and must stay so.
+   */
+  costMicroUsd: number | null;
+  /** Rows with usage but no price in force when they ran. */
+  unpricedGenerations: number;
 };
 
 export type AdminAiOverview = {
@@ -285,6 +293,8 @@ export type AdminAiOverview = {
     inputTokens: number;
     cachedInputTokens: number;
     outputTokens: number;
+    costMicroUsd: number | null;
+    unpricedGenerations: number;
     /** Clinics that have spent their whole allowance. */
     clinicsAtLimit: number;
   };
@@ -297,6 +307,10 @@ export type AdminAiOverview = {
  * *assumes*: is 1/10/25 the right shape, and is the catalog prefix actually
  * landing in the provider's cache. Both are unanswerable from the coach-facing
  * counter, which shows one clinic its own total and nothing else.
+ *
+ * Cost is computed here rather than stored per row: each generation is matched
+ * to the `provider_price` in force when it ran, so correcting a mistyped price
+ * fixes history instead of leaving it wrong forever.
  *
  * Admin-only and cross-tenant, so it takes a bare `DB` rather than a
  * `TenantContext` — same shape as `whatsapp.getAdminOverview`.
@@ -334,12 +348,21 @@ export async function getAdminAiOverview(
       clinicId: schema.aiGeneration.clinicId,
       status: schema.aiGeneration.status,
       repaired: schema.aiGeneration.repaired,
+      provider: schema.aiGeneration.provider,
+      model: schema.aiGeneration.model,
       inputTokens: schema.aiGeneration.inputTokens,
       cachedInputTokens: schema.aiGeneration.cachedInputTokens,
       outputTokens: schema.aiGeneration.outputTokens,
+      createdAt: schema.aiGeneration.createdAt,
     })
     .from(schema.aiGeneration)
     .where(gte(schema.aiGeneration.createdAt, since));
+
+  // The whole price list, loaded once. It is reference data measured in dozens
+  // of rows, so matching in TS beats a correlated subquery per generation — and
+  // keeps the effective-dating rule in exactly one place (`priceAt`) rather
+  // than restating it in SQL.
+  const prices = await db.select().from(schema.providerPrice);
 
   type Acc = Omit<AdminAiTenantRow, "clinicId" | "name" | "plan" | "effectivePlan" | "limit">;
   const empty = (): Acc => ({
@@ -350,6 +373,8 @@ export async function getAdminAiOverview(
     inputTokens: 0,
     cachedInputTokens: 0,
     outputTokens: 0,
+    costMicroUsd: null,
+    unpricedGenerations: 0,
   });
 
   const byClinic = new Map<string, Acc>();
@@ -363,6 +388,18 @@ export async function getAdminAiOverview(
     acc.inputTokens += row.inputTokens ?? 0;
     acc.cachedInputTokens += row.cachedInputTokens ?? 0;
     acc.outputTokens += row.outputTokens ?? 0;
+
+    // Price it against whatever was in force the day it ran. A row that used no
+    // tokens (a failure before the call, say) is neither priced nor counted as
+    // unpriced — there is nothing to price, so it would only dilute the signal.
+    const usedTokens =
+      (row.inputTokens ?? 0) + (row.cachedInputTokens ?? 0) + (row.outputTokens ?? 0);
+    if (usedTokens > 0) {
+      const price = priceAt(prices, row.provider, row.model, row.createdAt);
+      if (price === null) acc.unpricedGenerations += 1;
+      else acc.costMicroUsd = (acc.costMicroUsd ?? 0) + costMicroUsd(row, price);
+    }
+
     byClinic.set(row.clinicId, acc);
   }
 
@@ -389,6 +426,7 @@ export async function getAdminAiOverview(
 
   const sum = (pick: (t: AdminAiTenantRow) => number) =>
     tenants.reduce((s, t) => s + pick(t), 0);
+  const priced = tenants.filter((t) => t.costMicroUsd !== null);
 
   return {
     monthStart: since.toISOString(),
@@ -401,6 +439,12 @@ export async function getAdminAiOverview(
       inputTokens: sum((t) => t.inputTokens),
       cachedInputTokens: sum((t) => t.cachedInputTokens),
       outputTokens: sum((t) => t.outputTokens),
+      // `null`, not 0, when nothing could be priced: "we don't know" and "it was
+      // free" are different answers and the screen renders them differently.
+      costMicroUsd: priced.length
+        ? priced.reduce((s, t) => s + (t.costMicroUsd ?? 0), 0)
+        : null,
+      unpricedGenerations: sum((t) => t.unpricedGenerations),
       clinicsAtLimit: tenants.filter(
         (t) => t.limit !== null && t.used >= t.limit,
       ).length,

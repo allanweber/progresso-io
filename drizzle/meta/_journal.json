@@ -232,6 +232,13 @@
       "when": 1786907914466,
       "tag": "0032_drop_ai_generation_cost",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786908732725,
+      "tag": "0033_provider_price",
+      "breakpoints": true
     }
   ]
 }

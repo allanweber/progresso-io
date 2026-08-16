@@ -22,6 +22,7 @@ draft** the coach reviews and edits before anything reaches the aluno.
 | Routes | `POST /api/students/[id]/{workout,diet}/generate` |
 | UI | `src/components/ai/ai-generate-button.tsx` |
 | Admin overview (cross-tenant) | `ai.getAdminAiOverview`, `GET /api/admin/ai`, `src/app/admin/ai/page.tsx` |
+| LLM price list | `src/lib/provider-prices.ts`, `src/server/dal/provider-prices.ts`, `/api/admin/ai/prices` |
 | Tests | `tests/ai-generator{,.integration}.test.ts`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
 
 Two traps worth knowing about, both found by tests during the build:
@@ -220,12 +221,15 @@ Both the quota meter and the cost ledger. Per row: `clinicId` (tenant key),
 (including **cached** input separately), `durationMs`, `repaired`, `errorCode`,
 **`catalogHash`** and **`anamnesisSnapshotId`**.
 
-- **Cost is deliberately NOT stored.** It is tokens × a vendor price, and the
-  price is the one half that can be looked up whenever it is actually wanted —
-  the tokens are the half that can only be measured as the call happens. An
-  earlier version carried a `cost_micro_usd` frozen from `LLM_PRICE_*` env vars;
-  those were never set, so the column could only ever say `NULL`, and a column
-  that can only say "unknown" gets read as "free". Dropped in migration 0032.
+- **Cost is deliberately NOT stored on the row.** Tokens are the half that can
+  only be measured as the call happens; the price is the half that can be looked
+  up. Prices live in `provider_price`, effective-dated, and each generation is
+  matched to whichever was in force the day it ran. So a vendor price change adds
+  a row and history stays correct, and a **mistyped** price is an edit that
+  *fixes* history — neither of which a number frozen on the audit row could do.
+  (An earlier version did freeze one, from `LLM_PRICE_*` env vars nobody set, so
+  it could only ever say `NULL`; dropped in migration 0032, replaced by the table
+  in 0033.)
 - **The prompt itself is never stored.** The anamnese snapshot id and the catalog
   hash make it fully reconstructible without duplicating aluno health data into a
   second table, in plain text, in every backup. Same data-minimization logic as
@@ -237,6 +241,28 @@ Both the quota meter and the cost ledger. Per row: `clinicId` (tenant key),
 - It is also the only thing that can ever check `docs/monetization.md` §7 against
   reality rather than assumption — which is what `/admin/ai` reads.
 
+## The price list (`provider_price`)
+
+Platform reference data, like `plan_limit` — no `clinicId`, managed by admins on
+the **Preços** tab of `/admin/ai`. Prices are per **million** tokens in micro-USD
+(`$0.03/M` → `30000`): integers, because a month of summing floats drifts, and
+money that drifts is money nobody trusts.
+
+The rule is one function, `priceAt`: **the row with the greatest `effectiveFrom`
+at or before the moment the generation ran.** Everything else falls out of it.
+
+| Situation | What happens |
+| --- | --- |
+| Vendor raises its price | Add a row. March's generations keep March's rate. |
+| You mistyped a price | Edit the row. History is *corrected*, not left wrong. |
+| Price announced for next month | Enter it now; it's inert until its date. |
+| Model never priced | Its generations read as unpriced — an honest "unknown", and a gap the admin can close on the spot. |
+| Vendor states no cache rate | Leave it blank; cache reads bill as normal input, over- rather than under-stating. |
+
+A blank cached rate is `NULL`, **not** `0` — zero is the real claim "cache reads
+are free", and the two must not collapse into each other. The form and its tests
+enforce that distinction on both sides.
+
 ## `/admin/ai` — the read that closes the loop
 
 The audit row shipped write-only, which made the two claims the feature rests on
@@ -246,11 +272,18 @@ uncheckable. This screen is the read side.
 | --- | --- |
 | **Taxa de cache** | The base-only catalog keeps the prompt prefix byte-identical, so it stays in the provider's cache. A ratio that sits low means the prefix is moving between calls — nothing else would say so. |
 | **Gerações vs. limite** (per clinic) | 1/10/25 is the right shape. Clinics pinned at the cap say it's stingy; a platform of 2-a-month coaches says it's generous. |
-| **Tokens no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, whose token-per-generation figure was a guess. Multiply by the vendor's current price to check it. |
+| **Custo no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, built on unverified prices and a guessed token count. |
 | **Reparos / falhas** | The prompt still produces schema-valid JSON. A rising repair count is drift, and each repair is a second paid round-trip. |
 
-Two details that are not incidental:
+Three details that are not incidental:
 
+- **A partial cost total is labelled `parcial`, never silently summed.** A model
+  with no price entered leaves its generations uncosted; adding them as zero
+  would under-report the bill by exactly the amount you can't see.
+  `unpricedGenerations` counts them, and unlike the old env-var version this is
+  a gap the admin can close on the spot — the Preços tab is on the same screen.
+  A generation that burned no tokens at all is neither priced nor counted as
+  missing: there is nothing to price, so it would only dilute the signal.
 - **`configured` rides along on the response.** An all-zero table means either
   "nobody generated anything" or "the feature was never switched on", and the
   admin needs to know which.

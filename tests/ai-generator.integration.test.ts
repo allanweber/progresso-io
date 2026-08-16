@@ -6,7 +6,7 @@ import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import { cacheHitRatio } from "@/lib/ai-programs";
-import { ai, plans } from "@/server/dal";
+import { ai, plans, providerPrices } from "@/server/dal";
 import { monthStart } from "@/server/dal/ai";
 import { buildExerciseCatalog, buildFoodCatalog } from "@/server/ai/catalog";
 import type { TenantContext } from "@/server/tenant";
@@ -553,5 +553,180 @@ describe("getAdminAiOverview", () => {
     expect(overview.totals.cachedInputTokens).toBe(
       sum((t) => t.cachedInputTokens),
     );
+  });
+});
+
+describe("provider_price", () => {
+  const base = {
+    provider: "openai-compatible",
+    model: "unit-test-model",
+    inputUsdPerMtok: 30_000,
+    outputUsdPerMtok: 130_000,
+    cachedInputUsdPerMtok: 3_000,
+    note: null,
+  };
+
+  it("creates, lists, updates and deletes a price", async () => {
+    const created = await providerPrices.createProviderPrice(h, {
+      ...base,
+      effectiveFrom: "2026-01-01T00:00:00.000Z",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const listed = await providerPrices.listProviderPrices(h);
+    expect(listed.some((p) => p.id === created.row.id)).toBe(true);
+
+    const updated = await providerPrices.updateProviderPrice(h, created.row.id, {
+      ...base,
+      effectiveFrom: "2026-01-01T00:00:00.000Z",
+      inputUsdPerMtok: 45_000,
+    });
+    expect(updated.ok && updated.row.inputMicroUsdPerMtok).toBe(45_000);
+
+    expect(await providerPrices.deleteProviderPrice(h, created.row.id)).toBe(true);
+    // Already gone → false, not a throw.
+    expect(await providerPrices.deleteProviderPrice(h, created.row.id)).toBe(false);
+  });
+
+  it("refuses a second price for the same model at the same instant", async () => {
+    const at = "2026-02-01T00:00:00.000Z";
+    const first = await providerPrices.createProviderPrice(h, {
+      ...base,
+      model: "dup-model",
+      effectiveFrom: at,
+    });
+    expect(first.ok).toBe(true);
+
+    // Two prices for one instant would make "the price then" ambiguous, which
+    // is the one question this table exists to answer.
+    const second = await providerPrices.createProviderPrice(h, {
+      ...base,
+      model: "dup-model",
+      effectiveFrom: at,
+    });
+    expect(second).toEqual({ ok: false, reason: "duplicate" });
+
+    // A different instant for the same model is the normal case, not a clash.
+    const later = await providerPrices.createProviderPrice(h, {
+      ...base,
+      model: "dup-model",
+      effectiveFrom: "2026-03-01T00:00:00.000Z",
+    });
+    expect(later.ok).toBe(true);
+  });
+
+  it("lets a row keep its own date when edited", async () => {
+    const created = await providerPrices.createProviderPrice(h, {
+      ...base,
+      model: "self-edit",
+      effectiveFrom: "2026-04-01T00:00:00.000Z",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    // The collision check must exclude the row being edited, or changing only
+    // the price would report a clash with itself.
+    const same = await providerPrices.updateProviderPrice(h, created.row.id, {
+      ...base,
+      model: "self-edit",
+      effectiveFrom: "2026-04-01T00:00:00.000Z",
+      outputUsdPerMtok: 999_000,
+    });
+    expect(same.ok).toBe(true);
+  });
+
+  it("reports not_found for an unknown id", async () => {
+    const missing = await providerPrices.updateProviderPrice(
+      h,
+      "00000000-0000-4000-8000-000000000000",
+      { ...base, effectiveFrom: "2026-05-01T00:00:00.000Z" },
+    );
+    expect(missing).toEqual({ ok: false, reason: "not_found" });
+  });
+});
+
+describe("getAdminAiOverview pricing", () => {
+  /** A generation with usage, at a given instant, for a given model. */
+  async function priced(
+    ctx: TenantContext,
+    studentId: string,
+    model: string,
+    createdAt: Date,
+  ) {
+    await db.insert(schema.aiGeneration).values({
+      clinicId: ctx.clinicId,
+      studentId,
+      kind: "diet",
+      status: "succeeded",
+      provider: "openai-compatible",
+      model,
+      inputTokens: 1_000,
+      cachedInputTokens: 9_000,
+      outputTokens: 3_000,
+      createdAt,
+    });
+  }
+
+  it("is unpriced until a price covering the date exists, then priced", async () => {
+    const { ctx, studentId } = await makeClinic("pricing", "clinica");
+    const ranAt = new Date(monthStart(new Date()).getTime() + 60_000);
+    await priced(ctx, studentId, "pricing-model", ranAt);
+
+    const before = await ai.getAdminAiOverview(h);
+    const rowBefore = before.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(rowBefore.costMicroUsd).toBeNull();
+    expect(rowBefore.unpricedGenerations).toBe(1);
+
+    await providerPrices.createProviderPrice(h, {
+      provider: "openai-compatible",
+      model: "pricing-model",
+      effectiveFrom: new Date(0).toISOString(),
+      inputUsdPerMtok: 30_000,
+      outputUsdPerMtok: 130_000,
+      cachedInputUsdPerMtok: 3_000,
+      note: null,
+    });
+
+    // Nothing about the generation changed — adding the price is what completes
+    // the figure, which is the whole point of pricing at read time.
+    const after = await ai.getAdminAiOverview(h);
+    const rowAfter = after.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(rowAfter.costMicroUsd).toBe(447);
+    expect(rowAfter.unpricedGenerations).toBe(0);
+  });
+
+  it("prices a row dated before the price took effect as unpriced", async () => {
+    const { ctx, studentId } = await makeClinic("late-price", "clinica");
+    const ranAt = new Date(monthStart(new Date()).getTime() + 60_000);
+    await priced(ctx, studentId, "late-model", ranAt);
+    // Price starts tomorrow → today's generation still has no known cost.
+    await providerPrices.createProviderPrice(h, {
+      provider: "openai-compatible",
+      model: "late-model",
+      effectiveFrom: new Date(Date.now() + 86_400_000).toISOString(),
+      inputUsdPerMtok: 30_000,
+      outputUsdPerMtok: 130_000,
+      cachedInputUsdPerMtok: null,
+      note: null,
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(row.costMicroUsd).toBeNull();
+    expect(row.unpricedGenerations).toBe(1);
+  });
+
+  it("does not count a zero-token row as unpriced", async () => {
+    const { ctx, studentId } = await makeClinic("no-usage", "clinica");
+    // A failure before the model was ever called has nothing to price; counting
+    // it as "missing a price" would send an admin hunting for a config gap that
+    // doesn't exist.
+    await addGeneration(ctx, studentId, "failed");
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(row.unpricedGenerations).toBe(0);
+    expect(row.costMicroUsd).toBeNull();
   });
 });

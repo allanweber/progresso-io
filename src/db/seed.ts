@@ -1193,6 +1193,29 @@ async function seed() {
     console.info("✓ seeded demo AI generations (cold, cached, failed)");
   }
 
+  // A price for the demo model, so /admin/ai shows a real Custo column instead
+  // of a column of dashes. Dated at the epoch so it covers every demo row
+  // regardless of when the seed runs.
+  const existingPrices = await db
+    .select({ id: schema.providerPrice.id })
+    .from(schema.providerPrice)
+    .where(eq(schema.providerPrice.model, "seed-demo"))
+    .limit(1);
+  if (existingPrices.length === 0) {
+    await db.insert(schema.providerPrice).values({
+      provider: "openai-compatible",
+      model: "seed-demo",
+      effectiveFrom: new Date(0),
+      // Qwen3.7 Flash's reported rates — unverified (see
+      // docs/ai-provider-costs.md), which is exactly why the `note` says so.
+      inputMicroUsdPerMtok: 30_000, // US$0.03 / M
+      outputMicroUsdPerMtok: 130_000, // US$0.13 / M
+      cachedInputMicroUsdPerMtok: 3_000, // US$0.003 / M
+      note: "Demo — valores não verificados",
+    });
+    console.info("✓ seeded demo LLM price");
+  }
+
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec
   // deletes/imports anamneses here, so it must never touch the demo coach's
   // clinic that the coach/student specs read. We rename it and seed its starter

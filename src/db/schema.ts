@@ -2263,8 +2263,13 @@ export const aiGeneration = pgTable(
     // Input tokens billed at full rate, and the portion served from the
     // provider's prompt cache (billed at a fraction). Split because the ratio
     // between them IS the measure of whether the shared catalog prefix is
-    // staying cached. Cost is deliberately not stored: it is these numbers
-    // times a price, and a price is the one part that can be looked up later.
+    // staying cached, and because the two bill at different rates.
+    //
+    // Cost is deliberately NOT stored here. It is these numbers times a price,
+    // and the price lives in `provider_price`, effective-dated — so a row is
+    // priced by whatever was in force the day it ran, and a vendor changing its
+    // rates reprices nothing retroactively. Freezing a number on this row would
+    // achieve the same thing only until someone needed to correct a typo in it.
     inputTokens: integer("input_tokens"),
     cachedInputTokens: integer("cached_input_tokens"),
     outputTokens: integer("output_tokens"),
@@ -2299,9 +2304,60 @@ export const aiGeneration = pgTable(
   ],
 );
 
+/**
+ * What a provider charges per **million** tokens, in millionths of a USD
+ * (`$0.03/M` → `30000`). Integers, so no float drift accumulates over a month
+ * of summing.
+ *
+ * Platform reference data, like `plan_limit` — no `clinicId`, managed by admins
+ * at /admin/ai. Rows are **effective-dated**, not overwritten: a generation is
+ * priced by the row with the greatest `effectiveFrom` at or before the moment it
+ * ran. That is the whole reason this is a table and not a config value —
+ * a vendor price change adds a row and leaves every historical figure correct,
+ * while a single mutable price would silently reprice the past.
+ */
+export const providerPrice = pgTable(
+  "provider_price",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Matched against `ai_generation.provider` / `.model`, which record what
+    // actually served each call.
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    // When this price took effect. A row that starts in the future is legal and
+    // simply does not apply yet — which is how an announced price change is
+    // entered ahead of time.
+    effectiveFrom: timestamp("effective_from").notNull(),
+    inputMicroUsdPerMtok: integer("input_micro_usd_per_mtok").notNull(),
+    outputMicroUsdPerMtok: integer("output_micro_usd_per_mtok").notNull(),
+    // Cache reads bill cheaper. NULL means "not stated by the vendor", and the
+    // full input rate is used — over- rather than under-stating the bill, which
+    // is the safe direction for an unknown discount.
+    cachedInputMicroUsdPerMtok: integer("cached_input_micro_usd_per_mtok"),
+    // Free-text provenance ("vendor pricing page, 2026-08-16"). The figures in
+    // docs/ai-provider-costs.md are unverified; this is where the verified ones
+    // record where they came from.
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // One price per model per instant — a duplicate would make "the price then"
+    // ambiguous, which is the one thing this table exists to answer.
+    uniqueIndex("provider_price_model_from_idx").on(
+      t.provider,
+      t.model,
+      t.effectiveFrom,
+    ),
+  ],
+);
+
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
+
+export type ProviderPrice = typeof providerPrice.$inferSelect;
+export type NewProviderPrice = typeof providerPrice.$inferInsert;
 
 export type AiGeneration = typeof aiGeneration.$inferSelect;
 export type NewAiGeneration = typeof aiGeneration.$inferInsert;

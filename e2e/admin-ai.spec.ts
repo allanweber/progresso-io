@@ -9,6 +9,9 @@ import { expect, test } from "@playwright/test";
  * That mix is deliberate: it is exactly the set of cases the screen has to
  * render honestly, and the assertions below check each.
  *
+ * The seed also enters a price for the demo model, so the Custo column shows a
+ * real figure rather than dashes.
+ *
  * The e2e environment has no LLM configured, so the "not configured" banner is
  * asserted too — an all-zero table would otherwise be ambiguous.
  *
@@ -36,7 +39,7 @@ test.describe("admin ai overview", () => {
     // KPI header.
     await expect(page.getByText("Gerações no mês")).toBeVisible();
     await expect(page.getByText("Taxa de cache")).toBeVisible();
-    await expect(page.getByText("Tokens no mês")).toBeVisible();
+    await expect(page.getByText("Custo no mês")).toBeVisible();
     await expect(page.getByText("No limite")).toBeVisible();
 
     await expect(page.getByText("Uso de IA por tenant")).toBeVisible();
@@ -53,6 +56,12 @@ test.describe("admin ai overview", () => {
     // Asserting the exact figure is the point — a plausible-looking wrong
     // percentage is precisely the failure this screen exists to catch.
     await expect(row).toContainText("63%");
+
+    // Priced against the seeded provider_price row: 18.010 fresh input @
+    // $0.03/M + 31.200 cached @ $0.003/M + 9.350 output @ $0.13/M = 1.849 µUSD.
+    // Every demo row is covered by that price, so nothing reads as "parcial".
+    await expect(row).toContainText("US$ 0,001849");
+    await expect(row).not.toContainText("parcial");
 
     await page.screenshot({
       path: "test-results/screens/admin-ai-desktop.png",
@@ -73,6 +82,64 @@ test.describe("admin ai overview", () => {
       path: "test-results/screens/admin-ai-mobile.png",
       fullPage: true,
     });
+  });
+
+  test("prices: create, edit and delete a price, repricing the usage table", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/admin/ai");
+    await page.getByRole("tab", { name: "Preços" }).click();
+
+    // The seeded demo price is listed.
+    await expect(page.getByText("seed-demo").first()).toBeVisible();
+
+    // --- Create -------------------------------------------------------------
+    const model = `e2e-model-${Date.now()}`;
+    await page.getByRole("button", { name: "Novo preço" }).click();
+    await page.getByLabel("Modelo").fill(model);
+    await page.getByLabel("Vigente desde").fill("2026-01-01T00:00");
+    // pt-BR comma decimals: what an admin actually types off a vendor page.
+    await page.getByLabel("Entrada", { exact: true }).fill("0,03");
+    await page.getByLabel("Saída", { exact: true }).fill("0,13");
+    await page.getByLabel("Fonte (opcional)").fill("Página do provedor");
+    await page.getByRole("button", { name: "Salvar" }).click();
+
+    const row = page.getByRole("row").filter({ hasText: model });
+    await expect(row).toBeVisible();
+    await expect(row).toContainText("US$ 0,03");
+    // Cache left blank → billed as normal input, and the table says so rather
+    // than showing a misleading zero.
+    await expect(row).toContainText("= entrada");
+
+    await page.screenshot({
+      path: "test-results/screens/admin-ai-prices-desktop.png",
+      fullPage: true,
+    });
+
+    // --- Duplicate is refused on the date field -----------------------------
+    await page.getByRole("button", { name: "Novo preço" }).click();
+    await page.getByLabel("Modelo").fill(model);
+    await page.getByLabel("Vigente desde").fill("2026-01-01T00:00");
+    await page.getByLabel("Entrada", { exact: true }).fill("0,05");
+    await page.getByLabel("Saída", { exact: true }).fill("0,15");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(
+      page.getByText("Já existe um preço para este modelo nesta data."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar" }).click();
+
+    // --- Edit ---------------------------------------------------------------
+    await row.getByRole("button", { name: `Editar preço de ${model}` }).click();
+    await page.getByLabel("Entrada", { exact: true }).fill("0,08");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(row).toContainText("US$ 0,08");
+
+    // --- Delete -------------------------------------------------------------
+    await row.getByRole("button", { name: `Remover preço de ${model}` }).click();
+    await expect(page.getByText(/voltam a aparecer como/)).toBeVisible();
+    await page.getByRole("button", { name: "Remover" }).click();
+    await expect(page.getByRole("row").filter({ hasText: model })).toHaveCount(0);
   });
 
   test("is reachable from the admin nav", async ({ page }) => {
