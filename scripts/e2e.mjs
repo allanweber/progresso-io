@@ -101,6 +101,16 @@ try {
   console.info("→ Seeding a verified coach…");
   run("npx", ["tsx", "src/db/seed.ts"], { env });
 
+  // Playwright serves a PRODUCTION build (`next start`), not `next dev` — a dev
+  // server compiles each route on its first request, which cost the suite more
+  // wall clock than the whole build does. `.next` is incremental, so a rerun
+  // with no source changes is cheap. Skip with E2E_SKIP_BUILD=1 when iterating
+  // on specs alone.
+  if (process.env.E2E_SKIP_BUILD !== "1") {
+    console.info("→ Building the app…");
+    run("npm", ["run", "build"], { env });
+  }
+
   console.info("→ Running Playwright…");
   run("npx", ["playwright", "test", ...process.argv.slice(2)], { env });
 } finally {
