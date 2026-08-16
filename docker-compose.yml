@@ -77,6 +77,14 @@ services:
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
       - R2_BUCKET=${R2_BUCKET:-}
       - R2_PREFIX=${R2_PREFIX:-}
+      # AI program generator. Read at RUNTIME only (never inlined into the
+      # bundle). All THREE are required to switch the feature on; with any of
+      # them unset the "Gerar com IA" button stays disabled and no credit is
+      # ever spent. BASE_URL is the part before /chat/completions, e.g.
+      # https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-}
     expose:
       - "3000"
     # Container health via the app's own liveness endpoint (node has global fetch).
