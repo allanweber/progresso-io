@@ -217,3 +217,73 @@ describe("manual billing — coach read is tenant-scoped", () => {
     expect(mine.every((inv) => inv.clinicId === a.clinicId)).toBe(true);
   });
 });
+
+/**
+ * Coach-initiated subscription ("Assinar", roadmap item 0 Phase 1). The safety
+ * properties matter more than the happy path: a coach can trigger this, so the
+ * price must be server-derived, it must not stack faturas, and it must not
+ * grant the plan by itself.
+ */
+describe("requestSubscription (coach-initiated)", () => {
+  let ctx: TenantContext;
+
+  beforeAll(async () => {
+    const { userId, clinicId } = await coachClinic(
+      "assinar@example.com",
+      "Coach Assinar",
+    );
+    ctx = { db: h, clinicId, userId, role: "coach" };
+  });
+
+  it("raises a pending fatura priced from the server, not the caller", async () => {
+    const result = await billing.requestSubscription(ctx, "solo");
+    expect("error" in result).toBe(false);
+    if ("error" in result) return;
+
+    expect(result.created).toBe(true);
+    expect(result.invoice.status).toBe("pending");
+    // PLAN_PRICE_CENTS.solo — the client only ever names a plan.
+    expect(result.invoice.totalCents).toBe(17900);
+    expect(result.invoice.planSnapshot).toBe("solo");
+  });
+
+  it("reuses the open fatura instead of stacking a second one", async () => {
+    const again = await billing.requestSubscription(ctx, "clinica");
+    expect("error" in again).toBe(false);
+    if ("error" in again) return;
+
+    // Opening the panel repeatedly must never multiply what the coach owes.
+    expect(again.created).toBe(false);
+    const invoices = await billing.listMyInvoices(ctx);
+    expect(invoices.filter((i) => i.status === "pending")).toHaveLength(1);
+  });
+
+  it("does NOT grant the plan — an admin still confirms the money", async () => {
+    const [clinic] = await db
+      .select()
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    expect(clinic.plan).toBe("free");
+  });
+
+  it("refuses Enterprise, which has no self-serve price", async () => {
+    const { userId, clinicId } = await coachClinic(
+      "enterprise@example.com",
+      "Coach Ent",
+    );
+    const other: TenantContext = { db: h, clinicId, userId, role: "coach" };
+    const result = await billing.requestSubscription(other, "enterprise");
+    expect(result).toEqual({ error: "unpriced" });
+  });
+
+  it("scopes the fatura to the requesting clinic only", async () => {
+    const { userId, clinicId } = await coachClinic("other@example.com", "Outro");
+    const other: TenantContext = { db: h, clinicId, userId, role: "coach" };
+    const result = await billing.requestSubscription(other, "solo");
+    expect("error" in result).toBe(false);
+
+    const mine = await billing.listMyInvoices(other);
+    expect(mine.every((i) => i.clinicId === clinicId)).toBe(true);
+    expect(mine).toHaveLength(1);
+  });
+});

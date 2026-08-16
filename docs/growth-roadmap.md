@@ -105,10 +105,13 @@ trail, and the coach's read-only **Faturas** page. See `docs/billing.md`.
   returns to 3 **non-destructively**: the alunos they added stay active and their
   portals keep working, they simply can't add another (the cap already blocks
   only *creation* — `src/app/api/students/route.ts`).
-- **Cobrança via the existing fatura.** Admin issues the invoice, marks it paid,
-  flips the plan. The coach gets an in-app banner for fatura pendente/vencida and
-  an **"Assinar" CTA that contacts you directly** — there is no checkout to link
-  to yet, and a bespoke request pipeline would be thrown away by Phase 2.
+- **Cobrança via the existing fatura, paid by Pix in-app.** The banner's
+  **"Assinar"** opens a panel in place: the coach picks a plan, the server raises
+  the fatura (price from `PLAN_PRICE_CENTS`, never the client) and returns a
+  **Pix copia e cola**; `CONTACT_EMAIL` is notified. **No gateway or CNPJ is
+  needed** — Pix settles bank-to-bank off a key a pessoa física can hold, and the
+  BR Code is a deterministic EMV string the app builds itself (`src/lib/pix.ts`).
+  Only the *confirmation* stays manual, which is precisely what Phase 2 automates.
 - **Downgrade por inadimplência stays admin-manual here, deliberately.**
   Paid/unpaid is human-entered and lossy (a Pix that landed but wasn't recorded
   yet), and auto-downgrading a paying customer over a bookkeeping lag is the
