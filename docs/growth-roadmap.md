@@ -1,4 +1,4 @@
-# Growth roadmap — 10 features to convert Free → Paid and lift tiers
+# Growth roadmap — the paywall + 10 features to convert Free → Paid and lift tiers
 
 Grounded in the product mock (heavy **AI**, WhatsApp, portal, video, check-ins,
 reminders, referral, per-aluno pricing) and expanded beyond it. Integrations
@@ -52,14 +52,22 @@ included.
 
 Every feature below is a new **`plan_limit` capability** (a boolean/quota column
 + per-clinic override + a `canUseX(ctx)` helper) on the pattern already shipped
-for `whatsapp` / `archive` / `calendar`. No new plumbing — just a gate.
+for `whatsapp` / `archive` / `calendar`. No new plumbing — just a gate. Every
+gate is enforced server-side today: student cap, coach cap, `whatsapp`,
+`calendar`, `archive`, branded portal.
+
+> **But gating ≠ collecting.** The gate opens today only when a **human flips it
+> by hand** — an admin sets `clinic.plan` at `/admin/clinics/[id]` and keeps a
+> manual invoice ledger (`docs/billing.md`). Every feature below feeds a
+> Free→Paid wall that nobody can pay through on their own. That is **item 0**.
 
 ---
 
-## The 10 features
+## The paywall + 10 features
 
 | # | Feature | Lever | New capability |
 |---|---------|-------|----------------|
+| **0** | **Assinatura & paywall — o Progresso recebe** | **Prerequisite — enables both levers** | **— (billing core)** |
 | 1 | AI Program Generator (treino + dieta por IA) | Free→Paid + Tier-up | `ai_credits` |
 | 2 | WhatsApp automation engine | Free→Paid | `whatsapp` (exists) |
 | 3 | Cobrança do aluno — o coach recebe pelo app | Free→Paid + Tier-up | `payments` |
@@ -70,6 +78,80 @@ for `whatsapp` / `archive` / `calendar`. No new plumbing — just a gate.
 | 8 | Motor de indicação (referral) | Free→Paid + viral | — |
 | 9 | Loja / página de captação + funil | Tier-up + roster growth | `landing_pages` |
 | 10 | App white-label do coach (PWA + push) | Tier-up / Enterprise | `white_label_app` |
+
+### 0. Assinatura & paywall — o Progresso recebe · `PREREQUISITE`
+
+Not an eleventh growth feature — the **precondition** for the other ten. Every
+item below converts Free→Paid, but today **only a human opens that wall**.
+
+**Already shipped, so this is automation work, not greenfield:** the plan switch
+itself (`clinic.plan`, read live by every `plan_limit` gate), the `invoice` /
+`invoice_line_item` schema with derived totals, the `clinic_plan_change` audit
+trail, and the coach's read-only **Faturas** page. See `docs/billing.md`.
+
+#### Phase 1 — cobrança manual · buildable now, no gateway needed
+
+- **Trial de 14 dias.** Advertised at `/register` today — *"14 dias grátis, sem
+  cartão"* — and **implemented nowhere** (no `trial_ends_at`, no trial logic).
+  We are currently selling something that does not exist. Model it as
+  **`clinic.trial_ends_at` with the effective plan resolved on read**
+  (`trial ativo → limites Solo`), **never** by flipping `clinic.plan`: one source
+  of truth, the `clinic_plan_change` audit stays meaningful, and correctness
+  never depends on a cron firing. Expiry is a date comparison; the cron only
+  sends *"faltam 3 dias"*.
+- **The trial lifts the aluno cap to 50** — the strongest conversion lever
+  available and it costs nothing. A coach who imports a real roster has moved
+  their business in; a coach poking at 3 fake students has not. At expiry the cap
+  returns to 3 **non-destructively**: the alunos they added stay active and their
+  portals keep working, they simply can't add another (the cap already blocks
+  only *creation* — `src/app/api/students/route.ts`).
+- **Cobrança via the existing fatura.** Admin issues the invoice, marks it paid,
+  flips the plan. The coach gets an in-app banner for fatura pendente/vencida and
+  an **"Assinar" CTA that contacts you directly** — there is no checkout to link
+  to yet, and a bespoke request pipeline would be thrown away by Phase 2.
+- **Downgrade por inadimplência stays admin-manual here, deliberately.**
+  Paid/unpaid is human-entered and lossy (a Pix that landed but wasn't recorded
+  yet), and auto-downgrading a paying customer over a bookkeeping lag is the
+  worst failure available. **Trial expiry stays automatic** — a pure date, no
+  payment ambiguity. Non-payment becomes automatic only in Phase 2, when the
+  webhook makes payment state authoritative.
+- *Not here:* fatura vencimento reminders by e-mail/WhatsApp — **#2 already owns
+  them**; building them twice splits the automation.
+
+#### Phase 2 — paywall self-serve · 🔒 BLOQUEADO EM CNPJ
+
+- Self-serve **checkout** (Free → Solo/Clínica, **mensal + anual** — R$1.790 /
+  R$3.790 are priced and unsellable today), **Asaas** recurring (Pix / boleto /
+  cartão), **webhook → plan flip automático**, faturas geradas automaticamente,
+  **upgrade / cancel / downgrade self-serve**. Enterprise stays *admin-assisted*
+  (valor negociado, then auto-charges); the admin override stays for comps and
+  support.
+- **Dunning ladder**, automatic once the webhook is authoritative — and
+  non-destructive at every step: retry ~3×/7 dias → **grace +7 dias** (plano
+  ativo, banner + e-mail + WhatsApp) → **dia ~14 downgrade para Free**
+  (automações off, sem novos alunos, **todos os alunos existentes continuam
+  funcionando**) → **restauração instantânea ao pagar**. The pressure lands on
+  the coach's growth, never on alunos mid-program.
+
+#### Why Phase 2 is blocked
+
+Asaas accepts **CPF** accounts — you can receive Pix/boleto/cartão as pessoa
+física, so nothing blocks *taking money*. Two things need the **CNPJ**:
+
+1. **Subcontas are CNPJ-only** (BACEN Res. Conjuntas 16/17, BaaS) — a CPF account
+   cannot create them at all, and **#3 is built on them**.
+2. **The margin model assumes a company.** `docs/monetization.md` §4(c) plans for
+   **~10% Simples Nacional**; as pessoa física it's IRPF progressivo **até 27,5%
+   + INSS**, which roughly halves the modelled margin. Nota fiscal for coaches
+   needs it too.
+
+**Migrating CPF → CNPJ later is supported but not free:** charges do **not** move
+between accounts (a separate import), and **stored card credentials are not
+portable** — every recurring-cartão customer must re-authorize. The cost scales
+with how many active subscriptions exist at migration time, so **migrate while
+the base is small**. *(Confirm the subconta rule with Asaas before designing #3.)*
+
+---
 
 ### 1. AI Program Generator — treino + dieta por IA · `FREE→PAID + TIER-UP`
 Coach picks goal + anamnese → AI drafts a full **workout and diet** from the
@@ -92,8 +174,10 @@ Today faturas are the *clinic's* Progresso bill. Flip it: let coaches **charge
 their own students** — recurring + one-off, via **Pix / boleto / cartão**. Makes
 the coach money inside the product = maximum stickiness. Free = manual "copia e
 cola Pix"; Solo+ = automated recurring + payment links; Clínica = split, contratos,
-retry de inadimplência. This is also the **paywall gateway** — the same provider
-collects the clinic's own Progresso subscription (see `docs/monetization.md` §4).
+retry de inadimplência. **Requires a CNPJ, and is separate work from item 0**:
+that one is "we charge our customers" (we are merchant of record, one account);
+this is a **marketplace** — an Asaas **subconta per coach with KYC** plus split
+payments, handling third-party money. Same vendor, very little shared code.
 *Integration: **Asaas** — the chosen BR gateway: recurring Pix/boleto/cartão,
 **no monthly fee** (pay-per-transaction), split payments, webhooks, and NFS-e
 hooks that feed #4. Alternativas avaliadas: Pagar.me / Mercado Pago / Stripe BR.*
@@ -146,8 +230,11 @@ Clínica/Enterprise = PWA instalável + push; Enterprise = app nas lojas + SSO +
 
 ## Suggested sequencing (fastest revenue impact)
 
-1. **#2 WhatsApp** + **#3 Cobrança** — the two that most directly convert
+1. **#0 Paywall — Phase 1 first.** The trial is advertised and missing, and every
+   feature below feeds a wall only a human can open. Phase 2 waits on the CNPJ.
+2. **#2 WhatsApp** + **#3 Cobrança** — the two that most directly convert
    Free→Solo and make the product sticky (the coach gets paid inside the app).
-2. **#1 AI generator** — the headline tier-up and where the mock is clearly
+   **#3 also needs the CNPJ** (subcontas), so it unblocks together with 0's Phase 2.
+3. **#1 AI generator** — the headline tier-up and where the mock is clearly
    heading.
-3. **#6 Relatório PDF** — nearly free to build (the pdfkit engine already exists).
+4. **#6 Relatório PDF** — nearly free to build (the pdfkit engine already exists).

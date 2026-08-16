@@ -19,6 +19,30 @@ This independence is deliberate: the admin flips the plan to give access, and
 tracks money separately. When real billing lands later, it can wire the two
 together; nothing here assumes they are linked.
 
+## What's next — roadmap item 0
+
+Automating this is **item 0** in `docs/growth-roadmap.md` ("Assinatura & paywall
+— o Progresso recebe"), split so the gateway half doesn't block the rest:
+
+- **Phase 1 — cobrança manual (buildable now).** The **14-day trial** plus an
+  in-app fatura pendente/vencida banner and an "Assinar" CTA that contacts the
+  admin. The flow on this page stays exactly as documented: admin issues the
+  fatura, marks it paid, flips the plan. Downgrade for non-payment stays
+  **admin-manual** on purpose — paid/unpaid is human-entered here, and
+  auto-downgrading a paying customer over a bookkeeping lag is the worst
+  available failure.
+- **Phase 2 — self-serve paywall (blocked on CNPJ).** Asaas checkout, webhooks
+  driving the plan flip automatically, auto-generated invoices, and an automatic
+  dunning ladder. Blocked because Asaas **subcontas are CNPJ-only** and the
+  margin model in `docs/monetization.md` §4(c) assumes Simples Nacional.
+
+> **⚠️ Known gap — the trial is advertised but not implemented.**
+> `src/app/register/page.tsx` sells *"14 dias grátis, sem cartão"*, and there is
+> no `trial_ends_at` column and no trial logic anywhere. Every new clinic starts
+> on **Free (3 alunos)** with no trial of paid features. Until item 0 Phase 1
+> lands, granting a trial means an **admin flipping the plan by hand** — and
+> remembering to flip it back.
+
 ## Data (migration `0023`)
 
 - **`invoice`** — one row per invoice: a platform-wide sequential `number`,
