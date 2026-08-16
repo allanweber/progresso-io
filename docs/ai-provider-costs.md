@@ -133,6 +133,45 @@ Two consequences:
   taking on an SDK: swapping providers stays a base-URL + key + model-string
   change.
 
+## Qwen3.7 Flash caching (the chosen provider)
+
+Qwen supports **both** cache modes ↯:
+
+| | Implicit | Explicit |
+|---|---|---|
+| How | Automatic; detects repeated prefixes | `"cache_control": {"type": "ephemeral"}` |
+| Setup | None | Manual placement |
+| Write cost | No surcharge | +25% over standard input |
+| Hit | Best-effort | Deterministic |
+| Saving on hit | ~90% | ~90% |
+
+The explicit syntax is **byte-identical to Anthropic's**, so the provider port
+needs no per-vendor branch for caching.
+
+Minimum cacheable length is reported as **~2,000 tokens for Flash** ↯, which
+conflicts with Qwen's general context-cache docs (1,024 tokens, cache hits at
+20% rather than 10% of unit price). Unresolvable without opening the vendor page;
+either way the catalog block clears the threshold comfortably.
+
+**At $0.03/M input, caching here is a latency optimization, not a cost one.**
+Full catalog at a rough 16K tokens: ~US$0.0005 cold vs ~US$0.00005 cached — a
+saving of roughly R$2/month at a thousand generations. The reason to cache is
+time-to-first-token, not money.
+
+## Decision (2026-08-16)
+
+**Qwen3.7 Flash**, chosen over Gemini Flash-Lite on cost. The cost difference is
+immaterial (both round to ~0% of revenue); the decision was made with the
+jurisdiction trade-off stated below explicitly on the table.
+
+> **Open risk — LGPD / data residency.** Qwen is Alibaba Cloud. Generations carry
+> aluno health data (age, weight, objective, restrictions) to a Chinese-owned
+> cloud. This is a heavier data class and a harder jurisdiction than the existing
+> Sentry posture (EU region + DPA). **Before launch:** update the privacy policy,
+> and check whether a DPA is available. The provider port makes switching to a US
+> provider a one-env-var change if the answer is unsatisfactory — the design does
+> not depend on this choice.
+
 ## What to do with this
 
 **Do not pick a model from this table.** Build the provider abstraction with no
