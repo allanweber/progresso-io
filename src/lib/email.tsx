@@ -290,3 +290,66 @@ export async function sendContactEmail({
     throw error;
   }
 }
+
+/**
+ * Tells the internal contact address that a coach asked to subscribe, so the
+ * fatura can be reconciled and marked paid. There is no gateway webhook yet
+ * (roadmap item 0 Phase 2), so this e-mail *is* the notification that money is
+ * on its way. Reply-to is the coach, so answering reaches them directly.
+ *
+ * Never throws: the coach's subscription request must not fail because e-mail
+ * is down or unconfigured — the fatura is already persisted, which is the
+ * durable record. Logs to the console when Resend/CONTACT_EMAIL are unset.
+ */
+export async function sendSubscriptionRequestEmail({
+  clinicName,
+  coachName,
+  coachEmail,
+  planName,
+  amount,
+  invoiceNumber,
+}: {
+  clinicName: string;
+  coachName: string;
+  coachEmail: string;
+  planName: string;
+  amount: string;
+  invoiceNumber: number;
+}): Promise<void> {
+  const subject = `Assinatura solicitada — ${clinicName} (${planName})`;
+  const text = [
+    `Clínica: ${clinicName}`,
+    `Coach: ${coachName} <${coachEmail}>`,
+    `Plano: ${planName}`,
+    `Valor: ${amount}`,
+    `Fatura: #${invoiceNumber}`,
+    "",
+    "O coach viu o Pix no app e deve pagar em instantes.",
+    `Confira o recebimento e marque a fatura #${invoiceNumber} como paga —`,
+    "isso libera o plano na hora.",
+  ].join("\n");
+
+  if (!resend || !CONTACT_TO) {
+    console.info(
+      `[email:dev] subscription request: ${clinicName} → ${planName} (fatura #${invoiceNumber})`,
+    );
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: CONTACT_TO,
+      replyTo: coachEmail,
+      subject,
+      text,
+    });
+    logger.info("email.sent", { template: "subscription_request" });
+  } catch (error) {
+    // Swallowed on purpose — see the note above.
+    logger.error("email.send_failed", {
+      err: error,
+      template: "subscription_request",
+    });
+  }
+}

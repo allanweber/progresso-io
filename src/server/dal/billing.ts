@@ -5,12 +5,14 @@ import type { Invoice, InvoiceLineItem, Plan } from "@/db/schema";
 import {
   invoiceTotals,
   isOverdue,
+  PLAN_PRICE_CENTS,
   type InvoiceDto,
   type InvoiceLineItemDto,
   type InvoiceWriteInput,
   type MarkPaidInput,
   type PlanChangeDto,
 } from "@/lib/billing";
+import { PLAN_META } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -318,4 +320,68 @@ export async function deleteInvoice(db: DB, invoiceId: string): Promise<boolean>
 /** This clinic's own invoices (read-only), newest first. Scoped to the tenant. */
 export async function listMyInvoices(ctx: TenantContext): Promise<InvoiceDto[]> {
   return loadInvoices(ctx.db, eq(schema.invoice.clinicId, ctx.clinicId));
+}
+
+/**
+ * The clinic's oldest still-unpaid invoice, or null. Drives the coach's billing
+ * banner and the "Assinar" panel, which reuses an open fatura rather than
+ * stacking a second one on top of it.
+ */
+export async function findOpenInvoice(
+  ctx: TenantContext,
+): Promise<InvoiceDto | null> {
+  const invoices = await listMyInvoices(ctx);
+  const pending = invoices
+    .filter((inv) => inv.status === "pending")
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  return pending[0] ?? null;
+}
+
+/**
+ * Raises the fatura for a coach who asked to subscribe (the in-app "Assinar"
+ * flow, roadmap item 0 Phase 1).
+ *
+ * The **price comes from `PLAN_PRICE_CENTS`, never from the caller** — the
+ * client only names a plan. An existing unpaid fatura is returned as-is instead
+ * of creating another, so repeatedly opening the panel can't stack charges.
+ *
+ * Raising the fatura does NOT grant the plan: an admin still confirms the money
+ * landed and marks it paid. That deliberate separation is what makes it safe to
+ * let a coach trigger this.
+ */
+export async function requestSubscription(
+  ctx: TenantContext,
+  plan: Plan,
+): Promise<{ invoice: InvoiceDto; created: boolean } | { error: "unpriced" }> {
+  const priceCents = PLAN_PRICE_CENTS[plan];
+  // Enterprise is "sob consulta" — there is no self-serve price to bill.
+  if (priceCents === null || priceCents <= 0) return { error: "unpriced" };
+
+  const existing = await findOpenInvoice(ctx);
+  if (existing) return { invoice: existing, created: false };
+
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const due = new Date(today);
+  due.setDate(due.getDate() + 7);
+
+  const invoice = await createInvoice(
+    ctx.db as unknown as DB,
+    ctx.clinicId,
+    {
+      competencia: `${iso(today).slice(0, 7)}-01`,
+      issuedAt: iso(today),
+      dueDate: iso(due),
+      planSnapshot: plan,
+      discountCents: 0,
+      discountReason: null,
+      notes: "Assinatura solicitada pelo coach no app.",
+      lineItems: [
+        { description: `Plano ${PLAN_META[plan].name} — mensalidade`, amountCents: priceCents },
+      ],
+    },
+    ctx.userId,
+  );
+  if (!invoice) return { error: "unpriced" };
+  return { invoice, created: true };
 }

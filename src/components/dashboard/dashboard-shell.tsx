@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   BookOpen,
@@ -28,7 +28,14 @@ import { apiFetch } from "@/lib/api-client";
 // Deliberately from @/lib/format, NOT @/lib/billing: this shell renders on every
 // coach + admin page, and billing pulls in zod, which would land in all of them.
 import { formatBRL, formatDateBR } from "@/lib/format";
-import { formatTrialDaysLeft, type PlanUsageDto } from "@/lib/plans";
+import { formatTrialDaysLeft, PLAN_META, type PlanUsageDto } from "@/lib/plans";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetClose,
@@ -120,6 +127,8 @@ export function DashboardShell({
   const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
+  const [pixCopied, setPixCopied] = useState(false);
 
   const roleLabel = ROLE_LABELS[user.role as Role] ?? user.role;
   const home = homePathForRole(user.role);
@@ -185,6 +194,33 @@ export function DashboardShell({
     }
     return null;
   })();
+
+  // "Assinar": pick a plan → the server raises the fatura and returns the Pix
+  // copia e cola, so the coach pays without leaving the app. Confirming the
+  // money is still manual (roadmap item 0 Phase 2 automates it via webhook).
+  const subscribe = useMutation({
+    mutationFn: (plan: "solo" | "clinica") =>
+      apiFetch<{
+        invoice: { number: number; dueDate: string; totalCents: number };
+        pixPayload: string | null;
+        planName: string;
+      }>("/api/coach/subscription", {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      }),
+    onSuccess: () => {
+      // The banner reads the open fatura, which now exists.
+      queryClient.invalidateQueries({ queryKey: ["coach-plan-usage"] });
+    },
+  });
+
+  async function copyPix() {
+    const payload = subscribe.data?.pixPayload;
+    if (!payload) return;
+    await navigator.clipboard.writeText(payload);
+    setPixCopied(true);
+    window.setTimeout(() => setPixCopied(false), 2000);
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -346,16 +382,114 @@ export function DashboardShell({
                 {billingNotice.body}
               </p>
             </div>
-            {/* No self-serve checkout yet (roadmap item 0 Phase 2), so "Assinar"
-                reaches a human, who issues the fatura and sets the plan. */}
-            <Link
-              href="/contact"
+            {/* Opens the Pix panel in place. Deliberately NOT a link to the
+                contact page: someone ready to pay shouldn't be handed a form. */}
+            <button
+              type="button"
+              onClick={() => setSubscribeOpen(true)}
               className="shrink-0 self-start rounded-[10px] border-[1.5px] border-current px-3 py-1.5 font-medium transition-colors hover:bg-white/60 sm:self-auto"
             >
               Assinar
-            </Link>
+            </button>
           </div>
         )}
+
+        <Dialog
+          open={subscribeOpen}
+          onOpenChange={(open) => {
+            setSubscribeOpen(open);
+            if (!open) subscribe.reset();
+          }}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Assinar o Progresso IO</DialogTitle>
+              <DialogDescription>
+                {subscribe.data
+                  ? "Pague pelo Pix abaixo. Assim que o pagamento cair, liberamos seu plano."
+                  : "Escolha seu plano. Você paga por Pix, aqui mesmo."}
+              </DialogDescription>
+            </DialogHeader>
+
+            {!subscribe.data ? (
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {(["solo", "clinica"] as const).map((plan) => (
+                  <button
+                    key={plan}
+                    type="button"
+                    disabled={subscribe.isPending}
+                    onClick={() => subscribe.mutate(plan)}
+                    className="rounded-[10px] border-[1.5px] border-input p-4 text-left transition-colors hover:border-primary hover:bg-secondary disabled:opacity-60"
+                  >
+                    <p className="font-semibold text-foreground">
+                      {PLAN_META[plan].name}
+                    </p>
+                    <p className="text-[20px] font-semibold text-foreground">
+                      {PLAN_META[plan].price}
+                      <span className="text-[13px] font-normal text-muted-foreground">
+                        /mês
+                      </span>
+                    </p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      {PLAN_META[plan].desc}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <span className="text-muted-foreground">
+                    Plano {subscribe.data.planName} · fatura #
+                    {subscribe.data.invoice.number}
+                  </span>
+                  <span className="text-[17px] font-semibold text-foreground">
+                    {formatBRL(subscribe.data.invoice.totalCents)}
+                  </span>
+                </div>
+
+                {subscribe.data.pixPayload ? (
+                  <>
+                    <p className="text-[13px] font-medium text-foreground">
+                      Pix copia e cola
+                    </p>
+                    <textarea
+                      readOnly
+                      rows={3}
+                      value={subscribe.data.pixPayload}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="w-full resize-none rounded-[10px] border-[1.5px] border-input bg-secondary p-2.5 font-mono text-[11px] leading-snug text-foreground"
+                    />
+                    <button
+                      type="button"
+                      onClick={copyPix}
+                      className="w-full rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+                    >
+                      {pixCopied ? "Código copiado ✓" : "Copiar código Pix"}
+                    </button>
+                    <p className="text-[13px] text-muted-foreground">
+                      Cole no app do seu banco. Já avisamos nosso time — assim
+                      que o Pix cair, seu plano é liberado. Vence em{" "}
+                      {formatDateBR(subscribe.data.invoice.dueDate)}.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground">
+                    Sua fatura #{subscribe.data.invoice.number} foi gerada e
+                    nosso time já foi avisado — entraremos em contato com as
+                    instruções de pagamento.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {subscribe.isError && (
+              <p className="text-[13px] text-red-700">
+                Não foi possível gerar a cobrança. Tente de novo em instantes.
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <main className="flex-1 px-6 py-8 print:p-0">{children}</main>
         </div>

@@ -56,6 +56,12 @@ services:
       # When unset, Sentry is a no-op. Use an EU (ingest.de.sentry.io) DSN.
       - SENTRY_DSN=${SENTRY_DSN:-}
       - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
+      # Pix for the in-app "Assinar" flow. Read at RUNTIME only (never inlined
+      # into the bundle). Unset = the fatura is still raised and CONTACT_EMAIL
+      # notified, just without a copia-e-cola code.
+      - PIX_KEY=${PIX_KEY:-}
+      - PIX_MERCHANT_NAME=${PIX_MERCHANT_NAME:-}
+      - PIX_MERCHANT_CITY=${PIX_MERCHANT_CITY:-}
       # Optional (default to empty when unset):
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}

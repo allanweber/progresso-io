@@ -72,9 +72,34 @@ Everything is on the clinic's detail page, `/admin/clinics/[id]`:
 | Bill | Create an invoice, then mark it paid when the money lands |
 | Bend the rules for one clinic | The per-clinic limit overrides |
 
-The coach sees a banner in-app while a trial is running or a fatura is open, with
-an **"Assinar"** button pointing at `/contact` — there is no checkout until item 0
-Phase 2, so the CTA reaches a human.
+## Paying, without a gateway
+
+The coach sees a banner in-app while a trial is running or a fatura is open. Its
+**"Assinar"** button opens a panel *in place* — nobody ready to pay should be
+handed a contact form:
+
+1. The coach picks Solo or Clínica.
+2. The server raises (or reuses) the fatura — **the price comes from
+   `PLAN_PRICE_CENTS`, never from the client** — and returns a **Pix copia e
+   cola** for that exact amount, with the invoice number as the `txid`.
+3. `CONTACT_EMAIL` gets an e-mail: clinic, coach, plan, amount, fatura number.
+4. The coach pays from their bank app. You reconcile by `txid` and mark the
+   fatura paid, which flips the plan instantly.
+
+**This needs no gateway and no CNPJ.** Pix settles bank-to-bank off a Pix key,
+and a pessoa física can hold one; the BR Code is a deterministic EMV string the
+app builds itself (`src/lib/pix.ts`, no dependencies). What a gateway would add
+is *automatic confirmation* — which is exactly Phase 2.
+
+Guards worth knowing, since a **coach** triggers this:
+
+- Price is server-derived; the client only names a plan.
+- An existing unpaid fatura is reused, so reopening the panel can't stack charges.
+- Enterprise is refused — it is "sob consulta" and has no self-serve price.
+- Raising a fatura **does not grant the plan**. Only marking it paid does.
+
+Pix is optional infrastructure: with `PIX_KEY` unset the fatura is still raised
+and the e-mail still sent, the panel just shows no code. See `.env.example`.
 
 > **Downgrade for non-payment is deliberately manual.** Paid/unpaid is
 > human-entered here and therefore lossy (a Pix that landed but wasn't recorded),
