@@ -8,6 +8,7 @@ import {
   type ClinicSettingsDto,
   type ClinicSettingsValues,
 } from "@/lib/clinic-settings";
+import { trialEndsAtFrom } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
 /* -------------------------------------------------------------------------- */
@@ -18,10 +19,27 @@ import type { TenantContext } from "@/server/tenant";
  * Creates a clinic owned by a user. This is a bootstrap operation (there is no
  * tenant context yet), so it takes a raw DB handle rather than a
  * {@link TenantContext}. Called from the sign-up hook in lib/auth.
+ *
+ * **A clinic is never created on a paid plan from sign-up.** The plan a coach
+ * picks in the wizard is stored as `intendedPlan` — intent for the manual
+ * fatura — and the clinic starts on `free` with a {@link TRIAL_DAYS}-day trial,
+ * which resolves to Solo limits while it runs (see `getPlanLimits`). Granting
+ * the picked plan outright is what handed out paid plans for free.
+ *
+ * `plan` stays available for the callers that legitimately set one directly —
+ * the seed and admin-created clinics — and skips the trial when passed.
  */
 export async function createClinicForOwner(
   db: DB,
-  input: { ownerUserId: string; name: string; plan?: Plan },
+  input: {
+    ownerUserId: string;
+    name: string;
+    plan?: Plan;
+    /** The wizard pick. Recorded, never granted. */
+    intendedPlan?: Plan;
+    /** Start a trial from this instant. Omit for no trial. */
+    trialFrom?: Date;
+  },
 ): Promise<Clinic> {
   const [clinic] = await db
     .insert(schema.clinic)
@@ -29,6 +47,8 @@ export async function createClinicForOwner(
       ownerUserId: input.ownerUserId,
       name: input.name,
       plan: input.plan ?? "free",
+      intendedPlan: input.intendedPlan ?? null,
+      trialEndsAt: input.trialFrom ? trialEndsAtFrom(input.trialFrom) : null,
     })
     .returning();
   return clinic;

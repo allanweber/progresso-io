@@ -75,6 +75,10 @@ export type AdminClinicRow = {
   id: string;
   name: string;
   plan: Plan;
+  /** The plan picked at sign-up. Intent only — never granted. */
+  intendedPlan: Plan | null;
+  /** End of the sign-up trial. Only in force while `plan` is still `free`. */
+  trialEndsAt: Date | null;
   ownerName: string | null;
   ownerEmail: string | null;
   coachCount: number;
@@ -93,6 +97,11 @@ export async function listAllClinics(db: DB): Promise<AdminClinicRow[]> {
       id: schema.clinic.id,
       name: schema.clinic.name,
       plan: schema.clinic.plan,
+      // Subscription context for the admin detail page: what the coach asked
+      // for at sign-up (so the manual fatura bills the right plan) and when the
+      // trial runs out (it is never a `plan`, so it can't be read from above).
+      intendedPlan: schema.clinic.intendedPlan,
+      trialEndsAt: schema.clinic.trialEndsAt,
       ownerName: schema.user.name,
       ownerEmail: schema.user.email,
       createdAt: schema.clinic.createdAt,
@@ -119,6 +128,11 @@ export async function getClinicAdminRow(
       id: schema.clinic.id,
       name: schema.clinic.name,
       plan: schema.clinic.plan,
+      // Subscription context for the admin detail page: what the coach asked
+      // for at sign-up (so the manual fatura bills the right plan) and when the
+      // trial runs out (it is never a `plan`, so it can't be read from above).
+      intendedPlan: schema.clinic.intendedPlan,
+      trialEndsAt: schema.clinic.trialEndsAt,
       ownerName: schema.user.name,
       ownerEmail: schema.user.email,
       createdAt: schema.clinic.createdAt,

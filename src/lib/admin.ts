@@ -36,6 +36,10 @@ export type AdminClinicDto = {
   id: string;
   name: string;
   plan: string;
+  /** The plan picked at sign-up — intent for the manual fatura, never granted. */
+  intendedPlan: string | null;
+  /** ISO end of the sign-up trial; only in force while `plan` is `free`. */
+  trialEndsAt: string | null;
   ownerName: string | null;
   ownerEmail: string | null;
   coachCount: number;

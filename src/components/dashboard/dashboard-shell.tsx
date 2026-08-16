@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -24,6 +25,8 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { apiFetch } from "@/lib/api-client";
+import { formatBRL, formatDateBR } from "@/lib/billing";
+import { formatTrialDaysLeft, type PlanUsageDto } from "@/lib/plans";
 import {
   Sheet,
   SheetClose,
@@ -133,6 +136,53 @@ export function DashboardShell({
     refetchOnWindowFocus: true,
   });
   const waWaitingCount = waWaiting?.count ?? 0;
+
+  // Billing state for the banner below the header: the trial countdown, and any
+  // fatura still owed. Collection is manual while the paywall waits on the CNPJ
+  // (roadmap item 0 Phase 1), so this is the coach's only in-app nudge to pay.
+  const { data: planUsage } = useQuery({
+    queryKey: ["coach-plan-usage"],
+    queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
+    enabled: user.role === "coach",
+    refetchOnWindowFocus: true,
+  });
+
+  // One banner at a time, worst news first: an overdue fatura outranks a
+  // pending one, which outranks anything about the trial. `null` = say nothing,
+  // which is the common case for a healthy paying clinic.
+  const billingNotice = (() => {
+    if (!planUsage) return null;
+    const { trial, openInvoice } = planUsage;
+    if (openInvoice?.overdue) {
+      return {
+        tone: "danger" as const,
+        title: `Fatura #${openInvoice.number} vencida.`,
+        body: `Venceu em ${formatDateBR(openInvoice.dueDate)} — ${formatBRL(openInvoice.totalCents)}. Regularize para manter os recursos do seu plano.`,
+      };
+    }
+    if (openInvoice) {
+      return {
+        tone: "warning" as const,
+        title: `Fatura #${openInvoice.number} em aberto.`,
+        body: `Vence em ${formatDateBR(openInvoice.dueDate)} — ${formatBRL(openInvoice.totalCents)}.`,
+      };
+    }
+    if (trial.expired) {
+      return {
+        tone: "danger" as const,
+        title: "Seu teste grátis terminou.",
+        body: "Você voltou ao plano Free (até 3 alunos). Seus alunos atuais continuam ativos — para cadastrar novos e liberar WhatsApp, Agenda e microsite, assine um plano.",
+      };
+    }
+    if (trial.active) {
+      return {
+        tone: "info" as const,
+        title: `Teste grátis — ${formatTrialDaysLeft(trial.daysLeft)}.`,
+        body: "Você está com os recursos do plano Solo (até 50 alunos, WhatsApp, Agenda e microsite). Assine para não perder o acesso quando o teste acabar.",
+      };
+    }
+    return null;
+  })();
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -265,6 +315,45 @@ export function DashboardShell({
             </button>
           </div>
         </header>
+
+        {billingNotice && (
+          <div
+            role="status"
+            data-testid="billing-banner"
+            data-tone={billingNotice.tone}
+            className={`flex flex-col gap-2.5 border-b px-6 py-3 text-[13px] sm:flex-row sm:items-center sm:justify-between print:hidden ${
+              billingNotice.tone === "danger"
+                ? "border-red-200 bg-red-50 text-red-800"
+                : billingNotice.tone === "warning"
+                  ? "border-amber-200 bg-amber-50 text-amber-800"
+                  : "border-sky-200 bg-sky-50 text-sky-800"
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              <AlertCircle
+                className={`mt-0.5 size-4 shrink-0 ${
+                  billingNotice.tone === "danger"
+                    ? "text-red-600"
+                    : billingNotice.tone === "warning"
+                      ? "text-amber-600"
+                      : "text-sky-600"
+                }`}
+              />
+              <p>
+                <span className="font-semibold">{billingNotice.title}</span>{" "}
+                {billingNotice.body}
+              </p>
+            </div>
+            {/* No self-serve checkout yet (roadmap item 0 Phase 2), so "Assinar"
+                reaches a human, who issues the fatura and sets the plan. */}
+            <Link
+              href="/contact"
+              className="shrink-0 self-start rounded-[10px] border-[1.5px] border-current px-3 py-1.5 font-medium transition-colors hover:bg-white/60 sm:self-auto"
+            >
+              Assinar
+            </Link>
+          </div>
+        )}
 
         <main className="flex-1 px-6 py-8 print:p-0">{children}</main>
         </div>

@@ -17,7 +17,7 @@ import {
 import { runCheckinReminders } from "@/server/whatsapp-automations";
 import type { TenantContext } from "@/server/tenant";
 
-import { createTestDb, type TestDb } from "./pglite";
+import { clearTrial, createTestDb, type TestDb } from "./pglite";
 
 /** The schema `Weekday` name for a `YYYY-MM-DD` (mirrors the automation). */
 function weekdayNameOf(ymd: string): Weekday {
@@ -56,6 +56,9 @@ async function ownerContext(
     .update(schema.clinic)
     .set({ plan })
     .where(eq(schema.clinic.id, user.clinicId!));
+  // These suites assert PLAN gates/caps, so drop the sign-up trial —
+  // otherwise a free clinic reads as Solo while it runs.
+  await clearTrial(db, user.clinicId!);
   return { db: h, clinicId: user.clinicId!, userId: user.id, role: "coach" };
 }
 

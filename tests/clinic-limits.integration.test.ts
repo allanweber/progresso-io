@@ -8,7 +8,7 @@ import { createAuth } from "@/lib/auth";
 import { admin, plans, students as studentsDal } from "@/server/dal";
 import type { TenantContext } from "@/server/tenant";
 
-import { createTestDb, type TestDb } from "./pglite";
+import { clearTrial, createTestDb, type TestDb } from "./pglite";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 
@@ -28,6 +28,9 @@ async function ownerContext(email: string, plan: schema.Plan): Promise<TenantCon
     .update(schema.clinic)
     .set({ plan })
     .where(eq(schema.clinic.id, user.clinicId!));
+  // These suites assert PLAN gates/caps, so drop the sign-up trial —
+  // otherwise a free clinic reads as Solo while it runs.
+  await clearTrial(db, user.clinicId!);
   return { db: h, clinicId: user.clinicId!, userId: user.id, role: "coach" };
 }
 
@@ -53,6 +56,11 @@ describe("per-clinic limit overrides", () => {
       whatsapp: true,
       archive: true,
       calendar: true,
+      // Trial cleared in the fixture, so the stored plan governs outright.
+      plan: "solo",
+      effectivePlan: "solo",
+      trialActive: false,
+      trialEndsAt: null,
     });
   });
 
@@ -77,6 +85,10 @@ describe("per-clinic limit overrides", () => {
       whatsapp: false, // forced off for this clinic
       archive: true, // inherited from plan
       calendar: true, // inherited from plan
+      plan: "solo",
+      effectivePlan: "solo",
+      trialActive: false,
+      trialEndsAt: null,
     });
   });
 

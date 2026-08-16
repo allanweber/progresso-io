@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 import { unaccent } from "@electric-sql/pglite/contrib/unaccent";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 
 import * as schema from "@/db/schema";
@@ -27,3 +28,19 @@ export async function createTestDb() {
 }
 
 export type TestDb = Awaited<ReturnType<typeof createTestDb>>;
+
+/**
+ * Clears the sign-up trial on a clinic, so its **stored plan** is what governs.
+ *
+ * Every clinic created through the real sign-up path gets the 14-day trial,
+ * which resolves to Solo limits while it runs (see `getPlanLimits`). Tests that
+ * assert plan gates and caps are about the plan, not the trial — they call this
+ * to put the clinic in the post-trial state. Trial behaviour itself is covered
+ * in `tests/trial.integration.test.ts`.
+ */
+export async function clearTrial(db: TestDb, clinicId: string) {
+  await db
+    .update(schema.clinic)
+    .set({ trialEndsAt: null })
+    .where(eq(schema.clinic.id, clinicId));
+}

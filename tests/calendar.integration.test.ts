@@ -10,7 +10,7 @@ import { calendarEvents, plans, students as studentsDal } from "@/server/dal";
 import { CalendarValidationError } from "@/server/dal/calendar-events";
 import type { TenantContext } from "@/server/tenant";
 
-import { createTestDb, type TestDb } from "./pglite";
+import { clearTrial, createTestDb, type TestDb } from "./pglite";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 
@@ -34,6 +34,9 @@ async function ownerContext(
     .update(schema.clinic)
     .set({ plan })
     .where(eq(schema.clinic.id, user.clinicId!));
+  // These suites assert PLAN gates/caps, so drop the sign-up trial —
+  // otherwise a free clinic reads as Solo while it runs.
+  await clearTrial(db, user.clinicId!);
   return { db: h, clinicId: user.clinicId!, userId: user.id, role: "coach" };
 }
 

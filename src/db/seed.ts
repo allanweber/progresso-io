@@ -693,6 +693,10 @@ async function seed() {
     .update(schema.clinic)
     .set({
       plan: "clinica",
+      // A paying clinic, so no trial: sign-up granted one, but the plan below
+      // supersedes it (a trial only applies while the plan is still `free`).
+      // Cleared anyway so the demo data says exactly what it means.
+      trialEndsAt: null,
       portalSubdomain: "studio-forja",
       headline: "Treinamento e nutrição personalizados",
       description:
@@ -1115,7 +1119,9 @@ async function seed() {
       .where(eq(schema.user.id, e2eOwner.id));
     await db
       .update(schema.clinic)
-      .set({ name: "Clínica Admin E2E", plan: "clinica" })
+      // Paid plan, so clear the trial sign-up granted — otherwise the clinic
+      // reads as "teste encerrado" on the admin page while being a payer.
+      .set({ name: "Clínica Admin E2E", plan: "clinica", trialEndsAt: null })
       .where(eq(schema.clinic.id, e2eClinic.id));
     await ensureClinicStarters(db, e2eClinic.id, e2eOwner.id);
     console.info("✓ seeded isolated admin-e2e clinic");

@@ -331,6 +331,17 @@ export const clinic = pgTable(
     // seed (see `ensureClinicStarters`); set to the completion time once all
     // starters are in. Read before seeding, so the run happens exactly once.
     startersSeededAt: timestamp("starters_seeded_at"),
+    // End of the 14-day trial granted at sign-up. While this is in the future
+    // AND `plan` is still `free`, the clinic resolves to **Solo** limits — see
+    // `getPlanLimits`. The trial is deliberately NOT a `plan` value: keeping the
+    // stored plan honest means `clinic_plan_change` stays an audit of real plan
+    // changes, and expiry is a date comparison that is correct even if no job
+    // ever runs (a cron only sends the "faltam N dias" nudge). NULL = no trial.
+    trialEndsAt: timestamp("trial_ends_at"),
+    // The plan the coach picked in the sign-up wizard. Recorded as *intent* only
+    // — it is never granted (that would hand out paid plans for free). Read when
+    // issuing the manual fatura so the right plan is billed. NULL = not asked.
+    intendedPlan: text("intended_plan").$type<Plan>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

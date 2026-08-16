@@ -195,9 +195,14 @@ export function createAuth({
               ownerUserId: u.id,
               name: `Clínica de ${firstName}`,
               // The plan the coach chose in the sign-up wizard, threaded in via
-              // `withSignUpPlan`. Undefined for invite-accept sign-ups (and any
-              // path that doesn't set it) → `createClinicForOwner` defaults free.
-              plan: signUpPlan.getStore(),
+              // `withSignUpPlan`. Recorded as INTENT only — never granted, or
+              // anyone could self-serve a paid plan for free. Undefined for
+              // invite-accept sign-ups and any path that doesn't set it.
+              intendedPlan: signUpPlan.getStore(),
+              // Every new clinic starts on free with the advertised 14-day
+              // trial ("14 dias grátis, sem cartão"), which resolves to Solo
+              // limits while it runs.
+              trialFrom: new Date(),
             });
             await attachUserToClinic(database, u.id, clinic.id);
             // Starter templates (anamneses + diets + workouts) are NOT seeded

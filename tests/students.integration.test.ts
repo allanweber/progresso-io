@@ -19,7 +19,7 @@ import {
   sendPortalInviteOnFirstPrescription,
 } from "@/server/onboarding";
 
-import { createTestDb, type TestDb } from "./pglite";
+import { clearTrial, createTestDb, type TestDb } from "./pglite";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
 process.env.ADMIN_EMAIL = "boss@example.com";
@@ -39,6 +39,9 @@ async function coachContext(email: string, name: string): Promise<TenantContext>
   // background on first sign-in. Seed the clinic's anamneses directly here (the
   // onboarding tests below need a starter anamnese to assign).
   await seedClinicAnamneses(db as unknown as DB, user.clinicId!, user.id);
+  // This suite asserts PLAN caps, so drop the sign-up trial — otherwise a free
+  // clinic reads as Solo (50) while it runs.
+  await clearTrial(db, user.clinicId!);
   return {
     db: db as unknown as DB,
     clinicId: user.clinicId!,
