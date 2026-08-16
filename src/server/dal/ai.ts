@@ -1,8 +1,10 @@
 import { and, count, desc, eq, gte, inArray } from "drizzle-orm";
 
-import type { AiGenerationKind } from "@/db/schema";
+import type { AiGenerationKind, Plan } from "@/db/schema";
+import type { DB } from "@/db";
 import { schema } from "@/db";
 import type { LlmUsage } from "@/lib/llm-provider";
+import { TRIAL_PLAN, isTrialActive, resolveAiGenerations } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -252,4 +254,187 @@ export async function listRecentGenerations(
     .where(eq(schema.aiGeneration.clinicId, ctx.clinicId))
     .orderBy(desc(schema.aiGeneration.createdAt))
     .limit(limit);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Platform-admin overview (cross-tenant)                                     */
+/* -------------------------------------------------------------------------- */
+
+/** One clinic's AI usage for the month, as the admin table lists it. */
+export type AdminAiTenantRow = {
+  clinicId: string;
+  name: string;
+  plan: Plan;
+  effectivePlan: Plan;
+  /** The clinic's effective monthly allowance. `null` = unlimited. */
+  limit: number | null;
+  /** Billed generations this month (pending + succeeded) — matches the gate. */
+  used: number;
+  succeeded: number;
+  failed: number;
+  /** Successful generations that needed the repair retry. */
+  repaired: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  /** Summed cost of the rows that carry one. `null` when none do. */
+  costMicroUsd: number | null;
+  /** Rows with no recorded cost — i.e. how incomplete the number above is. */
+  unpricedGenerations: number;
+};
+
+export type AdminAiOverview = {
+  /** First instant of the current São Paulo month, as an ISO string. */
+  monthStart: string;
+  tenants: AdminAiTenantRow[];
+  totals: {
+    generations: number;
+    succeeded: number;
+    failed: number;
+    repaired: number;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    costMicroUsd: number | null;
+    unpricedGenerations: number;
+    /** Clinics that have spent their whole allowance. */
+    clinicsAtLimit: number;
+  };
+};
+
+/**
+ * Every clinic's AI usage for the current month, for the platform-admin screen.
+ *
+ * This is the read that answers the two questions the pricing model only
+ * *assumes*: is 1/10/25 the right shape, and is the catalog prefix actually
+ * landing in the provider's cache. Both are unanswerable from the coach-facing
+ * counter, which shows one clinic its own total and nothing else.
+ *
+ * Admin-only and cross-tenant, so it takes a bare `DB` rather than a
+ * `TenantContext` — same shape as `whatsapp.getAdminOverview`.
+ *
+ * Cost is summed only over rows that carry one, and `unpricedGenerations`
+ * reports how many did not. A tariff configured halfway through a month, or not
+ * at all, otherwise reads as "these generations were free".
+ */
+export async function getAdminAiOverview(
+  db: DB,
+  now = new Date(),
+): Promise<AdminAiOverview> {
+  const since = monthStart(now);
+
+  const clinics = await db
+    .select({
+      id: schema.clinic.id,
+      name: schema.clinic.name,
+      plan: schema.clinic.plan,
+      trialEndsAt: schema.clinic.trialEndsAt,
+      override: schema.clinic.aiGenerationsOverride,
+    })
+    .from(schema.clinic);
+
+  // Both plan rows ride along, exactly as `getPlanLimits` does it, so a trialing
+  // clinic's allowance here is the same number its own screen shows.
+  const limitRows = await db
+    .select({
+      plan: schema.planLimit.plan,
+      aiGenerations: schema.planLimit.aiGenerations,
+    })
+    .from(schema.planLimit);
+  const limitByPlan = new Map(limitRows.map((r) => [r.plan, r]));
+
+  // One grouped pass over the month's rows; the per-status split is done in TS
+  // rather than in three more round-trips.
+  const rows = await db
+    .select({
+      clinicId: schema.aiGeneration.clinicId,
+      status: schema.aiGeneration.status,
+      repaired: schema.aiGeneration.repaired,
+      inputTokens: schema.aiGeneration.inputTokens,
+      cachedInputTokens: schema.aiGeneration.cachedInputTokens,
+      outputTokens: schema.aiGeneration.outputTokens,
+      costMicroUsd: schema.aiGeneration.costMicroUsd,
+    })
+    .from(schema.aiGeneration)
+    .where(gte(schema.aiGeneration.createdAt, since));
+
+  type Acc = Omit<AdminAiTenantRow, "clinicId" | "name" | "plan" | "effectivePlan" | "limit">;
+  const empty = (): Acc => ({
+    used: 0,
+    succeeded: 0,
+    failed: 0,
+    repaired: 0,
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    outputTokens: 0,
+    costMicroUsd: null,
+    unpricedGenerations: 0,
+  });
+
+  const byClinic = new Map<string, Acc>();
+  for (const row of rows) {
+    const acc = byClinic.get(row.clinicId) ?? empty();
+    const billed = (BILLED_STATUSES as readonly string[]).includes(row.status);
+    if (billed) acc.used += 1;
+    if (row.status === "succeeded") acc.succeeded += 1;
+    if (row.status === "failed") acc.failed += 1;
+    if (row.repaired) acc.repaired += 1;
+    acc.inputTokens += row.inputTokens ?? 0;
+    acc.cachedInputTokens += row.cachedInputTokens ?? 0;
+    acc.outputTokens += row.outputTokens ?? 0;
+    if (row.costMicroUsd === null) {
+      // Only settled rows are counted as unpriced: a `pending` row has not been
+      // costed *yet*, which is not the same as having no tariff.
+      if (row.status !== "pending") acc.unpricedGenerations += 1;
+    } else {
+      acc.costMicroUsd = (acc.costMicroUsd ?? 0) + row.costMicroUsd;
+    }
+    byClinic.set(row.clinicId, acc);
+  }
+
+  const tenants = clinics
+    .map((c) => {
+      const trialActive = isTrialActive(c.plan, c.trialEndsAt, now);
+      const effectivePlan = trialActive ? TRIAL_PLAN : c.plan;
+      const limitRow = limitByPlan.get(effectivePlan);
+      return {
+        clinicId: c.id,
+        name: c.name,
+        plan: c.plan,
+        effectivePlan,
+        limit: resolveAiGenerations({
+          override: c.override,
+          rowPresent: limitRow !== undefined,
+          rowValue: limitRow?.aiGenerations ?? null,
+          effectivePlan,
+        }),
+        ...(byClinic.get(c.id) ?? empty()),
+      };
+    })
+    .sort((a, b) => b.used - a.used || a.name.localeCompare(b.name, "pt-BR"));
+
+  const sum = (pick: (t: AdminAiTenantRow) => number) =>
+    tenants.reduce((s, t) => s + pick(t), 0);
+  const priced = tenants.filter((t) => t.costMicroUsd !== null);
+
+  return {
+    monthStart: since.toISOString(),
+    tenants,
+    totals: {
+      generations: sum((t) => t.used),
+      succeeded: sum((t) => t.succeeded),
+      failed: sum((t) => t.failed),
+      repaired: sum((t) => t.repaired),
+      inputTokens: sum((t) => t.inputTokens),
+      cachedInputTokens: sum((t) => t.cachedInputTokens),
+      outputTokens: sum((t) => t.outputTokens),
+      costMicroUsd: priced.length
+        ? priced.reduce((s, t) => s + (t.costMicroUsd ?? 0), 0)
+        : null,
+      unpricedGenerations: sum((t) => t.unpricedGenerations),
+      clinicsAtLimit: tenants.filter(
+        (t) => t.limit !== null && t.used >= t.limit,
+      ).length,
+    },
+  };
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { aiGenerateSchema, formatAiUsage } from "@/lib/ai-programs";
+import {
+  aiGenerateSchema,
+  cacheHitRatio,
+  formatAiUsage,
+  formatCacheHitRatio,
+  formatMicroUsd,
+} from "@/lib/ai-programs";
+import { resolveAiGenerations } from "@/lib/plans";
 import { costMicroUsdFor } from "@/lib/llm-provider";
 import { resolveIndices, type CatalogBlock } from "@/server/ai/catalog";
 import {
@@ -251,5 +258,75 @@ describe("formatAiUsage", () => {
 
   it("omits the cap when unlimited", () => {
     expect(formatAiUsage(4, null)).toBe("4 gerações usadas este mês");
+  });
+});
+
+describe("cacheHitRatio", () => {
+  it("is the cached share of all input tokens", () => {
+    expect(cacheHitRatio(1_000, 9_000)).toBeCloseTo(0.9);
+  });
+
+  it("is null when nothing was measured — not 0", () => {
+    // 0 would render as "0%", which reads as "the cache is broken" on a screen
+    // that has simply never seen a generation.
+    expect(cacheHitRatio(0, 0)).toBeNull();
+    expect(formatCacheHitRatio(cacheHitRatio(0, 0))).toBe("—");
+  });
+
+  it("is 0 when every input token was billed fresh", () => {
+    expect(cacheHitRatio(16_000, 0)).toBe(0);
+    expect(formatCacheHitRatio(0)).toBe("0%");
+  });
+});
+
+describe("formatMicroUsd", () => {
+  it("keeps a single cheap generation visible instead of rounding to zero", () => {
+    // 690 µUSD is a real generation; two decimals would show "US$ 0,00".
+    expect(formatMicroUsd(690)).toBe("US$ 0,000690");
+  });
+
+  it("drops precision as the amount grows", () => {
+    expect(formatMicroUsd(50_000)).toBe("US$ 0,0500");
+    expect(formatMicroUsd(2_500_000)).toBe("US$ 2,50");
+  });
+
+  it("shows an em dash when no cost was recorded", () => {
+    expect(formatMicroUsd(null)).toBe("—");
+  });
+});
+
+describe("resolveAiGenerations", () => {
+  const base = { override: null, rowPresent: true, rowValue: 10, effectivePlan: "solo" } as const;
+
+  it("prefers a per-clinic override over the plan", () => {
+    expect(resolveAiGenerations({ ...base, override: 3 })).toBe(3);
+  });
+
+  it("treats an override of 0 as a real cap, not as 'unset'", () => {
+    expect(resolveAiGenerations({ ...base, override: 0 })).toBe(0);
+  });
+
+  it("reads a present row with a NULL value as unlimited", () => {
+    expect(
+      resolveAiGenerations({
+        override: null,
+        rowPresent: true,
+        rowValue: null,
+        effectivePlan: "enterprise",
+      }),
+    ).toBeNull();
+  });
+
+  it("falls back to the coded default when the row is missing", () => {
+    // Not to unlimited: every generation is a paid model call, so a missing
+    // plan_limit row must not hand out uncapped credits.
+    expect(
+      resolveAiGenerations({
+        override: null,
+        rowPresent: false,
+        rowValue: null,
+        effectivePlan: "free",
+      }),
+    ).toBe(1);
   });
 });

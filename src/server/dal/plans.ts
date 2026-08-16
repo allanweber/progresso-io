@@ -4,10 +4,11 @@ import { alias } from "drizzle-orm/pg-core";
 import type { Plan } from "@/db/schema";
 import { schema } from "@/db";
 import {
-  PLAN_DEFAULT_AI_GENERATIONS,
   PLAN_DEFAULT_ARCHIVE,
   PLAN_DEFAULT_CALENDAR,
   TRIAL_PLAN,
+  isTrialActive,
+  resolveAiGenerations,
 } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
@@ -56,11 +57,6 @@ export type PlanLimits = {
  * serve either — which one applies is decided below, in plain TypeScript.
  */
 const trialLimit = alias(schema.planLimit, "trial_limit");
-
-/** A trial applies only to a clinic still on `free`, and only until it ends. */
-function isTrialActive(plan: Plan, trialEndsAt: Date | null, now: Date) {
-  return plan === "free" && trialEndsAt !== null && trialEndsAt > now;
-}
 
 /**
  * The current clinic's effective plan capabilities: the plan defaults
@@ -141,22 +137,19 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
   const archiveFallback = row ? PLAN_DEFAULT_ARCHIVE[effectivePlan] : true;
   const calendarFallback = row ? PLAN_DEFAULT_CALENDAR[effectivePlan] : true;
 
-  // AI credits invert the "a missing limit must never block" rule on purpose:
-  // every generation is a paid model call, so an absent `plan_limit` row falls
-  // back to the plan's coded default rather than to unlimited. Only a row that
-  // genuinely says NULL (Enterprise) means unlimited — which is why `present`
-  // has to be checked instead of just `??`-ing through a null.
-  const aiFromPlan = limit.present
-    ? limit.aiGenerations
-    : PLAN_DEFAULT_AI_GENERATIONS[effectivePlan];
-
   return {
     maxStudents: row?.overStudents ?? limit.maxStudents ?? null,
     maxCoaches: row?.overCoaches ?? limit.maxCoaches ?? null,
     whatsapp: row?.overWhatsapp ?? limit.whatsapp ?? true,
     archive: row?.overArchive ?? limit.archive ?? archiveFallback,
     calendar: row?.overCalendar ?? limit.calendar ?? calendarFallback,
-    aiGenerations: row?.overAiGenerations ?? aiFromPlan,
+    // Shared with the cross-tenant admin sweep — see `resolveAiGenerations`.
+    aiGenerations: resolveAiGenerations({
+      override: row?.overAiGenerations ?? null,
+      rowPresent: limit.present,
+      rowValue: limit.aiGenerations,
+      effectivePlan,
+    }),
     plan,
     effectivePlan,
     trialActive,

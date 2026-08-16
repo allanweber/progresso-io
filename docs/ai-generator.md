@@ -21,7 +21,8 @@ draft** the coach reviews and edits before anything reaches the aluno.
 | Quota + audit lifecycle | `src/server/dal/ai.ts` |
 | Routes | `POST /api/students/[id]/{workout,diet}/generate` |
 | UI | `src/components/ai/ai-generate-button.tsx` |
-| Tests | `tests/ai-generator{,.integration}.test.ts`, `e2e/ai-generator.spec.ts` |
+| Admin overview (cross-tenant) | `ai.getAdminAiOverview`, `GET /api/admin/ai`, `src/app/admin/ai/page.tsx` |
+| Tests | `tests/ai-generator{,.integration}.test.ts`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
 
 Three traps worth knowing about, all found by tests during the build:
 
@@ -234,7 +235,35 @@ Both the quota meter and the cost ledger. Per row: `clinicId` (tenant key),
   the hash changed, and you can see whether it was a seed, an admin edit, or a
   code change.
 - It is also the only thing that can ever check `docs/monetization.md` §7 against
-  reality rather than assumption.
+  reality rather than assumption — which is what `/admin/ai` reads.
+
+## `/admin/ai` — the read that closes the loop
+
+The audit row shipped write-only, which made the two claims the feature rests on
+uncheckable. This screen is the read side.
+
+| KPI | The claim it tests |
+| --- | --- |
+| **Taxa de cache** | The base-only catalog keeps the prompt prefix byte-identical, so it stays in the provider's cache. A ratio that sits low means the prefix is moving between calls — nothing else would say so. |
+| **Gerações vs. limite** (per clinic) | 1/10/25 is the right shape. Clinics pinned at the cap say it's stingy; a platform of 2-a-month coaches says it's generous. |
+| **Custo no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, built on ↯ prices and a guessed token count. |
+| **Reparos / falhas** | The prompt still produces schema-valid JSON. A rising repair count is drift, and each repair is a second paid round-trip. |
+
+Three details that are not incidental:
+
+- **A partial cost total is labelled `parcial`, never silently summed.** A tariff
+  configured halfway through a month leaves earlier rows at `NULL`; adding them
+  as zero would under-report the bill by exactly the amount you can't see.
+  `unpricedGenerations` counts them. A `pending` row is excluded — it hasn't been
+  costed *yet*, which is not the same as having run with no tariff.
+- **`configured` rides along on the response.** An all-zero table means either
+  "nobody generated anything" or "the feature was never switched on", and the
+  admin needs to know which.
+- **The allowance shown is resolved by the same code the coach's own counter
+  uses** (`resolveAiGenerations` in `src/lib/plans.ts`, shared with
+  `getPlanLimits`). An admin screen that disagreed with the coach's credit line
+  would be worse than no screen — including the trial case, where a `free` clinic
+  gets Solo's 10 and the row says so.
 
 ## Smaller decisions
 

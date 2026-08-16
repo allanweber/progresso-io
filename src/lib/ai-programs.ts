@@ -108,3 +108,89 @@ export function formatAiUsage(used: number, limit: number | null): string {
     ? `${used} ${plural} este mês`
     : `${used} de ${limit} ${plural} este mês`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Platform-admin overview                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One clinic's month of AI usage, as `/admin/ai` lists it. Mirrors
+ * `AdminAiTenantRow` in the DAL with dates already serialised.
+ */
+export type AdminAiTenantDto = {
+  clinicId: string;
+  name: string;
+  plan: string;
+  effectivePlan: string;
+  limit: number | null;
+  used: number;
+  succeeded: number;
+  failed: number;
+  repaired: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  costMicroUsd: number | null;
+  unpricedGenerations: number;
+};
+
+export type AdminAiOverviewDto = {
+  /** Whether an LLM is configured at all — an empty table means two things. */
+  configured: boolean;
+  monthStart: string;
+  tenants: AdminAiTenantDto[];
+  totals: {
+    generations: number;
+    succeeded: number;
+    failed: number;
+    repaired: number;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    costMicroUsd: number | null;
+    unpricedGenerations: number;
+    clinicsAtLimit: number;
+  };
+};
+
+/**
+ * Share of input tokens served from the provider's prompt cache, 0–1, or `null`
+ * when no input tokens were recorded at all.
+ *
+ * This is the number the whole base-only catalog design exists to move: the
+ * prefix is byte-identical across clinics precisely so this sits near 1. A
+ * ratio that stays low means the prefix is changing between calls — the design
+ * is not working and nothing else would say so.
+ */
+export function cacheHitRatio(
+  inputTokens: number,
+  cachedInputTokens: number,
+): number | null {
+  const total = inputTokens + cachedInputTokens;
+  return total === 0 ? null : cachedInputTokens / total;
+}
+
+/** "87%" — or "—" when there is nothing to divide. */
+export function formatCacheHitRatio(ratio: number | null): string {
+  return ratio === null ? "—" : `${Math.round(ratio * 100)}%`;
+}
+
+/**
+ * Micro-USD as money. Generations cost fractions of a cent, so a fixed 2-decimal
+ * format would render every real figure as "US$ 0,00"; the precision follows the
+ * magnitude instead, down to 6 decimals for a single cheap call.
+ */
+export function formatMicroUsd(micro: number | null): string {
+  if (micro === null) return "—";
+  const usd = micro / 1_000_000;
+  const digits = usd >= 1 ? 2 : usd >= 0.01 ? 4 : 6;
+  return `US$ ${usd.toLocaleString("pt-BR", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}`;
+}
+
+/** "12.345" — thousands separated, for the token columns. */
+export function formatTokens(n: number): string {
+  return n.toLocaleString("pt-BR");
+}

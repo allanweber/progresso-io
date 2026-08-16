@@ -99,6 +99,43 @@ export const PLAN_DEFAULT_AI_GENERATIONS: Record<Plan, number | null> = {
 export const TRIAL_DAYS = 14;
 export const TRIAL_PLAN = "solo" satisfies Plan;
 
+/**
+ * A trial applies only to a clinic still on `free`, and only until it ends.
+ *
+ * Pure so both the per-tenant lookup (`getPlanLimits`) and the cross-tenant
+ * admin sweep decide it identically — an admin screen that disagreed with the
+ * coach's own credit counter would be worse than no screen.
+ */
+export function isTrialActive(
+  plan: Plan,
+  trialEndsAt: Date | null,
+  now: Date,
+): boolean {
+  return plan === "free" && trialEndsAt !== null && trialEndsAt > now;
+}
+
+/**
+ * The effective AI allowance for one clinic: per-clinic override wins, else the
+ * `plan_limit` row, else the plan's coded default. `null` = unlimited.
+ *
+ * `rowPresent` is not redundant with `rowValue`: `ai_generations` is nullable on
+ * purpose (Enterprise is uncapped), so a null value alone cannot tell
+ * "unlimited" from "no row at all". Absent a row this falls back to the coded
+ * default rather than to unlimited — every generation is a paid model call, so
+ * this one inverts the usual "a missing limit must never block" rule.
+ */
+export function resolveAiGenerations(args: {
+  override: number | null;
+  rowPresent: boolean;
+  rowValue: number | null;
+  effectivePlan: Plan;
+}): number | null {
+  if (args.override !== null) return args.override;
+  return args.rowPresent
+    ? args.rowValue
+    : PLAN_DEFAULT_AI_GENERATIONS[args.effectivePlan];
+}
+
 /** The end of a trial starting now — used when a clinic is created. */
 export function trialEndsAtFrom(start: Date): Date {
   const end = new Date(start);

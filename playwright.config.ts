@@ -128,7 +128,7 @@ export default defineConfig({
     },
     {
       name: "admin",
-      testMatch: /admin-(maintenance|admins|billing|whatsapp)\.spec\.ts/,
+      testMatch: /admin-(maintenance|admins|billing|whatsapp|ai)\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

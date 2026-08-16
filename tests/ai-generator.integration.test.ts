@@ -395,3 +395,151 @@ describe("catalog block", () => {
     expect(after.hash).not.toBe(before.hash);
   });
 });
+
+describe("getAdminAiOverview", () => {
+  /** Writes a settled row with usage numbers on it. */
+  async function addPriced(
+    ctx: TenantContext,
+    studentId: string,
+    usage: {
+      status: schema.AiGenerationStatus;
+      inputTokens?: number;
+      cachedInputTokens?: number;
+      outputTokens?: number;
+      costMicroUsd?: number | null;
+      repaired?: boolean;
+    },
+  ) {
+    await db.insert(schema.aiGeneration).values({
+      clinicId: ctx.clinicId,
+      studentId,
+      kind: "diet",
+      status: usage.status,
+      provider: "test",
+      model: "test-model",
+      inputTokens: usage.inputTokens ?? null,
+      cachedInputTokens: usage.cachedInputTokens ?? null,
+      outputTokens: usage.outputTokens ?? null,
+      costMicroUsd: usage.costMicroUsd ?? null,
+      repaired: usage.repaired ?? false,
+    });
+  }
+
+  /** A clinic with no history at all still has to appear, with zeroes. */
+  it("lists every clinic, including ones that have never generated", async () => {
+    const { ctx } = await makeClinic("quiet", "free");
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId);
+    expect(row).toBeDefined();
+    expect(row).toMatchObject({ used: 0, succeeded: 0, costMicroUsd: null });
+    // Free's coded default, not "unlimited" — an absent number here would read
+    // as an uncapped clinic on the screen.
+    expect(row!.limit).toBe(1);
+  });
+
+  it("keeps each clinic's usage to itself", async () => {
+    const a = await makeClinic("iso-a", "clinica");
+    const b = await makeClinic("iso-b", "clinica");
+    await addPriced(a.ctx, a.studentId, {
+      status: "succeeded",
+      inputTokens: 1_000,
+      cachedInputTokens: 9_000,
+      outputTokens: 3_000,
+      costMicroUsd: 447,
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const rowA = overview.tenants.find((t) => t.clinicId === a.ctx.clinicId)!;
+    const rowB = overview.tenants.find((t) => t.clinicId === b.ctx.clinicId)!;
+    expect(rowA).toMatchObject({
+      used: 1,
+      succeeded: 1,
+      inputTokens: 1_000,
+      cachedInputTokens: 9_000,
+      outputTokens: 3_000,
+      costMicroUsd: 447,
+    });
+    expect(rowB).toMatchObject({ used: 0, costMicroUsd: null });
+  });
+
+  it("counts pending as billed and failed as free — matching the gate", async () => {
+    const { ctx, studentId } = await makeClinic("mix", "clinica");
+    await addPriced(ctx, studentId, { status: "succeeded" });
+    await addPriced(ctx, studentId, { status: "pending" });
+    await addPriced(ctx, studentId, { status: "failed" });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    // `used` must agree with `countGenerationsThisMonth`, or the admin screen
+    // and the coach's own counter would tell different stories.
+    expect(row.used).toBe(2);
+    expect(row.succeeded).toBe(1);
+    expect(row.failed).toBe(1);
+    expect(row.used).toBe(await ai.countGenerationsThisMonth(ctx));
+  });
+
+  it("reports how much of a cost total is missing rather than under-stating it", async () => {
+    const { ctx, studentId } = await makeClinic("partial", "clinica");
+    await addPriced(ctx, studentId, { status: "succeeded", costMicroUsd: 500 });
+    await addPriced(ctx, studentId, { status: "succeeded", costMicroUsd: null });
+    // A pending row has not been costed *yet*; that is not the same as having
+    // run with no tariff, so it must not inflate the "missing" count.
+    await addPriced(ctx, studentId, { status: "pending", costMicroUsd: null });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(row.costMicroUsd).toBe(500);
+    expect(row.unpricedGenerations).toBe(1);
+  });
+
+  it("ignores rows from before the current month", async () => {
+    const { ctx, studentId } = await makeClinic("lastmonth", "clinica");
+    const before = new Date(monthStart(new Date()).getTime() - 60_000);
+    await addGeneration(ctx, studentId, "succeeded", before);
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(row.used).toBe(0);
+  });
+
+  it("gives a trialing free clinic the trial plan's allowance", async () => {
+    const email = "trialing@example.com";
+    await auth.api.signUpEmail({
+      body: { name: "trialing", email, password: "supersegura123" },
+    });
+    const [user] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, email));
+    // Sign-up leaves the clinic on `free` with a live trial — deliberately NOT
+    // cleared here, unlike every other fixture in this file.
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === user.clinicId)!;
+    expect(row.plan).toBe("free");
+    expect(row.effectivePlan).toBe("solo");
+    expect(row.limit).toBe(10); // Solo's, not Free's 1
+  });
+
+  it("flags clinics that have spent their whole allowance", async () => {
+    const { ctx, studentId } = await makeClinic("capped", "free");
+    const beforeCount = (await ai.getAdminAiOverview(h)).totals.clinicsAtLimit;
+    await addPriced(ctx, studentId, { status: "succeeded" }); // Free = 1
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(row.used).toBe(1);
+    expect(row.limit).toBe(1);
+    expect(overview.totals.clinicsAtLimit).toBe(beforeCount + 1);
+  });
+
+  it("totals agree with the sum of the rows", async () => {
+    const overview = await ai.getAdminAiOverview(h);
+    const sum = (pick: (t: (typeof overview.tenants)[number]) => number) =>
+      overview.tenants.reduce((s, t) => s + pick(t), 0);
+    expect(overview.totals.generations).toBe(sum((t) => t.used));
+    expect(overview.totals.outputTokens).toBe(sum((t) => t.outputTokens));
+    expect(overview.totals.unpricedGenerations).toBe(
+      sum((t) => t.unpricedGenerations),
+    );
+  });
+});

@@ -1108,6 +1108,96 @@ async function seed() {
     }
   }
 
+  // Demo AI generations, so /admin/ai has something to show. Deliberately mixed:
+  // one cold call (no cache hit) then warm ones, a failure, and one row with no
+  // recorded cost — the "parcial" case the screen has to be honest about.
+  const existingAiGenerations = await db
+    .select({ id: schema.aiGeneration.id })
+    .from(schema.aiGeneration)
+    .where(eq(schema.aiGeneration.clinicId, coachClinic.id))
+    .limit(1);
+  if (existingAiGenerations.length === 0) {
+    // Clamped into the current São Paulo month: the screen only counts rows
+    // since the 1st, so a seed run on the 1st would otherwise back-date every
+    // row out of view and show an empty table.
+    const { monthStart } = await import("@/server/dal/ai");
+    const floor = monthStart(new Date()).getTime() + 60_000;
+    const minutesAgo = (m: number) =>
+      new Date(Math.max(Date.now() - m * 60_000, floor));
+    await db.insert(schema.aiGeneration).values([
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "workout",
+        status: "succeeded",
+        provider: "openai-compatible",
+        model: "seed-demo",
+        // Cold: the whole catalog prefix was billed as fresh input.
+        inputTokens: 16_400,
+        cachedInputTokens: 0,
+        outputTokens: 2_900,
+        costMicroUsd: 869,
+        durationMs: 11_200,
+        repaired: false,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 26),
+      },
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "diet",
+        status: "succeeded",
+        provider: "openai-compatible",
+        model: "seed-demo",
+        // Warm: the identical prefix came back from the provider's cache.
+        inputTokens: 820,
+        cachedInputTokens: 15_600,
+        outputTokens: 3_400,
+        costMicroUsd: 537,
+        durationMs: 8_100,
+        repaired: true,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 20),
+      },
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "workout",
+        status: "failed",
+        provider: "openai-compatible",
+        model: "seed-demo",
+        errorCode: "invalid_json",
+        durationMs: 4_300,
+        repaired: false,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 5),
+      },
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "diet",
+        status: "succeeded",
+        provider: "openai-compatible",
+        model: "seed-demo",
+        inputTokens: 790,
+        cachedInputTokens: 15_600,
+        outputTokens: 3_050,
+        // No tariff was configured when this one ran → the screen must show the
+        // clinic's cost as "parcial" rather than quietly under-reporting it.
+        costMicroUsd: null,
+        durationMs: 7_600,
+        repaired: false,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 2),
+      },
+    ]);
+    console.info("✓ seeded demo AI generations (cold, cached, failed, unpriced)");
+  }
+
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec
   // deletes/imports anamneses here, so it must never touch the demo coach's
   // clinic that the coach/student specs read. We rename it and seed its starter
