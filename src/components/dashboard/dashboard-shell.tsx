@@ -25,7 +25,9 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { apiFetch } from "@/lib/api-client";
-import { formatBRL, formatDateBR } from "@/lib/billing";
+// Deliberately from @/lib/format, NOT @/lib/billing: this shell renders on every
+// coach + admin page, and billing pulls in zod, which would land in all of them.
+import { formatBRL, formatDateBR } from "@/lib/format";
 import { formatTrialDaysLeft, type PlanUsageDto } from "@/lib/plans";
 import {
   Sheet,

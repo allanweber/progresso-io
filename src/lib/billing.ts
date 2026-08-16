@@ -1,6 +1,10 @@
 import type { InvoiceStatus, PaymentMethod, Plan } from "@/db/schema";
 import { z } from "@/lib/validation";
 
+// Pure formatters live in a zod-free module so client components can import
+// them without pulling zod in; re-exported here for existing callers.
+export { formatBRL, formatDateBR } from "@/lib/format";
+
 /**
  * Client-safe billing domain: enum values + PT-BR labels, money/date helpers,
  * the zod schemas the admin billing API validates, and the DTOs the admin +
@@ -61,12 +65,7 @@ export const PLAN_PRICE_CENTS: Record<Plan, number | null> = {
 /* -------------------------------------------------------------------------- */
 
 /** Formats BRL cents as "R$ 1.234,56". */
-export function formatBRL(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -81,11 +80,7 @@ export function formatCompetencia(iso: string): string {
 }
 
 /** "2026-03-09" → "09/03/2026" (or "—" when null). */
-export function formatDateBR(iso: string | null): string {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
-}
+
 
 /** Subtotal + total (BRL cents). Total floors at 0 after the discount. */
 export function invoiceTotals(
