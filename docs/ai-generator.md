@@ -4,9 +4,33 @@ Growth-roadmap **item 1**. Coach picks goal + anamnese → the AI drafts a full
 workout or diet from the platform's own catalog, saved as an **unpublished
 draft** the coach reviews and edits before anything reaches the aluno.
 
-**Status: designed, not implemented.** This file records every settled decision
-so the build doesn't re-litigate them. Costs and provider research live in
+**Status: implemented (migration `0031`).** Costs and provider research live in
 `docs/ai-provider-costs.md`.
+
+## Where the code is
+
+| Piece | File |
+| --- | --- |
+| Provider port + dev impl + cost freeze | `src/lib/llm-provider.ts` |
+| Client-safe form contract + labels | `src/lib/ai-programs.ts` |
+| Catalog block (the cacheable prefix) | `src/server/ai/catalog.ts` |
+| PT-BR prompts + repair turn | `src/server/ai/prompts.ts` |
+| JSON Schema + zod contracts | `src/server/ai/schemas.ts` |
+| Orchestration (quota → model → validate → draft) | `src/server/ai/generate.ts` |
+| Shared route body (gates, statuses, copy) | `src/server/ai/route-handler.ts` |
+| Quota + audit lifecycle | `src/server/dal/ai.ts` |
+| Routes | `POST /api/students/[id]/{workout,diet}/generate` |
+| UI | `src/components/ai/ai-generate-button.tsx` |
+
+Two traps worth knowing about, both found by tests during the build:
+
+- **`plan_limit.ai_generations` must be spelled out wherever the table is
+  seeded** — `src/db/seed.ts` and two integration fixtures all wipe and re-insert
+  it. A row that *exists* with a NULL there reads as **unlimited**, so omitting
+  the column silently hands every Free clinic uncapped model calls.
+- **An unset tariff must parse as `null`, not `0`.** `Number("")` is `0`, so the
+  naive parse recorded every generation at cost zero — indistinguishable from
+  "AI is free" in the ledger.
 
 ---
 

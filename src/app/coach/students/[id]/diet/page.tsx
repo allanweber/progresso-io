@@ -14,6 +14,7 @@ import {
   DietBuilder,
   type DietBuilderPayload,
 } from "@/components/diets/diet-builder";
+import { AiGenerateButton } from "@/components/ai/ai-generate-button";
 import { StudentTabs } from "@/components/students/student-tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -254,6 +255,13 @@ export default function StudentDietPage() {
             >
               {discardDraftMut.isPending ? "Descartando…" : "Descartar rascunho"}
             </Button>
+            <AiGenerateButton
+              studentId={id}
+              kind="diet"
+              hasDraft
+              defaultObjective={student.data?.goal}
+              onGenerated={invalidate}
+            />
           </div>
         </div>
       ) : (
@@ -271,6 +279,13 @@ export default function StudentDietPage() {
               <FileText className="size-4" />
               Atribuir da minha lista
             </Button>
+            <AiGenerateButton
+              studentId={id}
+              kind="diet"
+              hasDraft={false}
+              defaultObjective={student.data?.goal}
+              onGenerated={invalidate}
+            />
           </div>
         </div>
       )}

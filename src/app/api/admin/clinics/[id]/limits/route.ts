@@ -5,7 +5,12 @@ import {
   type AdminClinicLimitsDto,
   clinicLimitsUpdateSchema,
 } from "@/lib/admin";
-import { PLAN_DEFAULT_ARCHIVE, PLAN_DEFAULT_CALENDAR, PLAN_META } from "@/lib/plans";
+import {
+  PLAN_DEFAULT_AI_GENERATIONS,
+  PLAN_DEFAULT_ARCHIVE,
+  PLAN_DEFAULT_CALENDAR,
+  PLAN_META,
+} from "@/lib/plans";
 import { admin } from "@/server/dal";
 import {
   forbidden,
@@ -52,11 +57,14 @@ export const PUT = withRoute<Params>(
       planWhatsapp: row.planWhatsapp ?? true,
       planArchive: row.planArchive ?? PLAN_DEFAULT_ARCHIVE[row.plan],
       planCalendar: row.planCalendar ?? PLAN_DEFAULT_CALENDAR[row.plan],
+      planAiGenerations:
+        row.planAiGenerations ?? PLAN_DEFAULT_AI_GENERATIONS[row.plan],
       maxStudentsOverride: row.maxStudentsOverride,
       maxCoachesOverride: row.maxCoachesOverride,
       whatsappOverride: row.whatsappOverride,
       archiveOverride: row.archiveOverride,
       calendarOverride: row.calendarOverride,
+      aiGenerationsOverride: row.aiGenerationsOverride,
     };
     return NextResponse.json({ limits });
   },

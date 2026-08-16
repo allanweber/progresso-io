@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/pg-core";
 import type { Plan } from "@/db/schema";
 import { schema } from "@/db";
 import {
+  PLAN_DEFAULT_AI_GENERATIONS,
   PLAN_DEFAULT_ARCHIVE,
   PLAN_DEFAULT_CALENDAR,
   TRIAL_PLAN,
@@ -38,6 +39,8 @@ export type PlanLimits = {
   archive: boolean;
   /** Whether the plan may use the coach Calendar/Agenda (Free excluded). */
   calendar: boolean;
+  /** AI program generations per calendar month. `null` = unlimited. */
+  aiGenerations: number | null;
   /** The clinic's stored plan — what it actually pays for. */
   plan: Plan;
   /** The plan these limits came from: `TRIAL_PLAN` while a trial is running. */
@@ -72,21 +75,31 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
     .select({
       plan: schema.clinic.plan,
       trialEndsAt: schema.clinic.trialEndsAt,
+      // Presence markers for the two joined limit rows. The boolean
+      // capabilities are NOT NULL, so a null there already means "no row";
+      // `aiGenerations` is nullable on purpose (Enterprise = unlimited), so a
+      // null value alone cannot tell "unlimited" from "row missing". The
+      // primary key can.
+      planRowPresent: schema.planLimit.plan,
+      trialRowPresent: trialLimit.plan,
       planMaxStudents: schema.planLimit.maxStudents,
       planMaxCoaches: schema.planLimit.maxCoaches,
       planWhatsapp: schema.planLimit.whatsapp,
       planArchive: schema.planLimit.archive,
       planCalendar: schema.planLimit.calendar,
+      planAiGenerations: schema.planLimit.aiGenerations,
       trialMaxStudents: trialLimit.maxStudents,
       trialMaxCoaches: trialLimit.maxCoaches,
       trialWhatsapp: trialLimit.whatsapp,
       trialArchive: trialLimit.archive,
       trialCalendar: trialLimit.calendar,
+      trialAiGenerations: trialLimit.aiGenerations,
       overStudents: schema.clinic.maxStudentsOverride,
       overCoaches: schema.clinic.maxCoachesOverride,
       overWhatsapp: schema.clinic.whatsappOverride,
       overArchive: schema.clinic.archiveOverride,
       overCalendar: schema.clinic.calendarOverride,
+      overAiGenerations: schema.clinic.aiGenerationsOverride,
     })
     .from(schema.clinic)
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
@@ -105,6 +118,8 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
   // admin who capped a clinic meant it, trial or not.
   const limit = trialActive
     ? {
+        present: row?.trialRowPresent != null,
+        aiGenerations: row?.trialAiGenerations ?? null,
         maxStudents: row?.trialMaxStudents,
         maxCoaches: row?.trialMaxCoaches,
         whatsapp: row?.trialWhatsapp,
@@ -112,6 +127,8 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
         calendar: row?.trialCalendar,
       }
     : {
+        present: row?.planRowPresent != null,
+        aiGenerations: row?.planAiGenerations ?? null,
         maxStudents: row?.planMaxStudents,
         maxCoaches: row?.planMaxCoaches,
         whatsapp: row?.planWhatsapp,
@@ -124,12 +141,22 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
   const archiveFallback = row ? PLAN_DEFAULT_ARCHIVE[effectivePlan] : true;
   const calendarFallback = row ? PLAN_DEFAULT_CALENDAR[effectivePlan] : true;
 
+  // AI credits invert the "a missing limit must never block" rule on purpose:
+  // every generation is a paid model call, so an absent `plan_limit` row falls
+  // back to the plan's coded default rather than to unlimited. Only a row that
+  // genuinely says NULL (Enterprise) means unlimited — which is why `present`
+  // has to be checked instead of just `??`-ing through a null.
+  const aiFromPlan = limit.present
+    ? limit.aiGenerations
+    : PLAN_DEFAULT_AI_GENERATIONS[effectivePlan];
+
   return {
     maxStudents: row?.overStudents ?? limit.maxStudents ?? null,
     maxCoaches: row?.overCoaches ?? limit.maxCoaches ?? null,
     whatsapp: row?.overWhatsapp ?? limit.whatsapp ?? true,
     archive: row?.overArchive ?? limit.archive ?? archiveFallback,
     calendar: row?.overCalendar ?? limit.calendar ?? calendarFallback,
+    aiGenerations: row?.overAiGenerations ?? aiFromPlan,
     plan,
     effectivePlan,
     trialActive,
@@ -173,4 +200,19 @@ export async function canArchiveStudents(ctx: TenantContext): Promise<boolean> {
  */
 export async function canUseCalendar(ctx: TenantContext): Promise<boolean> {
   return (await getPlanLimits(ctx)).calendar;
+}
+
+/**
+ * The clinic's AI generations per calendar month. `null` = unlimited.
+ *
+ * Note this is a *quota*, not a capability: every plan including Free gets some,
+ * so there is no `canUseAiGenerator` boolean — "may I generate?" is always the
+ * question "am I under the cap?", answered against the live count in
+ * `dal/ai.ts`. A plan (or per-clinic override) of `0` is the only way to switch
+ * the feature off.
+ */
+export async function getAiGenerationLimit(
+  ctx: TenantContext,
+): Promise<number | null> {
+  return (await getPlanLimits(ctx)).aiGenerations;
 }

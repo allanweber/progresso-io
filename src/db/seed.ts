@@ -626,11 +626,15 @@ async function seed() {
     whatsapp: boolean;
     archive: boolean;
     calendar: boolean;
+    // AI generations per calendar month. MUST be set here: a plan_limit row that
+    // exists with a NULL here reads as *unlimited*, so omitting it would hand
+    // every Free clinic uncapped model calls on a fresh seed.
+    aiGenerations: number | null;
   }[] = [
-    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false, calendar: false },
-    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false, calendar: true },
-    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true, calendar: true },
-    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true, calendar: true },
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false, calendar: false, aiGenerations: 1 },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false, calendar: true, aiGenerations: 10 },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true, calendar: true, aiGenerations: 25 },
+    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true, calendar: true, aiGenerations: null },
   ];
   for (const limit of planLimits) {
     await db
@@ -644,6 +648,7 @@ async function seed() {
           whatsapp: limit.whatsapp,
           archive: limit.archive,
           calendar: limit.calendar,
+          aiGenerations: limit.aiGenerations,
         },
       });
   }

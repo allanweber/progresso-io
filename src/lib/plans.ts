@@ -74,6 +74,21 @@ export const PLAN_DEFAULT_CALENDAR: Record<Plan, boolean> = {
 };
 
 /**
+ * AI program generations included per calendar month. `null` = unlimited. Used
+ * as the fallback when a `plan_limit` row is missing.
+ *
+ * Free gets **1**: enough to prove the quality, and immediately insufficient —
+ * which is the whole job of a free tier on the flagship feature. One credit buys
+ * a workout *or* a diet, since each is its own model call.
+ */
+export const PLAN_DEFAULT_AI_GENERATIONS: Record<Plan, number | null> = {
+  free: 1,
+  solo: 10,
+  clinica: 25,
+  enterprise: null,
+};
+
+/**
  * Trial: length, and the plan whose limits a trialing clinic gets.
  *
  * Advertised at `/register` as "14 dias grátis, sem cartão", so these two must
@@ -119,6 +134,12 @@ export type PlanUsageDto = {
   effectivePlan: Plan;
   students: UsageCounter;
   coaches: UsageCounter;
+  /**
+   * AI generations used this calendar month vs. the plan's allowance. Unlike
+   * students/coaches this one *resets*: it counts `ai_generation` rows since the
+   * 1st (America/São_Paulo), not live objects.
+   */
+  ai: UsageCounter;
   whatsapp: boolean;
   /** Whether the clinic may archive students (else hard-delete only). */
   archive: boolean;

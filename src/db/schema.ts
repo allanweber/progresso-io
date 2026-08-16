@@ -64,6 +64,27 @@ export const PLANS = ["free", "solo", "clinica", "enterprise"] as const;
 export type Plan = (typeof PLANS)[number];
 
 /**
+ * What the AI program generator can draft. One generation produces exactly one
+ * of these and costs exactly one credit — a workout and a diet for the same
+ * aluno are two generations, because they are two model calls.
+ */
+export const AI_GENERATION_KINDS = ["workout", "diet"] as const;
+export type AiGenerationKind = (typeof AI_GENERATION_KINDS)[number];
+
+/**
+ * Lifecycle of a generation. The row is written `pending` **before** the model
+ * is called, so an in-flight generation already holds its credit and two
+ * concurrent requests cannot both slip under the cap. `failed` rows stop
+ * counting, which is what makes a provider error free for the coach.
+ */
+export const AI_GENERATION_STATUSES = [
+  "pending",
+  "succeeded",
+  "failed",
+] as const;
+export type AiGenerationStatus = (typeof AI_GENERATION_STATUSES)[number];
+
+/**
  * A clinic's default check-in cadence for its students (a clinic-wide feedback
  * preference). Stored on {@link clinic}; the check-in engine that consumes it is
  * a later feature.
@@ -326,6 +347,7 @@ export const clinic = pgTable(
     whatsappOverride: boolean("whatsapp_override"),
     archiveOverride: boolean("archive_override"),
     calendarOverride: boolean("calendar_override"),
+    aiGenerationsOverride: integer("ai_generations_override"),
     // When the clinic's starter templates (anamneses + diets + workouts) were
     // seeded. NULL until the first coach sign-in triggers the one-shot background
     // seed (see `ensureClinicStarters`); set to the completion time once all
@@ -425,6 +447,11 @@ export const planLimit = pgTable("plan_limit", {
   // Whether the plan may use the coach Calendar/Agenda. Free is excluded; every
   // paid plan (Solo/Clínica/Enterprise) gets it.
   calendar: boolean("calendar").default(true).notNull(),
+  // AI program generations allowed per calendar month. null = unlimited.
+  // Unlike the boolean capabilities this one meters a real marginal cost —
+  // every generation is a paid model call — which is why even the top
+  // self-serve plan carries a number rather than `null`.
+  aiGenerations: integer("ai_generations"),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -2192,9 +2219,98 @@ export const whatsappConnection = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  AI program generator                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One row per AI generation attempt — the quota meter, the audit trail, and the
+ * cost ledger.
+ *
+ * **The monthly cap is a `count(*)` over this table**, never a stored counter:
+ * a counter needs a cron to reset it and drifts the moment a write fails
+ * halfway, while a row count cannot drift. Same reasoning as
+ * `clinic.trial_ends_at` — correctness never depends on a job firing.
+ *
+ * **The prompt itself is deliberately not stored.** `anamnesisSnapshotId` and
+ * `catalogHash` make it fully reconstructible without duplicating aluno health
+ * data into a second table, in plain text, in every backup.
+ */
+export const aiGeneration = pgTable(
+  "ai_generation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Tenant key. Every read is scoped by this; the cap is counted per clinic.
+    clinicId: uuid("clinic_id")
+      .references(() => clinic.id, { onDelete: "cascade" })
+      .notNull(),
+    studentId: uuid("student_id")
+      .references(() => students.id, { onDelete: "cascade" })
+      .notNull(),
+    // Who asked. Kept for the audit trail; nulled if the coach is deleted.
+    coachId: text("coach_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    kind: text("kind").$type<AiGenerationKind>().notNull(),
+    status: text("status")
+      .$type<AiGenerationStatus>()
+      .default("pending")
+      .notNull(),
+    // Which provider/model served this call. Recorded per row because the
+    // provider is swappable at runtime — a cost is only interpretable next to
+    // the model that produced it.
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    // Input tokens billed at full rate, and the portion served from the
+    // provider's prompt cache (billed at a fraction). Split so the cost below
+    // is honest about what caching actually saved.
+    inputTokens: integer("input_tokens"),
+    cachedInputTokens: integer("cached_input_tokens"),
+    outputTokens: integer("output_tokens"),
+    /**
+     * What this generation cost, in **millionths of a USD**, computed and frozen
+     * at write time from the token counts and the configured tariff.
+     *
+     * Frozen rather than derived on read: a vendor changing its rates must not
+     * silently reprice history. `null` when no tariff is configured.
+     */
+    costMicroUsd: integer("cost_micro_usd"),
+    durationMs: integer("duration_ms"),
+    // Whether the model's first answer had to be repaired (hallucinated a
+    // catalog index). Free for the coach, but worth measuring: a model that
+    // needs repairing often costs twice the tokens for the same credit.
+    repaired: boolean("repaired").default(false).notNull(),
+    /**
+     * Hash of the rendered catalog block. The catalog is a global, cached
+     * prompt prefix, so this is the cache observability: when hit rates fall,
+     * this says whether the prefix changed and when.
+     */
+    catalogHash: text("catalog_hash"),
+    // The anamnese snapshot the prompt was built from. With `catalogHash`, this
+    // reconstructs the prompt without storing it.
+    anamnesisSnapshotId: uuid("anamnesis_snapshot_id").references(
+      () => studentAnamnesis.id,
+      { onDelete: "set null" },
+    ),
+    // Short machine-readable failure cause on `failed` rows ("not_configured",
+    // "timeout", "invalid_json", "invalid_ids", "http"). Never the raw provider
+    // body — that can echo prompt content.
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The quota query: this clinic's rows in the current month.
+    index("ai_generation_clinic_created_idx").on(t.clinicId, t.createdAt),
+    index("ai_generation_student_idx").on(t.studentId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
+export type AiGeneration = typeof aiGeneration.$inferSelect;
+export type NewAiGeneration = typeof aiGeneration.$inferInsert;
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Session = typeof session.$inferSelect;
