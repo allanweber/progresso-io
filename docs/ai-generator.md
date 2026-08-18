@@ -154,11 +154,18 @@ changes. All three are silent failures — no error, just a cold cache.
    The useful side effect: the AI button becomes the strongest reason a coach has
    ever had to actually send anamneses out.
 2. **Gate: credits remaining this month.**
-3. **The dialog** collects four **required** fields — objective, equipment
-   available, dietary restrictions, days per week — **prefilled from the anamnese
-   where it already knows** (`objective`, `frequencia`), so "required" means
-   confirmed rather than retyped. Equipment and restrictions are *not* in the
-   anamnese at all, which is exactly why they are asked here.
+3. **The dialog asks a different form per kind.** Treino: objective, equipment
+   available, days per week. Dieta: objective, dietary restrictions, meals per
+   day. Every field is **required** but **prefilled where the app already knows**
+   (`objective` from the aluno's goal, the counts from their defaults), so
+   "required" means confirmed rather than retyped. Equipment and restrictions are
+   *not* in the anamnese at all, which is exactly why they are asked here.
+
+   One shared form was the original shape and it was wrong in both directions:
+   it refused to generate a *dieta* until the coach ticked gym equipment, and it
+   fed dietary restrictions into a *treino* prompt whose rules never mention
+   them. `aiWorkoutGenerateSchema` and `aiDietGenerateSchema` are separate so
+   neither dialog, route, nor prompt can accept the other's answers.
 4. **If an unpublished draft exists, confirm before overwriting.** Silently
    destroying a coach's manual edits is the one unforgivable outcome; refusing
    outright would obstruct "regenerate, I didn't like it", the most likely second
@@ -177,6 +184,10 @@ changes. All three are silent failures — no error, just a cold cache.
 
 Equipment and restrictions are **prompt text, not `WHERE` clauses** — the model
 can reason about a constraint it is told, where a filter can only delete rows.
+
+**Treino and dieta are two generations, one credit each.** They are separate
+model calls against separate catalogs with separate audit rows, so a coach who
+wants both spends two credits — the dialog says so before the first is spent.
 
 ## Generated structure — deliberately narrow
 

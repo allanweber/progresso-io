@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Sparkles } from "lucide-react";
 
 import {
+  AI_DEFAULT_DAYS_PER_WEEK,
+  AI_DEFAULT_MEALS_PER_DAY,
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
   AI_RESTRICTION_LABELS,
@@ -43,6 +45,12 @@ import { Input } from "@/components/ui/input";
  *   manual edits is the one unforgivable outcome; refusing outright would
  *   obstruct "regenerate, I didn't like it", which is the most likely second
  *   action.
+ *
+ * The two kinds share the button, the gates and the overwrite flow, but **not
+ * the questions**: a treino asks what the aluno can train with and how often, a
+ * dieta what they can't eat and how the day is split. Asking both sets on both
+ * screens is what previously made a diet impossible to generate without ticking
+ * gym equipment. They remain two separate generations, one credit each.
  */
 
 type Props = {
@@ -71,9 +79,12 @@ export function AiGenerateButton({
   const [error, setError] = useState<string | null>(null);
 
   const [objective, setObjective] = useState(defaultObjective?.trim() ?? "");
+  // Only the fields this kind asks for are ever read; the others stay at their
+  // initial value and never reach the payload.
   const [equipment, setEquipment] = useState<AiEquipment[]>([]);
+  const [daysPerWeek, setDaysPerWeek] = useState(AI_DEFAULT_DAYS_PER_WEEK);
   const [restrictions, setRestrictions] = useState<AiRestriction[]>([]);
-  const [daysPerWeek, setDaysPerWeek] = useState(3);
+  const [mealsPerDay, setMealsPerDay] = useState(AI_DEFAULT_MEALS_PER_DAY);
 
   // Both reads are already cached by other panels on these pages, so opening
   // the dialog costs nothing in practice.
@@ -119,8 +130,13 @@ export function AiGenerateButton({
   const toggle = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
+  // Equipment is the treino's only extra required answer; the dieta's
+  // restrictions are legitimately answerable as "none", so it needs no gate
+  // beyond the objective.
   const canSubmit =
-    objective.trim().length >= 3 && equipment.length > 0 && !generate.isPending;
+    objective.trim().length >= 3 &&
+    (kind === "diet" || equipment.length > 0) &&
+    !generate.isPending;
 
   return (
     <>
@@ -191,71 +207,95 @@ export function AiGenerateButton({
                 />
               </div>
 
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">
-                  Equipamentos disponíveis
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {AI_EQUIPMENT_VALUES.map((value) => (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                      <input
-                        type="checkbox"
-                        className="size-3.5"
-                        checked={equipment.includes(value)}
-                        onChange={() => setEquipment((l) => toggle(l, value))}
-                      />
-                      {AI_EQUIPMENT_LABELS[value]}
+              {kind === "workout" ? (
+                <>
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Equipamentos disponíveis
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {AI_EQUIPMENT_VALUES.map((value) => (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5"
+                            checked={equipment.includes(value)}
+                            onChange={() =>
+                              setEquipment((l) => toggle(l, value))
+                            }
+                          />
+                          {AI_EQUIPMENT_LABELS[value]}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium" htmlFor="ai-days">
+                      Dias por semana
                     </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">
-                  Restrições alimentares
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {AI_RESTRICTION_VALUES.map((value) => (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                      <input
-                        type="checkbox"
-                        className="size-3.5"
-                        checked={restrictions.includes(value)}
-                        onChange={() => setRestrictions((l) => toggle(l, value))}
-                      />
-                      {AI_RESTRICTION_LABELS[value]}
+                    <Input
+                      id="ai-days"
+                      type="number"
+                      min={1}
+                      max={7}
+                      value={daysPerWeek}
+                      onChange={(e) => setDaysPerWeek(Number(e.target.value))}
+                      className="w-24"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Restrições alimentares
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {AI_RESTRICTION_VALUES.map((value) => (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5"
+                            checked={restrictions.includes(value)}
+                            onChange={() =>
+                              setRestrictions((l) => toggle(l, value))
+                            }
+                          />
+                          {AI_RESTRICTION_LABELS[value]}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[12px] text-muted-foreground">
+                      Deixe em branco se não houver restrições.
+                    </p>
+                  </fieldset>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium" htmlFor="ai-meals">
+                      Refeições por dia
                     </label>
-                  ))}
-                </div>
-                <p className="text-[12px] text-muted-foreground">
-                  Deixe em branco se não houver restrições.
-                </p>
-              </fieldset>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="ai-days">
-                  Dias por semana
-                </label>
-                <Input
-                  id="ai-days"
-                  type="number"
-                  min={1}
-                  max={7}
-                  value={daysPerWeek}
-                  onChange={(e) => setDaysPerWeek(Number(e.target.value))}
-                  className="w-24"
-                />
-              </div>
+                    <Input
+                      id="ai-meals"
+                      type="number"
+                      min={2}
+                      max={8}
+                      value={mealsPerDay}
+                      onChange={(e) => setMealsPerDay(Number(e.target.value))}
+                      className="w-24"
+                    />
+                  </div>
+                </>
+              )}
 
               <p className="text-[12px] text-muted-foreground">
-                {formatAiUsage(used, limit)}. Cada geração consome uma. O resultado
-                fica como rascunho — o aluno só vê depois que você publicar.
+                {formatAiUsage(used, limit)}. Treino e dieta são gerações
+                separadas — cada uma consome uma. O resultado fica como rascunho
+                — o aluno só vê depois que você publicar.
               </p>
 
               {error !== null && (
@@ -270,12 +310,19 @@ export function AiGenerateButton({
                   disabled={!canSubmit}
                   onClick={() => {
                     setError(null);
-                    generate.mutate({
-                      objective: objective.trim(),
-                      equipment,
-                      restrictions,
-                      daysPerWeek,
-                    });
+                    generate.mutate(
+                      kind === "workout"
+                        ? {
+                            objective: objective.trim(),
+                            equipment,
+                            daysPerWeek,
+                          }
+                        : {
+                            objective: objective.trim(),
+                            restrictions,
+                            mealsPerDay,
+                          },
+                    );
                   }}
                 >
                   {generate.isPending ? (

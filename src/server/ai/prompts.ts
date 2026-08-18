@@ -3,7 +3,8 @@ import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import {
   AI_EQUIPMENT_LABELS,
   AI_RESTRICTION_LABELS,
-  type AiGenerateInput,
+  type AiDietGenerateInput,
+  type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
 import type { CatalogBlock } from "./catalog";
 
@@ -19,20 +20,30 @@ import type { CatalogBlock } from "./catalog";
  * clinic at once.
  */
 
-/** Renders the coach's form as prompt prose. */
-function renderForm(input: AiGenerateInput): string {
-  const equip = input.equipment
-    .map((e) => AI_EQUIPMENT_LABELS[e])
-    .join(", ");
+/**
+ * Renders the coach's form as prompt prose — **only the answers this kind's
+ * rules can act on**. Sending a treino its dietary restrictions, or a dieta its
+ * equipment list, states a constraint the system prompt never tells the model
+ * what to do with; it costs cache-miss tokens and invites invented reasoning.
+ */
+function renderWorkoutForm(input: AiWorkoutGenerateInput): string {
+  const equip = input.equipment.map((e) => AI_EQUIPMENT_LABELS[e]).join(", ");
+  return [
+    `Objetivo: ${input.objective}`,
+    `Equipamentos disponíveis: ${equip}`,
+    `Frequência: ${input.daysPerWeek} dia(s) por semana`,
+  ].join("\n");
+}
+
+function renderDietForm(input: AiDietGenerateInput): string {
   const restrictions =
     input.restrictions.length > 0
       ? input.restrictions.map((r) => AI_RESTRICTION_LABELS[r]).join(", ")
       : "nenhuma informada";
   return [
     `Objetivo: ${input.objective}`,
-    `Equipamentos disponíveis: ${equip}`,
     `Restrições alimentares: ${restrictions}`,
-    `Frequência: ${input.daysPerWeek} dia(s) por semana`,
+    `Refeições por dia: ${input.mealsPerDay}`,
   ].join("\n");
 }
 
@@ -101,7 +112,7 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     sharedRules("alimentos"),
     "",
     "Diretrizes:",
-    "- Monte as refeições de um dia completo, em ordem cronológica.",
+    "- Monte um dia completo, em ordem cronológica, com exatamente o número de refeições pedido.",
     "- Ajuste as quantidades ao objetivo, ao peso e à altura do aluno.",
     "- Respeite rigorosamente as restrições alimentares informadas.",
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
@@ -116,23 +127,30 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
  * User prompt: everything about this aluno. Deliberately last, and deliberately
  * the only part that varies.
  */
-export function userPrompt(args: {
-  studentName: string;
-  sections: AnamnesisSection[];
-  answers: AnamnesisAnswers;
-  input: AiGenerateInput;
-  kind: "workout" | "diet";
-}): string {
+export function userPrompt(
+  args: {
+    studentName: string;
+    sections: AnamnesisSection[];
+    answers: AnamnesisAnswers;
+  } & (
+    | { kind: "workout"; input: AiWorkoutGenerateInput }
+    | { kind: "diet"; input: AiDietGenerateInput }
+  ),
+): string {
   const what =
     args.kind === "workout"
       ? "Monte o treino para este aluno."
       : "Monte o plano alimentar para este aluno.";
+  const form =
+    args.kind === "workout"
+      ? renderWorkoutForm(args.input)
+      : renderDietForm(args.input);
   return [
     what,
     "",
     `Aluno: ${args.studentName}`,
     "",
-    renderForm(args.input),
+    form,
     "",
     "Anamnese:",
     renderAnamnesis(args.sections, args.answers),

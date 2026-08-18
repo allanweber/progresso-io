@@ -41,26 +41,32 @@ export const AI_RESTRICTION_LABELS: Record<AiRestriction, string> = {
 };
 
 /**
- * The generate form.
+ * The generate forms — **one per kind**, because the two generators need
+ * genuinely different answers.
  *
- * Every field is **required**, but the dialog prefills `objective` and
- * `daysPerWeek` from the anamnese where it already knows them — "required"
- * means *confirmed*, not *retyped*. Equipment and restrictions are asked here
- * precisely because the anamnese does not collect them.
+ * A single shared form was the original shape and it was wrong in both
+ * directions: it made a coach tick gym equipment before it would generate a
+ * *dieta*, and it fed dietary restrictions into a *treino* prompt whose rules
+ * never mention them. Splitting the schema is what lets each dialog ask only
+ * what its own prompt can actually use.
  *
- * `restrictions` may be an empty array: "no restrictions" is a real answer, and
- * a required field that cannot be answered "none" is a broken form.
+ * Every field is **required**, but the dialog prefills what it already knows
+ * (`objective` from the aluno's goal, the counts from their defaults) — so
+ * "required" means *confirmed*, not *retyped*. Equipment and restrictions are
+ * asked here precisely because the anamnese does not collect them.
  */
-export const aiGenerateSchema = z.object({
-  objective: z
-    .string()
-    .trim()
-    .min(3, "Descreva o objetivo.")
-    .max(200, "Objetivo muito longo."),
+const objectiveField = z
+  .string()
+  .trim()
+  .min(3, "Descreva o objetivo.")
+  .max(200, "Objetivo muito longo.");
+
+/** Treino: what the aluno can train with, and how often. */
+export const aiWorkoutGenerateSchema = z.object({
+  objective: objectiveField,
   equipment: z
     .array(z.enum(AI_EQUIPMENT_VALUES))
     .min(1, "Escolha ao menos um equipamento disponível."),
-  restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
   daysPerWeek: z
     .number()
     .int("Informe um número inteiro de dias.")
@@ -68,7 +74,29 @@ export const aiGenerateSchema = z.object({
     .max(7, "Máximo de 7 dias por semana."),
 });
 
-export type AiGenerateInput = z.infer<typeof aiGenerateSchema>;
+/**
+ * Dieta: what the aluno can't eat, and how the day is split.
+ *
+ * `restrictions` may be an empty array: "no restrictions" is a real answer, and
+ * a required field that cannot be answered "none" is a broken form.
+ */
+export const aiDietGenerateSchema = z.object({
+  objective: objectiveField,
+  restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
+  mealsPerDay: z
+    .number()
+    .int("Informe um número inteiro de refeições.")
+    .min(2, "Mínimo de 2 refeições por dia.")
+    .max(8, "Máximo de 8 refeições por dia."),
+});
+
+export type AiWorkoutGenerateInput = z.infer<typeof aiWorkoutGenerateSchema>;
+export type AiDietGenerateInput = z.infer<typeof aiDietGenerateSchema>;
+export type AiGenerateInput = AiWorkoutGenerateInput | AiDietGenerateInput;
+
+/** What the dialogs open with, so the coach confirms rather than types. */
+export const AI_DEFAULT_DAYS_PER_WEEK = 3;
+export const AI_DEFAULT_MEALS_PER_DAY = 5;
 
 /** What the generate endpoints return on success. */
 export type AiGenerateResultDto = {

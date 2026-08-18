@@ -1,5 +1,8 @@
 import type { AiGenerationKind } from "@/db/schema";
-import type { AiGenerateInput } from "@/lib/ai-programs";
+import type {
+  AiDietGenerateInput,
+  AiWorkoutGenerateInput,
+} from "@/lib/ai-programs";
 import {
   getLlmProvider,
   type LlmProvider,
@@ -212,7 +215,7 @@ async function preflight(
 export async function generateWorkout(
   ctx: TenantContext,
   studentId: string,
-  input: AiGenerateInput,
+  input: AiWorkoutGenerateInput,
 ): Promise<GenerateResult> {
   const pre = await preflight(ctx, studentId, "workout");
   if ("refusal" in pre) return { ok: false, refusal: pre.refusal };
@@ -310,7 +313,7 @@ export async function generateWorkout(
 export async function generateDiet(
   ctx: TenantContext,
   studentId: string,
-  input: AiGenerateInput,
+  input: AiDietGenerateInput,
 ): Promise<GenerateResult> {
   const pre = await preflight(ctx, studentId, "diet");
   if ("refusal" in pre) return { ok: false, refusal: pre.refusal };
