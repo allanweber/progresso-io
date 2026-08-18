@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  aiGenerateSchema,
+  aiDietGenerateSchema,
+  aiWorkoutGenerateSchema,
   cacheHitRatio,
   formatAiUsage,
   formatCacheHitRatio,
@@ -158,36 +159,86 @@ describe("dietPlanSchema", () => {
   });
 });
 
-describe("aiGenerateSchema", () => {
+describe("aiWorkoutGenerateSchema", () => {
   const valid = {
     objective: "hipertrofia",
     equipment: ["academia" as const],
-    restrictions: [],
     daysPerWeek: 4,
   };
 
-  it("accepts an empty restrictions array — 'none' is a real answer", () => {
-    expect(aiGenerateSchema.safeParse(valid).success).toBe(true);
+  it("accepts the treino form", () => {
+    expect(aiWorkoutGenerateSchema.safeParse(valid).success).toBe(true);
   });
 
   it("requires at least one equipment option", () => {
     expect(
-      aiGenerateSchema.safeParse({ ...valid, equipment: [] }).success,
+      aiWorkoutGenerateSchema.safeParse({ ...valid, equipment: [] }).success,
     ).toBe(false);
   });
 
   it("rejects 0 and 8 days per week", () => {
     expect(
-      aiGenerateSchema.safeParse({ ...valid, daysPerWeek: 0 }).success,
+      aiWorkoutGenerateSchema.safeParse({ ...valid, daysPerWeek: 0 }).success,
     ).toBe(false);
     expect(
-      aiGenerateSchema.safeParse({ ...valid, daysPerWeek: 8 }).success,
+      aiWorkoutGenerateSchema.safeParse({ ...valid, daysPerWeek: 8 }).success,
     ).toBe(false);
   });
 
   it("rejects an unknown equipment value", () => {
     expect(
-      aiGenerateSchema.safeParse({ ...valid, equipment: ["esteira"] }).success,
+      aiWorkoutGenerateSchema.safeParse({ ...valid, equipment: ["esteira"] })
+        .success,
+    ).toBe(false);
+  });
+
+  // The two forms are separate precisely so neither accepts the other's
+  // answers: a treino that took `restrictions` would feed the prompt a
+  // constraint its rules never mention.
+  it("ignores diet-only answers rather than carrying them into the prompt", () => {
+    const parsed = aiWorkoutGenerateSchema.safeParse({
+      ...valid,
+      restrictions: ["vegano"],
+      mealsPerDay: 5,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data).not.toHaveProperty("restrictions");
+      expect(parsed.data).not.toHaveProperty("mealsPerDay");
+    }
+  });
+});
+
+describe("aiDietGenerateSchema", () => {
+  const valid = {
+    objective: "emagrecimento",
+    restrictions: [],
+    mealsPerDay: 5,
+  };
+
+  it("accepts an empty restrictions array — 'none' is a real answer", () => {
+    expect(aiDietGenerateSchema.safeParse(valid).success).toBe(true);
+  });
+
+  // The bug this split fixes: a dieta could not be generated at all without
+  // ticking gym equipment, because both forms shared one schema.
+  it("does not require equipment", () => {
+    expect(aiDietGenerateSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects 1 and 9 meals per day", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 1 }).success,
+    ).toBe(false);
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 9 }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an unknown restriction value", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, restrictions: ["low_carb"] })
+        .success,
     ).toBe(false);
   });
 });

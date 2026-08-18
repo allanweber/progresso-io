@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 
 import {
   AI_REFUSAL_MESSAGES,
-  aiGenerateSchema,
   type AiGenerateResultDto,
   type AiRefusalCode,
 } from "@/lib/ai-programs";
+import type { z } from "@/lib/validation";
 import {
   apiError,
   forbidden,
@@ -20,9 +20,11 @@ import { getTenantContext } from "@/server/tenant";
 import type { GenerateResult } from "./generate";
 
 /**
- * The shared body of both generate routes — they differ only in which service
- * function they call, so the gates, the status codes and the PT-BR copy live in
- * one place rather than being duplicated and drifting apart.
+ * The shared body of both generate routes — they differ only in the form they
+ * accept and the service function they call, so the gates, the status codes and
+ * the PT-BR copy live in one place rather than being duplicated and drifting
+ * apart. Each route passes its own schema: treino and dieta ask the coach
+ * different questions, and neither may accept the other's.
  */
 
 /** Refusals map to a status the client can branch on without parsing prose. */
@@ -35,13 +37,14 @@ const REFUSAL_STATUS: Record<AiRefusalCode, number> = {
   already_running: 409,
 };
 
-export async function handleGenerate(
+export async function handleGenerate<Schema extends z.ZodType>(
   request: Request,
   params: Promise<{ id: string }>,
+  schema: Schema,
   generate: (
     ctx: NonNullable<Awaited<ReturnType<typeof getTenantContext>>>,
     studentId: string,
-    input: ReturnType<typeof aiGenerateSchema.parse>,
+    input: z.infer<Schema>,
   ) => Promise<GenerateResult>,
 ): Promise<Response> {
   const ctx = await getTenantContext();
@@ -53,7 +56,7 @@ export async function handleGenerate(
 
   const body = await readJson(request);
   if (!body.ok) return body.response;
-  const parsed = aiGenerateSchema.safeParse(body.data);
+  const parsed = schema.safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
 
   const result = await generate(ctx, id, parsed.data);

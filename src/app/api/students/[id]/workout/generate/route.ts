@@ -1,3 +1,4 @@
+import { aiWorkoutGenerateSchema } from "@/lib/ai-programs";
 import { generateWorkout } from "@/server/ai/generate";
 import { handleGenerate } from "@/server/ai/route-handler";
 import { withRoute } from "@/server/observability";
@@ -14,5 +15,5 @@ type Params = { params: Promise<{ id: string }> };
 
 export const POST = withRoute<Params>(
   "student-workout.generate",
-  (request, { params }) => handleGenerate(request, params, generateWorkout),
+  (request, { params }) => handleGenerate(request, params, aiWorkoutGenerateSchema, generateWorkout),
 );

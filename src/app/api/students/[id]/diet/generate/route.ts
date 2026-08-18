@@ -1,3 +1,4 @@
+import { aiDietGenerateSchema } from "@/lib/ai-programs";
 import { generateDiet } from "@/server/ai/generate";
 import { handleGenerate } from "@/server/ai/route-handler";
 import { withRoute } from "@/server/observability";
@@ -13,5 +14,5 @@ type Params = { params: Promise<{ id: string }> };
 
 export const POST = withRoute<Params>(
   "student-diet.generate",
-  (request, { params }) => handleGenerate(request, params, generateDiet),
+  (request, { params }) => handleGenerate(request, params, aiDietGenerateSchema, generateDiet),
 );
