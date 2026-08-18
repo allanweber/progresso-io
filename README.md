@@ -59,3 +59,13 @@ node .next/standalone/server.js
 Remember to copy `.next/static` and `public/` alongside the standalone output
 when deploying to a separate location. See the
 [Next.js self-hosting guide](https://nextjs.org/docs/app/guides/self-hosting).
+
+
+### Database Setup
+
+Make sure you have a PostgreSQL database set up in docker
+
+```bash
+docker run --name progresso -e POSTGRES_PASSWORD=progresso -e POSTGRES_USER=progresso -e POSTGRES_DB=progresso -p 5438:5432 -d postgres
+```
+
