@@ -419,6 +419,33 @@ function CurrentView({
 
   return (
     <div className="mt-6 space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <span className="text-sm font-medium text-foreground">Novo treino:</span>
+        <Button variant="outline" size="sm" onClick={onNewBlank} disabled={busy || hasDraft}>
+          <Plus className="size-4" />
+          Em branco
+        </Button>
+        <Button variant="outline" size="sm" onClick={onAssign} disabled={busy || hasDraft}>
+          <FileText className="size-4" />
+          Da minha lista
+        </Button>
+        {/* Not disabled by `hasDraft` like its neighbours: those two would start
+            a *second* treino, which is what the draft blocks. The generator
+            writes into the draft, and asks before replacing it. */}
+        <AiGenerateButton
+          studentId={studentId}
+          kind="workout"
+          hasDraft={hasDraft}
+          defaultObjective={goal}
+          onGenerated={onGenerated}
+        />
+        <span className="text-xs text-muted-foreground">
+          {hasDraft
+            ? "Publique ou descarte o rascunho atual antes de começar outro treino."
+            : "Vira o treino atual quando você publicar; o atual vai para o histórico."}
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-bold text-foreground">
@@ -474,33 +501,6 @@ function CurrentView({
         sessions={current.sessions}
         onExerciseClick={onExerciseClick}
       />
-
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
-        <span className="text-sm font-medium text-foreground">Novo treino:</span>
-        <Button variant="outline" size="sm" onClick={onNewBlank} disabled={busy || hasDraft}>
-          <Plus className="size-4" />
-          Em branco
-        </Button>
-        <Button variant="outline" size="sm" onClick={onAssign} disabled={busy || hasDraft}>
-          <FileText className="size-4" />
-          Da minha lista
-        </Button>
-        {/* Not disabled by `hasDraft` like its neighbours: those two would start
-            a *second* treino, which is what the draft blocks. The generator
-            writes into the draft, and asks before replacing it. */}
-        <AiGenerateButton
-          studentId={studentId}
-          kind="workout"
-          hasDraft={hasDraft}
-          defaultObjective={goal}
-          onGenerated={onGenerated}
-        />
-        <span className="text-xs text-muted-foreground">
-          {hasDraft
-            ? "Publique ou descarte o rascunho atual antes de começar outro treino."
-            : "Vira o treino atual quando você publicar; o atual vai para o histórico."}
-        </span>
-      </div>
 
       {(olderOfCurrent.length > 0 || pastWorkouts.length > 0) && (
         <div className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">

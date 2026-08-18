@@ -429,6 +429,44 @@ function CurrentView({
 
   return (
     <div className="mt-6 space-y-4">
+      {/* Start a different diet */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <span className="text-sm font-medium text-foreground">Nova dieta:</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onNewBlank}
+          disabled={busy || hasDraft}
+        >
+          <Plus className="size-4" />
+          Em branco
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAssign}
+          disabled={busy || hasDraft}
+        >
+          <FileText className="size-4" />
+          Da minha lista
+        </Button>
+        {/* Not disabled by `hasDraft` like its neighbours: those two would start
+            a *second* diet, which is what the draft blocks. The generator writes
+            into the draft, and asks before replacing it. */}
+        <AiGenerateButton
+          studentId={studentId}
+          kind="diet"
+          hasDraft={hasDraft}
+          defaultObjective={goal}
+          onGenerated={onGenerated}
+        />
+        <span className="text-xs text-muted-foreground">
+          {hasDraft
+            ? "Publique ou descarte o rascunho atual antes de começar outra dieta."
+            : "Vira a dieta atual quando você publicar; a atual vai para o histórico."}
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-bold text-foreground">
@@ -486,44 +524,6 @@ function CurrentView({
       />
 
       <DietMealsView meals={meals} />
-
-      {/* Start a different diet */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
-        <span className="text-sm font-medium text-foreground">Nova dieta:</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onNewBlank}
-          disabled={busy || hasDraft}
-        >
-          <Plus className="size-4" />
-          Em branco
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAssign}
-          disabled={busy || hasDraft}
-        >
-          <FileText className="size-4" />
-          Da minha lista
-        </Button>
-        {/* Not disabled by `hasDraft` like its neighbours: those two would start
-            a *second* diet, which is what the draft blocks. The generator writes
-            into the draft, and asks before replacing it. */}
-        <AiGenerateButton
-          studentId={studentId}
-          kind="diet"
-          hasDraft={hasDraft}
-          defaultObjective={goal}
-          onGenerated={onGenerated}
-        />
-        <span className="text-xs text-muted-foreground">
-          {hasDraft
-            ? "Publique ou descarte o rascunho atual antes de começar outra dieta."
-            : "Vira a dieta atual quando você publicar; a atual vai para o histórico."}
-        </span>
-      </div>
 
       {/* History */}
       {(olderOfCurrent.length > 0 || pastDiets.length > 0) && (
