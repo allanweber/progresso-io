@@ -109,7 +109,18 @@ export function AiGenerateButton({
     mutationFn: (input: AiGenerateInput) =>
       apiFetch<AiGenerateResultDto>(
         `/api/students/${studentId}/${kind}/generate`,
-        { method: "POST", body: JSON.stringify(input) },
+        {
+          method: "POST",
+          body: JSON.stringify(input),
+          // `apiFetch`'s 15s default is sized for ordinary CRUD and is far too
+          // short here: a program draft is one long completion, and the server
+          // gives the provider 90s. Without this the browser aborts first and
+          // the coach reads "o servidor demorou a responder" while the
+          // generation is still running — and finishes, spending the credit.
+          // Comfortably past the server's own ceiling, so whatever the coach
+          // sees is the real outcome.
+          signal: AbortSignal.timeout(120_000),
+        },
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plan-usage"] });

@@ -2259,20 +2259,45 @@ export const aiGeneration = pgTable(
     // provider is swappable at runtime — token counts are only interpretable
     // next to the model that produced them.
     provider: text("provider").notNull(),
+    // The model we ASKED for when the row was opened, overwritten with the one
+    // that actually ANSWERED when it settles. With a fallback list configured
+    // the two differ whenever the primary is rate-limited or retired, and the
+    // token counts are only priceable against the model that produced them.
     model: text("model").notNull(),
+    // Which host the aggregator routed to ("Groq", "DeepInfra", "Alibaba"),
+    // when it says. The same slug is served by several at different prices, so
+    // without this a cost that moved is indistinguishable from a price that did.
+    // NULL when the provider reports no routing metadata.
+    upstreamProvider: text("upstream_provider"),
+    // The provider's own id for the call. Not used by anything here — it is the
+    // join key to the vendor's dashboard when a figure has to be disputed.
+    requestId: text("request_id"),
     // Input tokens billed at full rate, and the portion served from the
     // provider's prompt cache (billed at a fraction). Split because the ratio
     // between them IS the measure of whether the shared catalog prefix is
     // staying cached, and because the two bill at different rates.
-    //
-    // Cost is deliberately NOT stored here. It is these numbers times a price,
-    // and the price lives in `provider_price`, effective-dated — so a row is
-    // priced by whatever was in force the day it ran, and a vendor changing its
-    // rates reprices nothing retroactively. Freezing a number on this row would
-    // achieve the same thing only until someone needed to correct a typo in it.
     inputTokens: integer("input_tokens"),
     cachedInputTokens: integer("cached_input_tokens"),
+    // Tokens written INTO the cache. Some vendors bill these at a premium over
+    // normal input, so a run of cache writes is a cost signal of its own.
+    cacheWriteTokens: integer("cache_write_tokens"),
     outputTokens: integer("output_tokens"),
+    /**
+     * What the provider said this call cost, in micro-USD. NULL when it says
+     * nothing — which is different from zero and must stay so.
+     *
+     * This is **not** the frozen price the earlier design rejected. That number
+     * came from config and could only ever restate an assumption; this one is a
+     * measurement returned by the call itself, in the same class of fact as the
+     * token counts beside it — and the only figure that stays right when routing
+     * moves the same slug between hosts at different rates.
+     *
+     * `provider_price` is unchanged and still prices every row: it is what makes
+     * a forecast possible, what covers vendors that report no cost, and what an
+     * admin can correct after the fact. Where both exist the reported figure
+     * wins, because it is the one the invoice will agree with.
+     */
+    reportedCostMicroUsd: integer("reported_cost_micro_usd"),
     durationMs: integer("duration_ms"),
     // Whether the model's first answer had to be repaired (hallucinated a
     // catalog index). Free for the coach, but worth measuring: a model that
@@ -2301,8 +2326,48 @@ export const aiGeneration = pgTable(
     // The quota query: this clinic's rows in the current month.
     index("ai_generation_clinic_created_idx").on(t.clinicId, t.createdAt),
     index("ai_generation_student_idx").on(t.studentId),
+    // The admin rollups scan a month across every tenant, so they never touch
+    // the clinic-scoped index above.
+    index("ai_generation_created_idx").on(t.createdAt),
   ],
 );
+
+/**
+ * The AI model settings — a **single row**, platform-wide.
+ *
+ * Which model drafts programs is the one decision about this feature that gets
+ * revisited: prices move, slugs get retired, and the whole point of going
+ * through an aggregator is that trying another model should be cheap. As an
+ * environment variable that is a deploy; as a row it is a form at `/admin/ai`.
+ *
+ * Everything else the provider needs is either a secret (`LLM_API_KEY`, which
+ * stays in the environment because secrets do not belong in a table an admin
+ * screen reads back) or a constant nobody revisits (endpoint, temperature,
+ * output ceiling, timeout — see `src/lib/llm-provider.ts`).
+ *
+ * **The row is optional.** With no row, the coded defaults apply, so a fresh
+ * install generates without anyone having to seed or save anything. The first
+ * save writes the row; there is never a second one.
+ */
+export const aiSettings = pgTable("ai_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /**
+   * Guard for the singleton: `true` on the only row, and UNIQUE, so a second
+   * insert fails on the database rather than leaving two rows for a reader to
+   * choose between.
+   */
+  singleton: boolean("singleton").default(true).notNull().unique(),
+  /** Provider model slug, e.g. `qwen/qwen3.7-flash:floor`. */
+  model: text("model").notNull(),
+  /**
+   * Tried in order when the primary errors, rate-limits or disappears. Empty is
+   * a legal, meaningful value — "no fallbacks" — and is why the column defaults
+   * to an empty array rather than being nullable.
+   */
+  fallbackModels: text("fallback_models").array().notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 /**
  * What a provider charges per **million** tokens, in millionths of a USD
@@ -2355,6 +2420,9 @@ export const providerPrice = pgTable(
 /* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
+
+export type AiSettings = typeof aiSettings.$inferSelect;
+export type NewAiSettings = typeof aiSettings.$inferInsert;
 
 export type ProviderPrice = typeof providerPrice.$inferSelect;
 export type NewProviderPrice = typeof providerPrice.$inferInsert;

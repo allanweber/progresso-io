@@ -1,21 +1,31 @@
 // Orchestrates the end-to-end suite against a REAL Postgres.
 //
-// Locally: boots a throwaway PostgreSQL 16 cluster (run as the `postgres`
-// system user, since the server refuses to run as root), migrates it, and seeds
-// a verified coach. In CI: set DATABASE_URL to a Postgres service and this skips
-// the local cluster and uses it directly. Either way it then runs Playwright,
+// Locally: boots a throwaway PostgreSQL 16 container, migrates it, and seeds a
+// verified coach. In CI: set DATABASE_URL to a Postgres service and this skips
+// the local container and uses it directly. Either way it then runs Playwright,
 // whose webServer (the standalone production server) inherits the env below —
 // notably DATABASE_URL and ENABLE_TEST_OUTBOX, which lets the invite→accept test
 // read the emailed link.
 //
+// **Docker, not a system cluster.** This used to `initdb` a cluster under /tmp
+// and drive it with `su postgres` — which needs PostgreSQL 16 installed at a
+// hard-coded path, a `postgres` system user, and root to reach it. On a normal
+// developer machine none of those hold and the run died on `su: user postgres
+// does not exist` before a single test. A container needs only Docker, pins the
+// server version rather than inheriting whatever the host has, and cannot leave
+// a half-initialized cluster behind.
+//
+// The port is deliberately NOT 5432/5438: the throwaway DB must never be
+// confused with the dev database, since this script migrates and seeds it.
+//
 // Usage: node scripts/e2e.mjs [extra playwright args]
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, rmSync } from "node:fs";
+import { cpSync } from "node:fs";
 
-const PG_BIN = "/usr/lib/postgresql/16/bin";
-const PG_ROOT = "/tmp/progresso-e2e-pg";
-const PG_DATA = `${PG_ROOT}/data`;
+const PG_IMAGE = "postgres:16-alpine";
+const PG_CONTAINER = "progresso-e2e-pg";
 const PG_PORT = 5433;
+const PG_DB = "progresso_e2e";
 
 const usingExternalDb = Boolean(process.env.DATABASE_URL);
 let startedLocalPg = false;
@@ -27,47 +37,65 @@ function run(command, args, opts = {}) {
   }
 }
 
-/** Run a command as the postgres user (the server won't run as root). */
-function asPostgres(cmd) {
-  run("su", ["postgres", "-c", cmd]);
+/** `-fv` so the container's anonymous data volume goes with it. */
+function removeContainer() {
+  spawnSync("docker", ["rm", "-fv", PG_CONTAINER], { stdio: "ignore" });
 }
 
 function stopLocalPg() {
   if (!startedLocalPg) return;
-  try {
-    asPostgres(`${PG_BIN}/pg_ctl -D ${PG_DATA} -w -m immediate stop`);
-  } catch {
-    /* already stopped */
-  }
-  try {
-    rmSync(PG_ROOT, { recursive: true, force: true });
-  } catch {
-    /* best effort */
-  }
+  removeContainer();
   startedLocalPg = false;
 }
 
-function startLocalPg() {
-  // Fresh cluster each run so state is deterministic.
-  if (existsSync(PG_ROOT)) {
-    try {
-      asPostgres(`${PG_BIN}/pg_ctl -D ${PG_DATA} -w -m immediate stop`);
-    } catch {
-      /* not running */
-    }
-    rmSync(PG_ROOT, { recursive: true, force: true });
-  }
-  run("mkdir", ["-p", `${PG_ROOT}/log`]);
-  run("chown", ["-R", "postgres:postgres", PG_ROOT]);
+/** Block the main thread — this script is deliberately synchronous throughout. */
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
 
-  asPostgres(`${PG_BIN}/initdb -D ${PG_DATA} -U postgres --auth=trust -E UTF8`);
-  asPostgres(
-    `${PG_BIN}/pg_ctl -D ${PG_DATA} -o '-p ${PG_PORT} -k ${PG_ROOT}' -l ${PG_ROOT}/log/pg.log -w start`,
-  );
-  asPostgres(`${PG_BIN}/createdb -p ${PG_PORT} -h localhost progresso_e2e`);
+function startLocalPg() {
+  const docker = spawnSync("docker", ["version", "--format", "{{.Server.Version}}"]);
+  if (docker.status !== 0) {
+    throw new Error(
+      "The e2e suite needs a Postgres. Either start Docker (this script boots a " +
+        `throwaway ${PG_IMAGE} on port ${PG_PORT}) or set DATABASE_URL to a ` +
+        "Postgres you are happy to have migrated and seeded.",
+    );
+  }
+
+  // A previous run killed with SIGKILL leaves the container behind; the whole
+  // point is a database with no history, so remove it rather than reuse it.
+  removeContainer();
+
+  run("docker", [
+    "run", "--detach",
+    "--name", PG_CONTAINER,
+    "--publish", `${PG_PORT}:5432`,
+    "--env", "POSTGRES_PASSWORD=postgres",
+    "--env", `POSTGRES_DB=${PG_DB}`,
+    PG_IMAGE,
+  ]);
   startedLocalPg = true;
 
-  return `postgresql://postgres@localhost:${PG_PORT}/progresso_e2e`;
+  // The container is up long before the server accepts connections, and the
+  // entrypoint restarts it once mid-init (it runs the bootstrap on a local-only
+  // socket first), so a single early `pg_isready` can pass against a server
+  // that is about to go away. Poll until it answers over TCP.
+  const deadline = 60;
+  for (let i = 0; ; i++) {
+    const ready = spawnSync("docker", [
+      "exec", PG_CONTAINER,
+      "pg_isready", "--host=127.0.0.1", "--username=postgres", `--dbname=${PG_DB}`,
+    ]);
+    if (ready.status === 0) break;
+    if (i >= deadline) {
+      spawnSync("docker", ["logs", "--tail", "40", PG_CONTAINER], { stdio: "inherit" });
+      throw new Error(`Postgres did not become ready within ${deadline}s`);
+    }
+    sleep(1000);
+  }
+
+  return `postgresql://postgres:postgres@localhost:${PG_PORT}/${PG_DB}`;
 }
 
 process.on("exit", stopLocalPg);
@@ -77,9 +105,13 @@ process.on("SIGINT", () => {
 });
 
 try {
-  const databaseUrl = usingExternalDb
-    ? process.env.DATABASE_URL
-    : startLocalPg();
+  let databaseUrl = process.env.DATABASE_URL;
+  if (usingExternalDb) {
+    console.info("→ Using DATABASE_URL from the environment…");
+  } else {
+    console.info(`→ Booting a throwaway ${PG_IMAGE} on port ${PG_PORT}…`);
+    databaseUrl = startLocalPg();
+  }
 
   const env = {
     ...process.env,
@@ -94,6 +126,16 @@ try {
     // Capture invite e-mails so the accept flow is drivable end-to-end.
     ENABLE_TEST_OUTBOX: "true",
     // No RESEND_API_KEY on purpose: e-mails log to the console + outbox.
+    //
+    // The AI generator is pinned OFF, and it has to be pinned rather than
+    // merely left unset: the standalone server loads `.env` from the repo at
+    // runtime, so a developer's real key reaches the suite even though the
+    // shell never exported it. The specs assert the "Nenhum provedor de IA
+    // configurado" copy, so an inherited key turns them red — and a green run
+    // would be worse, since it would mean e2e was calling a paid provider.
+    // Empty beats deleting: `llmEnv()` trims, and `@next/env` only fills in a
+    // key that is *absent* from process.env, so "" survives the .env load.
+    LLM_API_KEY: "",
   };
 
   console.info("→ Applying migrations…");

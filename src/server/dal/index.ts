@@ -8,6 +8,7 @@
 export * as admin from "./admin";
 export * as adminInvitations from "./admin-invitations";
 export * as ai from "./ai";
+export * as aiSettings from "./ai-settings";
 export * as billing from "./billing";
 export * as calendarEvents from "./calendar-events";
 export * as anamneses from "./anamneses";

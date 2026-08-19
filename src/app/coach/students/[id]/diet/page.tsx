@@ -66,6 +66,23 @@ export default function StudentDietPage() {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["student-diet", id] });
 
+  /**
+   * A generation just wrote a draft — open it.
+   *
+   * Every other path that creates a draft (`startBlank`, `assign`, `edit`)
+   * ends in `setEditing(true)`, and generating is the same event: the coach
+   * asked for a program and one now exists. Refetching alone leaves the page
+   * showing the *published* dieta, with the new draft reduced to a one-line
+   * banner and its contents nowhere on screen — which reads as "nothing was
+   * generated", and puts "Descartar rascunho" under the cursor as the only
+   * offered action. Awaiting the invalidation first is load-bearing: the
+   * builder only renders once `draft` is actually in the cache.
+   */
+  const openGenerated = async () => {
+    await invalidate();
+    setEditing(true);
+  };
+
   const [dialog, setDialog] = useState<null | "blank" | "assign">(null);
   const [blankName, setBlankName] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
@@ -222,7 +239,7 @@ export default function StudentDietPage() {
         <CurrentView
           studentId={id}
           goal={student.data?.goal}
-          onGenerated={invalidate}
+          onGenerated={openGenerated}
           current={current}
           draft={draft}
           history={history}
@@ -263,7 +280,7 @@ export default function StudentDietPage() {
               kind="diet"
               hasDraft
               defaultObjective={student.data?.goal}
-              onGenerated={invalidate}
+              onGenerated={openGenerated}
             />
           </div>
         </div>
@@ -287,7 +304,7 @@ export default function StudentDietPage() {
               kind="diet"
               hasDraft={false}
               defaultObjective={student.data?.goal}
-              onGenerated={invalidate}
+              onGenerated={openGenerated}
             />
           </div>
         </div>
@@ -498,8 +515,13 @@ function CurrentView({
       {hasDraft && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-[13px] font-medium text-amber-700">
-            Há um rascunho não publicado desta dieta. O aluno continua vendo a
-            versão {current.version} até você publicar.
+            {/* A generated draft is a *different* dieta with its own name, not
+                another version of this one — naming it is the only thing on
+                this screen that shows the generation produced anything. */}
+            {draft.dietName === current.dietName
+              ? "Há um rascunho não publicado desta dieta."
+              : `Há um rascunho não publicado: ${draft.dietName}.`}{" "}
+            O aluno continua vendo a versão {current.version} até você publicar.
           </p>
           <Button
             variant="outline"

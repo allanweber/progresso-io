@@ -4,14 +4,15 @@ Growth-roadmap **item 1**. Coach picks goal + anamnese → the AI drafts a full
 workout or diet from the platform's own catalog, saved as an **unpublished
 draft** the coach reviews and edits before anything reaches the aluno.
 
-**Status: implemented (migration `0031`).** Costs and provider research live in
-`docs/ai-provider-costs.md`.
+**Status: implemented (migrations `0031`–`0034`).** Costs and provider research
+live in `docs/ai-provider-costs.md`.
 
 ## Where the code is
 
 | Piece | File |
 | --- | --- |
-| Provider port + dev impl + cost freeze | `src/lib/llm-provider.ts` |
+| Provider port (OpenRouter) + dev impl | `src/lib/llm-provider.ts` |
+| Model settings: defaults, zod contract | `src/lib/ai-settings.ts`, `src/server/dal/ai-settings.ts`, `PUT /api/admin/ai/settings` |
 | Client-safe form contract + labels | `src/lib/ai-programs.ts` |
 | Catalog block (the cacheable prefix) | `src/server/ai/catalog.ts` |
 | PT-BR prompts + repair turn | `src/server/ai/prompts.ts` |
@@ -23,7 +24,7 @@ draft** the coach reviews and edits before anything reaches the aluno.
 | UI | `src/components/ai/ai-generate-button.tsx` |
 | Admin overview (cross-tenant) | `ai.getAdminAiOverview`, `GET /api/admin/ai`, `src/app/admin/ai/page.tsx` |
 | LLM price list | `src/lib/provider-prices.ts`, `src/server/dal/provider-prices.ts`, `/api/admin/ai/prices` |
-| Tests | `tests/ai-generator{,.integration}.test.ts`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
+| Tests | `tests/ai-generator{,.integration}.test.ts`, `tests/llm-provider.test.ts`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
 
 Two traps worth knowing about, both found by tests during the build:
 
@@ -208,39 +209,104 @@ WhatsApp).
 
 - **One capability**: ask for JSON matching a schema, get it or a typed reason
   why not. No streaming, no tool-calling, no conversation state.
-- **OpenAI-compatible `/v1/chat/completions`** is the seam — nearly every cheap
-  provider exposes one, so swapping is base-URL + key + model-string, with no
-  dependency surface and nothing between us and a provider's error messages.
-- **No default model string.** `LLM_API_KEY`, `LLM_BASE_URL` and `LLM_MODEL` are
-  all required or the port falls back to `dev`. Model identifiers churn fast
-  enough that a hardcoded one is a latent 404, and a wrong default fails at
-  generation time — after a credit is at stake — rather than at boot.
+- **OpenAI-compatible `/chat/completions`** is the seam, and **OpenRouter** is
+  what sits behind it: one key fronting nearly every vendor, so choosing a model
+  is a config change rather than an account, a contract and an integration. The
+  wire format is the one we already spoke, so the aggregator costs no dependency
+  surface and nothing stands between us and a provider's error messages.
+  `LLM_BASE_URL` still exists — pointing it at a vendor directly keeps working,
+  because the OpenRouter-only fields are ignored by endpoints that don't know
+  them.
 - **Unconfigured degrades to "feature off"**, never to a 500: the route answers a
   friendly *"IA não configurada"* and spends no credit.
 - **Tested against the `dev` provider**, plus an injectable fake for happy-path
-  integration tests. No HTTP-mocking dependency — the suite has none today.
+  integration tests, plus pure unit tests over the request body and the response
+  parser (`tests/llm-provider.test.ts`). No HTTP-mocking dependency — the suite
+  has none today.
 - **Prompt order: catalog first, anamnese and form last**, so the volatile part
   never sits inside the cacheable span.
 
-**First provider: Qwen3.7 Flash.** See `docs/ai-provider-costs.md`, including the
-open LGPD risk on Alibaba Cloud.
+### Configuration
+
+**Two env vars, and neither of them is the model.**
+
+| Var | Default | What it decides |
+| --- | --- | --- |
+| `LLM_API_KEY` | — | Set it or the feature is off. The only switch. |
+| `LLM_BASE_URL` | `https://openrouter.ai/api/v1` | Optional. The endpoint, minus `/chat/completions`. |
+
+**The model lives in `ai_settings`, edited at `/admin/ai → Modelos`** — a single
+row holding the primary slug and an ordered fallback list. That is the one
+decision about this feature that gets revisited: prices move, slugs get retired,
+and the whole point of an aggregator is that trying another model should be
+cheap. As an env var that is a deploy; as a row it is a form, and it takes effect
+on the **next generation**. The key stays in the environment because it is a
+secret, and secrets do not belong in a table an admin screen reads back.
+
+With **no row saved**, the coded defaults in `src/lib/ai-settings.ts` apply, so a
+fresh install generates without anyone seeding or saving anything. The screen
+says which of the two you are looking at.
+
+Everything else is a **constant** in `src/lib/llm-provider.ts` — temperature
+(0.4), output ceiling (8000), timeout (90s). A knob nobody turns is only a way to
+be misconfigured, and each of these was one.
+
+Three decisions worth knowing, because each reverses something or looks like an
+omission:
+
+- **There is a default model now**, reversing the original "no default model
+  string" rule. That rule existed because a hardcoded id is a latent 404 that
+  fails *after* a credit is at stake. Two things defused it: a **fallback list**
+  means a retired primary degrades instead of taking the feature down, and an
+  **aggregator** means "try another model" is no longer "open an account". What
+  survives: verify a slug against `curl https://openrouter.ai/api/v1/models`
+  before trusting it — which is now a form field, not a code edit.
+- **`:floor` is the cost lever**, and it lives in the model slug: it is exactly
+  `provider.sort: "price"`, expressed per-model so it survives into the fallback
+  list. The form warns when a slug lacks it, because the suffix is the easiest
+  thing to lose when pasting off a vendor page and it is worth roughly an order
+  of magnitude.
+- **No routing preferences are sent at all** — in particular not
+  `provider.require_parameters`, which would route only to hosts supporting
+  strict `json_schema`. As of 2026-08 that excludes every cheap host and, for the
+  default primary, leaves **no eligible host at all**. Without it, a host that
+  can't do strict schemas falls back to its own JSON mode and the answer is
+  caught by zod plus the free repair retry: a slightly higher repair rate for
+  roughly 9× on price. See `docs/ai-provider-costs.md`.
+
+**Defaults: Qwen3.7 Flash, falling back to Llama 3.1 8B**, both floored. See
+`docs/ai-provider-costs.md` for the verified prices and the still-open LGPD
+question — which the aggregator makes cheap to answer (a different slug) rather
+than answering.
 
 ## The audit row (`ai_generation`)
 
 Both the quota meter and the cost ledger. Per row: `clinicId` (tenant key),
-`studentId`, `coachId`, `kind`, `status`, `provider`, `model`, token counts
-(including **cached** input separately), `durationMs`, `repaired`, `errorCode`,
-**`catalogHash`** and **`anamnesisSnapshotId`**.
+`studentId`, `coachId`, `kind`, `status`, `provider`, `model`,
+`upstreamProvider`, `requestId`, token counts (including **cached** and
+**cache-write** input separately), `reportedCostMicroUsd`, `durationMs`,
+`repaired`, `errorCode`, **`catalogHash`** and **`anamnesisSnapshotId`**.
 
-- **Cost is deliberately NOT stored on the row.** Tokens are the half that can
-  only be measured as the call happens; the price is the half that can be looked
-  up. Prices live in `provider_price`, effective-dated, and each generation is
-  matched to whichever was in force the day it ran. So a vendor price change adds
-  a row and history stays correct, and a **mistyped** price is an edit that
-  *fixes* history — neither of which a number frozen on the audit row could do.
-  (An earlier version did freeze one, from `LLM_PRICE_*` env vars nobody set, so
-  it could only ever say `NULL`; dropped in migration 0032, replaced by the table
-  in 0033.)
+- **`model` is overwritten on settle, not just recorded.** The `pending` row
+  names the model we *asked* for; a fallback can promote a different one. Pricing
+  tokens against a slug that did not produce them would be wrong in exactly the
+  direction nobody checks.
+- **`upstreamProvider` is why a cost can move without a config change.** One slug
+  is served by several hosts at different prices, and routing picks per call.
+- **The reported cost is a measurement, not the frozen price 0032 dropped.**
+  That number came from `LLM_PRICE_*` env vars nobody set, so it could only ever
+  restate an assumption and only ever say `NULL`. `reportedCostMicroUsd` is
+  returned *by the call*, in the same class of fact as the token counts beside
+  it, and it is the only figure that stays right when routing moves a slug
+  between hosts.
+- **`provider_price` is unchanged and still prices every row.** It covers rows
+  from before the switch and vendors that report nothing, it is what makes a
+  *forecast* possible, and it stays correctable after the fact. Where a row has
+  both, **the reported figure wins** — it is the one the invoice will agree with.
+- **A failed call still records what it cost.** A refusal or a truncated answer
+  refunds the credit; it does not refund the tokens. Recording the spend on the
+  `failed` row is what keeps a model that burns tokens without producing a
+  program from looking free.
 - **The prompt itself is never stored.** The anamnese snapshot id and the catalog
   hash make it fully reconstructible without duplicating aluno health data into a
   second table, in plain text, in every backup. Same data-minimization logic as
@@ -267,7 +333,7 @@ at or before the moment the generation ran.** Everything else falls out of it.
 | Vendor raises its price | Add a row. March's generations keep March's rate. |
 | You mistyped a price | Edit the row. History is *corrected*, not left wrong. |
 | Price announced for next month | Enter it now; it's inert until its date. |
-| Model never priced | Its generations read as unpriced — an honest "unknown", and a gap the admin can close on the spot. |
+| Model never priced | Its generations read as unpriced — unless the provider reported a cost, in which case nothing is missing. An honest "unknown", and a gap the admin can close on the spot. |
 | Vendor states no cache rate | Leave it blank; cache reads bill as normal input, over- rather than under-stating. |
 
 A blank cached rate is `NULL`, **not** `0` — zero is the real claim "cache reads
@@ -286,15 +352,43 @@ uncheckable. This screen is the read side.
 | **Custo no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, built on unverified prices and a guessed token count. |
 | **Reparos / falhas** | The prompt still produces schema-valid JSON. A rising repair count is drift, and each repair is a second paid round-trip. |
 
-Three details that are not incidental:
+### The **Modelos** tab
 
-- **A partial cost total is labelled `parcial`, never silently summed.** A model
-  with no price entered leaves its generations uncosted; adding them as zero
-  would under-report the bill by exactly the amount you can't see.
-  `unpricedGenerations` counts them, and unlike the old env-var version this is
-  a gap the admin can close on the spot — the Preços tab is on the same screen.
-  A generation that burned no tokens at all is neither priced nor counted as
-  missing: there is nothing to price, so it would only dilute the signal.
+Choosing a model is a form field now, so the question worth asking is no longer
+only "what did this clinic spend" but **"what does this model cost us, and how
+often does it need repairing"** — which spans tenants and so has no home on the
+per-clinic table.
+
+Before swapping in a slug, check its `reasoning` block in OpenRouter's model
+list: a model with `mandatory: true` cannot be stopped from thinking, and
+thinking is billed as output and eats the same `max_tokens` ceiling as the
+answer — see the hazards in `docs/ai-provider-costs.md`.
+
+- **Custo / geração is the column that compares two models.** A total says more
+  about how much a model was used than about what it costs.
+- **Reparos as a share of successes is the quality signal that decides a swap.**
+  A repair is a second round-trip: a cheap model that needs repairing half the
+  time is not cheap.
+- **The host column is where a cost that moved shows up first.** One slug served
+  by two hosts at two prices, chosen per call by `:floor`.
+- **The config card above it says what the server is currently asking for.**
+  Without it, a cost that moved and a config someone changed look identical in
+  the numbers. It carries no secret — never the key, only whether one is set.
+
+Four details that are not incidental:
+
+- **Every cost figure says whether it was measured or estimated** (`medido` /
+  `estimado` / `medido + estimado`). An estimate is only as good as the price
+  someone typed; a measured figure is what the invoice will say. A 10% gap
+  between two models means nothing until you know you are comparing like with
+  like.
+- **A partial cost total is labelled `parcial`, never silently summed.** A
+  generation that reported no cost *and* has no price entered is uncosted;
+  adding it as zero would under-report the bill by exactly the amount you can't
+  see. `unpricedGenerations` counts them, and this is a gap the admin can close
+  on the spot — the Preços tab is on the same screen. A generation that burned no
+  tokens at all is neither costed nor counted as missing: there is nothing to
+  cost, so it would only dilute the signal.
 - **`configured` rides along on the response.** An all-zero table means either
   "nobody generated anything" or "the feature was never switched on", and the
   admin needs to know which.
@@ -315,10 +409,19 @@ Three details that are not incidental:
 
 ## Open, not blocking the build
 
-- **LGPD posture on Alibaba Cloud** — privacy policy update + DPA check before
-  launch (`docs/ai-provider-costs.md`).
-- **Verified pricing** — the whole table except the Anthropic row is unverified;
-  promotion into `docs/monetization.md` §7 (both language halves, plus a §4(a)
-  line and a §6.3 margin re-check) waits on live sources.
-- **Measured token counts** — every token figure quoted anywhere is arithmetic on
-  assumed row sizes. First measurement task during implementation.
+- **LGPD posture.** The default primary (`qwen/qwen3.7-flash`) is served on
+  OpenRouter by **Alibaba and nobody else**, so routing through an aggregator
+  did *not* change the jurisdiction — it only made changing it cheap.
+  Picking a different slug on `/admin/ai` is now a one-form answer; the
+  privacy-policy update and the DPA check are still owed before launch
+  (`docs/ai-provider-costs.md`).
+- **Existing `provider_price` rows are keyed to the old provider name.** Rows
+  entered as `openai-compatible` no longer match generations, which now record
+  `openrouter`. Re-enter them under the new name — or leave them: reported costs
+  cover every new row, so the estimate only matters for forecasting.
+- **Promotion into `docs/monetization.md` §7** (both language halves, plus a
+  §4(a) line and a §6.3 margin re-check) still waits — but the prices it needs
+  are now verified, and the token counts it assumed are now measured per row.
+- **Measured token counts** — the figures quoted in §7 are still arithmetic on
+  assumed row sizes. `/admin/ai → Modelos` is where the real ones will come from
+  after the first month of use.
