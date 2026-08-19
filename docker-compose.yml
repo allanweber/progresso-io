@@ -37,6 +37,10 @@ services:
         NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
         NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL: ${NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL:-}
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        # Turnstile's site key is public, inlined into the bundle, AND read at
+        # build time to open the CSP for challenges.cloudflare.com — so it has
+        # to be here, not only in the runtime environment below.
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
         SENTRY_ORG: ${SENTRY_ORG:-}
         SENTRY_PROJECT: ${SENTRY_PROJECT:-}
         SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
@@ -85,6 +89,12 @@ services:
       - LLM_API_KEY=${LLM_API_KEY:-}
       # Optional; defaults to OpenRouter. See .env.example.
       - LLM_BASE_URL=${LLM_BASE_URL:-}
+      # Cloudflare Turnstile: the contact form's bot check. The secret verifies
+      # tokens at runtime; the site key is repeated here only so the two stay
+      # visibly paired — it is the build arg above that actually reaches the
+      # browser. Both unset = no widget and no verification (dev/e2e default).
+      - NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
     expose:
       - "3000"
     # Container health via the app's own liveness endpoint (node has global fetch).

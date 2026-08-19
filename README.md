@@ -69,3 +69,17 @@ Make sure you have a PostgreSQL database set up in docker
 docker run --name progresso -e POSTGRES_PASSWORD=progresso -e POSTGRES_USER=progresso -e POSTGRES_DB=progresso -p 5438:5432 -d postgres
 ```
 
+## Before commit
+
+Before commit run the skills:
+
+- Shadcn improve: /improve
+- impeccable audit: /impeccable audit
+
+```prompt
+run a refinement check with /thermo-nuclear-code-quality-review and /improve-codebase-architecture
+```
+
+``` prompt
+run a review code with /code-review and /security-review
+```

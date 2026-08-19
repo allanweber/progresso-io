@@ -136,6 +136,19 @@ try {
     // Empty beats deleting: `llmEnv()` trims, and `@next/env` only fills in a
     // key that is *absent* from process.env, so "" survives the .env load.
     LLM_API_KEY: "",
+    // Turnstile is pinned OFF for the same reason, and it has to be: the widget
+    // is a real Cloudflare challenge, and headless Chromium does not solve one.
+    // With a developer's keys inherited from `.env`, every genuine contact-form
+    // submission is refused while the *honeypot* test still passes — that check
+    // short-circuits before Turnstile is consulted — which reads as "the form
+    // broke" rather than "the suite grew a dependency on Cloudflare".
+    //
+    // The site key is inlined at BUILD time, so it must be pinned for the build
+    // step too, not just the server. What e2e covers is therefore the
+    // unconfigured path; the verifier's own pass/fail/skip behaviour is proven
+    // offline in `tests/turnstile.test.ts`.
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: "",
+    TURNSTILE_SECRET_KEY: "",
   };
 
   console.info("→ Applying migrations…");

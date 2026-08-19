@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { waitForMessage } from "./outbox";
+
 /**
  * Admin management (/admin/admins), against the real DB (see scripts/e2e.mjs),
  * on the seeded admin session (admin@progresso.io). Covers the guard rails and
@@ -43,7 +45,6 @@ test.describe("admin: administrators", () => {
     browser,
   }) => {
     const email = uniqueEmail();
-    await request.delete("/api/test/outbox");
 
     // Invite a new admin.
     await page.goto("/admin/admins");
@@ -58,19 +59,14 @@ test.describe("admin: administrators", () => {
     await expect(pendingRow.getByText("Pendente")).toBeVisible();
 
     // The set-password link was e-mailed (captured in the outbox).
-    const { messages } = (await (
-      await request.get("/api/test/outbox")
-    ).json()) as { messages: { to: string; kind: string; url?: string }[] };
-    const invite = messages.find(
-      (m) => m.to === email && m.kind === "admin_invite",
-    );
-    expect(invite?.url).toBeTruthy();
+    const invite = await waitForMessage(request, email, "admin_invite");
+    expect(invite.url).toBeTruthy();
 
     // Accept in a fresh context: set a password and activate.
     const ctx = await browser.newContext();
     try {
       const p = await ctx.newPage();
-      await p.goto(invite!.url!);
+      await p.goto(invite.url!);
       await expect(
         p.getByRole("heading", { name: "Ative seu acesso" }),
       ).toBeVisible();

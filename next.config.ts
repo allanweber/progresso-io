@@ -18,6 +18,20 @@ const sentryConfigured = !!process.env.NEXT_PUBLIC_SENTRY_DSN;
 const sentryConnect = sentryConfigured ? " https://*.ingest.de.sentry.io" : "";
 const sentryWorker = sentryConfigured ? "worker-src 'self' blob:" : "";
 
+// Cloudflare Turnstile (the contact form's bot check) loads its script from
+// challenges.cloudflare.com and renders the widget in an iframe served from the
+// same host — so it needs both `script-src` and `frame-src`. Gated on the site
+// key like GA and Sentry above, so an install without Turnstile keeps the
+// tighter default policy. Inlined at BUILD time.
+const turnstileConfigured = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+const turnstileHost = " https://challenges.cloudflare.com";
+const turnstileScript = turnstileConfigured ? turnstileHost : "";
+// There is no `frame-src` otherwise: `default-src 'self'` covers frames, which
+// would block the widget outright.
+const turnstileFrame = turnstileConfigured
+  ? `frame-src 'self'${turnstileHost}`
+  : "";
+
 /**
  * Content-Security-Policy.
  *
@@ -40,10 +54,11 @@ const csp = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "img-src 'self' data: https:", // exercise/check-in images (R2/CDN) + data URIs
-  `script-src 'self' 'unsafe-inline'${devEval}${gaScript}`,
+  `script-src 'self' 'unsafe-inline'${devEval}${gaScript}${turnstileScript}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind inline styles
   `connect-src 'self'${gaConnect}${sentryConnect}`,
   sentryWorker, // Session Replay compression worker (blob:), empty unless configured
+  turnstileFrame, // Turnstile's challenge iframe, empty unless configured
   "form-action 'self'",
 ]
   .filter(Boolean)
