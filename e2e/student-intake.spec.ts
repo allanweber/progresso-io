@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { waitForMessage } from "./outbox";
+
 /**
  * Student-anamnese + notification flows against the real DB (see scripts/e2e.mjs).
  * Runs in the `student-anamneses` project on the seeded coach's session. The
@@ -71,13 +73,13 @@ test.describe("student anamneses", () => {
     ).json()) as { items: { id: string }[] };
     const phone = uniquePhone();
 
-    await request.delete("/api/test/outbox");
+    const email = uniqueEmail("pf");
     const reg = await request.post("/api/students", {
       data: {
         firstName: "Public",
         lastName: "Fill",
         phone,
-        email: uniqueEmail("pf"),
+        email,
         goal: "",
         modality: "online",
         anamnesisId: items[0].id,
@@ -85,16 +87,13 @@ test.describe("student anamneses", () => {
     });
     expect(reg.ok()).toBeTruthy();
 
-    const { messages } = (await (
-      await request.get("/api/test/outbox")
-    ).json()) as { messages: { kind: string; url?: string }[] };
-    const fill = messages.find((m) => m.kind === "anamnesis_fill");
-    expect(fill?.url).toBeTruthy();
+    const fill = await waitForMessage(request, phone, "anamnesis_fill");
+    expect(fill.url).toBeTruthy();
 
     const ctx = await browser.newContext();
     try {
       const p = await ctx.newPage();
-      await p.goto(fill!.url!);
+      await p.goto(fill.url!);
       await expect(p.getByLabel("Seu WhatsApp")).toBeVisible();
       // The questionnaire stays hidden until the number is confirmed.
       await expect(
@@ -153,29 +152,26 @@ test.describe("student anamneses", () => {
     const anamnesisId = await pickDateMaskedAnamnesisId(request);
     const phone = uniquePhone();
 
-    await request.delete("/api/test/outbox");
+    const email = uniqueEmail("mask");
     const reg = await request.post("/api/students", {
       data: {
         firstName: "Mask",
         lastName: "Date",
         phone,
-        email: uniqueEmail("mask"),
+        email,
         goal: "",
         modality: "online",
         anamnesisId,
       },
     });
     expect(reg.ok()).toBeTruthy();
-    const { messages } = (await (
-      await request.get("/api/test/outbox")
-    ).json()) as { messages: { kind: string; url?: string }[] };
-    const fill = messages.find((m) => m.kind === "anamnesis_fill");
-    expect(fill?.url).toBeTruthy();
+    const fill = await waitForMessage(request, phone, "anamnesis_fill");
+    expect(fill.url).toBeTruthy();
 
     const ctx = await browser.newContext();
     try {
       const p = await ctx.newPage();
-      await p.goto(fill!.url!);
+      await p.goto(fill.url!);
       // Confirm the WhatsApp to unlock the questionnaire.
       await p.getByLabel("Seu WhatsApp").fill(phone);
       await p.getByRole("button", { name: "Confirmar WhatsApp" }).click();
@@ -261,24 +257,21 @@ test.describe("student anamneses", () => {
     const { items } = (await (
       await request.get("/api/anamneses?pageSize=100")
     ).json()) as { items: { id: string }[] };
-    await request.delete("/api/test/outbox");
+    const phone = uniquePhone();
     await request.post("/api/students", {
       data: {
         firstName: "Shot",
         lastName: "Fill",
-        phone: uniquePhone(),
+        phone,
         email: uniqueEmail("shot"),
         goal: "",
         modality: "online",
         anamnesisId: items[0].id,
       },
     });
-    const { messages } = (await (
-      await request.get("/api/test/outbox")
-    ).json()) as { messages: { kind: string; url?: string }[] };
-    const fill = messages.find((m) => m.kind === "anamnesis_fill");
+    const fill = await waitForMessage(request, phone, "anamnesis_fill");
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto(fill!.url!);
+    await page.goto(fill.url!);
     await expect(page.getByLabel("Seu WhatsApp")).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/anamnese-fill-desktop.png",

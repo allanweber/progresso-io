@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { expectNoMessage, waitForMessage } from "./outbox";
+
 /**
  * Authenticated coach flows against the real DB (see scripts/e2e.mjs). Runs in
  * the `coach` project, which reuses the seeded coach's saved session. Covers the
@@ -77,41 +79,51 @@ test.describe("student management", () => {
     browser,
   }) => {
     const email = uniqueEmail("convidado");
-    await request.delete("/api/test/outbox");
+    const phone = uniquePhone();
 
     await page.goto("/coach/students/new");
     await page.getByLabel("Nome", { exact: true }).fill("Carla");
     await page.getByLabel("Sobrenome").fill("Convidada");
-    await page.getByLabel("WhatsApp").fill(uniquePhone());
+    await page.getByLabel("WhatsApp").fill(phone);
     await page.getByLabel("E-mail", { exact: true }).fill(email);
+
+    // Wait for the anamnese select to settle before submitting. It is left at
+    // its default here, but that default is applied ASYNCHRONOUSLY — the form
+    // picks the first template only once the templates query resolves. Submit
+    // before that and `anamnesisId` is still "", which makes the API skip the
+    // WhatsApp fill link entirely (`modality === "online" && data.anamnesisId`)
+    // while still creating the student and navigating. The registration looks
+    // completely successful and no message is ever sent.
+    await expect(page.locator("#anamnesisId")).not.toHaveText(
+      /Carregando|Nenhuma/,
+    );
+
     await page.getByRole("button", { name: "Enviar convite" }).click();
     await page.waitForURL(/\/coach\/students\/[0-9a-f-]{36}$/);
 
     // Registration sends the anamnese fill link — NOT the portal invite yet.
-    const afterRegister = (await (await request.get("/api/test/outbox")).json()) as {
-      messages: { to: string; kind: string; url?: string }[];
-    };
-    expect(
-      afterRegister.messages.some((m) => m.kind === "anamnesis_fill"),
-    ).toBe(true);
-    expect(afterRegister.messages.some((m) => m.kind === "invite")).toBe(false);
+    // Scoped to this aluno: the outbox is shared with every other spec running
+    // in parallel (see e2e/outbox.ts). Keyed by PHONE, because the fill link
+    // goes out as a WhatsApp template; the portal invite below is the e-mail.
+    await waitForMessage(request, phone, "anamnesis_fill");
+    // Both channels: `sendPortalInvite` captures kind "invite" for the WhatsApp
+    // template AND the e-mail, so checking only one would miss half of what
+    // this assertion exists to rule out.
+    await expectNoMessage(request, phone, "invite");
+    await expectNoMessage(request, email, "invite");
 
     // Portal access is sent on the first diet/workout published, or on demand via
     // the profile's "Enviar convite" button — used here to get the invite link.
-    await request.delete("/api/test/outbox");
     await page.getByRole("button", { name: "Enviar convite" }).click();
     await expect(page.getByText(/Convite enviado por WhatsApp/)).toBeVisible();
 
-    const { messages } = (await (await request.get("/api/test/outbox")).json()) as {
-      messages: { to: string; kind: string; url?: string }[];
-    };
-    const invite = messages.find((m) => m.to === email && m.kind === "invite");
-    expect(invite?.url).toBeTruthy();
+    const invite = await waitForMessage(request, email, "invite");
+    expect(invite.url).toBeTruthy();
 
     const alunoContext = await browser.newContext();
     try {
       const alunoPage = await alunoContext.newPage();
-      await alunoPage.goto(invite!.url!);
+      await alunoPage.goto(invite.url!);
       await expect(
         alunoPage.getByRole("heading", { name: "Ative seu acesso" }),
       ).toBeVisible();

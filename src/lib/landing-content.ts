@@ -152,8 +152,15 @@ export const plans: Plan[] = [
       { label: "SLA e suporte dedicado", included: true },
     ],
     cta: {
+      // `/contact`, not a `mailto:`. A mailto only does anything for a visitor
+      // whose browser has a mail client registered — for everyone else the
+      // click is silently inert, which is exactly what an Enterprise lead
+      // experiences as "the button is broken". It also addressed
+      // contato@progressoio.com.br, the only appearance of that domain in the
+      // codebase, while every other contact route in the app (the footer, the
+      // /contact form) reaches the team through CONTACT_EMAIL.
       label: "Entrar em contato",
-      href: "mailto:contato@progressoio.com.br",
+      href: "/contact",
     },
     dark: true,
   },

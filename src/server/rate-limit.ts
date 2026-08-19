@@ -53,9 +53,46 @@ export function hit(key: string, max: number, windowMs: number): boolean {
   return true;
 }
 
+/**
+ * Gives back one hit against `key`, for work that was counted and then failed.
+ *
+ * Charging for an attempt that never happened is a real cost once the window is
+ * long: the contact form's budget is one message per day, so a Resend outage
+ * would otherwise tell the visitor "try again" and then refuse the retry for
+ * 24 hours, having delivered nothing. Counting first and refunding on failure
+ * keeps the limiter in front of the expensive work while still only charging
+ * for what actually got done.
+ *
+ * Deliberately does NOT delete the bucket: the window must keep running, or a
+ * caller could reset its own clock by failing on purpose.
+ */
+export function refund(key: string): void {
+  const bucket = buckets.get(key);
+  if (bucket && bucket.count > 0) bucket.count -= 1;
+}
+
 /** Clears all buckets — test-only helper so cases don't bleed into each other. */
 export function __resetRateLimit(): void {
   buckets.clear();
+}
+
+/**
+ * Drops every bucket whose key starts with `prefix`. Test-only, and reached
+ * over HTTP by the e2e suite (`/api/test/rate-limit`).
+ *
+ * It exists because a long window and an automated suite are incompatible: the
+ * contact form allows one message per IP per day, every Playwright worker
+ * shares one localhost IP and one server process, and `retries: 1` means the
+ * first attempt spends the budget the retry needs. Without this the retry fails
+ * deterministically, so any flake becomes a hard failure.
+ *
+ * Prefixed rather than wholesale so clearing the contact bucket cannot quietly
+ * disarm the auth limiters a concurrent spec may be relying on.
+ */
+export function __clearRateLimit(prefix: string): void {
+  for (const key of buckets.keys()) {
+    if (key.startsWith(prefix)) buckets.delete(key);
+  }
 }
 
 /**

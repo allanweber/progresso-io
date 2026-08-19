@@ -1,16 +1,74 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import { Check } from "lucide-react";
 
 import { sendContactMessage } from "@/app/actions/contact";
+import { CONTACT_LIMITS } from "@/lib/contact";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * Read straight from the environment rather than imported from
+ * `@/lib/turnstile`: that module is server-side (it holds the secret and logs
+ * through `node:async_hooks`), and pulling it into a client component drags the
+ * whole server observability tree into the browser bundle. `NEXT_PUBLIC_*` is
+ * inlined at build time only when referenced literally like this — assigning
+ * `process.env` to a variable first defeats the substitution.
+ */
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+/** The widget's global, present once `api.js` has loaded. */
+declare global {
+  interface Window {
+    turnstile?: { reset: (container?: string | HTMLElement) => void };
+  }
+}
+
 export function ContactForm() {
   const [state, formAction] = useActionState(sendContactMessage, undefined);
+
+  // Stamped onto the DOM node after mount, never during render: this page is
+  // statically prerendered, so a build-time timestamp would already be hours
+  // old by the time anyone loaded it, and stamping during hydration would
+  // mismatch the served HTML. Written through a ref rather than state because
+  // nothing renders it — it exists only to be posted — so a re-render would buy
+  // nothing. It stays empty when scripting is off, which the action reads as
+  // "no timestamp" and skips the timing check rather than dropping the message.
+  const [messageLength, setMessageLength] = useState(0);
+
+  const renderedAt = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (renderedAt.current) renderedAt.current.value = String(Date.now());
+  }, []);
+
+  /**
+   * Re-arm Turnstile after a refused submit.
+   *
+   * A token is **single use**, and `useActionState` re-renders in place without
+   * a page load — so the widget keeps showing its green tick while the form
+   * silently reposts a token Cloudflare has already retired. Every retry then
+   * fails as `timeout-or-duplicate`, and the visitor is told to prove they are
+   * not a robot by a widget that insists they already have. Nothing short of a
+   * manual reload recovers.
+   *
+   * Fires on any `formError`, not just the Turnstile one: a rate-limit or send
+   * failure spends the token just the same.
+   *
+   * The dependency is the whole `state`, not `state.formError`. The action
+   * returns a fresh object per submit, so identity changes every time — where
+   * the message string does not, and two consecutive identical errors would
+   * leave the second one holding a spent token.
+   */
+  const turnstileBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.formError && turnstileBox.current) {
+      window.turnstile?.reset(turnstileBox.current);
+    }
+  }, [state]);
 
   if (state?.ok) {
     return (
@@ -49,6 +107,7 @@ export function ContactForm() {
           label="Nome"
           placeholder="Seu nome"
           autoComplete="name"
+          maxLength={CONTACT_LIMITS.name}
           required
           error={state?.fieldErrors?.name}
         />
@@ -59,6 +118,7 @@ export function ContactForm() {
           type="email"
           placeholder="seu@email.com"
           autoComplete="email"
+          maxLength={CONTACT_LIMITS.email}
           required
           error={state?.fieldErrors?.email}
         />
@@ -69,12 +129,20 @@ export function ContactForm() {
             name="message"
             rows={5}
             placeholder="Como podemos ajudar?"
+            maxLength={CONTACT_LIMITS.message}
             required
             aria-invalid={state?.fieldErrors?.message ? true : undefined}
             aria-describedby={
               state?.fieldErrors?.message ? "message-error" : undefined
             }
+            onChange={(e) => setMessageLength(e.currentTarget.value.length)}
           />
+          {/* A `maxLength` textarea just stops accepting keystrokes, with no
+              hint why — so the budget is shown rather than left to be
+              discovered by typing into a field that has gone dead. */}
+          <p className="text-right text-[12px] text-muted-foreground">
+            {messageLength}/{CONTACT_LIMITS.message}
+          </p>
           {state?.fieldErrors?.message && (
             <p id="message-error" className="text-[13px] text-destructive">
               {state.fieldErrors.message}
@@ -82,6 +150,56 @@ export function ContactForm() {
           )}
         </div>
       </div>
+
+      {/*
+        Cloudflare Turnstile — the visible half of the bot check. Implicit
+        rendering: the script finds this div by class and injects the
+        `cf-turnstile-response` field into the enclosing form itself, so there
+        is no token state to thread through React.
+
+        Rendered only when a site key is configured, which is what keeps local
+        dev and the e2e suite working without a Cloudflare account — the server
+        skips verification in exactly the same case. `pt-BR` because the widget
+        speaks to the visitor and the rest of this page is Portuguese.
+      */}
+      {TURNSTILE_SITE_KEY !== "" && (
+        <>
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="lazyOnload"
+          />
+          <div
+            ref={turnstileBox}
+            className="cf-turnstile mt-5"
+            data-sitekey={TURNSTILE_SITE_KEY}
+            data-language="pt-BR"
+          />
+        </>
+      )}
+
+      {/*
+        Bot traps; see `sendContactMessage` for what each one catches.
+
+        Off-screen rather than `display: none` or `type="hidden"` — a scraper
+        that skips those still fills anything with a plausible name, which is
+        the whole point. `aria-hidden` plus `tabIndex={-1}` keep it away from
+        screen readers and the tab order, so no real visitor can reach it: a
+        filled `website` means a machine filled it.
+      */}
+      <div
+        aria-hidden="true"
+        className="absolute -left-[9999px] size-0 overflow-hidden"
+      >
+        <label htmlFor="website">Não preencha este campo</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
+      <input ref={renderedAt} type="hidden" name="renderedAt" defaultValue="" />
 
       <SubmitButton size="lg" className="mt-5 w-full" pendingLabel="Enviando…">
         Enviar mensagem

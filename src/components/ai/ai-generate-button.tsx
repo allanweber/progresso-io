@@ -66,6 +66,19 @@ type Props = {
 
 const NOUN = { workout: "treino", diet: "dieta" } as const;
 
+/**
+ * **Objetivo** is the one question both kinds ask, which is exactly why its
+ * example cannot be shared: a single hard-coded "hipertrofia com foco em
+ * membros inferiores" greeted a coach filling in a *dieta* with a training
+ * split. The placeholder is the only instruction this field carries — nothing
+ * else on the screen says what a good objective looks like — so an example from
+ * the wrong domain is worse than no example, and it reaches the model verbatim.
+ */
+const OBJECTIVE_PLACEHOLDER = {
+  workout: "Ex. hipertrofia com foco em membros inferiores",
+  diet: "Ex. emagrecimento preservando massa magra, sem lactose",
+} as const;
+
 export function AiGenerateButton({
   studentId,
   kind,
@@ -214,7 +227,7 @@ export function AiGenerateButton({
                   id="ai-objective"
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
-                  placeholder="Ex. hipertrofia com foco em membros inferiores"
+                  placeholder={OBJECTIVE_PLACEHOLDER[kind]}
                 />
               </div>
 

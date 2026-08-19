@@ -55,6 +55,14 @@ test.describe("ai program generator", () => {
     await expect(page.getByText("Restrições alimentares")).toBeHidden();
     await expect(page.getByLabel("Refeições por dia")).toBeHidden();
 
+    // Objetivo is the one field both kinds share, so its example is the one
+    // place treino and dieta copy can silently swap. It reaches the model
+    // verbatim, and it is the only hint the field gives.
+    await expect(page.getByLabel("Objetivo")).toHaveAttribute(
+      "placeholder",
+      /hipertrofia/,
+    );
+
     // Remaining credits are shown before spending one, not after.
     await expect(page.getByText(/gerações? usadas? este mês/)).toBeVisible();
 
@@ -136,6 +144,17 @@ test.describe("ai program generator", () => {
     await expect(page.getByLabel("Refeições por dia")).toHaveValue("5");
     await expect(page.getByText("Equipamentos disponíveis")).toBeHidden();
     await expect(page.getByLabel("Dias por semana")).toBeHidden();
+
+    // ...including the shared Objetivo field's example, which used to suggest a
+    // training split to a coach writing a dieta.
+    await expect(page.getByLabel("Objetivo")).toHaveAttribute(
+      "placeholder",
+      /emagrecimento/,
+    );
+    await expect(page.getByLabel("Objetivo")).not.toHaveAttribute(
+      "placeholder",
+      /hipertrofia|membros inferiores/,
+    );
 
     // Treino and dieta are separate generations, and the dialog says so before
     // a credit is spent.
