@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AI_EQUIPMENT_LABELS,
+  AI_EQUIPMENT_VALUES,
   aiDietGenerateSchema,
   aiWorkoutGenerateSchema,
   cacheHitRatio,
@@ -9,6 +11,7 @@ import {
 } from "@/lib/ai-programs";
 import { resolveAiGenerations } from "@/lib/plans";
 import { resolveIndices, type CatalogBlock } from "@/server/ai/catalog";
+import { dietSystemPrompt, workoutSystemPrompt } from "@/server/ai/prompts";
 import {
   dietIndices,
   dietPlanSchema,
@@ -192,6 +195,26 @@ describe("aiWorkoutGenerateSchema", () => {
     ).toBe(false);
   });
 
+  it("offers only equipment the base catalog can actually fill", () => {
+    // An option the catalog can't back produces a program the model has to
+    // improvise, which the index check then rejects — a spent credit and no
+    // draft. `elasticos` was one: too few `bands` rows to build a week from,
+    // and the catalog calls them "Faixas elásticas" anyway.
+    expect(AI_EQUIPMENT_VALUES).toEqual([
+      "academia",
+      "halteres",
+      "peso_corporal",
+    ]);
+    expect(
+      aiWorkoutGenerateSchema.safeParse({ ...valid, equipment: ["elasticos"] })
+        .success,
+    ).toBe(false);
+    // Every offered value must have a label — an unlabelled one renders blank.
+    for (const value of AI_EQUIPMENT_VALUES) {
+      expect(AI_EQUIPMENT_LABELS[value]).toBeTruthy();
+    }
+  });
+
   // The two forms are separate precisely so neither accepts the other's
   // answers: a treino that took `restrictions` would feed the prompt a
   // constraint its rules never mention.
@@ -304,5 +327,44 @@ describe("resolveAiGenerations", () => {
         effectivePlan: "free",
       }),
     ).toBe(1);
+  });
+});
+
+describe("system prompts", () => {
+  const catalog = block(["a", "b"]);
+
+  it("state the response schema in the prompt, not only in response_format", () => {
+    // `response_format: json_schema` is honoured only by hosts that implement
+    // strict structured outputs, and the cheap ones do not. On those the schema
+    // is silently dropped and the model is told to "reply with the JSON in the
+    // requested format" having never been shown the format — which produced a
+    // runaway answer that burned the whole max_tokens ceiling and returned
+    // nothing. The contract has to survive that host.
+    for (const prompt of [
+      workoutSystemPrompt(catalog),
+      dietSystemPrompt(catalog),
+    ]) {
+      expect(prompt).toContain("JSON Schema");
+      expect(prompt).toContain('"additionalProperties":false');
+    }
+    expect(workoutSystemPrompt(catalog)).toContain('"sessions"');
+    expect(dietSystemPrompt(catalog)).toContain('"meals"');
+  });
+
+  it("keep the catalog last, after the schema", () => {
+    // The catalog is the bulk of the cacheable prefix; anything appended after
+    // it would push a second variable-length block into the cached span.
+    const prompt = workoutSystemPrompt(catalog);
+    expect(prompt.indexOf("JSON Schema")).toBeLessThan(
+      prompt.indexOf(catalog.text),
+    );
+    expect(prompt.endsWith(catalog.text)).toBe(true);
+  });
+
+  it("are byte-identical across calls — the prompt cache depends on it", () => {
+    // JSON.stringify over the schema is only safe because the schemas are
+    // `as const` literals with fixed key order.
+    expect(workoutSystemPrompt(catalog)).toBe(workoutSystemPrompt(catalog));
+    expect(dietSystemPrompt(catalog)).toBe(dietSystemPrompt(catalog));
   });
 });

@@ -1,5 +1,7 @@
 import { z } from "@/lib/validation";
 
+import type { AiSettingsDto } from "@/lib/ai-settings";
+
 /**
  * Client-safe contract for the AI program generator: the dialog's form shape,
  * its PT-BR option labels, and the response DTO.
@@ -8,11 +10,21 @@ import { z } from "@/lib/validation";
  * renders the dialog.
  */
 
-/** What equipment the aluno actually has. Drives which exercises make sense. */
+/**
+ * What equipment the aluno actually has. Drives which exercises make sense.
+ *
+ * **Only offer what the catalog can actually fill.** The generator sends the
+ * whole exercise catalog and asks the model to respect this list; an option with
+ * no real backing produces a program built out of the model's imagination and
+ * then rejected by the index check, or — worse — a thin one it padded from
+ * elsewhere. `Elásticos` was removed for exactly that reason: the base catalog's
+ * `bands` rows are too few to build a week from, and they are labelled
+ * "Faixas elásticas" there, so the model was also being asked to match a term
+ * the catalog never uses.
+ */
 export const AI_EQUIPMENT_VALUES = [
   "academia",
   "halteres",
-  "elasticos",
   "peso_corporal",
 ] as const;
 export type AiEquipment = (typeof AI_EQUIPMENT_VALUES)[number];
@@ -20,7 +32,6 @@ export type AiEquipment = (typeof AI_EQUIPMENT_VALUES)[number];
 export const AI_EQUIPMENT_LABELS: Record<AiEquipment, string> = {
   academia: "Academia completa",
   halteres: "Halteres",
-  elasticos: "Elásticos",
   peso_corporal: "Peso corporal",
 };
 
@@ -157,18 +168,52 @@ export type AdminAiTenantDto = {
   repaired: number;
   inputTokens: number;
   cachedInputTokens: number;
+  cacheWriteTokens: number;
   outputTokens: number;
-  /** Priced against `provider_price` at read time. `null` = nothing priceable. */
+  /**
+   * What the month cost: the provider's own figure per row where it gave one,
+   * the `provider_price` estimate otherwise. `null` = nothing costable.
+   */
   costMicroUsd: number | null;
-  /** Generations whose model had no price in force when they ran. */
+  /** The measured slice of `costMicroUsd`. */
+  reportedCostMicroUsd: number | null;
+  /** Generations that reported no cost and had no price in force either. */
+  unpricedGenerations: number;
+};
+
+/** One model's month across every tenant, as the Modelos table lists it. */
+export type AdminAiModelDto = {
+  model: string;
+  upstreamProviders: string[];
+  generations: number;
+  succeeded: number;
+  failed: number;
+  repaired: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  costMicroUsd: number | null;
+  reportedCostMicroUsd: number | null;
+  /** Generations that actually contributed to `costMicroUsd`. */
+  costedGenerations: number;
   unpricedGenerations: number;
 };
 
 export type AdminAiOverviewDto = {
   /** Whether an LLM is configured at all — an empty table means two things. */
   configured: boolean;
+  /**
+   * The models behind these numbers.
+   *
+   * Not decoration: a cost that moved and a model someone changed look
+   * identical in the table above. This is what tells them apart — and it is the
+   * form's source of truth, so the screen never shows a value the server isn't
+   * actually using.
+   */
+  settings: AiSettingsDto;
   monthStart: string;
   tenants: AdminAiTenantDto[];
+  models: AdminAiModelDto[];
   totals: {
     generations: number;
     succeeded: number;
@@ -176,8 +221,10 @@ export type AdminAiOverviewDto = {
     repaired: number;
     inputTokens: number;
     cachedInputTokens: number;
+    cacheWriteTokens: number;
     outputTokens: number;
     costMicroUsd: number | null;
+    reportedCostMicroUsd: number | null;
     unpricedGenerations: number;
     clinicsAtLimit: number;
   };
@@ -203,6 +250,42 @@ export function cacheHitRatio(
 /** "87%" — or "—" when there is nothing to divide. */
 export function formatCacheHitRatio(ratio: number | null): string {
   return ratio === null ? "—" : `${Math.round(ratio * 100)}%`;
+}
+
+/**
+ * Where a cost figure came from — measured by the provider, estimated from the
+ * price list, or a mix of both.
+ *
+ * Worth surfacing rather than hiding behind one number: an estimate is only as
+ * good as the price someone typed, while a measured figure is what the invoice
+ * will say. An admin comparing two models needs to know which kind they are
+ * looking at before drawing a conclusion from a 10% difference.
+ */
+export type CostBasis = "measured" | "mixed" | "estimated" | "none";
+
+export function costBasis(
+  costMicroUsd: number | null,
+  reportedCostMicroUsd: number | null,
+): CostBasis {
+  if (costMicroUsd === null) return "none";
+  if (reportedCostMicroUsd === null) return "estimated";
+  // Equal means every costed row carried its own reported figure; anything less
+  // means the price list filled the rest in.
+  return reportedCostMicroUsd >= costMicroUsd ? "measured" : "mixed";
+}
+
+/** PT-BR label for {@link costBasis}. `null` where there is nothing to qualify. */
+export function formatCostBasis(basis: CostBasis): string | null {
+  switch (basis) {
+    case "measured":
+      return "medido";
+    case "mixed":
+      return "medido + estimado";
+    case "estimated":
+      return "estimado";
+    case "none":
+      return null;
+  }
 }
 
 /** "12.345" — thousands separated, for the token columns. */

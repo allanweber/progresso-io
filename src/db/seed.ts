@@ -1111,6 +1111,12 @@ async function seed() {
   // Demo AI generations, so /admin/ai has something to show. Deliberately mixed:
   // one cold call (no cache hit), two warm ones, and a failure — the failure
   // matters because it must NOT count against the clinic's monthly credits.
+  //
+  // `upstreamProvider` differs between rows on purpose: the same model slug is
+  // served by several hosts at different prices, and the Modelos tab exists to
+  // make that visible. None of them carries a reported cost, so the demo also
+  // exercises the `provider_price` estimate path — which is the one that has to
+  // keep working for rows written before the OpenRouter switch.
   const existingAiGenerations = await db
     .select({ id: schema.aiGeneration.id })
     .from(schema.aiGeneration)
@@ -1131,8 +1137,9 @@ async function seed() {
         coachId: coach.id,
         kind: "workout",
         status: "succeeded",
-        provider: "openai-compatible",
+        provider: "openrouter",
         model: "seed-demo",
+        upstreamProvider: "Alibaba",
         // Cold: the whole catalog prefix was billed as fresh input.
         inputTokens: 16_400,
         cachedInputTokens: 0,
@@ -1148,8 +1155,9 @@ async function seed() {
         coachId: coach.id,
         kind: "diet",
         status: "succeeded",
-        provider: "openai-compatible",
+        provider: "openrouter",
         model: "seed-demo",
+        upstreamProvider: "Alibaba",
         // Warm: the identical prefix came back from the provider's cache.
         inputTokens: 820,
         cachedInputTokens: 15_600,
@@ -1165,8 +1173,9 @@ async function seed() {
         coachId: coach.id,
         kind: "workout",
         status: "failed",
-        provider: "openai-compatible",
+        provider: "openrouter",
         model: "seed-demo",
+        upstreamProvider: "Groq",
         errorCode: "invalid_json",
         durationMs: 4_300,
         repaired: false,
@@ -1179,8 +1188,9 @@ async function seed() {
         coachId: coach.id,
         kind: "diet",
         status: "succeeded",
-        provider: "openai-compatible",
+        provider: "openrouter",
         model: "seed-demo",
+        upstreamProvider: "Alibaba",
         inputTokens: 790,
         cachedInputTokens: 15_600,
         outputTokens: 3_050,
@@ -1203,7 +1213,7 @@ async function seed() {
     .limit(1);
   if (existingPrices.length === 0) {
     await db.insert(schema.providerPrice).values({
-      provider: "openai-compatible",
+      provider: "openrouter",
       model: "seed-demo",
       effectiveFrom: new Date(0),
       // Qwen3.7 Flash's reported rates — unverified (see

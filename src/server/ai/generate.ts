@@ -5,12 +5,22 @@ import type {
 } from "@/lib/ai-programs";
 import {
   getLlmProvider,
+  isLlmConfigured,
+  type LlmCall,
   type LlmProvider,
   type LlmUsage,
 } from "@/lib/llm-provider";
 import type { DietWriteInput } from "@/server/dal/diets";
 import type { WorkoutWriteInput } from "@/server/dal/workouts";
-import { ai, plans, studentAnamneses, studentDiets, students, studentWorkouts } from "@/server/dal";
+import {
+  ai,
+  aiSettings,
+  plans,
+  studentAnamneses,
+  studentDiets,
+  students,
+  studentWorkouts,
+} from "@/server/dal";
 import { logger } from "@/server/observability";
 import type { TenantContext } from "@/server/tenant";
 import {
@@ -50,9 +60,6 @@ import {
  *   a credit; only the second failure ends the generation.
  */
 
-/** Empty output is a failure, not an empty draft. */
-const MAX_OUTPUT_TOKENS = 8000;
-
 export type GenerateRefusal =
   | "not_configured"
   | "no_anamnesis"
@@ -64,6 +71,48 @@ export type GenerateResult =
   | { ok: true; used: number; limit: number | null; repaired: boolean }
   | { ok: false; refusal: GenerateRefusal }
   | { ok: false; failed: true; message: string };
+
+/**
+ * The starting total for a generation: nothing spent, cost **unknown**.
+ *
+ * The asymmetry is deliberate and load-bearing. The token counters start at 0
+ * because a call that reports no tokens genuinely consumed none we can see. Cost
+ * starts at `null` because a provider that reports no cost has told us nothing —
+ * and 0 is a real, different claim ("this model is free") that makes the ledger
+ * skip the `provider_price` estimate entirely. Seeding it at 0 would silently
+ * zero the whole cost column behind any endpoint that reports nothing.
+ */
+export function zeroUsage(): LlmUsage {
+  return {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    cacheWriteTokens: 0,
+    outputTokens: 0,
+    reportedCostMicroUsd: null,
+  };
+}
+
+/**
+ * Adds one attempt's usage to a running total.
+ *
+ * A repair is a second paid round-trip, so both attempts have to land on the
+ * row: the coach is not charged a second credit, but the tokens were spent and
+ * the ledger should say so. `null` cost stays `null` — see {@link zeroUsage}.
+ */
+export function addUsage(total: LlmUsage, next: LlmUsage): LlmUsage {
+  return {
+    inputTokens: (total.inputTokens ?? 0) + (next.inputTokens ?? 0),
+    cachedInputTokens:
+      (total.cachedInputTokens ?? 0) + (next.cachedInputTokens ?? 0),
+    cacheWriteTokens:
+      (total.cacheWriteTokens ?? 0) + (next.cacheWriteTokens ?? 0),
+    outputTokens: (total.outputTokens ?? 0) + (next.outputTokens ?? 0),
+    reportedCostMicroUsd:
+      next.reportedCostMicroUsd === null
+        ? total.reportedCostMicroUsd
+        : (total.reportedCostMicroUsd ?? 0) + next.reportedCostMicroUsd,
+  };
+}
 
 /**
  * Asks the model for JSON, validates it, and retries **once** if it referenced
@@ -85,20 +134,24 @@ async function askWithRepair<T>(
     catalog: CatalogBlock;
   },
 ): Promise<
-  | { ok: true; plan: T; usage: LlmUsage; repaired: boolean }
-  | { ok: false; errorCode: string; message: string; usage: LlmUsage }
+  | { ok: true; plan: T; usage: LlmUsage; call: LlmCall | null; repaired: boolean }
+  | {
+      ok: false;
+      errorCode: string;
+      message: string;
+      usage: LlmUsage;
+      call: LlmCall | null;
+    }
 > {
-  const total: LlmUsage = {
-    inputTokens: 0,
-    cachedInputTokens: 0,
-    outputTokens: 0,
-  };
+  let total = zeroUsage();
   const add = (u: LlmUsage) => {
-    total.inputTokens = (total.inputTokens ?? 0) + (u.inputTokens ?? 0);
-    total.cachedInputTokens =
-      (total.cachedInputTokens ?? 0) + (u.cachedInputTokens ?? 0);
-    total.outputTokens = (total.outputTokens ?? 0) + (u.outputTokens ?? 0);
+    total = addUsage(total, u);
   };
+
+  // Which model actually answered, from the **last** attempt: a repair can be
+  // served by a different model than the first try when a fallback fires, and
+  // the row should name the one whose answer we kept.
+  let call: LlmCall | null = null;
 
   let user = args.user;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -107,17 +160,22 @@ async function askWithRepair<T>(
       user,
       schemaName: args.schemaName,
       schema: args.schema,
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
     });
     if (!result.ok) {
+      // A refusal or a truncated answer still consumed tokens and still lands on
+      // the invoice, so it is accumulated rather than written off as free.
+      if (result.usage) add(result.usage);
+      if (result.call) call = result.call;
       return {
         ok: false,
         errorCode: result.reason,
         message: result.message,
         usage: total,
+        call,
       };
     }
     add(result.usage);
+    call = result.call;
 
     const parsed = args.parse(result.json);
     if (!parsed.ok) {
@@ -132,12 +190,19 @@ async function askWithRepair<T>(
         errorCode: "invalid_shape",
         message: "O modelo não seguiu o formato pedido.",
         usage: total,
+        call,
       };
     }
 
     const check = resolveIndices(args.catalog, args.indicesOf(parsed.plan));
     if (check.ok) {
-      return { ok: true, plan: parsed.plan, usage: total, repaired: attempt > 0 };
+      return {
+        ok: true,
+        plan: parsed.plan,
+        usage: total,
+        call,
+        repaired: attempt > 0,
+      };
     }
     if (attempt === 0) {
       logger.warn("ai.invalid_indices", { invalid: check.invalid.slice(0, 10) });
@@ -149,6 +214,7 @@ async function askWithRepair<T>(
       errorCode: "invalid_ids",
       message: "O modelo insistiu em itens que não existem no catálogo.",
       usage: total,
+      call,
     };
   }
   // Unreachable — the loop returns on every path.
@@ -157,6 +223,7 @@ async function askWithRepair<T>(
     errorCode: "invalid_ids",
     message: "Não foi possível gerar um programa válido.",
     usage: total,
+    call,
   };
 }
 
@@ -181,7 +248,12 @@ async function preflight(
   studentId: string,
   kind: AiGenerationKind,
 ): Promise<{ refusal: GenerateRefusal } | Preflight> {
-  const provider = getLlmProvider();
+  // The key decides whether the feature is on; the models come from
+  // `ai_settings`, so an admin changing one takes effect on the next generation
+  // with no restart. Read before the other gates so an unconfigured install
+  // still short-circuits without touching the database.
+  if (!isLlmConfigured()) return { refusal: "not_configured" as const };
+  const provider = getLlmProvider(await aiSettings.getAiSettings(ctx.db));
   if (!provider.canGenerate) return { refusal: "not_configured" as const };
 
   const student = await students.getStudent(ctx, studentId);
@@ -255,6 +327,7 @@ export async function generateWorkout(
   if (!asked.ok) {
     await ai.failGeneration(ctx, generationId, asked.errorCode, {
       usage: asked.usage,
+      call: asked.call,
       durationMs,
     });
     return { ok: false, failed: true, message: asked.message };
@@ -265,6 +338,7 @@ export async function generateWorkout(
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
       usage: asked.usage,
+      call: asked.call,
       durationMs,
     });
     return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
@@ -296,6 +370,7 @@ export async function generateWorkout(
   if (!saved.ok) {
     await ai.failGeneration(ctx, generationId, saved.reason, {
       usage: asked.usage,
+      call: asked.call,
       durationMs,
     });
     return { ok: false, failed: true, message: saved.message };
@@ -303,6 +378,7 @@ export async function generateWorkout(
 
   await ai.finishGeneration(ctx, generationId, {
     usage: asked.usage,
+    call: asked.call,
     durationMs,
     repaired: asked.repaired,
   });
@@ -353,6 +429,7 @@ export async function generateDiet(
   if (!asked.ok) {
     await ai.failGeneration(ctx, generationId, asked.errorCode, {
       usage: asked.usage,
+      call: asked.call,
       durationMs,
     });
     return { ok: false, failed: true, message: asked.message };
@@ -362,6 +439,7 @@ export async function generateDiet(
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
       usage: asked.usage,
+      call: asked.call,
       durationMs,
     });
     return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
@@ -385,6 +463,7 @@ export async function generateDiet(
   if (!saved.ok) {
     await ai.failGeneration(ctx, generationId, saved.reason, {
       usage: asked.usage,
+      call: asked.call,
       durationMs,
     });
     return { ok: false, failed: true, message: saved.message };
@@ -392,6 +471,7 @@ export async function generateDiet(
 
   await ai.finishGeneration(ctx, generationId, {
     usage: asked.usage,
+    call: asked.call,
     durationMs,
     repaired: asked.repaired,
   });

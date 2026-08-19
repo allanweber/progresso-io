@@ -14,6 +14,8 @@ import { AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -34,8 +36,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
   cacheHitRatio,
+  costBasis,
   formatCacheHitRatio,
+  formatCostBasis,
   formatTokens,
+  type AdminAiModelDto,
   type AdminAiOverviewDto,
   type AdminAiTenantDto,
 } from "@/lib/ai-programs";
@@ -47,6 +52,12 @@ import {
   type ProviderPriceDto,
   type ProviderPriceInput,
 } from "@/lib/provider-prices";
+import {
+  aiSettingsSchema,
+  isFloored,
+  type AiSettingsDto,
+  type AiSettingsInput,
+} from "@/lib/ai-settings";
 import { fieldError } from "@/lib/form";
 import { PLAN_META } from "@/lib/plans";
 import type { Plan } from "@/db/schema";
@@ -58,14 +69,25 @@ import type { Plan } from "@/db/schema";
  * a token count per generation, and `docs/ai-generator.md` claims the base-only
  * catalog keeps the prompt prefix in the provider's cache. Both get checked here.
  *
- * **Preços** is why the Custo column can exist at all. Cost is never stored on a
- * generation — each one is priced at read time against the `provider_price` in
- * force the day it ran. So a vendor price change is a new row (history stays
- * correct) and a mistyped price is an edit (history gets *fixed*), neither of
- * which a number frozen onto the audit row could do.
+ * **Modelos** is the read that model shopping needs. Choosing a model is a form
+ * field now, so the question worth asking is no longer only "what did this clinic
+ * spend" but "what does this model cost, and how often does it need repairing" —
+ * which spans tenants and so has no home on the per-clinic table. The config
+ * card above it says what the server is currently asking for, because otherwise
+ * a cost that moved and a config someone changed look identical here.
+ *
+ * **Preços** still backs the Custo column, and still matters even though the
+ * provider now reports what it charged: it prices rows from before the switch,
+ * it covers vendors that report nothing, and it is what makes a *forecast*
+ * possible. Where a row carries both, the reported figure wins — it is the one
+ * the invoice will agree with. Each estimate is priced at read time against the
+ * `provider_price` in force the day the generation ran, so a vendor price change
+ * is a new row (history stays correct) and a mistyped price is an edit (history
+ * gets *fixed*).
  */
 
 const tenantColumn = createColumnHelper<AdminAiTenantDto>();
+const modelColumn = createColumnHelper<AdminAiModelDto>();
 const priceColumn = createColumnHelper<ProviderPriceDto>();
 
 const dateFmt = new Intl.DateTimeFormat("pt-BR", {
@@ -95,8 +117,202 @@ function Kpi({
   );
 }
 
+/**
+ * The model settings form — a `"use client"` island only in the sense that it is
+ * a separate component: it exists because TanStack Form reads `defaultValues`
+ * once, at mount, so the fields have to be created *after* the saved settings
+ * arrive. Rendering it earlier would leave an admin editing the coded defaults
+ * while the table below described a different model entirely.
+ */
+function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
+  const queryClient = useQueryClient();
+
+  const save = useMutation({
+    mutationFn: (value: AiSettingsInput) =>
+      apiFetch<{ settings: AiSettingsDto }>("/api/admin/ai/settings", {
+        method: "PUT",
+        body: JSON.stringify(value),
+      }),
+    // Only the overview: the settings are part of it, and the usage table below
+    // starts describing a different model the moment this lands.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-ai"] }),
+  });
+
+  const form = useForm({
+    defaultValues: {
+      model: settings.model,
+      fallbackModels: settings.fallbackModels,
+    } satisfies AiSettingsInput,
+    validators: { onChange: aiSettingsSchema },
+    onSubmit: async ({ value }) => {
+      try {
+        await save.mutateAsync(value);
+      } catch {
+        /* surfaced via save.error */
+      }
+    },
+  });
+
+  const serverErrors =
+    save.error instanceof ApiError ? save.error.fieldErrors : undefined;
+
+  return (
+    <form
+      className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void form.handleSubmit();
+      }}
+    >
+      <div className="border-b border-border px-4 py-3.5">
+        <h2 className="font-heading text-[15px] font-semibold">
+          Modelo em uso
+        </h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Vale para todas as clínicas e passa a valer na{" "}
+          <strong>próxima geração</strong> — sem deploy, sem reiniciar. Confira
+          o identificador em{" "}
+          <code className="font-mono">openrouter.ai/models</code> antes de
+          salvar: um modelo que não existe só falha na hora de gerar.
+        </p>
+      </div>
+
+      <div className="space-y-4 px-4 py-4">
+        <form.Field name="model">
+          {(field) => (
+            <div>
+              <Field
+                id="ai-model"
+                label="Modelo principal"
+                className="font-mono"
+                placeholder="qwen/qwen3.7-flash:floor"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                error={fieldError(field) ?? serverErrors?.model}
+              />
+              {/* `:floor` is one suffix and roughly an order of magnitude
+                      in price — and the easiest thing to lose when pasting a
+                      slug off a vendor page. */}
+              {field.state.value.trim() !== "" &&
+                !isFloored(field.state.value) && (
+                  <p className="mt-1.5 text-xs text-amber-600">
+                    Sem <code className="font-mono">:floor</code> — o roteamento
+                    não vai buscar o host mais barato.
+                  </p>
+                )}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="fallbackModels" mode="array">
+          {(field) => (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label>Alternativas</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Tentadas em ordem quando o principal falha, atinge o limite
+                    de uso ou é descontinuado.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => field.pushValue("")}
+                >
+                  <Plus className="size-4" />
+                  Adicionar
+                </Button>
+              </div>
+              {field.state.value.length === 0 ? (
+                <p className="text-[13px] text-amber-600">
+                  Nenhuma alternativa — se o modelo principal sair do ar, a
+                  geração falha até alguém editar este campo.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {field.state.value.map((_: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <form.Field name={`fallbackModels[${i}]`}>
+                        {(sub) => (
+                          // The error has to render HERE, on the item: a bad
+                          // slug fails validation at `fallbackModels[i]`, and
+                          // the array-level message below never sees it. Without
+                          // this, "Adicionar" then "Salvar" is a silent no-op —
+                          // submit refuses and nothing on screen says why.
+                          <div className="flex-1">
+                            <Input
+                              className="w-full font-mono"
+                              placeholder="meta-llama/llama-3.1-8b-instruct:floor"
+                              aria-label={`Alternativa ${i + 1}`}
+                              aria-invalid={fieldError(sub) ? true : undefined}
+                              value={sub.state.value}
+                              onBlur={sub.handleBlur}
+                              onChange={(e) => sub.handleChange(e.target.value)}
+                            />
+                            {fieldError(sub) && (
+                              <p className="mt-1 text-[13px] text-destructive">
+                                {fieldError(sub)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Remover alternativa ${i + 1}`}
+                        onClick={() => field.removeValue(i)}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {fieldError(field) && (
+                <p className="text-[13px] text-destructive">
+                  {fieldError(field)}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+        <p className="text-xs text-muted-foreground">
+          {settings.customized
+            ? settings.updatedAt
+              ? `Salvo em ${dateFmt.format(new Date(settings.updatedAt))}.`
+              : "Salvo."
+            : /* Says these are ours, not a decision anyone made. */
+              "Ainda no padrão do sistema — nada foi salvo aqui."}
+        </p>
+        <div className="flex items-center gap-3">
+          {save.isSuccess && !save.isPending && (
+            <span className="text-[13px] text-muted-foreground">Salvo.</span>
+          )}
+          {save.isError && (
+            <span className="text-[13px] text-destructive">
+              {(save.error as Error).message}
+            </span>
+          )}
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
 const EMPTY_PRICE: ProviderPriceInput = {
-  provider: "openai-compatible",
+  provider: "openrouter",
   model: "",
   effectiveFrom: "",
   inputUsdPerMtok: "",
@@ -265,19 +481,159 @@ export default function AdminAiPage() {
         header: "Custo",
         cell: (ctx) => {
           const r = ctx.row.original;
+          const basis = formatCostBasis(
+            costBasis(r.costMicroUsd, r.reportedCostMicroUsd),
+          );
           return (
             <span className="tabular-nums">
               {formatMicroUsd(r.costMicroUsd)}
+              {/* Says whether this is the provider's own figure or our estimate
+                  of it — a 10% gap between two models means nothing until you
+                  know you are comparing like with like. */}
+              {basis && (
+                <span className="ml-1.5 text-xs text-muted-foreground">
+                  {basis}
+                </span>
+              )}
               {/* Not decoration: it names a fixable gap — add the price for that
                   model and the figure completes itself. */}
               {r.unpricedGenerations > 0 && (
                 <span
-                  className="ml-1.5 text-xs text-muted-foreground"
-                  title={`${r.unpricedGenerations} geração(ões) sem preço cadastrado para o modelo/data`}
+                  className="ml-1.5 text-xs text-amber-600"
+                  title={`${r.unpricedGenerations} geração(ões) sem custo informado e sem preço cadastrado para o modelo/data`}
                 >
                   parcial
                 </span>
               )}
+            </span>
+          );
+        },
+      }),
+    ],
+    [],
+  );
+
+  const modelColumns = useMemo(
+    () => [
+      modelColumn.accessor("model", {
+        header: "Modelo",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          return (
+            <div>
+              <div className="font-mono text-[13px] font-medium">
+                {ctx.getValue()}
+              </div>
+              {/* Which host actually served it. The same slug is offered by
+                  several at different prices, so a cost that moved without a
+                  config change usually shows up here first. */}
+              <div className="text-xs text-muted-foreground">
+                {r.upstreamProviders.length > 0
+                  ? r.upstreamProviders.join(", ")
+                  : "host não informado"}
+              </div>
+            </div>
+          );
+        },
+      }),
+      modelColumn.display({
+        id: "generations",
+        header: "Gerações",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          return (
+            <span className="tabular-nums">
+              {r.generations}
+              {r.failed > 0 && (
+                <span className="text-destructive"> / {r.failed} falhas</span>
+              )}
+            </span>
+          );
+        },
+      }),
+      modelColumn.display({
+        id: "repaired",
+        header: "Reparos",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          // The quality signal that actually decides a model swap: a repair is
+          // a second round-trip, so a high rate is a cheap model billing twice.
+          const share = r.succeeded > 0 ? r.repaired / r.succeeded : null;
+          return (
+            <span className="tabular-nums">
+              {r.repaired}
+              {share !== null && share > 0 && (
+                <span className="ml-1.5 text-xs text-muted-foreground">
+                  {Math.round(share * 100)}%
+                </span>
+              )}
+            </span>
+          );
+        },
+      }),
+      modelColumn.display({
+        id: "cache",
+        header: "Cache",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          return (
+            <span className="tabular-nums">
+              {formatCacheHitRatio(
+                cacheHitRatio(r.inputTokens, r.cachedInputTokens),
+              )}
+            </span>
+          );
+        },
+      }),
+      modelColumn.display({
+        id: "tokens",
+        header: "Tokens (in / out)",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          return (
+            <span className="tabular-nums text-muted-foreground">
+              {formatTokens(r.inputTokens + r.cachedInputTokens)} /{" "}
+              {formatTokens(r.outputTokens)}
+            </span>
+          );
+        },
+      }),
+      modelColumn.display({
+        id: "cost",
+        header: "Custo",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          const basis = formatCostBasis(
+            costBasis(r.costMicroUsd, r.reportedCostMicroUsd),
+          );
+          return (
+            <span className="tabular-nums">
+              {formatMicroUsd(r.costMicroUsd)}
+              {basis && (
+                <span className="ml-1.5 text-xs text-muted-foreground">
+                  {basis}
+                </span>
+              )}
+            </span>
+          );
+        },
+      }),
+      modelColumn.display({
+        id: "unit",
+        header: "Custo / geração",
+        cell: (ctx) => {
+          const r = ctx.row.original;
+          // The only figure that compares two models directly — a total says
+          // more about how much a model was used than about what it costs.
+          // Averaged over the calls that actually cost something: a failure
+          // before the model was reached has no cost to average in.
+          return (
+            <span className="tabular-nums font-medium">
+              {r.costMicroUsd !== null && r.costedGenerations > 0
+                ? formatMicroUsd(
+                    Math.round(r.costMicroUsd / r.costedGenerations),
+                  )
+                : "—"}
             </span>
           );
         },
@@ -406,6 +762,11 @@ export default function AdminAiPage() {
     columns: tenantColumns,
     getCoreRowModel: getCoreRowModel(),
   });
+  const modelTable = useReactTable({
+    data: overview.data?.models ?? [],
+    columns: modelColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
   const priceTable = useReactTable({
     data: prices.data?.prices ?? [],
     columns: priceColumns,
@@ -440,10 +801,9 @@ export default function AdminAiPage() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
           <p className="text-[13px] text-amber-800">
             Nenhum provedor de IA configurado nesta instalação — o botão “Gerar
-            com IA” está desativado para todos os coaches. Defina{" "}
-            <code className="font-mono">LLM_API_KEY</code>,{" "}
-            <code className="font-mono">LLM_BASE_URL</code> e{" "}
-            <code className="font-mono">LLM_MODEL</code>.
+            com IA” está desativado para todos os coaches. Basta definir{" "}
+            <code className="font-mono">LLM_API_KEY</code> com uma chave do
+            OpenRouter; modelo, roteamento e limites já têm padrão.
           </p>
         </div>
       )}
@@ -451,6 +811,7 @@ export default function AdminAiPage() {
       <Tabs defaultValue="usage" className="mt-6">
         <TabsList>
           <TabsTrigger value="usage">Uso</TabsTrigger>
+          <TabsTrigger value="models">Modelos</TabsTrigger>
           <TabsTrigger value="prices">Preços</TabsTrigger>
         </TabsList>
 
@@ -458,7 +819,7 @@ export default function AdminAiPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Kpi
               label="Gerações no mês"
-              value={overview.isLoading ? "…" : totals?.generations ?? 0}
+              value={overview.isLoading ? "…" : (totals?.generations ?? 0)}
               hint={
                 totals && totals.failed > 0
                   ? `${totals.failed} falharam`
@@ -478,14 +839,28 @@ export default function AdminAiPage() {
                   : formatMicroUsd(totals?.costMicroUsd ?? null)
               }
               hint={
-                totals && totals.unpricedGenerations > 0
-                  ? `parcial — ${totals.unpricedGenerations} sem preço`
-                  : "calculado sobre a aba Preços"
+                !totals
+                  ? undefined
+                  : totals.unpricedGenerations > 0
+                    ? `parcial — ${totals.unpricedGenerations} sem custo nem preço`
+                    : (formatCostBasis(
+                        costBasis(
+                          totals.costMicroUsd,
+                          totals.reportedCostMicroUsd,
+                        ),
+                      ) ??
+                      // Nothing to cost is not the same as nothing happening: a
+                      // month where every call failed before reaching a model
+                      // has generations but no tokens, and saying "sem gerações"
+                      // would contradict the counter beside it.
+                      (totals.generations > 0
+                        ? "nenhuma geração custeável"
+                        : "sem gerações no mês"))
               }
             />
             <Kpi
               label="No limite"
-              value={overview.isLoading ? "…" : totals?.clinicsAtLimit ?? 0}
+              value={overview.isLoading ? "…" : (totals?.clinicsAtLimit ?? 0)}
               hint="clínicas que gastaram a cota"
             />
           </div>
@@ -545,12 +920,87 @@ export default function AdminAiPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="models" className="mt-4">
+          {/* Mounted only once the settings have arrived: the form captures its
+              defaults on first render, so rendering it early would leave the
+              fields showing the coded defaults while the table below reported
+              the model actually in use. */}
+          {overview.data ? (
+            <ModelSettingsForm settings={overview.data.settings} />
+          ) : (
+            <div className="rounded-2xl border border-border bg-white px-4 py-9 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+              {overview.isError
+                ? (overview.error as Error).message
+                : "Carregando…"}
+            </div>
+          )}
+
+          <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+            <div className="border-b border-border px-4 py-3.5">
+              <h2 className="font-heading text-[15px] font-semibold">
+                Uso por modelo
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Todas as clínicas somadas. “Custo / geração” é a coluna que
+                compara dois modelos; o total só diz quanto cada um foi usado.
+              </p>
+            </div>
+            {overview.isError ? (
+              <p className="px-4 py-9 text-center text-sm text-destructive">
+                {(overview.error as Error).message}
+              </p>
+            ) : overview.isLoading ? (
+              <p className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Carregando…
+              </p>
+            ) : overview.data && overview.data.models.length === 0 ? (
+              <p className="px-4 py-9 text-center text-sm text-muted-foreground">
+                Nenhuma geração neste mês.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    {modelTable.getHeaderGroups().map((hg) => (
+                      <TableRow key={hg.id} className="border-border">
+                        {hg.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {modelTable.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className="align-middle">
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         <TabsContent value="prices" className="mt-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <p className="max-w-2xl text-[13px] text-muted-foreground">
-              Preços por <strong>milhão</strong> de tokens, em dólar. Cada geração
-              é calculada com o preço vigente na data em que ela rodou — mudou o
-              preço, cadastre uma nova linha e o histórico continua correto.
+              Preços por <strong>milhão</strong> de tokens, em dólar. Cada
+              geração é calculada com o preço vigente na data em que ela rodou —
+              mudou o preço, cadastre uma nova linha e o histórico continua
+              correto.
             </p>
             <Button
               onClick={() => {

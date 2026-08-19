@@ -1,14 +1,19 @@
 // @vitest-environment node
 import { eq } from "drizzle-orm";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import { cacheHitRatio } from "@/lib/ai-programs";
-import { ai, plans, providerPrices } from "@/server/dal";
+import {
+  DEFAULT_AI_FALLBACK_MODELS,
+  DEFAULT_AI_MODEL,
+} from "@/lib/ai-settings";
+import { ai, aiSettings, plans, providerPrices, studentWorkouts } from "@/server/dal";
 import { monthStart } from "@/server/dal/ai";
 import { buildExerciseCatalog, buildFoodCatalog } from "@/server/ai/catalog";
+import { generateWorkout } from "@/server/ai/generate";
 import type { TenantContext } from "@/server/tenant";
 
 import { clearTrial, createTestDb, type TestDb } from "./pglite";
@@ -173,7 +178,18 @@ describe("generation lifecycle", () => {
       anamnesisSnapshotId: null,
     });
     await ai.finishGeneration(ctxB, id, {
-      usage: { inputTokens: 1000, cachedInputTokens: 9000, outputTokens: 500 },
+      usage: {
+        inputTokens: 1000,
+        cachedInputTokens: 9000,
+        cacheWriteTokens: 200,
+        outputTokens: 500,
+        reportedCostMicroUsd: 742,
+      },
+      call: {
+        model: "served/model",
+        upstreamProvider: "Groq",
+        requestId: "gen-abc",
+      },
       durationMs: 1234,
       repaired: true,
     });
@@ -185,7 +201,66 @@ describe("generation lifecycle", () => {
     expect(row.status).toBe("succeeded");
     expect(row.inputTokens).toBe(1000);
     expect(row.cachedInputTokens).toBe(9000);
+    expect(row.cacheWriteTokens).toBe(200);
+    expect(row.reportedCostMicroUsd).toBe(742);
     expect(row.repaired).toBe(true);
+    // The row was opened asking for "m" and answered by another model — the
+    // audit has to name the one that produced the tokens, not the one we hoped
+    // for, or the whole row prices against the wrong rate.
+    expect(row.model).toBe("served/model");
+    expect(row.upstreamProvider).toBe("Groq");
+    expect(row.requestId).toBe("gen-abc");
+  });
+
+  it("leaves the asked-for model standing when no call was made", async () => {
+    const id = await ai.startGeneration(ctxB, {
+      studentId: studentB,
+      kind: "workout",
+      provider: "openrouter",
+      model: "asked/model",
+      catalogHash: "abc123",
+      anamnesisSnapshotId: null,
+    });
+    // A timeout never reached a model, so there is nothing truer to record.
+    await ai.failGeneration(ctxB, id, "timeout", { call: null });
+
+    const [row] = await db
+      .select()
+      .from(schema.aiGeneration)
+      .where(eq(schema.aiGeneration.id, id));
+    expect(row.model).toBe("asked/model");
+    expect(row.upstreamProvider).toBeNull();
+  });
+
+  it("records what a failed call still cost", async () => {
+    const id = await ai.startGeneration(ctxB, {
+      studentId: studentB,
+      kind: "workout",
+      provider: "openrouter",
+      model: "asked/model",
+      catalogHash: "abc123",
+      anamnesisSnapshotId: null,
+    });
+    // Truncated output: the credit goes back, the tokens do not.
+    await ai.failGeneration(ctxB, id, "invalid_json", {
+      usage: {
+        inputTokens: 900,
+        cachedInputTokens: 0,
+        cacheWriteTokens: null,
+        outputTokens: 8000,
+        reportedCostMicroUsd: 1100,
+      },
+      call: { model: "asked/model", upstreamProvider: null, requestId: null },
+      durationMs: 900,
+    });
+
+    const [row] = await db
+      .select()
+      .from(schema.aiGeneration)
+      .where(eq(schema.aiGeneration.id, id));
+    expect(row.status).toBe("failed");
+    expect(row.reportedCostMicroUsd).toBe(1100);
+    expect(await ai.countGenerationsThisMonth(ctxB)).toBeGreaterThanOrEqual(0);
   });
 
   it("cannot settle another clinic's row", async () => {
@@ -407,6 +482,9 @@ describe("getAdminAiOverview", () => {
       cachedInputTokens?: number;
       outputTokens?: number;
       repaired?: boolean;
+      model?: string;
+      upstreamProvider?: string;
+      reportedCostMicroUsd?: number;
     },
   ) {
     await db.insert(schema.aiGeneration).values({
@@ -415,10 +493,12 @@ describe("getAdminAiOverview", () => {
       kind: "diet",
       status: usage.status,
       provider: "test",
-      model: "test-model",
+      model: usage.model ?? "test-model",
+      upstreamProvider: usage.upstreamProvider ?? null,
       inputTokens: usage.inputTokens ?? null,
       cachedInputTokens: usage.cachedInputTokens ?? null,
       outputTokens: usage.outputTokens ?? null,
+      reportedCostMicroUsd: usage.reportedCostMicroUsd ?? null,
       repaired: usage.repaired ?? false,
     });
   }
@@ -728,5 +808,453 @@ describe("getAdminAiOverview pricing", () => {
     const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
     expect(row.unpricedGenerations).toBe(0);
     expect(row.costMicroUsd).toBeNull();
+  });
+});
+
+describe("getAdminAiOverview cost and model rollup", () => {
+  /** A settled generation with usage, a model, a host and maybe a reported cost. */
+  async function generation(
+    ctx: TenantContext,
+    studentId: string,
+    row: {
+      model: string;
+      upstreamProvider?: string;
+      reportedCostMicroUsd?: number;
+      status?: schema.AiGenerationStatus;
+      repaired?: boolean;
+    },
+  ) {
+    await db.insert(schema.aiGeneration).values({
+      clinicId: ctx.clinicId,
+      studentId,
+      kind: "diet",
+      status: row.status ?? "succeeded",
+      provider: "openrouter",
+      model: row.model,
+      upstreamProvider: row.upstreamProvider ?? null,
+      inputTokens: 1_000,
+      cachedInputTokens: 9_000,
+      outputTokens: 3_000,
+      reportedCostMicroUsd: row.reportedCostMicroUsd ?? null,
+      repaired: row.repaired ?? false,
+      createdAt: new Date(monthStart(new Date()).getTime() + 60_000),
+    });
+  }
+
+  it("prefers the provider's own figure over the price list", async () => {
+    const { ctx, studentId } = await makeClinic("reported", "clinica");
+    await generation(ctx, studentId, {
+      model: "reported-model",
+      reportedCostMicroUsd: 900,
+    });
+    // A price exists too, and disagrees. The measured figure is what the
+    // invoice will say, so it is the one that must win.
+    await providerPrices.createProviderPrice(h, {
+      provider: "openrouter",
+      model: "reported-model",
+      effectiveFrom: new Date(0).toISOString(),
+      inputUsdPerMtok: 1_000_000,
+      outputUsdPerMtok: 1_000_000,
+      cachedInputUsdPerMtok: null,
+      note: null,
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    expect(row.costMicroUsd).toBe(900);
+    expect(row.reportedCostMicroUsd).toBe(900);
+    expect(row.unpricedGenerations).toBe(0);
+  });
+
+  it("is not unpriced when the provider reported a cost but no price exists", async () => {
+    const { ctx, studentId } = await makeClinic("reported-only", "clinica");
+    await generation(ctx, studentId, {
+      model: "never-priced-model",
+      reportedCostMicroUsd: 742,
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    // Nothing to go hunting for: the cost is known exactly.
+    expect(row.unpricedGenerations).toBe(0);
+    expect(row.costMicroUsd).toBe(742);
+  });
+
+  it("keeps a reported zero distinct from nothing reported", async () => {
+    const { ctx, studentId } = await makeClinic("free-model", "clinica");
+    await generation(ctx, studentId, {
+      model: "free-model",
+      reportedCostMicroUsd: 0,
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    // "It was free" is a fact; "we don't know" is not. `null` would claim the
+    // second when the provider stated the first.
+    expect(row.costMicroUsd).toBe(0);
+    expect(row.reportedCostMicroUsd).toBe(0);
+    expect(row.unpricedGenerations).toBe(0);
+  });
+
+  it("rolls up by model across every tenant", async () => {
+    const a = await makeClinic("rollup-a", "clinica");
+    const b = await makeClinic("rollup-b", "solo");
+    await generation(a.ctx, a.studentId, {
+      model: "rollup/cheap",
+      upstreamProvider: "Groq",
+      reportedCostMicroUsd: 100,
+    });
+    await generation(b.ctx, b.studentId, {
+      model: "rollup/cheap",
+      upstreamProvider: "DeepInfra",
+      reportedCostMicroUsd: 300,
+      repaired: true,
+    });
+    await generation(a.ctx, a.studentId, {
+      model: "rollup/dear",
+      upstreamProvider: "Groq",
+      reportedCostMicroUsd: 5_000,
+      status: "failed",
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const cheap = overview.models.find((m) => m.model === "rollup/cheap")!;
+    expect(cheap.generations).toBe(2);
+    expect(cheap.costMicroUsd).toBe(400);
+    expect(cheap.repaired).toBe(1);
+    // The same slug served by two hosts at two prices — the reason the column
+    // exists at all.
+    expect(cheap.upstreamProviders).toEqual(["DeepInfra", "Groq"]);
+
+    const dear = overview.models.find((m) => m.model === "rollup/dear")!;
+    // A failed call still spent the tokens, so it still appears in the model's
+    // cost — the credit was refunded, the money was not.
+    expect(dear.failed).toBe(1);
+    expect(dear.costMicroUsd).toBe(5_000);
+  });
+
+  it("averages cost only over the calls that cost something", async () => {
+    const { ctx, studentId } = await makeClinic("per-call", "clinica");
+    await generation(ctx, studentId, {
+      model: "avg/model",
+      reportedCostMicroUsd: 600,
+    });
+    await generation(ctx, studentId, {
+      model: "avg/model",
+      reportedCostMicroUsd: 400,
+    });
+    // A failure that never reached a model: no tokens, no cost, nothing to
+    // average. Counting it would report 333 instead of 500 — a third off, in
+    // the direction that flatters the model.
+    await db.insert(schema.aiGeneration).values({
+      clinicId: ctx.clinicId,
+      studentId,
+      kind: "diet",
+      status: "failed",
+      provider: "openrouter",
+      model: "avg/model",
+      errorCode: "timeout",
+      createdAt: new Date(monthStart(new Date()).getTime() + 60_000),
+    });
+
+    const overview = await ai.getAdminAiOverview(h);
+    const row = overview.models.find((m) => m.model === "avg/model")!;
+    expect(row.generations).toBe(3);
+    expect(row.costedGenerations).toBe(2);
+    expect(row.costMicroUsd).toBe(1_000);
+  });
+});
+
+describe("ai_settings", () => {
+  it("falls back to the coded defaults when nothing has been saved", async () => {
+    // A fresh install has to be able to generate before anyone opens an admin
+    // screen — an empty table must not read as "no model".
+    const settings = await aiSettings.getAiSettings(h);
+    expect(settings.model).toBe(DEFAULT_AI_MODEL);
+    expect(settings.fallbackModels).toEqual(DEFAULT_AI_FALLBACK_MODELS);
+    expect(settings.customized).toBe(false);
+    expect(settings.updatedAt).toBeNull();
+  });
+
+  it("saves, reads back, and reports itself as a real choice", async () => {
+    const saved = await aiSettings.updateAiSettings(h, {
+      model: "openai/gpt-oss-20b:floor",
+      fallbackModels: ["mistralai/mistral-nemo:floor"],
+    });
+    expect(saved.customized).toBe(true);
+
+    const read = await aiSettings.getAiSettings(h);
+    expect(read.model).toBe("openai/gpt-oss-20b:floor");
+    expect(read.fallbackModels).toEqual(["mistralai/mistral-nemo:floor"]);
+    expect(read.customized).toBe(true);
+    expect(read.updatedAt).not.toBeNull();
+  });
+
+  it("stays a single row however many times it is saved", async () => {
+    await aiSettings.updateAiSettings(h, {
+      model: "a/one:floor",
+      fallbackModels: [],
+    });
+    await aiSettings.updateAiSettings(h, {
+      model: "a/two:floor",
+      fallbackModels: ["b/three"],
+    });
+
+    const rows = await h.select().from(schema.aiSettings);
+    // Two rows would leave every reader choosing, and the choice would be
+    // arbitrary — which is what the singleton unique index prevents.
+    expect(rows).toHaveLength(1);
+    expect(rows[0].model).toBe("a/two:floor");
+  });
+
+  it("keeps an empty fallback list rather than restoring the defaults", async () => {
+    await aiSettings.updateAiSettings(h, {
+      model: "a/one:floor",
+      fallbackModels: [],
+    });
+    // "No fallbacks" is a real decision. Silently re-adding the defaults would
+    // route generations to a model an admin deliberately removed.
+    expect((await aiSettings.getAiSettings(h)).fallbackModels).toEqual([]);
+  });
+});
+
+/**
+ * The whole generator path, end to end: quota gate → model call → validation →
+ * **saved draft**.
+ *
+ * Every other test here covers one seam. This one covers the join between them,
+ * and specifically the last step, which is the only one the coach can see. A
+ * generation that spends a credit, settles its audit row as succeeded and
+ * returns 200 while writing no draft is invisible to every other assertion in
+ * this file — the ledger says it worked and the screen is empty.
+ *
+ * The provider is stubbed at `fetch`, not at the module: that keeps
+ * `buildRequestBody`, the response parsing and the usage accounting inside the
+ * test, so only the network is fake.
+ */
+/** The open anamnese gate the generator requires, at its minimum. */
+async function completedAnamnesis(ctx: TenantContext, studentId: string) {
+  await db.insert(schema.studentAnamnesis).values({
+    clinicId: ctx.clinicId,
+    studentId,
+    name: "Anamnese",
+    sections: [
+      {
+        key: "perfil",
+        title: "Perfil",
+        questions: [
+          { key: "weight", label: "Peso", type: "short_text", mask: "integer" },
+        ],
+      },
+    ],
+    answers: { weight: "80" },
+    status: "completed",
+    filledBy: "coach",
+    filledAt: new Date(),
+  });
+}
+
+describe("generateWorkout end to end", () => {
+  let ctx: TenantContext;
+  let studentId: string;
+  let calls: number;
+
+  /** A chat completion carrying `plan` as its content, shaped like OpenRouter's. */
+  function completion(plan: unknown) {
+    return {
+      ok: true,
+      json: async () => ({
+        id: "gen-test-1",
+        model: DEFAULT_AI_MODEL.replace(":floor", ""),
+        provider: "Alibaba",
+        choices: [
+          { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
+        ],
+        usage: { prompt_tokens: 1200, completion_tokens: 300, cost: 0.0004 },
+      }),
+    } as unknown as Response;
+  }
+
+  beforeAll(async () => {
+    process.env.LLM_API_KEY = "test-key";
+    const gamma = await makeClinic("gamma", "solo");
+    ctx = gamma.ctx;
+    studentId = gamma.studentId;
+    // The generator refuses without a completed anamnese — that gate has its own
+    // coverage; here it just has to be open.
+    await completedAnamnesis(ctx, studentId);
+  });
+
+  beforeEach(() => {
+    calls = 0;
+  });
+
+  // Every other suite in this file talks to the database over the real `fetch`
+  // -free path; leaving a stub installed would poison them.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("saves the generated plan as the student's draft", async () => {
+    const catalog = await buildExerciseCatalog(ctx);
+    expect(catalog.size).toBeGreaterThan(0);
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      calls += 1;
+      return completion({
+        name: "Treino gerado",
+        notes: "Observações do treino.",
+        sessions: [
+          {
+            name: "Ficha A",
+            exercises: [
+              { exercise: 1, sets: 3, reps: [12], rest: 60, note: null },
+            ],
+          },
+        ],
+      });
+    });
+
+    const result = await generateWorkout(ctx, studentId, {
+      objective: "hipertrofia",
+      equipment: ["academia"],
+      daysPerWeek: 3,
+    });
+
+    expect(result).toMatchObject({ ok: true, repaired: false });
+    expect(calls).toBe(1);
+
+    // The assertion that the credit actually bought something.
+    const state = await studentWorkouts.getStudentWorkoutState(ctx, studentId);
+    expect(state?.draft).not.toBeNull();
+    expect(state?.draft?.workoutName).toBe("Treino gerado");
+    expect(state?.draft?.sessions).toHaveLength(1);
+    expect(state?.draft?.sessions[0].exercises).toHaveLength(1);
+    // Resolved back to a real row, not left as the model's catalog number.
+    const line = state!.draft!.sessions[0].exercises[0];
+    expect(line.exerciseId).toBe(catalog.byIndex.get(1));
+    expect(line.available).toBe(true);
+    expect(line.sets).toBe(3);
+    expect(line.reps).toEqual({ kind: "fixed", value: 12 });
+
+    // And the ledger agrees it succeeded.
+    const [row] = await h
+      .select()
+      .from(schema.aiGeneration)
+      .where(eq(schema.aiGeneration.clinicId, ctx.clinicId));
+    expect(row.status).toBe("succeeded");
+    expect(row.errorCode).toBeNull();
+  });
+
+  it("still saves a draft when the student already has an active workout", async () => {
+    // The shape every real student is in after their first publish, and the one
+    // the first test above is *not* in. `createBlankDraft` only refuses when a
+    // *draft* exists, so an active workout must not stop the generator — the
+    // draft becomes the pending next version alongside it.
+    const other = await makeClinic("delta", "solo");
+    await completedAnamnesis(other.ctx, other.studentId);
+
+    const catalog = await buildExerciseCatalog(other.ctx);
+    const blank = await studentWorkouts.createBlankDraft(
+      other.ctx,
+      other.studentId,
+      "Treino atual",
+    );
+    expect(blank.ok).toBe(true);
+    await studentWorkouts.publishDraft(other.ctx, other.studentId, {
+      name: "Treino atual",
+      notes: null,
+      sessions: [
+        {
+          name: "Ficha A",
+          exercises: [
+            {
+              exerciseId: catalog.byIndex.get(1)!,
+              sets: 3,
+              reps: { kind: "fixed", value: 10 },
+              load: null,
+              rest: 60,
+              note: null,
+              technique: null,
+              groupId: null,
+              customSubstitutes: [],
+            },
+          ],
+        },
+      ],
+    });
+
+    const before = await studentWorkouts.getStudentWorkoutState(
+      other.ctx,
+      other.studentId,
+    );
+    expect(before?.current).not.toBeNull();
+    expect(before?.draft).toBeNull();
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      completion({
+        name: "Treino gerado sobre o ativo",
+        notes: null,
+        sessions: [
+          {
+            name: "Ficha A",
+            exercises: [
+              { exercise: 1, sets: 3, reps: [12], rest: 60, note: null },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const result = await generateWorkout(other.ctx, other.studentId, {
+      objective: "hipertrofia",
+      equipment: ["academia"],
+      daysPerWeek: 3,
+    });
+    expect(result).toMatchObject({ ok: true });
+
+    const after = await studentWorkouts.getStudentWorkoutState(
+      other.ctx,
+      other.studentId,
+    );
+    // The published workout survives untouched and the draft is there to review.
+    expect(after?.current?.workoutName).toBe("Treino atual");
+    expect(after?.draft?.workoutName).toBe("Treino gerado sobre o ativo");
+  });
+
+  it("overwrites the existing draft instead of adding a second one", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      completion({
+        name: "Treino regerado",
+        notes: null,
+        sessions: [
+          {
+            name: "Ficha única",
+            exercises: [
+              { exercise: 1, sets: 4, reps: [10, 8], rest: 90, note: null },
+            ],
+          },
+        ],
+      }),
+    );
+
+    // The coach confirmed the overwrite in the dialog; the service must land on
+    // the draft that already exists rather than creating a rival one, which
+    // `findDraft` would then pick between arbitrarily.
+    const result = await generateWorkout(ctx, studentId, {
+      objective: "força",
+      equipment: ["academia"],
+      daysPerWeek: 2,
+    });
+    expect(result).toMatchObject({ ok: true });
+
+    const state = await studentWorkouts.getStudentWorkoutState(ctx, studentId);
+    expect(state?.draft?.workoutName).toBe("Treino regerado");
+
+    const drafts = await h
+      .select()
+      .from(schema.studentWorkout)
+      .where(eq(schema.studentWorkout.clinicId, ctx.clinicId));
+    expect(drafts).toHaveLength(1);
   });
 });

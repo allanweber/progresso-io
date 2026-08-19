@@ -7,6 +7,7 @@ import {
   type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
 import type { CatalogBlock } from "./catalog";
+import { DIET_JSON_SCHEMA, WORKOUT_JSON_SCHEMA } from "./schemas";
 
 /**
  * Prompt assembly. PT-BR throughout — the domain vocabulary is Portuguese, the
@@ -79,8 +80,36 @@ function sharedRules(catalogNoun: string): string {
     `Você só pode usar ${catalogNoun} do catálogo abaixo.`,
     `Refira-se a cada item **apenas pelo número** exibido no catálogo.`,
     `Nunca invente um número que não esteja na lista, e nunca escreva nomes no lugar do número.`,
-    `Responda somente com o JSON no formato pedido, sem texto ao redor.`,
+    `Responda somente com o JSON do formato abaixo, sem texto ao redor, sem markdown e sem comentários.`,
     `Escreva todos os textos (nomes, observações) em português do Brasil.`,
+  ].join("\n");
+}
+
+/**
+ * The response schema, restated **in the prompt**.
+ *
+ * `response_format: json_schema` already carries this — but only on hosts that
+ * implement strict structured outputs, and the cheap ones do not (see
+ * `docs/ai-provider-costs.md`). On those, the schema is silently dropped and the
+ * model is left being told to "reply with the JSON in the requested format"
+ * while never having been shown the format. The observed result is not a
+ * malformed answer but a **runaway** one: it improvises, and keeps going until
+ * `max_tokens` cuts it off, which costs a full ceiling of output tokens and
+ * produces nothing.
+ *
+ * So the contract is stated twice, on purpose. Belt and braces is the right
+ * shape here because the two mechanisms fail on different hosts and the cost of
+ * the redundancy is a few hundred tokens **inside the cacheable prefix** — a
+ * cache hit, not a bill.
+ *
+ * Safe to `JSON.stringify`: the schemas are `as const` object literals, so their
+ * key order is fixed at the source and the bytes cannot shift between calls —
+ * which the prompt cache depends on (see `catalog.ts`).
+ */
+function schemaBlock(schema: Record<string, unknown>): string {
+  return [
+    "Formato exato da resposta (JSON Schema). O objeto retornado deve satisfazê-lo:",
+    JSON.stringify(schema),
   ].join("\n");
 }
 
@@ -98,6 +127,8 @@ export function workoutSystemPrompt(catalog: CatalogBlock): string {
     "- Respeite os equipamentos disponíveis: não prescreva o que o aluno não tem.",
     "- Ajuste séries, repetições e descanso ao objetivo e ao nível do aluno.",
     "- Use a observação de cada exercício apenas quando ela ajudar de verdade.",
+    "",
+    schemaBlock(WORKOUT_JSON_SCHEMA),
     "",
     `Catálogo de exercícios (${catalog.size} itens) — número: nome (músculos, equipamento):`,
     catalog.text,
@@ -117,6 +148,8 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     "- Respeite rigorosamente as restrições alimentares informadas.",
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
     "- Distribua a proteína ao longo do dia, não concentrada em uma refeição.",
+    "",
+    schemaBlock(DIET_JSON_SCHEMA),
     "",
     `Catálogo de alimentos (${catalog.size} itens) — número: descrição — macros por 100 g:`,
     catalog.text,

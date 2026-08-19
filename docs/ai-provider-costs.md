@@ -1,17 +1,115 @@
 # AI provider costs — research note (roadmap item 1)
 
-> **Status: UNVERIFIED except where marked. Captured 2026-08-16.**
+> **Status: partly verified. Original capture 2026-08-16; OpenRouter figures
+> captured live 2026-08-18 from `https://openrouter.ai/api/v1/models`.**
 >
-> Every price below except the Anthropic row comes from **search-result summaries
-> of aggregator sites that could not be opened** — the research session's network
-> policy blocked every vendor pricing domain (`ai.google.dev`,
-> `platform.openai.com`, `docs.anthropic.com`, `api-docs.deepseek.com`,
-> `openrouter.ai`, `groq.com`, `x.ai`, `mistral.ai`) and every FX source
-> including Banco Central. Treat these as **order of magnitude, not quotes.**
+> The §"Candidates" table below is the **original, unverified** research: every
+> price in it except the Anthropic row came from search-result summaries of
+> aggregator sites that could not be opened, because that session's network
+> policy blocked every vendor pricing domain. Treat it as order of magnitude.
 >
-> This note is deliberately *not* in `docs/monetization.md`. Unverified numbers
-> do not belong in the doc that carries the margin model — they get folded into
-> §7 there once they can be checked against a vendor page.
+> §"Verified — via OpenRouter" is different: those figures come from the
+> aggregator's own model API, per host, and are quotable.
+
+## The switch to OpenRouter (2026-08-18)
+
+The generator now goes through **OpenRouter** rather than calling a vendor
+directly. Nothing about the cost conclusion changed; what changed is that the
+open question this note ends on — *"choose on pt-BR quality and structured-output
+reliability, tested against the real catalog"* — became something a person can
+actually run. One key resolves every slug, so trying five models is five saves
+on an admin form, not five signups.
+
+**What it costs:** OpenRouter passes provider rates through with **no per-token
+markup** and charges **5.5% when credits are bought** ($0.80 minimum; 5% for
+crypto). At the volumes below that is a rounding error on a rounding error.
+
+**What it buys, beyond model shopping:**
+
+- **A fallback list.** An ordered list of alternates means a retired or
+  rate-limited primary degrades to the next slug instead of taking the feature
+  down. This is what made a *default* model string defensible after the original
+  decision explicitly forbade one.
+- **`:floor`.** Appended to a slug it means "cheapest host serving this model" —
+  exactly `provider.sort: "price"`, expressed per-model so it survives into the
+  fallback list.
+- **A reported cost per call.** The response carries `usage.cost`: what was
+  actually charged, which is now recorded on every `ai_generation` row. The
+  `provider_price` estimate no longer has to carry the whole ledger.
+- **A jurisdiction lever.** Changing the slug is a form field, so moving off a
+  jurisdiction is a save rather than a migration.
+
+## Verified — via OpenRouter, 2026-08-18
+
+$/1M tokens, per **host**, from the aggregator's model API. `Strict` = the host
+advertises `structured_outputs` (strict `json_schema`), which is what the
+generator asks for.
+
+**`qwen/qwen3.7-flash`** — 1M context:
+
+| Host | In | Out | Cache read | Cache write | Strict |
+|---|---:|---:|---:|---:|---|
+| Alibaba | 0.03 | 0.13 | 0.006 | 0.038 | no |
+
+**`meta-llama/llama-3.1-8b-instruct`**:
+
+| Host | In | Out | Context | Strict |
+|---|---:|---:|---:|---|
+| DeepInfra | 0.02 | 0.04 | 131k | no |
+| Novita | 0.02 | 0.05 | **16k** | no |
+| Groq | 0.05 | 0.08 | 131k | no |
+| Cloudflare | 0.152 | 0.287 | 32k | no |
+| CoreWeave | 0.22 | 0.22 | 128k | **yes** |
+
+Per generation at the assumed 10k in + 3k out:
+
+| Model · host | Per generation |
+|---|---:|
+| Llama 3.1 8B · DeepInfra (`:floor`) | US$0.00032 |
+| Qwen3.7 Flash · Alibaba (only host) | US$0.00069 |
+| Llama 3.1 8B · Groq | US$0.00074 |
+| Llama 3.1 8B · CoreWeave (only strict host) | US$0.00286 |
+
+**Three findings that changed the configuration**, all of them things the
+original unverified table could not have shown:
+
+1. **Almost nothing cheap does strict JSON schemas.** Neither default model has a
+   cheap host advertising `structured_outputs`. Forcing it
+   (`provider.require_parameters`) would exclude every cheap host and, for
+   Qwen3.7 Flash, leave **no eligible host at all** — the request simply fails.
+   So we never send it: a host without strict schemas falls back to its own
+   JSON mode, and the answer is caught by zod plus the free repair retry. That
+   trade is a slightly higher repair rate against roughly **9×** on price
+   (CoreWeave vs DeepInfra). Revisit if repairs turn out to be common —
+   `/admin/ai → Modelos` reports the rate per model, which is precisely the
+   measurement that decides it.
+2. **Routing through an aggregator did not move the jurisdiction.** On
+   OpenRouter, `qwen/qwen3.7-flash` is served by **Alibaba and nobody else**, so
+   the open LGPD risk below is unchanged by the switch — only made *cheap to
+   answer*: pick a different slug on the admin screen.
+3. **`:floor` can route to a host that cannot hold the prompt.** Novita serves
+   Llama 3.1 8B at the floor price with a **16k** context, against a catalog
+   prefix in the same order of magnitude. Model-level fallback triggers on
+   context-length errors, so the failure mode is a slower call rather than a
+   dead feature — but it is the reason a fallback list is configured rather than
+   left empty.
+
+## Chosen defaults
+
+```
+principal:    qwen/qwen3.7-flash:floor
+alternativas: meta-llama/llama-3.1-8b-instruct:floor
+```
+
+Cheapest-first, floored, with a fallback of a different family and a different
+jurisdiction. These are the coded defaults in `src/lib/ai-settings.ts`, applied
+until an admin saves anything at **`/admin/ai → Modelos`**, which is where they
+are changed — not in the environment.
+
+Both slugs must be **re-verified against the live model list** before being
+trusted (`curl https://openrouter.ai/api/v1/models`). That is the surviving half
+of the old "no default model string" rule, and the reason they are a row on a
+form rather than a constant someone edits code to change.
 
 ## Why this note exists
 
@@ -19,7 +117,7 @@ Roadmap item 1 (AI Program Generator) meters a real marginal cost: every
 generation is a paid model call. The plan gates it at **Free 1 / Solo 10 /
 Clínica 25 per calendar month**, and those numbers need to be defensible.
 
-## Two hazards found while researching
+## Three hazards found while researching
 
 - **`deepseek.ai` is a lookalike.** DeepSeek's real domain is `deepseek.com`.
   Any price sourced from the former was discarded.
@@ -28,7 +126,26 @@ Clínica 25 per calendar month**, and those numbers need to be defensible.
   older IDs are reported retired (`deepseek-chat` in July 2026; GPT-5 nano).
   **Never hardcode a model string from memory** — this is the direct reason the
   planned `LlmProvider` port requires `LLM_MODEL` explicitly instead of
-  defaulting to one.
+  defaulting to one. *(That var is gone: the model is a row edited at
+  `/admin/ai`. The reasoning still holds — see the top of this note for what
+  defused it.)*
+- **Cheap models think by default, and thinking is billed as output.**
+  (Found the hard way, 2026-08-19.) `qwen/qwen3.7-flash` reports
+  `reasoning.default_enabled: true` in `GET /api/v1/models`; reasoning tokens
+  count as completion tokens *and* draw down the same `max_tokens` ceiling as
+  the answer. The result is not a slow call, it is a **failed one at full
+  price**: the model deliberates for most of the budget and gets cut off
+  mid-JSON. One observed call — 19,311 in, 8,000 out, $0.0016, 54s, nothing
+  returned. Fixed by sending `reasoning: { enabled: false }` on every request
+  (`buildRequestBody`), which is right for the task anyway: the model is picking
+  numbers out of a catalog it was handed and filling in a fixed schema.
+
+  **Check before switching the model at `/admin/ai`:** a slug whose
+  `reasoning.mandatory` is `true` cannot be told to stop and will reject
+  `enabled: false` outright, so it is unusable here regardless of its headline
+  price. `reasoningTokens` now rides on every `llm.call` log line so a model
+  that starts thinking again is visible immediately rather than presenting as
+  mysterious truncation.
 
 ## Candidates
 
@@ -158,11 +275,15 @@ Full catalog at a rough 16K tokens: ~US$0.0005 cold vs ~US$0.00005 cached — a
 saving of roughly R$2/month at a thousand generations. The reason to cache is
 time-to-first-token, not money.
 
-## Decision (2026-08-16)
+## Decision (2026-08-16, superseded 2026-08-18)
 
 **Qwen3.7 Flash**, chosen over Gemini Flash-Lite on cost. The cost difference is
 immaterial (both round to ~0% of revenue); the decision was made with the
 jurisdiction trade-off stated below explicitly on the table.
+
+> **Superseded in form, not in substance.** Qwen3.7 Flash is still the primary —
+> it is now reached through OpenRouter, with Llama 3.1 8B behind it, and the
+> figures are verified rather than assumed. See the top of this note.
 
 > **Open risk — LGPD / data residency.** Qwen is Alibaba Cloud. Generations carry
 > aluno health data (age, weight, objective, restrictions) to a Chinese-owned
@@ -174,13 +295,13 @@ jurisdiction trade-off stated below explicitly on the table.
 
 ## What to do with this
 
-**Do not pick a model from this table.** Build the provider abstraction with no
-default model string, then choose at deploy time from a vendor page you can
-actually open. The cost analysis says the choice barely matters financially — so
-choose on **pt-BR quality and structured-output reliability**, tested against the
-real exercise/TACO catalog.
+**Do not pick a model from the unverified table above.** The verified section at
+the top is sourced; that one is not.
 
-To verify: an admin allowlists the vendor pricing/docs domains for this
-workspace, or the pricing pages get pasted in. Either unblocks a live-sourced
-rewrite of this note and its promotion into `docs/monetization.md` §7 (EN + PT-BR
-halves), plus an AI line in §4(a) and a re-check of the §6.3 margins.
+The cost analysis says the choice barely matters financially — so choose on
+**pt-BR quality and structured-output reliability**, tested against the real
+exercise/TACO catalog. That test is now a config change and a restart per
+candidate, and `/admin/ai → Modelos` reports cost per generation, repair rate and
+cache hit rate side by side for every model that has run. Run the candidates,
+read the table, then promote the result into `docs/monetization.md` §7 (EN +
+PT-BR halves), plus an AI line in §4(a) and a re-check of the §6.3 margins.

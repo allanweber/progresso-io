@@ -84,6 +84,72 @@ test.describe("admin ai overview", () => {
     });
   });
 
+  test("models: rolls the month up by model, with the active config (desktop + mobile)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/admin/ai");
+    await page.getByRole("tab", { name: "Modelos" }).click();
+
+    // The model form, prefilled from the server's own settings so the screen can
+    // never show a value the generator isn't actually using.
+    await expect(page.getByText("Modelo em uso")).toBeVisible();
+    await expect(page.getByLabel("Modelo principal")).toHaveValue(
+      "qwen/qwen3.7-flash:floor",
+    );
+    // Nothing has been saved in e2e, so it has to say these are the defaults
+    // rather than letting them read as a decision someone made.
+    await expect(page.getByText(/Ainda no padrão do sistema/)).toBeVisible();
+
+    await expect(page.getByText("Uso por modelo")).toBeVisible();
+    const row = page.getByRole("row").filter({ hasText: "seed-demo" });
+    await expect(row).toHaveCount(1);
+
+    // Both hosts the seed routed to, alphabetical. The whole reason the column
+    // exists: one slug, two hosts, two prices.
+    await expect(row).toContainText("Alibaba, Groq");
+
+    // All four seeded rows, including the failure — unlike the per-tenant
+    // table, this one is not about credits, so a failure still counts as a call
+    // that was made.
+    await expect(row).toContainText("4");
+    await expect(row).toContainText("1 falhas");
+
+    // 1 repair over 3 successes.
+    await expect(row).toContainText("33%");
+    // Same cache figure as the tenant table, from the same rows.
+    await expect(row).toContainText("63%");
+
+    // Total, and the per-call figure. 1.849 µUSD over the THREE rows that
+    // actually cost something — the failed row spent nothing and must not
+    // dilute the average into 462.
+    await expect(row).toContainText("US$ 0,001849");
+    await expect(row).toContainText("US$ 0,000616");
+    // Nothing was reported by a provider (the seed predates the switch by
+    // construction), so every figure here is priced off the Preços tab.
+    await expect(row).toContainText("estimado");
+
+    await page.screenshot({
+      path: "test-results/screens/admin-ai-models-desktop.png",
+      fullPage: true,
+    });
+
+    // --- Mobile: the wide table scrolls in its own container, not the page ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText("Uso por modelo")).toBeVisible();
+    const noPageOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+    );
+    expect(noPageOverflow, "page must not scroll horizontally on mobile").toBe(
+      true,
+    );
+
+    await page.screenshot({
+      path: "test-results/screens/admin-ai-models-mobile.png",
+      fullPage: true,
+    });
+  });
+
   test("prices: create, edit and delete a price, repricing the usage table", async ({
     page,
   }) => {
@@ -97,7 +163,10 @@ test.describe("admin ai overview", () => {
     // --- Create -------------------------------------------------------------
     const model = `e2e-model-${Date.now()}`;
     await page.getByRole("button", { name: "Novo preço" }).click();
-    await page.getByLabel("Modelo").fill(model);
+    // `exact` is load-bearing: getByLabel substring-matches, and the page also
+    // has a **Modelos** tab whose panel is labelled by its trigger, so a bare
+    // "Modelo" resolves to two elements and fails strict mode.
+    await page.getByLabel("Modelo", { exact: true }).fill(model);
     await page.getByLabel("Vigente desde").fill("2026-01-01T00:00");
     // pt-BR comma decimals: what an admin actually types off a vendor page.
     await page.getByLabel("Entrada", { exact: true }).fill("0,03");
@@ -119,7 +188,7 @@ test.describe("admin ai overview", () => {
 
     // --- Duplicate is refused on the date field -----------------------------
     await page.getByRole("button", { name: "Novo preço" }).click();
-    await page.getByLabel("Modelo").fill(model);
+    await page.getByLabel("Modelo", { exact: true }).fill(model);
     await page.getByLabel("Vigente desde").fill("2026-01-01T00:00");
     await page.getByLabel("Entrada", { exact: true }).fill("0,05");
     await page.getByLabel("Saída", { exact: true }).fill("0,15");
