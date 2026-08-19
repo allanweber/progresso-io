@@ -4,7 +4,7 @@ import { CONTACT_LIMITS } from "@/lib/contact";
 import { sendContactEmail } from "@/lib/email";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { logger } from "@/server/observability";
-import { clientIp, hit } from "@/server/rate-limit";
+import { clientIp, hit, refund } from "@/server/rate-limit";
 import { type FieldErrors, parseForm, z } from "@/lib/validation";
 
 /**
@@ -79,7 +79,12 @@ const contactSchema = z.object({
   // Both bot fields are validated here rather than read raw off the FormData,
   // because the project rule is that *every* external input is parsed by zod —
   // and a field only a bot touches is the last one worth trusting.
-  [HONEYPOT_FIELD]: z.string().max(200).optional(),
+  // No upper bound that can FAIL: a bot stuffing 10KB into the honeypot must
+  // still fall through to the silent trap below. A `max()` here would reject it
+  // at the schema instead, answering with field errors rather than the
+  // indistinguishable success screen — which is precisely the tuning signal the
+  // silent path exists to withhold.
+  [HONEYPOT_FIELD]: z.string().optional(),
   renderedAt: z.coerce.number().int().positive().optional().catch(undefined),
   // Injected into the form by the Turnstile widget. Bounded because it is
   // attacker-controlled and goes into an outbound request body.
@@ -103,7 +108,14 @@ export async function sendContactMessage(
   // A bot is answered with the same success screen a human gets. Telling it
   // "rejected" is free tuning feedback — it would retry until it found the
   // shape that works. Silence costs us nothing: the message is simply dropped.
-  const elapsed = renderedAt === undefined ? null : Date.now() - renderedAt;
+  // A NEGATIVE elapsed means the visitor's clock runs ahead of ours, not that
+  // they answered before the page existed. Treated as "no timestamp" rather
+  // than as a bot: `renderedAt` is stamped by the browser and compared against
+  // the server's clock, so a device a few seconds fast would otherwise trip
+  // `too_fast` and have its message silently discarded — invisible to them and
+  // to us, which is the worst possible way to lose a lead.
+  const raw = renderedAt === undefined ? null : Date.now() - renderedAt;
+  const elapsed = raw !== null && raw < 0 ? null : raw;
   const trap =
     honeypot !== undefined && honeypot !== ""
       ? "honeypot"
@@ -145,7 +157,8 @@ export async function sendContactMessage(
   //   than the 1h one it replaces: every restart hands every IP a fresh budget.
   //   Backing the limiter with Redis/Postgres is what makes a limit this long
   //   actually hold for a day.
-  if (!hit(`contact:${ip}`, 1, 24 * 60 * 60_000)) {
+  const bucketKey = `contact:${ip}`;
+  if (!hit(bucketKey, 1, 24 * 60 * 60_000)) {
     return {
       formError:
         "Você já enviou uma mensagem hoje. Aguarde 24 horas ou responda o e-mail que enviamos.",
@@ -155,6 +168,11 @@ export async function sendContactMessage(
   try {
     await sendContactEmail(message);
   } catch {
+    // Give the day's budget back. The message never went anywhere, and telling
+    // someone "tente novamente" while the retry is already refused for 24h is
+    // the worst of both: no message delivered, and a visitor locked out by a
+    // failure that was ours.
+    refund(bucketKey);
     return {
       formError: "Não foi possível enviar sua mensagem. Tente novamente.",
     };

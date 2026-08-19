@@ -43,6 +43,10 @@ app-level limiter applied at each action boundary:
   the refusal names the wait for exactly that reason. A window this long also
   leans harder on the in-memory store: every deploy hands every IP a fresh
   budget, so it only truly holds for a day once backed by Redis/Postgres.
+  A failed send **refunds** the hit (`refund()` in `src/server/rate-limit.ts`) —
+  the window keeps running, so failing on purpose is not a way to reset your own
+  clock, but a Resend outage no longer locks a visitor out for 24h over a
+  message that was never delivered.
 
 Test: `tests/rate-limit.test.ts`.
 

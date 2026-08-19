@@ -86,6 +86,18 @@ test.describe("student management", () => {
     await page.getByLabel("Sobrenome").fill("Convidada");
     await page.getByLabel("WhatsApp").fill(phone);
     await page.getByLabel("E-mail", { exact: true }).fill(email);
+
+    // Wait for the anamnese select to settle before submitting. It is left at
+    // its default here, but that default is applied ASYNCHRONOUSLY — the form
+    // picks the first template only once the templates query resolves. Submit
+    // before that and `anamnesisId` is still "", which makes the API skip the
+    // WhatsApp fill link entirely (`modality === "online" && data.anamnesisId`)
+    // while still creating the student and navigating. The registration looks
+    // completely successful and no message is ever sent.
+    await expect(page.locator("#anamnesisId")).not.toHaveText(
+      /Carregando|Nenhuma/,
+    );
+
     await page.getByRole("button", { name: "Enviar convite" }).click();
     await page.waitForURL(/\/coach\/students\/[0-9a-f-]{36}$/);
 

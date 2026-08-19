@@ -32,6 +32,13 @@ ENV NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=$NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL
 # add the ingest host + replay worker to the CSP — so it must be set at build.
 ARG NEXT_PUBLIC_SENTRY_DSN=""
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+# Turnstile site key: inlined into the client bundle (the contact form only
+# renders the widget when it is non-empty) AND read by next.config to open the
+# CSP for challenges.cloudflare.com. Missing here is worse than missing
+# everywhere: the SECRET is set at runtime, so the server would verify tokens
+# for a widget that was never rendered and refuse every real submission.
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=""
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
 # Sentry source-map upload (optional): when all three are set, withSentryConfig
 # uploads readable stack traces at build; unset = build still succeeds, no upload.
 ARG SENTRY_ORG=""

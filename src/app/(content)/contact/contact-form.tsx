@@ -21,6 +21,13 @@ import { Textarea } from "@/components/ui/textarea";
  */
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
+/** The widget's global, present once `api.js` has loaded. */
+declare global {
+  interface Window {
+    turnstile?: { reset: (container?: string | HTMLElement) => void };
+  }
+}
+
 export function ContactForm() {
   const [state, formAction] = useActionState(sendContactMessage, undefined);
 
@@ -37,6 +44,31 @@ export function ContactForm() {
   useEffect(() => {
     if (renderedAt.current) renderedAt.current.value = String(Date.now());
   }, []);
+
+  /**
+   * Re-arm Turnstile after a refused submit.
+   *
+   * A token is **single use**, and `useActionState` re-renders in place without
+   * a page load — so the widget keeps showing its green tick while the form
+   * silently reposts a token Cloudflare has already retired. Every retry then
+   * fails as `timeout-or-duplicate`, and the visitor is told to prove they are
+   * not a robot by a widget that insists they already have. Nothing short of a
+   * manual reload recovers.
+   *
+   * Fires on any `formError`, not just the Turnstile one: a rate-limit or send
+   * failure spends the token just the same.
+   *
+   * The dependency is the whole `state`, not `state.formError`. The action
+   * returns a fresh object per submit, so identity changes every time — where
+   * the message string does not, and two consecutive identical errors would
+   * leave the second one holding a spent token.
+   */
+  const turnstileBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.formError && turnstileBox.current) {
+      window.turnstile?.reset(turnstileBox.current);
+    }
+  }, [state]);
 
   if (state?.ok) {
     return (
@@ -137,6 +169,7 @@ export function ContactForm() {
             strategy="lazyOnload"
           />
           <div
+            ref={turnstileBox}
             className="cf-turnstile mt-5"
             data-sitekey={TURNSTILE_SITE_KEY}
             data-language="pt-BR"

@@ -24,7 +24,14 @@ test.describe("content pages", () => {
     await expect(page.getByText("@gmail.com")).toHaveCount(0);
   });
 
-  test("contact form submits", async ({ page }) => {
+  test("contact form submits", async ({ page, request }) => {
+    // The form allows one message per IP per DAY, and the whole suite shares
+    // one localhost IP and one server process. Without this the first attempt
+    // spends the budget and the `retries: 1` retry is refused no matter what
+    // the form does — a flake would become a permanent failure. Scoped to the
+    // contact bucket so the auth limiters other specs use are left alone.
+    await request.delete("/api/test/rate-limit?prefix=contact:");
+
     // Turnstile is pinned off for the suite (see scripts/e2e.mjs): the widget
     // is a real Cloudflare challenge and headless Chromium does not solve one.
     // So this covers the unconfigured path — the verifier itself is tested in

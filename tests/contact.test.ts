@@ -156,6 +156,73 @@ describe("sendContactMessage: one per IP per day", () => {
   });
 });
 
+describe("sendContactMessage: failures must not cost the day's budget", () => {
+  beforeEach(() => {
+    __resetRateLimit();
+    sendContactEmail.mockClear();
+    verifyTurnstile.mockClear();
+    verifyTurnstile.mockResolvedValue(true);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("refunds the budget when the e-mail fails to send", async () => {
+    sendContactEmail.mockRejectedValueOnce(new Error("resend down"));
+    const first = await sendContactMessage(undefined, submission());
+    expect(first?.formError).toMatch(/Não foi possível enviar/);
+
+    // The retry that message invites has to actually work. Charging for a send
+    // that never happened would lock the visitor out for 24h over our outage.
+    await expect(sendContactMessage(undefined, submission())).resolves.toEqual({
+      ok: true,
+    });
+    expect(sendContactEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not restart the window on a refund", async () => {
+    // A refund gives back the hit, never the clock — otherwise failing on
+    // purpose would be a way to reset your own limit.
+    sendContactEmail.mockRejectedValueOnce(new Error("resend down"));
+    await sendContactMessage(undefined, submission());
+    await sendContactMessage(undefined, submission());
+    const third = await sendContactMessage(undefined, submission());
+    expect(third?.formError).toMatch(/24 horas/);
+  });
+});
+
+describe("sendContactMessage: clock skew", () => {
+  beforeEach(() => {
+    __resetRateLimit();
+    sendContactEmail.mockClear();
+    verifyTurnstile.mockClear();
+    verifyTurnstile.mockResolvedValue(true);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("sends when the visitor's clock runs ahead of the server's", async () => {
+    // `renderedAt` is stamped by the browser and compared to the server clock,
+    // so a device a few seconds fast produces a NEGATIVE elapsed. Reading that
+    // as "answered impossibly fast" would silently bin a real message and show
+    // the sender a success screen.
+    const form = submission({ renderedAt: String(Date.now() + 30_000) });
+    await expect(sendContactMessage(undefined, form)).resolves.toEqual({
+      ok: true,
+    });
+    expect(sendContactEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the honeypot silent even when its value is enormous", async () => {
+    // Bounding the honeypot in the schema would answer an oversized value with
+    // field errors instead of the success screen — telling a prober exactly
+    // which field gave it away.
+    const state = await sendContactMessage(
+      undefined,
+      submission({ website: "x".repeat(10_000) }),
+    );
+    expect(state).toEqual({ ok: true });
+    expect(sendContactEmail).not.toHaveBeenCalled();
+  });
+});
+
 describe("sendContactMessage: field limits", () => {
   beforeEach(() => {
     __resetRateLimit();

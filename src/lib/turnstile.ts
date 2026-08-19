@@ -86,6 +86,15 @@ export async function verifyTurnstile(
       body,
       signal: AbortSignal.timeout(10_000),
     });
+    // A non-2xx is our problem, not the visitor's — treat it like the network
+    // failure below. Without this, a throttled or erroring Cloudflare that
+    // still answers JSON (`{}` has no `success`) would fall into the rejection
+    // path and block every real visitor, which is the opposite of the fail-open
+    // this function documents.
+    if (!res.ok) {
+      logger.error("turnstile.verify_failed", { status: res.status });
+      return true;
+    }
     const data = (await res.json()) as SiteVerifyResponse;
     if (!data.success) {
       logger.warn("turnstile.rejected", { codes: data["error-codes"] });

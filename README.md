@@ -75,11 +75,11 @@ Before commit run the skills:
 
 - Shadcn improve: /improve
 - impeccable audit: /impeccable audit
+- /code-review
+- /security-review
+
+Run sometimes
 
 ```prompt
 run a refinement check with /thermo-nuclear-code-quality-review and /improve-codebase-architecture
-```
-
-``` prompt
-run a review code with /code-review and /security-review
 ```

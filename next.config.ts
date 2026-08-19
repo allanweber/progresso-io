@@ -25,6 +25,9 @@ const sentryWorker = sentryConfigured ? "worker-src 'self' blob:" : "";
 // tighter default policy. Inlined at BUILD time.
 const turnstileConfigured = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const turnstileHost = " https://challenges.cloudflare.com";
+// Used in script-src (api.js), frame-src (the challenge iframe) and connect-src
+// — some Turnstile flows XHR back to the same host, and a blocked request there
+// surfaces as a widget that never resolves.
 const turnstileScript = turnstileConfigured ? turnstileHost : "";
 // There is no `frame-src` otherwise: `default-src 'self'` covers frames, which
 // would block the widget outright.
@@ -56,7 +59,7 @@ const csp = [
   "img-src 'self' data: https:", // exercise/check-in images (R2/CDN) + data URIs
   `script-src 'self' 'unsafe-inline'${devEval}${gaScript}${turnstileScript}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind inline styles
-  `connect-src 'self'${gaConnect}${sentryConnect}`,
+  `connect-src 'self'${gaConnect}${sentryConnect}${turnstileScript}`,
   sentryWorker, // Session Replay compression worker (blob:), empty unless configured
   turnstileFrame, // Turnstile's challenge iframe, empty unless configured
   "form-action 'self'",

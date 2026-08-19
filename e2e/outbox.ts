@@ -75,6 +75,14 @@ export async function outboxFor(
  *
  * Fails with the recipient's actual message kinds listed, rather than the bare
  * `expected true, received false` a hand-rolled `.some()` produces.
+ *
+ * Reading the failure: a NON-EMPTY array with the wrong kinds means the send
+ * happened on a different channel or under a different label. An **empty** array
+ * means nothing was sent to this recipient at all — look at the send path's
+ * preconditions rather than at timing. Registration, for one, only sends the
+ * anamnese link when an `anamnesisId` was posted, and the form fills that in
+ * asynchronously; submitting too early creates the student, navigates happily,
+ * and sends nothing.
  */
 export async function waitForMessage(
   request: APIRequestContext,
