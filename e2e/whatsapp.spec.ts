@@ -8,9 +8,6 @@ import { expect, test } from "@playwright/test";
  * as a byproduct (see the screenshots rule in AGENTS.md).
  */
 test.describe("coach whatsapp inbox", () => {
-  // The dev server compiles /coach/whatsapp on first hit; give it room.
-  test.setTimeout(120_000);
-
   test("open-window send, closed-window templates, both viewports", async ({
     page,
   }) => {

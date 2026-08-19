@@ -9,9 +9,6 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("coach calendar", () => {
-  // The dev server compiles /coach/calendar on first hit; give it room.
-  test.setTimeout(120_000);
-
   test("renders the agenda, views and a created event", async ({ page }) => {
     const title = `Reunião ${Date.now().toString().slice(-6)}`;
 

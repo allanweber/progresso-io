@@ -7,6 +7,8 @@
  */
 export * as admin from "./admin";
 export * as adminInvitations from "./admin-invitations";
+export * as ai from "./ai";
+export * as aiSettings from "./ai-settings";
 export * as billing from "./billing";
 export * as calendarEvents from "./calendar-events";
 export * as anamneses from "./anamneses";
@@ -20,6 +22,7 @@ export * as foods from "./foods";
 export * as invitations from "./invitations";
 export * as notifications from "./notifications";
 export * as plans from "./plans";
+export * as providerPrices from "./provider-prices";
 export * as starters from "./starters";
 export * as studentAnamneses from "./student-anamneses";
 export * as studentCheckins from "./student-checkins";

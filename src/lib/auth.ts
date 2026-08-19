@@ -111,10 +111,18 @@ export function createAuth({
   // clinic-bootstrap hook below).
   const database = db as unknown as DB;
 
+  const authBaseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
+  // A `Secure` cookie is dropped by the browser on a plain-http origin, so the
+  // session would never be stored. That never happens in production (https),
+  // but the e2e suite runs a *production build* over http://localhost — without
+  // this carve-out every authenticated spec would fail at login with no error.
+  const localOrigin = /^http:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(authBaseUrl);
+
   const options = {
     appName: "Progresso IO",
     secret,
-    baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+    baseURL: authBaseUrl,
 
     // Pin cookie/session/origin defaults instead of relying on inferred ones.
     // Only the canonical production origin is trusted for CSRF/redirects; secure
@@ -127,7 +135,7 @@ export function createAuth({
       updateAge: 60 * 60 * 24, // refresh the token at most once a day
     },
     advanced: {
-      useSecureCookies: process.env.NODE_ENV === "production",
+      useSecureCookies: process.env.NODE_ENV === "production" && !localOrigin,
     },
 
     database: drizzleAdapter(db, {

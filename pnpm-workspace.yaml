@@ -1,0 +1,5 @@
+allowBuilds:
+  '@sentry/cli': true
+  esbuild: false
+  sharp: false
+  unrs-resolver: false

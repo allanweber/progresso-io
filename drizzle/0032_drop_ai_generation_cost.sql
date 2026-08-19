@@ -1,0 +1,14 @@
+-- Drops `ai_generation.cost_micro_usd`.
+--
+-- Cost was computed from a per-million-token tariff supplied by env vars
+-- (LLM_PRICE_*), which have been removed. Those vars were never set, so every
+-- row in this column is NULL and always would have been until someone
+-- configured a price — a column that can only ever say "unknown" is worse than
+-- no column, because a reader assumes it means "free".
+--
+-- Nothing is lost that cannot be recovered: `input_tokens`,
+-- `cached_input_tokens` and `output_tokens` are still recorded per row, next to
+-- the `provider` and `model` that served it. Cost is those numbers times a
+-- price, and the price is the one part that can be looked up at any time. The
+-- tokens are the part that can only be measured as it happens.
+ALTER TABLE "ai_generation" DROP COLUMN "cost_micro_usd";

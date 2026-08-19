@@ -24,20 +24,20 @@ const ADMIN_STORAGE = "e2e/.auth/admin.json";
  * - `coach`   — authenticated student-management flows, reusing that session.
  *
  * The suite runs against a REAL Postgres via `node scripts/e2e.mjs`
- * (`npm run test:e2e`), which boots + migrates + seeds the DB and starts the
- * dev server with `ENABLE_TEST_OUTBOX=true` so the invite→accept loop is
+ * (`npm run test:e2e`), which boots + migrates + seeds the DB, builds the app
+ * and serves it with `ENABLE_TEST_OUTBOX=true` so the invite→accept loop is
  * drivable. Running `playwright test` directly (no DB) only fits the `public`
- * project.
+ * project, and still needs a standalone build present.
  */
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
-  // The suite runs against `next dev`. globalSetup pre-compiles routes so tests
-  // don't race a cold Turbopack compile; the raised timeout covers the invite
-  // flow's several navigations, and one retry absorbs any residual cold-start
-  // abort.
-  globalSetup: "./e2e/global-setup.ts",
-  timeout: 60_000,
+  // The suite runs against a PRODUCTION build, not `next dev`.
+  // Turbopack's on-demand dev compile dominated the wall clock — every first
+  // navigation to a route paid for compiling it, and specs raced that compile
+  // hard enough to need route pre-warming and a 60s timeout. A prebuilt server
+  // serves every route immediately, so neither is needed.
+  timeout: 30_000,
   forbidOnly: !!process.env.CI,
   retries: 1,
   reporter: process.env.CI ? "list" : [["list"]],
@@ -117,8 +117,18 @@ export default defineConfig({
       },
     },
     {
+      name: "ai",
+      testMatch: /ai-generator\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: COACH_STORAGE,
+      },
+    },
+    {
       name: "admin",
-      testMatch: /admin-(maintenance|admins|billing|whatsapp)\.spec\.ts/,
+      testMatch: /admin-(maintenance|admins|billing|whatsapp|ai)\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],
@@ -128,9 +138,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --port ${PORT}`,
+    // The standalone server built by `scripts/e2e.mjs` — the same artifact that
+    // gets deployed. It takes its port from the environment, not a flag.
+    command: "node .next/standalone/server.js",
+    env: { PORT: String(PORT) },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 60_000,
   },
 });

@@ -426,11 +426,14 @@ export type AdminClinicLimitsDto = {
   planWhatsapp: boolean;
   planArchive: boolean;
   planCalendar: boolean;
+  /** Generations per calendar month from the plan. `null` = unlimited. */
+  planAiGenerations: number | null;
   maxStudentsOverride: number | null;
   maxCoachesOverride: number | null;
   whatsappOverride: boolean | null;
   archiveOverride: boolean | null;
   calendarOverride: boolean | null;
+  aiGenerationsOverride: number | null;
 };
 
 /**
@@ -452,5 +455,11 @@ export const clinicLimitsUpdateSchema = z.object({
   whatsappOverride: z.boolean().nullable(),
   archiveOverride: z.boolean().nullable(),
   calendarOverride: z.boolean().nullable(),
+  // A quota, not a toggle: 0 switches the generator off for this clinic.
+  aiGenerationsOverride: z
+    .number()
+    .int("Informe um número inteiro.")
+    .min(0, "Não pode ser negativo.")
+    .nullable(),
 });
 export type ClinicLimitsUpdateInput = z.output<typeof clinicLimitsUpdateSchema>;

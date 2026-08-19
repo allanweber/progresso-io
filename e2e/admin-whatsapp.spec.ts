@@ -7,8 +7,6 @@ import { expect, test } from "@playwright/test";
  * captures the desktop + mobile screenshots.
  */
 test.describe("admin whatsapp overview", () => {
-  test.setTimeout(120_000);
-
   test("renders per-tenant connections + KPIs, both viewports", async ({
     page,
   }) => {

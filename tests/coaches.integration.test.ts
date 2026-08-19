@@ -64,12 +64,14 @@ beforeAll(async () => {
   auth = createAuth({ db, nextCookiesPlugin: false, sendOtp: async () => {} });
 
   // Migration 0025 seeds plan_limit; reset to a known set for this test.
+  // `aiGenerations` must be spelled out: a row that EXISTS with a NULL there
+  // means *unlimited*, so omitting it would silently uncap the AI generator.
   await db.delete(schema.planLimit);
   await db.insert(schema.planLimit).values([
-    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false },
-    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true },
-    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true },
-    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true },
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, aiGenerations: 1 },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, aiGenerations: 10 },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, aiGenerations: 25 },
+    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, aiGenerations: null },
   ]);
 });
 
@@ -83,6 +85,7 @@ describe("plan limits (coach cap + WhatsApp gate)", () => {
       whatsapp: true,
       archive: true,
       calendar: true,
+      aiGenerations: 25,
       plan: "clinica",
       effectivePlan: "clinica",
       trialActive: false,

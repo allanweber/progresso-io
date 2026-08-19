@@ -1071,6 +1071,10 @@ function LimitsForm({
   const [calendar, setCalendar] = useState<"inherit" | "yes" | "no">(
     triState(limits.calendarOverride),
   );
+  // A quota, not a toggle — so it's a number input like the caps, not tri-state.
+  const [aiGens, setAiGens] = useState(
+    overrideInput(limits.aiGenerationsOverride),
+  );
 
   const save = useMutation({
     mutationFn: () =>
@@ -1086,6 +1090,8 @@ function LimitsForm({
               whatsappOverride: fromTriState(whatsapp),
               archiveOverride: fromTriState(archive),
               calendarOverride: fromTriState(calendar),
+              aiGenerationsOverride:
+                aiGens.trim() === "" ? null : Number(aiGens),
             }),
           ),
         },
@@ -1098,7 +1104,8 @@ function LimitsForm({
     coaches !== overrideInput(limits.maxCoachesOverride) ||
     whatsapp !== triState(limits.whatsappOverride) ||
     archive !== triState(limits.archiveOverride) ||
-    calendar !== triState(limits.calendarOverride);
+    calendar !== triState(limits.calendarOverride) ||
+    aiGens !== overrideInput(limits.aiGenerationsOverride);
   const banner = save.error instanceof ApiError ? save.error.message : undefined;
 
   return (
@@ -1119,6 +1126,18 @@ function LimitsForm({
             placeholder={planDefaultHint(limits.planMaxStudents)}
             value={students}
             onChange={(e) => setStudents(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lim-ai">Gerações IA / mês</Label>
+          <Input
+            id="lim-ai"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder={planDefaultHint(limits.planAiGenerations)}
+            value={aiGens}
+            onChange={(e) => setAiGens(e.target.value)}
           />
         </div>
         <div className="space-y-1.5">

@@ -626,11 +626,15 @@ async function seed() {
     whatsapp: boolean;
     archive: boolean;
     calendar: boolean;
+    // AI generations per calendar month. MUST be set here: a plan_limit row that
+    // exists with a NULL here reads as *unlimited*, so omitting it would hand
+    // every Free clinic uncapped model calls on a fresh seed.
+    aiGenerations: number | null;
   }[] = [
-    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false, calendar: false },
-    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false, calendar: true },
-    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true, calendar: true },
-    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true, calendar: true },
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false, calendar: false, aiGenerations: 1 },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false, calendar: true, aiGenerations: 10 },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true, calendar: true, aiGenerations: 25 },
+    { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true, calendar: true, aiGenerations: null },
   ];
   for (const limit of planLimits) {
     await db
@@ -644,6 +648,7 @@ async function seed() {
           whatsapp: limit.whatsapp,
           archive: limit.archive,
           calendar: limit.calendar,
+          aiGenerations: limit.aiGenerations,
         },
       });
   }
@@ -1101,6 +1106,124 @@ async function seed() {
 
       console.info("✓ seeded demo WhatsApp inbox (templates, connection, 3 conversations)");
     }
+  }
+
+  // Demo AI generations, so /admin/ai has something to show. Deliberately mixed:
+  // one cold call (no cache hit), two warm ones, and a failure — the failure
+  // matters because it must NOT count against the clinic's monthly credits.
+  //
+  // `upstreamProvider` differs between rows on purpose: the same model slug is
+  // served by several hosts at different prices, and the Modelos tab exists to
+  // make that visible. None of them carries a reported cost, so the demo also
+  // exercises the `provider_price` estimate path — which is the one that has to
+  // keep working for rows written before the OpenRouter switch.
+  const existingAiGenerations = await db
+    .select({ id: schema.aiGeneration.id })
+    .from(schema.aiGeneration)
+    .where(eq(schema.aiGeneration.clinicId, coachClinic.id))
+    .limit(1);
+  if (existingAiGenerations.length === 0) {
+    // Clamped into the current São Paulo month: the screen only counts rows
+    // since the 1st, so a seed run on the 1st would otherwise back-date every
+    // row out of view and show an empty table.
+    const { monthStart } = await import("@/server/dal/ai");
+    const floor = monthStart(new Date()).getTime() + 60_000;
+    const minutesAgo = (m: number) =>
+      new Date(Math.max(Date.now() - m * 60_000, floor));
+    await db.insert(schema.aiGeneration).values([
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "workout",
+        status: "succeeded",
+        provider: "openrouter",
+        model: "seed-demo",
+        upstreamProvider: "Alibaba",
+        // Cold: the whole catalog prefix was billed as fresh input.
+        inputTokens: 16_400,
+        cachedInputTokens: 0,
+        outputTokens: 2_900,
+        durationMs: 11_200,
+        repaired: false,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 26),
+      },
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "diet",
+        status: "succeeded",
+        provider: "openrouter",
+        model: "seed-demo",
+        upstreamProvider: "Alibaba",
+        // Warm: the identical prefix came back from the provider's cache.
+        inputTokens: 820,
+        cachedInputTokens: 15_600,
+        outputTokens: 3_400,
+        durationMs: 8_100,
+        repaired: true,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 20),
+      },
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "workout",
+        status: "failed",
+        provider: "openrouter",
+        model: "seed-demo",
+        upstreamProvider: "Groq",
+        errorCode: "invalid_json",
+        durationMs: 4_300,
+        repaired: false,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 5),
+      },
+      {
+        clinicId: coachClinic.id,
+        studentId,
+        coachId: coach.id,
+        kind: "diet",
+        status: "succeeded",
+        provider: "openrouter",
+        model: "seed-demo",
+        upstreamProvider: "Alibaba",
+        inputTokens: 790,
+        cachedInputTokens: 15_600,
+        outputTokens: 3_050,
+        durationMs: 7_600,
+        repaired: false,
+        catalogHash: "seed-demo-catalog",
+        createdAt: minutesAgo(60 * 2),
+      },
+    ]);
+    console.info("✓ seeded demo AI generations (cold, cached, failed)");
+  }
+
+  // A price for the demo model, so /admin/ai shows a real Custo column instead
+  // of a column of dashes. Dated at the epoch so it covers every demo row
+  // regardless of when the seed runs.
+  const existingPrices = await db
+    .select({ id: schema.providerPrice.id })
+    .from(schema.providerPrice)
+    .where(eq(schema.providerPrice.model, "seed-demo"))
+    .limit(1);
+  if (existingPrices.length === 0) {
+    await db.insert(schema.providerPrice).values({
+      provider: "openrouter",
+      model: "seed-demo",
+      effectiveFrom: new Date(0),
+      // Qwen3.7 Flash's reported rates — unverified (see
+      // docs/ai-provider-costs.md), which is exactly why the `note` says so.
+      inputMicroUsdPerMtok: 30_000, // US$0.03 / M
+      outputMicroUsdPerMtok: 130_000, // US$0.13 / M
+      cachedInputMicroUsdPerMtok: 3_000, // US$0.003 / M
+      note: "Demo — valores não verificados",
+    });
+    console.info("✓ seeded demo LLM price");
   }
 
   // An ISOLATED clinic for the admin data-maintenance e2e. The admin spec

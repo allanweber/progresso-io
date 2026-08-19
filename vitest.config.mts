@@ -23,11 +23,10 @@ export default defineConfig({
     // loading the pg_trgm/unaccent extensions the food-catalog migration needs.
     // That startup can exceed the default 10s hook timeout, so give it room.
     hookTimeout: 30_000,
-    // Run test files one at a time. Several integration files each spin up an
-    // in-memory PGlite (WASM) database; running them concurrently occasionally
-    // exhausts WASM memory and crashes a worker at `new PGlite()`. Serializing
-    // files removes that contention deterministically — the suite is small, so
-    // the wall-clock cost is negligible.
-    fileParallelism: false,
+    // Files run in parallel, but capped: ~30 integration files each spin up an
+    // in-memory PGlite (WASM) database, and letting vitest size the pool to the
+    // machine used to exhaust WASM memory and crash a worker at `new PGlite()`.
+    // A small fixed pool keeps that under control while still using the cores.
+    maxWorkers: 4,
   },
 });

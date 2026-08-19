@@ -64,6 +64,27 @@ export const PLANS = ["free", "solo", "clinica", "enterprise"] as const;
 export type Plan = (typeof PLANS)[number];
 
 /**
+ * What the AI program generator can draft. One generation produces exactly one
+ * of these and costs exactly one credit — a workout and a diet for the same
+ * aluno are two generations, because they are two model calls.
+ */
+export const AI_GENERATION_KINDS = ["workout", "diet"] as const;
+export type AiGenerationKind = (typeof AI_GENERATION_KINDS)[number];
+
+/**
+ * Lifecycle of a generation. The row is written `pending` **before** the model
+ * is called, so an in-flight generation already holds its credit and two
+ * concurrent requests cannot both slip under the cap. `failed` rows stop
+ * counting, which is what makes a provider error free for the coach.
+ */
+export const AI_GENERATION_STATUSES = [
+  "pending",
+  "succeeded",
+  "failed",
+] as const;
+export type AiGenerationStatus = (typeof AI_GENERATION_STATUSES)[number];
+
+/**
  * A clinic's default check-in cadence for its students (a clinic-wide feedback
  * preference). Stored on {@link clinic}; the check-in engine that consumes it is
  * a later feature.
@@ -326,6 +347,7 @@ export const clinic = pgTable(
     whatsappOverride: boolean("whatsapp_override"),
     archiveOverride: boolean("archive_override"),
     calendarOverride: boolean("calendar_override"),
+    aiGenerationsOverride: integer("ai_generations_override"),
     // When the clinic's starter templates (anamneses + diets + workouts) were
     // seeded. NULL until the first coach sign-in triggers the one-shot background
     // seed (see `ensureClinicStarters`); set to the completion time once all
@@ -425,6 +447,11 @@ export const planLimit = pgTable("plan_limit", {
   // Whether the plan may use the coach Calendar/Agenda. Free is excluded; every
   // paid plan (Solo/Clínica/Enterprise) gets it.
   calendar: boolean("calendar").default(true).notNull(),
+  // AI program generations allowed per calendar month. null = unlimited.
+  // Unlike the boolean capabilities this one meters a real marginal cost —
+  // every generation is a paid model call — which is why even the top
+  // self-serve plan carries a number rather than `null`.
+  aiGenerations: integer("ai_generations"),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -2192,9 +2219,216 @@ export const whatsappConnection = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*  AI program generator                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One row per AI generation attempt — the quota meter, the audit trail, and the
+ * cost ledger.
+ *
+ * **The monthly cap is a `count(*)` over this table**, never a stored counter:
+ * a counter needs a cron to reset it and drifts the moment a write fails
+ * halfway, while a row count cannot drift. Same reasoning as
+ * `clinic.trial_ends_at` — correctness never depends on a job firing.
+ *
+ * **The prompt itself is deliberately not stored.** `anamnesisSnapshotId` and
+ * `catalogHash` make it fully reconstructible without duplicating aluno health
+ * data into a second table, in plain text, in every backup.
+ */
+export const aiGeneration = pgTable(
+  "ai_generation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Tenant key. Every read is scoped by this; the cap is counted per clinic.
+    clinicId: uuid("clinic_id")
+      .references(() => clinic.id, { onDelete: "cascade" })
+      .notNull(),
+    studentId: uuid("student_id")
+      .references(() => students.id, { onDelete: "cascade" })
+      .notNull(),
+    // Who asked. Kept for the audit trail; nulled if the coach is deleted.
+    coachId: text("coach_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    kind: text("kind").$type<AiGenerationKind>().notNull(),
+    status: text("status")
+      .$type<AiGenerationStatus>()
+      .default("pending")
+      .notNull(),
+    // Which provider/model served this call. Recorded per row because the
+    // provider is swappable at runtime — token counts are only interpretable
+    // next to the model that produced them.
+    provider: text("provider").notNull(),
+    // The model we ASKED for when the row was opened, overwritten with the one
+    // that actually ANSWERED when it settles. With a fallback list configured
+    // the two differ whenever the primary is rate-limited or retired, and the
+    // token counts are only priceable against the model that produced them.
+    model: text("model").notNull(),
+    // Which host the aggregator routed to ("Groq", "DeepInfra", "Alibaba"),
+    // when it says. The same slug is served by several at different prices, so
+    // without this a cost that moved is indistinguishable from a price that did.
+    // NULL when the provider reports no routing metadata.
+    upstreamProvider: text("upstream_provider"),
+    // The provider's own id for the call. Not used by anything here — it is the
+    // join key to the vendor's dashboard when a figure has to be disputed.
+    requestId: text("request_id"),
+    // Input tokens billed at full rate, and the portion served from the
+    // provider's prompt cache (billed at a fraction). Split because the ratio
+    // between them IS the measure of whether the shared catalog prefix is
+    // staying cached, and because the two bill at different rates.
+    inputTokens: integer("input_tokens"),
+    cachedInputTokens: integer("cached_input_tokens"),
+    // Tokens written INTO the cache. Some vendors bill these at a premium over
+    // normal input, so a run of cache writes is a cost signal of its own.
+    cacheWriteTokens: integer("cache_write_tokens"),
+    outputTokens: integer("output_tokens"),
+    /**
+     * What the provider said this call cost, in micro-USD. NULL when it says
+     * nothing — which is different from zero and must stay so.
+     *
+     * This is **not** the frozen price the earlier design rejected. That number
+     * came from config and could only ever restate an assumption; this one is a
+     * measurement returned by the call itself, in the same class of fact as the
+     * token counts beside it — and the only figure that stays right when routing
+     * moves the same slug between hosts at different rates.
+     *
+     * `provider_price` is unchanged and still prices every row: it is what makes
+     * a forecast possible, what covers vendors that report no cost, and what an
+     * admin can correct after the fact. Where both exist the reported figure
+     * wins, because it is the one the invoice will agree with.
+     */
+    reportedCostMicroUsd: integer("reported_cost_micro_usd"),
+    durationMs: integer("duration_ms"),
+    // Whether the model's first answer had to be repaired (hallucinated a
+    // catalog index). Free for the coach, but worth measuring: a model that
+    // needs repairing often costs twice the tokens for the same credit.
+    repaired: boolean("repaired").default(false).notNull(),
+    /**
+     * Hash of the rendered catalog block. The catalog is a global, cached
+     * prompt prefix, so this is the cache observability: when hit rates fall,
+     * this says whether the prefix changed and when.
+     */
+    catalogHash: text("catalog_hash"),
+    // The anamnese snapshot the prompt was built from. With `catalogHash`, this
+    // reconstructs the prompt without storing it.
+    anamnesisSnapshotId: uuid("anamnesis_snapshot_id").references(
+      () => studentAnamnesis.id,
+      { onDelete: "set null" },
+    ),
+    // Short machine-readable failure cause on `failed` rows ("not_configured",
+    // "timeout", "invalid_json", "invalid_ids", "http"). Never the raw provider
+    // body — that can echo prompt content.
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The quota query: this clinic's rows in the current month.
+    index("ai_generation_clinic_created_idx").on(t.clinicId, t.createdAt),
+    index("ai_generation_student_idx").on(t.studentId),
+    // The admin rollups scan a month across every tenant, so they never touch
+    // the clinic-scoped index above.
+    index("ai_generation_created_idx").on(t.createdAt),
+  ],
+);
+
+/**
+ * The AI model settings — a **single row**, platform-wide.
+ *
+ * Which model drafts programs is the one decision about this feature that gets
+ * revisited: prices move, slugs get retired, and the whole point of going
+ * through an aggregator is that trying another model should be cheap. As an
+ * environment variable that is a deploy; as a row it is a form at `/admin/ai`.
+ *
+ * Everything else the provider needs is either a secret (`LLM_API_KEY`, which
+ * stays in the environment because secrets do not belong in a table an admin
+ * screen reads back) or a constant nobody revisits (endpoint, temperature,
+ * output ceiling, timeout — see `src/lib/llm-provider.ts`).
+ *
+ * **The row is optional.** With no row, the coded defaults apply, so a fresh
+ * install generates without anyone having to seed or save anything. The first
+ * save writes the row; there is never a second one.
+ */
+export const aiSettings = pgTable("ai_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /**
+   * Guard for the singleton: `true` on the only row, and UNIQUE, so a second
+   * insert fails on the database rather than leaving two rows for a reader to
+   * choose between.
+   */
+  singleton: boolean("singleton").default(true).notNull().unique(),
+  /** Provider model slug, e.g. `qwen/qwen3.7-flash:floor`. */
+  model: text("model").notNull(),
+  /**
+   * Tried in order when the primary errors, rate-limits or disappears. Empty is
+   * a legal, meaningful value — "no fallbacks" — and is why the column defaults
+   * to an empty array rather than being nullable.
+   */
+  fallbackModels: text("fallback_models").array().notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/**
+ * What a provider charges per **million** tokens, in millionths of a USD
+ * (`$0.03/M` → `30000`). Integers, so no float drift accumulates over a month
+ * of summing.
+ *
+ * Platform reference data, like `plan_limit` — no `clinicId`, managed by admins
+ * at /admin/ai. Rows are **effective-dated**, not overwritten: a generation is
+ * priced by the row with the greatest `effectiveFrom` at or before the moment it
+ * ran. That is the whole reason this is a table and not a config value —
+ * a vendor price change adds a row and leaves every historical figure correct,
+ * while a single mutable price would silently reprice the past.
+ */
+export const providerPrice = pgTable(
+  "provider_price",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Matched against `ai_generation.provider` / `.model`, which record what
+    // actually served each call.
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    // When this price took effect. A row that starts in the future is legal and
+    // simply does not apply yet — which is how an announced price change is
+    // entered ahead of time.
+    effectiveFrom: timestamp("effective_from").notNull(),
+    inputMicroUsdPerMtok: integer("input_micro_usd_per_mtok").notNull(),
+    outputMicroUsdPerMtok: integer("output_micro_usd_per_mtok").notNull(),
+    // Cache reads bill cheaper. NULL means "not stated by the vendor", and the
+    // full input rate is used — over- rather than under-stating the bill, which
+    // is the safe direction for an unknown discount.
+    cachedInputMicroUsdPerMtok: integer("cached_input_micro_usd_per_mtok"),
+    // Free-text provenance ("vendor pricing page, 2026-08-16"). The figures in
+    // docs/ai-provider-costs.md are unverified; this is where the verified ones
+    // record where they came from.
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // One price per model per instant — a duplicate would make "the price then"
+    // ambiguous, which is the one thing this table exists to answer.
+    uniqueIndex("provider_price_model_from_idx").on(
+      t.provider,
+      t.model,
+      t.effectiveFrom,
+    ),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*  Inferred types                                                            */
 /* -------------------------------------------------------------------------- */
 
+export type AiSettings = typeof aiSettings.$inferSelect;
+export type NewAiSettings = typeof aiSettings.$inferInsert;
+
+export type ProviderPrice = typeof providerPrice.$inferSelect;
+export type NewProviderPrice = typeof providerPrice.$inferInsert;
+
+export type AiGeneration = typeof aiGeneration.$inferSelect;
+export type NewAiGeneration = typeof aiGeneration.$inferInsert;
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Session = typeof session.$inferSelect;

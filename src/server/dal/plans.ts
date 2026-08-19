@@ -7,6 +7,8 @@ import {
   PLAN_DEFAULT_ARCHIVE,
   PLAN_DEFAULT_CALENDAR,
   TRIAL_PLAN,
+  isTrialActive,
+  resolveAiGenerations,
 } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
@@ -38,6 +40,8 @@ export type PlanLimits = {
   archive: boolean;
   /** Whether the plan may use the coach Calendar/Agenda (Free excluded). */
   calendar: boolean;
+  /** AI program generations per calendar month. `null` = unlimited. */
+  aiGenerations: number | null;
   /** The clinic's stored plan — what it actually pays for. */
   plan: Plan;
   /** The plan these limits came from: `TRIAL_PLAN` while a trial is running. */
@@ -54,11 +58,6 @@ export type PlanLimits = {
  */
 const trialLimit = alias(schema.planLimit, "trial_limit");
 
-/** A trial applies only to a clinic still on `free`, and only until it ends. */
-function isTrialActive(plan: Plan, trialEndsAt: Date | null, now: Date) {
-  return plan === "free" && trialEndsAt !== null && trialEndsAt > now;
-}
-
 /**
  * The current clinic's effective plan capabilities: the plan defaults
  * (`plan_limit`) with any per-clinic override applied on top. A `null` override
@@ -72,21 +71,31 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
     .select({
       plan: schema.clinic.plan,
       trialEndsAt: schema.clinic.trialEndsAt,
+      // Presence markers for the two joined limit rows. The boolean
+      // capabilities are NOT NULL, so a null there already means "no row";
+      // `aiGenerations` is nullable on purpose (Enterprise = unlimited), so a
+      // null value alone cannot tell "unlimited" from "row missing". The
+      // primary key can.
+      planRowPresent: schema.planLimit.plan,
+      trialRowPresent: trialLimit.plan,
       planMaxStudents: schema.planLimit.maxStudents,
       planMaxCoaches: schema.planLimit.maxCoaches,
       planWhatsapp: schema.planLimit.whatsapp,
       planArchive: schema.planLimit.archive,
       planCalendar: schema.planLimit.calendar,
+      planAiGenerations: schema.planLimit.aiGenerations,
       trialMaxStudents: trialLimit.maxStudents,
       trialMaxCoaches: trialLimit.maxCoaches,
       trialWhatsapp: trialLimit.whatsapp,
       trialArchive: trialLimit.archive,
       trialCalendar: trialLimit.calendar,
+      trialAiGenerations: trialLimit.aiGenerations,
       overStudents: schema.clinic.maxStudentsOverride,
       overCoaches: schema.clinic.maxCoachesOverride,
       overWhatsapp: schema.clinic.whatsappOverride,
       overArchive: schema.clinic.archiveOverride,
       overCalendar: schema.clinic.calendarOverride,
+      overAiGenerations: schema.clinic.aiGenerationsOverride,
     })
     .from(schema.clinic)
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
@@ -105,6 +114,8 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
   // admin who capped a clinic meant it, trial or not.
   const limit = trialActive
     ? {
+        present: row?.trialRowPresent != null,
+        aiGenerations: row?.trialAiGenerations ?? null,
         maxStudents: row?.trialMaxStudents,
         maxCoaches: row?.trialMaxCoaches,
         whatsapp: row?.trialWhatsapp,
@@ -112,6 +123,8 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
         calendar: row?.trialCalendar,
       }
     : {
+        present: row?.planRowPresent != null,
+        aiGenerations: row?.planAiGenerations ?? null,
         maxStudents: row?.planMaxStudents,
         maxCoaches: row?.planMaxCoaches,
         whatsapp: row?.planWhatsapp,
@@ -130,6 +143,13 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
     whatsapp: row?.overWhatsapp ?? limit.whatsapp ?? true,
     archive: row?.overArchive ?? limit.archive ?? archiveFallback,
     calendar: row?.overCalendar ?? limit.calendar ?? calendarFallback,
+    // Shared with the cross-tenant admin sweep — see `resolveAiGenerations`.
+    aiGenerations: resolveAiGenerations({
+      override: row?.overAiGenerations ?? null,
+      rowPresent: limit.present,
+      rowValue: limit.aiGenerations,
+      effectivePlan,
+    }),
     plan,
     effectivePlan,
     trialActive,
@@ -173,4 +193,19 @@ export async function canArchiveStudents(ctx: TenantContext): Promise<boolean> {
  */
 export async function canUseCalendar(ctx: TenantContext): Promise<boolean> {
   return (await getPlanLimits(ctx)).calendar;
+}
+
+/**
+ * The clinic's AI generations per calendar month. `null` = unlimited.
+ *
+ * Note this is a *quota*, not a capability: every plan including Free gets some,
+ * so there is no `canUseAiGenerator` boolean — "may I generate?" is always the
+ * question "am I under the cap?", answered against the live count in
+ * `dal/ai.ts`. A plan (or per-clinic override) of `0` is the only way to switch
+ * the feature off.
+ */
+export async function getAiGenerationLimit(
+  ctx: TenantContext,
+): Promise<number | null> {
+  return (await getPlanLimits(ctx)).aiGenerations;
 }

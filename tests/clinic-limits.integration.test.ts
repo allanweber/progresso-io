@@ -40,10 +40,12 @@ beforeAll(async () => {
   auth = createAuth({ db, nextCookiesPlugin: false, sendOtp: async () => {} });
 
   // Migration 0025 seeds plan_limit; reset to a known set for this test.
+  // `aiGenerations` must be spelled out: a row that EXISTS with a NULL there
+  // means *unlimited*, so omitting it would silently uncap the AI generator.
   await db.delete(schema.planLimit);
   await db.insert(schema.planLimit).values([
-    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true },
-    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, aiGenerations: 10 },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, aiGenerations: 25 },
   ]);
 });
 
@@ -56,6 +58,7 @@ describe("per-clinic limit overrides", () => {
       whatsapp: true,
       archive: true,
       calendar: true,
+      aiGenerations: 10,
       // Trial cleared in the fixture, so the stored plan governs outright.
       plan: "solo",
       effectivePlan: "solo",
@@ -85,6 +88,7 @@ describe("per-clinic limit overrides", () => {
       whatsapp: false, // forced off for this clinic
       archive: true, // inherited from plan
       calendar: true, // inherited from plan
+      aiGenerations: 10, // inherited from plan
       plan: "solo",
       effectivePlan: "solo",
       trialActive: false,

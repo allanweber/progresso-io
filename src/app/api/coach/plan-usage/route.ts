@@ -7,7 +7,7 @@ import {
   type PlanUsageDto,
   type TrialDto,
 } from "@/lib/plans";
-import { billing, clinics, coaches, plans, students } from "@/server/dal";
+import { ai, billing, clinics, coaches, plans, students } from "@/server/dal";
 import { forbidden, notFound, unauthorized } from "@/server/api";
 import { withRoute } from "@/server/observability";
 import { getTenantContext } from "@/server/tenant";
@@ -24,15 +24,15 @@ export const GET = withRoute("coach.planUsage.read", async () => {
   if (!ctx) return unauthorized();
   if (ctx.role !== "coach") return forbidden();
 
-  const [clinic, limits, studentCount, coachCount, invoices] = await Promise.all(
-    [
+  const [clinic, limits, studentCount, coachCount, invoices, aiUsed] =
+    await Promise.all([
       clinics.getClinic(ctx),
       plans.getPlanLimits(ctx),
       students.countStudents(ctx),
       coaches.countActiveCoaches(ctx),
       billing.listMyInvoices(ctx),
-    ],
-  );
+      ai.countGenerationsThisMonth(ctx),
+    ]);
   if (!clinic) return notFound("Clínica não encontrada.");
 
   const now = new Date();
@@ -70,6 +70,8 @@ export const GET = withRoute("coach.planUsage.read", async () => {
     effectivePlan: limits.effectivePlan,
     students: { used: studentCount, limit: limits.maxStudents },
     coaches: { used: coachCount, limit: limits.maxCoaches },
+    // Resets on the 1st (America/São_Paulo) — a count of rows, not live objects.
+    ai: { used: aiUsed, limit: limits.aiGenerations },
     whatsapp: limits.whatsapp,
     archive: limits.archive,
     trial,

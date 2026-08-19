@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Settings,
   ShieldCheck,
+  Sparkles,
   UtensilsCrossed,
   Users,
   X,
@@ -100,6 +101,7 @@ function navItems(
     items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
     items.push({ href: "/admin/exercises", label: "Exercícios", icon: Dumbbell });
     items.push({ href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle });
+    items.push({ href: "/admin/ai", label: "IA", icon: Sparkles });
     items.push({ href: "/admin/maintenance", label: "Manutenção", icon: Database });
     items.push({ href: "/admin/admins", label: "Admins", icon: ShieldCheck });
   }

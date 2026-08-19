@@ -77,6 +77,14 @@ services:
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
       - R2_BUCKET=${R2_BUCKET:-}
       - R2_PREFIX=${R2_PREFIX:-}
+      # AI program generator, via OpenRouter. Read at RUNTIME only (never
+      # inlined into the bundle). Only the key is required: with it unset the
+      # "Gerar com IA" button stays disabled and no credit is ever spent.
+      # WHICH MODEL is not here — it lives in the database, edited at
+      # /admin/ai, so changing it needs neither a deploy nor a restart.
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      # Optional; defaults to OpenRouter. See .env.example.
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
     expose:
       - "3000"
     # Container health via the app's own liveness endpoint (node has global fetch).

@@ -1647,11 +1647,13 @@ export type ClinicLimitsRow = {
   planWhatsapp: boolean | null;
   planArchive: boolean | null;
   planCalendar: boolean | null;
+  planAiGenerations: number | null;
   maxStudentsOverride: number | null;
   maxCoachesOverride: number | null;
   whatsappOverride: boolean | null;
   archiveOverride: boolean | null;
   calendarOverride: boolean | null;
+  aiGenerationsOverride: number | null;
 };
 
 /** Reads a clinic's plan defaults + overrides (left join, so a missing plan row is fine). */
@@ -1667,11 +1669,13 @@ export async function getClinicLimits(
       planWhatsapp: schema.planLimit.whatsapp,
       planArchive: schema.planLimit.archive,
       planCalendar: schema.planLimit.calendar,
+      planAiGenerations: schema.planLimit.aiGenerations,
       maxStudentsOverride: schema.clinic.maxStudentsOverride,
       maxCoachesOverride: schema.clinic.maxCoachesOverride,
       whatsappOverride: schema.clinic.whatsappOverride,
       archiveOverride: schema.clinic.archiveOverride,
       calendarOverride: schema.clinic.calendarOverride,
+      aiGenerationsOverride: schema.clinic.aiGenerationsOverride,
     })
     .from(schema.clinic)
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
@@ -1685,6 +1689,9 @@ export type ClinicLimitsOverrideInput = {
   maxCoachesOverride: number | null;
   whatsappOverride: boolean | null;
   archiveOverride: boolean | null;
+  /** Optional: the input is spread into `.set()`, so omitting it leaves the
+   *  stored value alone. The API always sends it; partial callers need not. */
+  aiGenerationsOverride?: number | null;
 };
 
 /** Writes a clinic's overrides; returns the fresh limits, or null if unknown. */
