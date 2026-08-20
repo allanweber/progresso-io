@@ -119,45 +119,89 @@ export const aiWorkoutGenerateSchema = z.object({
  * `restrictions` may be an empty array: "no restrictions" is a real answer, and
  * a required field that cannot be answered "none" is a broken form.
  */
-export const aiDietGenerateSchema = z.object({
-  objective: objectiveField,
-  restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
-  meals: z
-    .array(z.enum(MEAL_SLOT_VALUES))
-    .min(2, "Escolha ao menos duas refeições."),
+export const aiDietGenerateSchema = z
+  .object({
+    objective: objectiveField,
+    restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
+    /**
+     * The meals to build, named. May be empty — see `mealsPerDay`.
+     *
+     * Naming them is what lets the prompt refuse arroz-e-feijão at 7h, so it is
+     * the answer worth giving; it is not the only allowed one, because a coach
+     * who only cares that the day has six meals should not have to invent a
+     * split to say so.
+     */
+    meals: z.array(z.enum(MEAL_SLOT_VALUES)),
+    /**
+     * How many meals the day should have, or `null` to let `meals` decide.
+     *
+     * With `meals` this is the **total**, and the named slots are the mandatory
+     * part of it — the model fills the remainder from the slots that were left
+     * unticked. Alone, it hands the split to the model entirely.
+     */
+    mealsPerDay: z
+      .number()
+      .nullable()
+      .transform((v) => (v === null || !Number.isFinite(v) ? null : v))
+      .refine(
+        (v) =>
+          v === null || (Number.isInteger(v) && v >= 2 && v <= MEAL_SLOT_VALUES.length),
+        `Informe de 2 a ${MEAL_SLOT_VALUES.length} refeições por dia.`,
+      ),
+    /**
+     * Foods the aluno actually likes, free text. A plan built only from what is
+     * *allowed* is a plan nobody follows — the restrictions say what is
+     * forbidden, this says what will actually get eaten.
+     */
+    preferences: freeNote,
+    /**
+     * Foods to keep out, free text. Distinct from `restrictions`: those are four
+     * coded diets, this is "odeia jiló, não come peixe" — the specific aversions
+     * no checkbox list will ever cover, and the ones an aluno notices first.
+     */
+    avoid: freeNote,
+    /**
+     * Ignore the aluno's current diet and start over.
+     *
+     * Default **false**, and that default is the whole point: a monthly review is
+     * an *adjustment*, not a new prescription. A coach who has spent three cycles
+     * learning that this aluno actually eats the tapioca and skips the salada
+     * loses all of it when the model starts from a blank page — and the aluno,
+     * who was adhering, is handed a stranger's plan. Ticking this is for a real
+     * reset (goal changed, injury, the plan is not working).
+     */
+    fromScratch: z.boolean(),
+    /**
+     * Optional targets. Null means "you work it out from the anamnese" — which is
+     * the honest default, because most coaches do not carry a kcal figure in
+     * their head for every aluno. When given they are a hard target, not a hint.
+     */
+    targetKcal: optionalPositiveInt(6000, "Calorias fora do intervalo aceito."),
+    targetProteinG: optionalPositiveInt(500, "Proteína fora do intervalo aceito."),
+    targetCarbsG: optionalPositiveInt(1000, "Carboidrato fora do intervalo aceito."),
+    targetFatG: optionalPositiveInt(400, "Gordura fora do intervalo aceito."),
+  })
   /**
-   * Foods the aluno actually likes, free text. A plan built only from what is
-   * *allowed* is a plan nobody follows — the restrictions say what is
-   * forbidden, this says what will actually get eaten.
+   * The day has to be pinned down one way or the other, and a total below the
+   * number of meals already ticked is not a shape anyone can build.
    */
-  preferences: freeNote,
-  /**
-   * Foods to keep out, free text. Distinct from `restrictions`: those are four
-   * coded diets, this is "odeia jiló, não come peixe" — the specific aversions
-   * no checkbox list will ever cover, and the ones an aluno notices first.
-   */
-  avoid: freeNote,
-  /**
-   * Ignore the aluno's current diet and start over.
-   *
-   * Default **false**, and that default is the whole point: a monthly review is
-   * an *adjustment*, not a new prescription. A coach who has spent three cycles
-   * learning that this aluno actually eats the tapioca and skips the salada
-   * loses all of it when the model starts from a blank page — and the aluno,
-   * who was adhering, is handed a stranger's plan. Ticking this is for a real
-   * reset (goal changed, injury, the plan is not working).
-   */
-  fromScratch: z.boolean(),
-  /**
-   * Optional targets. Null means "you work it out from the anamnese" — which is
-   * the honest default, because most coaches do not carry a kcal figure in
-   * their head for every aluno. When given they are a hard target, not a hint.
-   */
-  targetKcal: optionalPositiveInt(6000, "Calorias fora do intervalo aceito."),
-  targetProteinG: optionalPositiveInt(500, "Proteína fora do intervalo aceito."),
-  targetCarbsG: optionalPositiveInt(1000, "Carboidrato fora do intervalo aceito."),
-  targetFatG: optionalPositiveInt(400, "Gordura fora do intervalo aceito."),
-});
+  .superRefine((v, ctx) => {
+    if (v.meals.length === 0 && v.mealsPerDay === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["meals"],
+        message: "Escolha as refeições ou informe quantas por dia.",
+      });
+    }
+    if (v.mealsPerDay !== null && v.mealsPerDay < v.meals.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["mealsPerDay"],
+        message:
+          "O total de refeições não pode ser menor que as refeições escolhidas.",
+      });
+    }
+  });
 
 export type AiWorkoutGenerateInput = z.infer<typeof aiWorkoutGenerateSchema>;
 export type AiDietGenerateInput = z.infer<typeof aiDietGenerateSchema>;

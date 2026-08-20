@@ -53,7 +53,7 @@ test.describe("ai program generator", () => {
     await expect(page.getByText("Equipamentos disponíveis")).toBeVisible();
     await expect(page.getByLabel("Dias por semana")).toHaveValue("3");
     await expect(page.getByText("Restrições alimentares")).toBeHidden();
-    await expect(page.getByLabel("Refeições por dia")).toBeHidden();
+    await expect(page.getByText("Refeições do dia")).toBeHidden();
 
     // Objetivo is the one field both kinds share, so its example is the one
     // place treino and dieta copy can silently swap. It reaches the model
@@ -141,9 +141,20 @@ test.describe("ai program generator", () => {
     // The dieta form — and none of the treino's answers.
     await expect(page.getByLabel("Objetivo")).toBeVisible();
     await expect(page.getByText("Restrições alimentares")).toBeVisible();
-    await expect(page.getByLabel("Refeições por dia")).toHaveValue("5");
     await expect(page.getByText("Equipamentos disponíveis")).toBeHidden();
     await expect(page.getByLabel("Dias por semana")).toBeHidden();
+
+    // The day is described by NAMING the meals, not by counting them — that is
+    // what lets the prompt keep arroz-e-feijão out of the café da manhã. The
+    // everyday five open ticked; the two training meals do not, because they
+    // only make sense next to a session.
+    const meals = page.getByRole("group", { name: "Refeições do dia" });
+    await expect(meals.getByRole("checkbox", { name: "Café da manhã" })).toBeChecked();
+    await expect(meals.getByRole("checkbox", { name: "Almoço" })).toBeChecked();
+    await expect(meals.getByRole("checkbox", { name: "Pré-treino" })).not.toBeChecked();
+    await expect(meals.getByRole("checkbox", { name: "Pós-treino" })).not.toBeChecked();
+    // The count is the optional second way to answer, so it opens blank.
+    await expect(page.getByLabel("Total de refeições no dia")).toHaveValue("");
 
     // ...including the shared Objetivo field's example, which used to suggest a
     // training split to a coach writing a dieta.
@@ -173,6 +184,38 @@ test.describe("ai program generator", () => {
     await page.getByLabel("Objetivo").fill("");
     await expect(submit).toBeDisabled();
     await page.getByLabel("Objetivo").fill("emagrecimento");
+    await expect(submit).toBeEnabled();
+
+    // The day can be answered three ways, and the dialog has to accept all of
+    // them: ticked meals (above), a bare total, or both. Untick everything and
+    // the total alone is a complete answer.
+    const total = page.getByLabel("Total de refeições no dia");
+    for (const name of [
+      "Café da manhã",
+      "Lanche da manhã",
+      "Almoço",
+      "Lanche da tarde",
+      "Jantar",
+    ]) {
+      await meals.getByRole("checkbox", { name }).uncheck();
+    }
+    await expect(submit).toBeDisabled();
+    await expect(
+      page.getByText("Escolha as refeições ou informe quantas por dia."),
+    ).toBeVisible();
+    await total.fill("6");
+    await expect(submit).toBeEnabled();
+
+    // Both together: the ticked meals are mandatory inside the total, so a
+    // total below them describes a day nobody can build — and it says so
+    // before a credit is spent.
+    await meals.getByRole("checkbox", { name: "Almoço" }).check();
+    await meals.getByRole("checkbox", { name: "Jantar" }).check();
+    await total.fill("1");
+    await expect(submit).toBeDisabled();
+    await total.fill("5");
+    await expect(submit).toBeEnabled();
+    await total.fill("");
     await expect(submit).toBeEnabled();
 
     await page.screenshot({

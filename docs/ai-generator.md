@@ -156,11 +156,62 @@ changes. All three are silent failures — no error, just a cold cache.
    ever had to actually send anamneses out.
 2. **Gate: credits remaining this month.**
 3. **The dialog asks a different form per kind.** Treino: objective, equipment
-   available, days per week. Dieta: objective, dietary restrictions, meals per
-   day. Every field is **required** but **prefilled where the app already knows**
-   (`objective` from the aluno's goal, the counts from their defaults), so
-   "required" means confirmed rather than retyped. Equipment and restrictions are
-   *not* in the anamnese at all, which is exactly why they are asked here.
+   available, days per week. Dieta: objective, dietary restrictions, the day's
+   meals, plus the optional answers below. The required fields are **prefilled
+   where the app already knows** (`objective` from the aluno's goal, the counts
+   and the everyday five meals from their defaults), so "required" means
+   confirmed rather than retyped. Equipment and restrictions are *not* in the
+   anamnese at all, which is exactly why they are asked here.
+
+   The dieta form carries four things the treino has no equivalent of:
+
+   - **The day's meals** — see [Describing the day](#describing-the-day) below.
+   - **Preferências / Evitar**, free text. `restrictions` is four coded diets;
+     these are "gosta de tapioca" and "odeia jiló" — what will actually get
+     eaten, and the specific aversions no checkbox list will ever cover.
+   - **Metas** (kcal, protein, carbs, fat), each optional and each independent.
+     Blank means "work it out from the anamnese", which is the honest default —
+     most coaches do not carry a kcal figure for every aluno. Given, it is a
+     hard target (±5%), and only the ones given reach the prompt: sending the
+     blanks as zero would turn "no opinion" into "zero grams of fat".
+   - **Recomeçar do zero**, default **off**. With it off and a diet already on
+     file, that diet is sent as a baseline and the model is told to *adjust* it —
+     keep the foods and the times, move only what the objective requires. A
+     monthly review is an adjustment, not a new prescription: a coach who has
+     spent three cycles learning that this aluno eats the tapioca and skips the
+     salada loses all of it when the model starts from a blank page, and the
+     aluno who was adhering is handed a stranger's plan. The baseline is
+     rendered as **catalog indices**, so the model reuses the exact same rows
+     rather than a similar-looking food; a food no longer in the catalog is
+     listed, marked, and declared unusable rather than dropped silently.
+
+### Describing the day
+
+The meals are a **named list**, not a count — `MEAL_SLOT_VALUES` in
+`src/lib/meals.ts`, the same eight slots the diet builder's suggestion chips
+offer (they used to be two hand-maintained lists, and had already drifted: the
+builder offered Pré-treino and the generator could not produce it). Each slot
+carries a label, an indicative clock time and a **kind** — what food belongs in
+it — and the kind is what lets the prompt refuse arroz-e-feijão at 07:00. Pré and
+pós-treino are deliberately **out** of the default: they only make sense next to
+a session, and generating them unasked hands every sedentary aluno two meals
+they do not need.
+
+A coach can describe the day in any of three ways, and all three are answers
+people actually give:
+
+| Ticked meals | Total (`mealsPerDay`) | What the model is told |
+| --- | --- | --- |
+| yes | blank | build exactly these, in this order |
+| none | a number | build this many, choosing from the full slot menu |
+| yes | a number | the ticked ones are mandatory, fill the rest up to the total |
+
+Neither given is refused (the day has to be pinned down somehow), and so is a
+total below the meals already ticked — three named meals inside a two-meal day
+is not a shape anyone can build, and the dialog says so before a credit is
+spent. In the two modes that don't name every slot, the prompt still ships the
+**full menu with kinds and times**, so even "6 refeições" leaves the model
+picking from real slots instead of inventing a split.
 
    One shared form was the original shape and it was wrong in both directions:
    it refused to generate a *dieta* until the coach ticked gym equipment, and it

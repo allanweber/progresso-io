@@ -105,6 +105,10 @@ export function AiGenerateButton({
   const [daysPerWeek, setDaysPerWeek] = useState(AI_DEFAULT_DAYS_PER_WEEK);
   const [restrictions, setRestrictions] = useState<AiRestriction[]>([]);
   const [meals, setMeals] = useState<MealSlot[]>(DEFAULT_AI_MEALS);
+  // The day's total, as a string so an emptied box is "" (→ null) rather than
+  // a 0 nobody typed. Blank is the normal case: the ticked slots already say
+  // how many there are.
+  const [mealsPerDayRaw, setMealsPerDayRaw] = useState("");
   const [preferences, setPreferences] = useState("");
   const [avoid, setAvoid] = useState("");
   const [fromScratch, setFromScratch] = useState(false);
@@ -171,12 +175,28 @@ export function AiGenerateButton({
   const toggle = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
+  /**
+   * The dieta's meal answer, in any of its three shapes: ticked slots, a bare
+   * total, or slots inside a larger total. The failure worth catching here is
+   * the last one — a total below the slots already ticked describes a day that
+   * cannot be built, and the coach should see why before spending a credit.
+   */
+  const mealsPerDay = numOrNull(mealsPerDayRaw);
+  const mealsProblem =
+    meals.length === 0 && mealsPerDay === null
+      ? "Escolha as refeições ou informe quantas por dia."
+      : mealsPerDay !== null && (mealsPerDay < 2 || mealsPerDay > MEAL_SLOT_VALUES.length)
+        ? `O total deve ficar entre 2 e ${MEAL_SLOT_VALUES.length}.`
+        : mealsPerDay !== null && mealsPerDay < meals.length
+          ? "O total não pode ser menor que as refeições escolhidas."
+          : null;
+
   // Equipment is the treino's only extra required answer; the dieta's
   // restrictions are legitimately answerable as "none", so it needs no gate
   // beyond the objective.
   const canSubmit =
     objective.trim().length >= 3 &&
-    (kind === "diet" ? meals.length >= 2 : equipment.length > 0) &&
+    (kind === "diet" ? mealsProblem === null : equipment.length > 0) &&
     !generate.isPending;
 
   return (
@@ -336,10 +356,38 @@ export function AiGenerateButton({
                         </label>
                       ))}
                     </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label
+                        className="text-[13px] text-muted-foreground"
+                        htmlFor="ai-meals-per-day"
+                      >
+                        Total de refeições no dia{" "}
+                        <span className="text-muted-foreground">(opcional)</span>
+                      </label>
+                      <Input
+                        id="ai-meals-per-day"
+                        type="number"
+                        min={2}
+                        max={MEAL_SLOT_VALUES.length}
+                        inputMode="numeric"
+                        className="w-20"
+                        value={mealsPerDayRaw}
+                        onChange={(e) => setMealsPerDayRaw(e.target.value)}
+                        placeholder={String(meals.length || "")}
+                      />
+                    </div>
+                    {/* The three modes, said plainly — a coach should not have
+                        to discover that ticking two and typing six means "these
+                        two plus four you choose". */}
                     <p className="text-[12px] text-muted-foreground">
                       Escolher as refeições (e não só quantas) é o que faz a IA
-                      montar café da manhã como café da manhã.
+                      montar café da manhã como café da manhã. Só o total: a IA
+                      escolhe quais. Os dois: as marcadas são obrigatórias e a IA
+                      completa o resto até o total.
                     </p>
+                    {mealsProblem !== null && (
+                      <p className="text-[12px] text-destructive">{mealsProblem}</p>
+                    )}
                   </fieldset>
 
                   <div className="space-y-1.5">
@@ -459,6 +507,7 @@ export function AiGenerateButton({
                             objective: objective.trim(),
                             restrictions,
                             meals,
+                            mealsPerDay,
                             fromScratch,
                             targetKcal: numOrNull(targetKcal),
                             targetProteinG: numOrNull(targetProteinG),

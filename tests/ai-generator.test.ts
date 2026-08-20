@@ -270,6 +270,7 @@ describe("meal slots — one list for the builder and the generator", () => {
         objective: "hipertrofia",
         restrictions: [],
         meals: ["pre_treino", "pos_treino"],
+        mealsPerDay: null,
         preferences: "",
         avoid: "",
         fromScratch: false,
@@ -318,6 +319,7 @@ describe("aiDietGenerateSchema", () => {
     objective: "emagrecimento",
     restrictions: [],
     meals: ["cafe_da_manha", "almoco", "jantar"],
+    mealsPerDay: null,
     preferences: "",
     avoid: "",
     fromScratch: false,
@@ -337,10 +339,54 @@ describe("aiDietGenerateSchema", () => {
     expect(aiDietGenerateSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("needs at least two meals — a one-meal day is not a plan", () => {
+  // The day can be described three ways, and all three are real answers a coach
+  // gives: name the meals, say how many, or name the ones that matter and let
+  // the model fill the rest.
+  it("accepts named meals with no count", () => {
+    const parsed = aiDietGenerateSchema.parse(valid);
+    expect(parsed.meals).toHaveLength(3);
+    expect(parsed.mealsPerDay).toBeNull();
+  });
+
+  it("accepts a bare count with no named meals", () => {
+    // A coach who only cares that the day has six meals should not have to
+    // invent a split to say so.
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      meals: [],
+      mealsPerDay: 6,
+    });
+    expect(parsed.meals).toEqual([]);
+    expect(parsed.mealsPerDay).toBe(6);
+  });
+
+  it("accepts both — the named meals are mandatory inside the total", () => {
+    const parsed = aiDietGenerateSchema.parse({ ...valid, mealsPerDay: 6 });
+    expect(parsed.meals).toHaveLength(3);
+    expect(parsed.mealsPerDay).toBe(6);
+  });
+
+  it("rejects neither — the day has to be pinned down somehow", () => {
     expect(
-      aiDietGenerateSchema.safeParse({ ...valid, meals: ["almoco"] }).success,
+      aiDietGenerateSchema.safeParse({ ...valid, meals: [], mealsPerDay: null })
+        .success,
     ).toBe(false);
+  });
+
+  it("rejects a total below the meals already chosen", () => {
+    // Three named meals inside a two-meal day is not a shape anyone can build.
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 2 }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a count outside 2..8 — one meal is not a plan", () => {
+    for (const mealsPerDay of [1, 9]) {
+      expect(
+        aiDietGenerateSchema.safeParse({ ...valid, meals: [], mealsPerDay })
+          .success,
+      ).toBe(false);
+    }
   });
 
   it("rejects an unknown meal slot", () => {

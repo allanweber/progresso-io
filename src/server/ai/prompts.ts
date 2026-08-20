@@ -10,6 +10,8 @@ import {
   MEAL_SLOT_KINDS,
   MEAL_SLOT_LABELS,
   MEAL_SLOT_TIMES,
+  MEAL_SLOT_VALUES,
+  type MealSlot,
 } from "@/lib/meals";
 import type { DietTree } from "@/lib/student-diets";
 import type { CatalogBlock } from "./catalog";
@@ -47,21 +49,59 @@ function renderDietForm(input: AiDietGenerateInput): string {
     input.restrictions.length > 0
       ? input.restrictions.map((r) => AI_RESTRICTION_LABELS[r]).join(", ")
       : "nenhuma informada";
-  // Named slots with their usual times, in the order they were declared —
-  // the model gets the split and the clock anchor, instead of a count it has
-  // to guess a shape for.
-  const meals = input.meals
-    .map((m) => `${MEAL_SLOT_LABELS[m]} (~${MEAL_SLOT_TIMES[m]}) — ${MEAL_SLOT_KINDS[m]}`)
-    .join(", ");
   return [
     `Objetivo: ${input.objective}`,
     `Restrições alimentares: ${restrictions}`,
-    `Refeições a montar (nesta ordem): ${meals}`,
+    ...renderMeals(input),
     // Skipped entirely when blank: an empty label invites the model to fill it.
     ...(input.preferences ? [`Preferências do aluno: ${input.preferences}`] : []),
     ...(input.avoid ? [`Alimentos a evitar: ${input.avoid}`] : []),
     ...renderTargets(input),
   ].join("\n");
+}
+
+/** "Café da manhã (~07:00) — pães, tapioca, …" — label, clock anchor and kind. */
+function renderMealSlot(slot: MealSlot): string {
+  return `${MEAL_SLOT_LABELS[slot]} (~${MEAL_SLOT_TIMES[slot]}) — ${MEAL_SLOT_KINDS[slot]}`;
+}
+
+/**
+ * The day's shape, in whichever of the three ways the coach chose to give it:
+ * named slots, a bare count, or named slots inside a larger count.
+ *
+ * A count alone is the weakest answer — it is exactly the "5 refeições" that
+ * used to make the model invent a split and put arroz at 7h — so the two modes
+ * that don't name every slot still ship the full menu of slots WITH their kinds
+ * and their clock anchors. The model then picks from a real list rather than
+ * from its own idea of what a Brazilian eats, and the "no arroz at breakfast"
+ * rule has something concrete to bite on either way.
+ */
+function renderMeals(input: AiDietGenerateInput): string[] {
+  const chosen = input.meals;
+  const total = input.mealsPerDay;
+  // Declared order is chronological, so the options list doubles as the order
+  // the model should build them in.
+  const rest = MEAL_SLOT_VALUES.filter((s) => !chosen.includes(s));
+
+  if (chosen.length === 0) {
+    return [
+      `Refeições a montar: ${total} no dia — escolha quais, na ordem cronológica, entre estas:`,
+      ...rest.map((s) => `  - ${renderMealSlot(s)}`),
+    ];
+  }
+  if (total === null || total <= chosen.length) {
+    return [
+      "Refeições a montar (nesta ordem):",
+      ...chosen.map((s) => `  - ${renderMealSlot(s)}`),
+    ];
+  }
+  return [
+    `Refeições a montar: ${total} no dia, na ordem cronológica.`,
+    `Obrigatórias — monte todas estas ${chosen.length}:`,
+    ...chosen.map((s) => `  - ${renderMealSlot(s)}`),
+    `Complete as outras ${total - chosen.length} escolhendo entre:`,
+    ...rest.map((s) => `  - ${renderMealSlot(s)}`),
+  ];
 }
 
 /**
@@ -208,7 +248,7 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     sharedRules("alimentos"),
     "",
     "Diretrizes:",
-    "- Monte exatamente as refeições pedidas, na ordem dada, usando o nome de cada uma como o nome da refeição.",
+    "- Monte exatamente as refeições pedidas, na ordem dada, usando o nome de cada uma como o nome da refeição. Quando o pedido der um total maior que as refeições nomeadas, complete o restante com as opções listadas — sempre em ordem cronológica, e nunca repetindo uma refeição.",
     "- **Cada alimento tem que fazer sentido na refeição em que está.** Cada refeição pedida vem com a descrição do que cabe nela — siga essa descrição. Não coloque arroz, feijão ou bife no café da manhã, nem mingau de aveia no almoço: tecnicamente bate os macros e nenhum aluno come.",
     "- Ajuste as quantidades ao objetivo, ao peso e à altura do aluno.",
     "- Respeite rigorosamente as restrições alimentares informadas.",

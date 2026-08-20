@@ -1308,6 +1308,7 @@ describe("generateDiet — continuity with the current diet", () => {
     objective: "emagrecimento",
     restrictions: [],
     meals: ["cafe_da_manha", "almoco"] as MealSlot[],
+    mealsPerDay: null,
     preferences: null,
     avoid: null,
     fromScratch: false,
@@ -1361,6 +1362,43 @@ describe("generateDiet — continuity with the current diet", () => {
     });
     expect(result.ok).toBe(true);
     expect(lastUserPrompt).not.toContain("Dieta atual do aluno");
+  });
+
+  // The three ways a coach can describe the day have to reach the model as three
+  // *different* instructions — the count-only and partial modes are the ones
+  // where a bare number used to make the model invent a split.
+  it("names the meals, with kind and clock anchor, when they were ticked", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, { ...dietInput });
+    expect(lastUserPrompt).toContain("Refeições a montar (nesta ordem):");
+    expect(lastUserPrompt).toContain("Café da manhã (~07:00) —");
+    expect(lastUserPrompt).not.toContain("Complete as outras");
+  });
+
+  it("offers the full slot menu when only a count was given", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, {
+      ...dietInput,
+      meals: [],
+      mealsPerDay: 6,
+    });
+    expect(lastUserPrompt).toContain("Refeições a montar: 6 no dia");
+    // Not a bare "6 refeições": the model picks from real slots, each carrying
+    // the kind that keeps arroz out of the café da manhã.
+    expect(lastUserPrompt).toContain("Café da manhã (~07:00) —");
+    expect(lastUserPrompt).toContain("Pré-treino (~17:00) —");
+  });
+
+  it("splits mandatory from fill-in when both were given", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, { ...dietInput, mealsPerDay: 5 });
+    expect(lastUserPrompt).toContain("Refeições a montar: 5 no dia");
+    expect(lastUserPrompt).toContain("Obrigatórias — monte todas estas 2:");
+    expect(lastUserPrompt).toContain("Complete as outras 3 escolhendo entre:");
+    // The chosen two must not also show up in the fill-in menu.
+    const menu = lastUserPrompt.split("Complete as outras")[1] ?? "";
+    expect(menu).not.toContain("Café da manhã (~07:00)");
+    expect(menu).toContain("Ceia (~22:00)");
   });
 
   it("passes only the macro targets that were given", async () => {
