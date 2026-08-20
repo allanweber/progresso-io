@@ -172,6 +172,84 @@ describe("manual billing — invoices", () => {
     expect(await billing.getInvoice(h, toCancel!.id)).not.toBeNull();
   });
 
+  it("granting: marking paid moves the clinic onto the plan it billed", async () => {
+    const c = await coachClinic("inv-grant@example.com", "Inv Grant");
+    // The clinic is on `free`; the fatura bills Solo.
+    const inv = await billing.createInvoice(
+      h,
+      c.clinicId,
+      invoiceInput({ planSnapshot: "solo" }),
+      c.userId,
+    );
+
+    await billing.markInvoicePaid(
+      h,
+      inv!.id,
+      { paidAt: "2026-03-10", paymentMethod: "pix" },
+      c.userId,
+    );
+
+    // The bug this replaces: the fatura read "Paga" while the clinic sat on
+    // Free until somebody remembered a second, unrelated admin click.
+    const [clinic] = await db
+      .select({ plan: schema.clinic.plan })
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, c.clinicId));
+    expect(clinic.plan).toBe("solo");
+
+    // And it is auditable like any other plan change.
+    const history = await billing.listPlanChanges(h, c.clinicId);
+    expect(history[0]).toMatchObject({ fromPlan: "free", toPlan: "solo" });
+  });
+
+  it("granting: settling a renewal changes nothing and writes no audit row", async () => {
+    const c = await coachClinic("inv-renew@example.com", "Inv Renew");
+    await billing.setClinicPlan(h, c.clinicId, "solo", c.userId, "upgrade");
+    const before = (await billing.listPlanChanges(h, c.clinicId)).length;
+
+    const inv = await billing.createInvoice(
+      h,
+      c.clinicId,
+      invoiceInput({ planSnapshot: "solo" }),
+      c.userId,
+    );
+    await billing.markInvoicePaid(
+      h,
+      inv!.id,
+      { paidAt: "2026-04-10", paymentMethod: "pix" },
+      c.userId,
+    );
+
+    // Every month of a subscription settles an invoice for the plan the clinic
+    // is already on; each one writing an audit row would bury the real changes.
+    expect(await billing.listPlanChanges(h, c.clinicId)).toHaveLength(before);
+  });
+
+  it("granting: without an admin id it is a ledger action only", async () => {
+    const c = await coachClinic("inv-noadmin@example.com", "Inv NoAdmin");
+    const inv = await billing.createInvoice(
+      h,
+      c.clinicId,
+      invoiceInput({ planSnapshot: "clinica" }),
+      c.userId,
+    );
+
+    // `clinic_plan_change.changed_by` needs an author, so a caller with no
+    // session settles the ledger and leaves the plan alone rather than
+    // inventing one.
+    const paid = await billing.markInvoicePaid(h, inv!.id, {
+      paidAt: "2026-03-10",
+      paymentMethod: "pix",
+    });
+    expect(paid!.status).toBe("paid");
+
+    const [clinic] = await db
+      .select({ plan: schema.clinic.plan })
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, c.clinicId));
+    expect(clinic.plan).toBe("free");
+  });
+
   it("deletes an invoice (line items cascade)", async () => {
     const c = await coachClinic("inv-del@example.com", "Inv Del");
     const inv = await billing.createInvoice(h, c.clinicId, invoiceInput(), c.userId);
