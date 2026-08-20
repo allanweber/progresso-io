@@ -2072,10 +2072,17 @@ export const whatsappConversation = pgTable(
     clinicId: uuid("clinic_id")
       .notNull()
       .references(() => clinic.id, { onDelete: "cascade" }),
-    // The student behind the number, when known. Set null if the student is
-    // removed — the thread survives as an unknown-number conversation.
+    // The student behind the number, when known.
+    //
+    // **Cascade, not set-null.** Deleting an aluno deletes their thread, and the
+    // messages go with it via `whatsapp_message.conversation_id`. Keeping the
+    // thread as an "unknown number" was the original behaviour and it was wrong
+    // twice over: the messages are personal data the erasure was supposed to
+    // remove, and the orphan reappears in the coach's inbox as a nameless
+    // conversation nobody can act on. Enforced by the FK rather than by
+    // `hardDeleteStudent`, so no future delete path can forget it.
     studentId: uuid("student_id").references(() => students.id, {
-      onDelete: "set null",
+      onDelete: "cascade",
     }),
     // Normalized phone (digits only, see @/lib/phone) — the thread's identity.
     phone: text("phone").notNull(),
