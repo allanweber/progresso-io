@@ -118,13 +118,13 @@ function renderMeals(input: AiDietGenerateInput): string[] {
  */
 const MACRO_PROFILE_RULES: Record<AiMacroProfile, string> = {
   alta_proteina:
-    "proteína alta — em torno de 2,2 g por kg de peso corporal, distribuída entre as refeições e não concentrada em uma",
+    "proteína alta — cerca de 32% das calorias do dia (perto de 2,2 g por kg de peso), distribuída entre as refeições e não concentrada em uma",
   alto_carbo:
-    "carboidrato alto — a maior fatia das calorias vem do carboidrato, com as porções maiores perto do treino",
+    "carboidrato alto — cerca de 55% das calorias do dia, com as porções maiores perto do treino",
   baixo_carbo:
-    "carboidrato baixo — no máximo ~25% das calorias, com o restante em proteína e gordura",
+    "carboidrato baixo — cerca de 22% das calorias do dia, com o restante em proteína e gordura",
   baixa_gordura:
-    "gordura baixa — perto de 20% das calorias e nunca abaixo disso: é onde estão as vitaminas lipossolúveis e os ácidos graxos essenciais",
+    "gordura baixa — cerca de 20% das calorias do dia e nunca abaixo disso: é onde estão as vitaminas lipossolúveis e os ácidos graxos essenciais",
 };
 
 /**

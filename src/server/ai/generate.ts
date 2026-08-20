@@ -46,6 +46,7 @@ import {
   type DietPlan,
   type WorkoutPlan,
 } from "./schemas";
+import { rebalance } from "./rebalance";
 import { dietProblems } from "./verify";
 
 /**
@@ -502,6 +503,7 @@ export async function generateDiet(
   }
 
   const ids = resolveIndices(catalog, dietIndices(asked.plan));
+
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
       usage: asked.usage,
@@ -511,10 +513,36 @@ export async function generateDiet(
     return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
   }
 
+  // The model has had its say, including its free repair turn. What the coach
+  // asked for in numbers is now settled by arithmetic rather than by asking
+  // again: 2600 kcal came back as 2827 and then 3214, and a low-carb 2500 came
+  // back at 1832 with 61% of the calories from carbohydrate. Only quantities
+  // move — the food selection and the meal order are the model's work.
+  const fitted = rebalance(asked.plan, catalog.foods, input);
+  if (fitted.changed) {
+    logger.info("ai.diet_rebalanced", {
+      beforeKcal: Math.round(fitted.before.kcal),
+      afterKcal: Math.round(fitted.after.kcal),
+      targetKcal: fitted.targets ? Math.round(fitted.targets.kcal) : null,
+    });
+  }
+
   const write: DietWriteInput = {
-    name: asked.plan.name,
-    notes: asked.plan.notes,
-    meals: asked.plan.meals.map((m) => ({
+    name: fitted.plan.name,
+    // Said out loud, because a coach comparing the plan to what the model
+    // wrote in its own observações deserves to know which numbers are final.
+    notes: fitted.changed
+      ? [
+          fitted.plan.notes,
+          `Porções ajustadas pelo sistema para fechar as metas: ${Math.round(fitted.after.kcal)} kcal, `
+            + `${Math.round(fitted.after.protein)} g de proteína, `
+            + `${Math.round(fitted.after.carbs)} g de carboidrato, `
+            + `${Math.round(fitted.after.fat)} g de gordura.`,
+        ]
+          .filter((n): n is string => Boolean(n))
+          .join("\n\n")
+      : fitted.plan.notes,
+    meals: fitted.plan.meals.map((m) => ({
       name: m.name,
       time: m.time,
       items: m.items.map((i) => ({

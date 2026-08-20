@@ -162,6 +162,43 @@ check **exactly** — it has every food's macros and the coach's own words — s
   description of every food used. Word-level because the phrase as the coach
   wrote it — "não come peixe" — appears in no food description.
 
+### The numbers are fitted, not requested
+
+Checking and re-asking was **not enough**, and the second round of real
+generations proved it: 2600 asked → 2827, then 3214; 2500 low-carb asked → 1832
+with 61% of the calories from carbohydrate. Restating the target moves the
+number without controlling it, because summing twenty foods and solving for
+portions is arithmetic.
+
+So `src/server/ai/rebalance.ts` does it. After the model has had its say —
+including its free repair turn — the server fits the **quantities** to the
+coach's numbers and stores the fitted plan. What the coach opens adds up.
+
+- **Only quantities move.** Which foods, in which meal, in what order is the
+  model's work and is left alone; composing a plan is the part it is good at.
+- **Per class, not one global factor.** Foods are classed by the macro carrying
+  their calories (protein / carb / fat, plus "free" for anything under
+  40 kcal/100 g — scaling broccoli to close a 200 kcal gap gives 900 g of
+  broccoli). Iterative proportional fitting moves each class until the macros
+  land. A single factor fixes the calories and leaves a low-carb request at the
+  carbohydrate share it arrived with, which is the exact failure above.
+- **Targets come from everything the coach said.** Gram targets win outright; a
+  macro profile fills in the rest — against the kcal target when there is one,
+  against the plan's own calories when there isn't, since "baixo carbo" alone is
+  a complete instruction about the *split*. Nothing measurable asked → no fit.
+  The profile shares live next to the fit and are the same numbers the prompt
+  states, so instruction and arithmetic cannot drift apart.
+- **Bounded at 0.5×–2× of what the model prescribed**, measured against the
+  original portion through every pass. A fit with no bounds answers "0.2× the
+  chicken, 3× the rice"; a target it cannot reach inside them is approached, not
+  forced.
+- **Household portions stay whole** — a count is rounded to whole slices and the
+  grams recomputed from it, because three and a half slices of bread is not a
+  prescription anybody follows.
+- **It says so.** A fitted plan carries a line in its observações with the final
+  numbers, so a coach comparing them to what the model wrote is not left
+  guessing which is authoritative.
+
 Findings go back through the **repair turn that already exists** for
 hallucinated catalog indices: one extra round-trip, costing tokens and not a
 credit, naming the real figures ("a dieta soma 2827 kcal e a meta é 2600").
@@ -174,11 +211,12 @@ thirty seconds. So a violation that survives the repair is **delivered as a
 draft anyway**: the credit is already spent, and handing back nothing is the
 worse of the two outcomes.
 
-One rule deliberately stays in the prompt rather than becoming a check:
-**one main carbohydrate per meal**. Arroz com feijão is two carbohydrate-dense
-rows and also the most ordinary Brazilian lunch there is; a checker cannot tell
-that pairing from pão com aveia without a food taxonomy the catalog does not
-carry, and a false positive would burn a repair turn to "fix" a correct plan.
+- **One main carbohydrate per meal.** Pão com aveia, arroz com aveia, arroz com
+  batata — a plate the macros will never reveal. The naive "two
+  carbohydrate-dense rows" test flags arroz com feijão, the most ordinary
+  Brazilian lunch there is, so the check uses TACO's groups instead: cereals
+  count, legumes and fruit do not, and a vegetable counts only above 15 g of
+  carbohydrate per 100 g (TACO files potatoes next to broccoli).
 
 ### Medidas caseiras
 

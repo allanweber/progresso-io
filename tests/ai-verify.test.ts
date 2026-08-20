@@ -8,6 +8,8 @@ import {
   avoidViolations,
   dietProblems,
   dietTotals,
+  isStapleCarb,
+  stapleViolations,
 } from "@/server/ai/verify";
 
 /**
@@ -25,6 +27,7 @@ const facts = (
   p: number,
   c: number,
   g: number,
+  groupSlug: string | null = null,
 ): FoodFacts => ({
   id: `id-${description}`,
   description,
@@ -34,13 +37,30 @@ const facts = (
   fat: g,
   measureLabel: null,
   measureGrams: null,
+  groupSlug,
 });
 
 const FOODS = new Map<number, FoodFacts>([
-  [1, facts("Arroz, tipo 1, cozido", 128, 2.5, 28.1, 0.2)],
-  [2, facts("Feijão, carioca, cozido", 76, 4.8, 13.6, 0.5)],
-  [3, facts("Frango, peito, sem pele, grelhado", 159, 32, 0, 2.5)],
-  [4, facts("Pão, aveia, forma", 343, 11, 57, 7)],
+  [1, facts("Arroz, tipo 1, cozido", 128, 2.5, 28.1, 0.2, "cereais-e-derivados")],
+  [
+    2,
+    facts("Feijão, carioca, cozido", 76, 4.8, 13.6, 0.5, "leguminosas-e-derivados"),
+  ],
+  [
+    3,
+    facts("Frango, peito, sem pele, grelhado", 159, 32, 0, 2.5, "carnes-e-derivados"),
+  ],
+  [4, facts("Pão, aveia, forma", 343, 11, 57, 7, "cereais-e-derivados")],
+  [5, facts("Aveia, flocos, crua", 394, 13.9, 66.6, 8.5, "cereais-e-derivados")],
+  [
+    6,
+    facts("Batata, doce, cozida", 77, 0.6, 18.4, 0.1, "verduras-hortalicas-e-derivados"),
+  ],
+  [
+    7,
+    facts("Brócolis, cru", 25, 3.6, 4.4, 0.3, "verduras-hortalicas-e-derivados"),
+  ],
+  [8, facts("Banana, nanica, crua", 92, 1.4, 23.8, 0.1, "frutas-e-derivados")],
 ]);
 
 const catalog = { foods: FOODS } as FoodCatalogBlock;
@@ -51,6 +71,15 @@ const plan = (items: { food: number; grams: number }[]): DietPlan =>
     name: "Dieta",
     notes: null,
     meals: [{ name: "Almoço", time: "12:30", items }],
+  }) as DietPlan;
+
+const meals = (
+  named: { name: string; items: { food: number; grams: number }[] }[],
+): DietPlan =>
+  ({
+    name: "Dieta",
+    notes: null,
+    meals: named.map((m) => ({ name: m.name, time: null, items: m.items })),
   }) as DietPlan;
 
 const input = (over: Partial<AiDietGenerateInput> = {}): AiDietGenerateInput =>
@@ -141,6 +170,84 @@ describe("avoidViolations", () => {
       { food: 2, grams: 100 },
     ]);
     expect(avoidViolations(twice, FOODS, "feijão")).toHaveLength(1);
+  });
+});
+
+describe("isStapleCarb / stapleViolations", () => {
+  it("catches two cereals in one meal", () => {
+    // The plate the coach objected to: pão de forma next to aveia.
+    const found = stapleViolations(
+      meals([
+        {
+          name: "Café da manhã",
+          items: [
+            { food: 4, grams: 100 },
+            { food: 5, grams: 45 },
+          ],
+        },
+      ]),
+      FOODS,
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].foods).toEqual(["Pão, aveia, forma", "Aveia, flocos, crua"]);
+  });
+
+  it("leaves arroz com feijão alone", () => {
+    // The whole reason this uses TACO groups instead of carb density: feijão is
+    // carbohydrate-dense and is also half of the ordinary Brazilian lunch.
+    expect(
+      stapleViolations(
+        meals([
+          {
+            name: "Almoço",
+            items: [
+              { food: 1, grams: 200 },
+              { food: 2, grams: 150 },
+            ],
+          },
+        ]),
+        FOODS,
+      ),
+    ).toEqual([]);
+  });
+
+  it("counts a starchy vegetable but not a leafy one", () => {
+    // TACO files potatoes next to broccoli, so the group alone is not enough.
+    expect(isStapleCarb(FOODS.get(6)!)).toBe(true);
+    expect(isStapleCarb(FOODS.get(7)!)).toBe(false);
+  });
+
+  it("does not count fruit as a second starch", () => {
+    expect(isStapleCarb(FOODS.get(8)!)).toBe(false);
+  });
+
+  it("catches arroz com batata", () => {
+    const found = stapleViolations(
+      meals([
+        {
+          name: "Almoço",
+          items: [
+            { food: 1, grams: 200 },
+            { food: 6, grams: 150 },
+          ],
+        },
+      ]),
+      FOODS,
+    );
+    expect(found).toHaveLength(1);
+  });
+
+  it("checks each meal on its own", () => {
+    // Rice at lunch and bread at breakfast is a normal day, not a violation.
+    expect(
+      stapleViolations(
+        meals([
+          { name: "Café", items: [{ food: 4, grams: 50 }] },
+          { name: "Almoço", items: [{ food: 1, grams: 200 }] },
+        ]),
+        FOODS,
+      ),
+    ).toEqual([]);
   });
 });
 
