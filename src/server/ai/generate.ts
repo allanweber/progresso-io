@@ -31,6 +31,7 @@ import {
 } from "./catalog";
 import {
   dietSystemPrompt,
+  renderDietBaseline,
   repairPrompt,
   userPrompt,
   workoutSystemPrompt,
@@ -396,6 +397,23 @@ export async function generateDiet(
   const { provider, studentName, anamnesis, limit, used } = pre;
 
   const catalog = await buildFoodCatalog(ctx);
+
+  // Continuity: unless the coach asked for a reset, the aluno's current diet
+  // goes into the prompt as the thing being adjusted. Read before the credit is
+  // claimed — this is a plain query and failing it should not cost anything.
+  let baseline: string | null = null;
+  if (!input.fromScratch) {
+    const state = await studentDiets.getStudentDietState(ctx, studentId);
+    // A draft in flight beats the published one: it is the coach's newest
+    // thinking, and adjusting away from it would undo edits they just made.
+    const tree = state?.draft?.tree ?? state?.current?.tree ?? null;
+    // An empty tree is not a baseline: "keep what is here" over zero meals is
+    // an instruction with nothing to act on.
+    if (tree && tree.meals.length > 0) {
+      baseline = renderDietBaseline(tree, catalog);
+    }
+  }
+
   const generationId = await ai.startGeneration(ctx, {
     studentId,
     kind: "diet",
@@ -414,6 +432,7 @@ export async function generateDiet(
       answers: anamnesis.answers,
       input,
       kind: "diet",
+      baseline,
     }),
     schemaName: "dieta",
     schema: DIET_JSON_SCHEMA,

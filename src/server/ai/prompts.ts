@@ -6,6 +6,14 @@ import {
   type AiDietGenerateInput,
   type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
+import {
+  MEAL_SLOT_KINDS,
+  MEAL_SLOT_LABELS,
+  MEAL_SLOT_TIMES,
+  MEAL_SLOT_VALUES,
+  type MealSlot,
+} from "@/lib/meals";
+import type { DietTree } from "@/lib/student-diets";
 import type { CatalogBlock } from "./catalog";
 import { DIET_JSON_SCHEMA, WORKOUT_JSON_SCHEMA } from "./schemas";
 
@@ -44,8 +52,105 @@ function renderDietForm(input: AiDietGenerateInput): string {
   return [
     `Objetivo: ${input.objective}`,
     `Restrições alimentares: ${restrictions}`,
-    `Refeições por dia: ${input.mealsPerDay}`,
+    ...renderMeals(input),
+    // Skipped entirely when blank: an empty label invites the model to fill it.
+    ...(input.preferences ? [`Preferências do aluno: ${input.preferences}`] : []),
+    ...(input.avoid ? [`Alimentos a evitar: ${input.avoid}`] : []),
+    ...renderTargets(input),
   ].join("\n");
+}
+
+/** "Café da manhã (~07:00) — pães, tapioca, …" — label, clock anchor and kind. */
+function renderMealSlot(slot: MealSlot): string {
+  return `${MEAL_SLOT_LABELS[slot]} (~${MEAL_SLOT_TIMES[slot]}) — ${MEAL_SLOT_KINDS[slot]}`;
+}
+
+/**
+ * The day's shape, in whichever of the three ways the coach chose to give it:
+ * named slots, a bare count, or named slots inside a larger count.
+ *
+ * A count alone is the weakest answer — it is exactly the "5 refeições" that
+ * used to make the model invent a split and put arroz at 7h — so the two modes
+ * that don't name every slot still ship the full menu of slots WITH their kinds
+ * and their clock anchors. The model then picks from a real list rather than
+ * from its own idea of what a Brazilian eats, and the "no arroz at breakfast"
+ * rule has something concrete to bite on either way.
+ */
+function renderMeals(input: AiDietGenerateInput): string[] {
+  const chosen = input.meals;
+  const total = input.mealsPerDay;
+  // Declared order is chronological, so the options list doubles as the order
+  // the model should build them in.
+  const rest = MEAL_SLOT_VALUES.filter((s) => !chosen.includes(s));
+
+  if (chosen.length === 0) {
+    return [
+      `Refeições a montar: ${total} no dia — escolha quais, na ordem cronológica, entre estas:`,
+      ...rest.map((s) => `  - ${renderMealSlot(s)}`),
+    ];
+  }
+  if (total === null || total <= chosen.length) {
+    return [
+      "Refeições a montar (nesta ordem):",
+      ...chosen.map((s) => `  - ${renderMealSlot(s)}`),
+    ];
+  }
+  return [
+    `Refeições a montar: ${total} no dia, na ordem cronológica.`,
+    `Obrigatórias — monte todas estas ${chosen.length}:`,
+    ...chosen.map((s) => `  - ${renderMealSlot(s)}`),
+    `Complete as outras ${total - chosen.length} escolhendo entre:`,
+    ...rest.map((s) => `  - ${renderMealSlot(s)}`),
+  ];
+}
+
+/**
+ * The macro targets, only the ones that were given.
+ *
+ * Partial is a real answer and a common one — a coach often carries a kcal
+ * figure and a protein floor but no opinion at all on how the rest splits.
+ * Sending the blanks as zero would turn "no opinion" into "zero grams of fat".
+ */
+function renderTargets(input: AiDietGenerateInput): string[] {
+  const parts = [
+    input.targetKcal !== null ? `${input.targetKcal} kcal` : null,
+    input.targetProteinG !== null ? `${input.targetProteinG} g de proteína` : null,
+    input.targetCarbsG !== null ? `${input.targetCarbsG} g de carboidrato` : null,
+    input.targetFatG !== null ? `${input.targetFatG} g de gordura` : null,
+  ].filter((p): p is string => p !== null);
+  return parts.length > 0
+    ? [`Metas do dia (alvo, não sugestão): ${parts.join(", ")}`]
+    : [];
+}
+
+/**
+ * The aluno's current diet, rendered as catalog indices so the model can reuse
+ * the exact same rows rather than picking a similar-looking food.
+ *
+ * A food that is no longer in the catalog (archived, or a clinic-custom row
+ * that never was) has no index. It is still listed, marked, and explicitly
+ * declared unusable — dropping it silently would make the model reinvent that
+ * slot with no idea it was ever deliberate.
+ */
+export function renderDietBaseline(
+  tree: DietTree,
+  catalog: CatalogBlock,
+): string {
+  const indexOf = new Map<string, number>();
+  for (const [index, id] of catalog.byIndex) indexOf.set(id, index);
+
+  const lines = tree.meals.map((meal) => {
+    const items = meal.items.map((item) => {
+      const index = item.foodId ? indexOf.get(item.foodId) : undefined;
+      return index !== undefined
+        ? `  - ${index} — ${item.description} — ${item.grams} g`
+        : `  - (fora do catálogo, sem número) ${item.description} — ${item.grams} g`;
+    });
+    return [`${meal.name}${meal.time ? ` (${meal.time})` : ""}:`, ...items].join(
+      "\n",
+    );
+  });
+  return lines.join("\n");
 }
 
 /**
@@ -143,11 +248,16 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     sharedRules("alimentos"),
     "",
     "Diretrizes:",
-    "- Monte um dia completo, em ordem cronológica, com exatamente o número de refeições pedido.",
+    "- Monte exatamente as refeições pedidas, na ordem dada, usando o nome de cada uma como o nome da refeição. Quando o pedido der um total maior que as refeições nomeadas, complete o restante com as opções listadas — sempre em ordem cronológica, e nunca repetindo uma refeição.",
+    "- **Cada alimento tem que fazer sentido na refeição em que está.** Cada refeição pedida vem com a descrição do que cabe nela — siga essa descrição. Não coloque arroz, feijão ou bife no café da manhã, nem mingau de aveia no almoço: tecnicamente bate os macros e nenhum aluno come.",
     "- Ajuste as quantidades ao objetivo, ao peso e à altura do aluno.",
     "- Respeite rigorosamente as restrições alimentares informadas.",
+    "- Se houver preferências, use esses alimentos sempre que couberem nos macros — plano que o aluno gosta é plano que ele segue.",
+    "- Se houver alimentos a evitar, não os use em nenhuma refeição, nem como substituto.",
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
     "- Distribua a proteína ao longo do dia, não concentrada em uma refeição.",
+    "- Se houver metas de kcal ou macros, o dia inteiro tem que bater nelas (±5%). Metas não informadas você calcula a partir da anamnese.",
+    "- Se vier uma dieta atual, ela é o ponto de partida: mantenha alimentos, horários e a cara do plano, mudando só o necessário. Trocar tudo é o pior resultado possível — o aluno já segue aquilo.",
     "",
     schemaBlock(DIET_JSON_SCHEMA),
     "",
@@ -167,7 +277,12 @@ export function userPrompt(
     answers: AnamnesisAnswers;
   } & (
     | { kind: "workout"; input: AiWorkoutGenerateInput }
-    | { kind: "diet"; input: AiDietGenerateInput }
+    | {
+        kind: "diet";
+        input: AiDietGenerateInput;
+        /** The current diet as catalog indices, when one exists and is being kept. */
+        baseline?: string | null;
+      }
   ),
 ): string {
   const what =
@@ -178,12 +293,27 @@ export function userPrompt(
     args.kind === "workout"
       ? renderWorkoutForm(args.input)
       : renderDietForm(args.input);
+  // The baseline goes AFTER the form and BEFORE the anamnese: it is the thing
+  // being adjusted, so the instruction to keep it has to sit next to it.
+  const baseline =
+    args.kind === "diet" && args.baseline
+      ? [
+          "",
+          "Dieta atual do aluno — **ajuste esta dieta, não monte outra**:",
+          "Mantenha os alimentos e os horários que já estão aqui e mexa só no que"
+            + " precisa mudar para atingir o objetivo e as metas. O aluno já segue"
+            + " esta rotina; trocar tudo joga fora a adesão que ele construiu.",
+          args.baseline,
+        ]
+      : [];
+
   return [
     what,
     "",
     `Aluno: ${args.studentName}`,
     "",
     form,
+    ...baseline,
     "",
     "Anamnese:",
     renderAnamnesis(args.sections, args.answers),

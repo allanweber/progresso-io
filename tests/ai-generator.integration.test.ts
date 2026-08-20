@@ -6,6 +6,7 @@ import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import { cacheHitRatio } from "@/lib/ai-programs";
+import type { MealSlot } from "@/lib/meals";
 import {
   DEFAULT_AI_FALLBACK_MODELS,
   DEFAULT_AI_MODEL,
@@ -13,7 +14,7 @@ import {
 import { ai, aiSettings, plans, providerPrices, studentWorkouts } from "@/server/dal";
 import { monthStart } from "@/server/dal/ai";
 import { buildExerciseCatalog, buildFoodCatalog } from "@/server/ai/catalog";
-import { generateWorkout } from "@/server/ai/generate";
+import { generateDiet, generateWorkout } from "@/server/ai/generate";
 import type { TenantContext } from "@/server/tenant";
 
 import { clearTrial, createTestDb, type TestDb } from "./pglite";
@@ -1256,5 +1257,161 @@ describe("generateWorkout end to end", () => {
       .from(schema.studentWorkout)
       .where(eq(schema.studentWorkout.clinicId, ctx.clinicId));
     expect(drafts).toHaveLength(1);
+  });
+});
+
+describe("generateDiet — continuity with the current diet", () => {
+  let ctx: TenantContext;
+  let studentId: string;
+  /** The user prompt of the last call, so we can assert what the model saw. */
+  let lastUserPrompt: string;
+
+  function dietCompletion(plan: unknown) {
+    return {
+      ok: true,
+      json: async () => ({
+        id: "gen-diet-1",
+        model: DEFAULT_AI_MODEL.replace(":floor", ""),
+        provider: "Alibaba",
+        choices: [
+          { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
+        ],
+        usage: { prompt_tokens: 1200, completion_tokens: 300, cost: 0.0004 },
+      }),
+    } as unknown as Response;
+  }
+
+  /** Stubs the provider and records the user message it was sent. */
+  function stubProvider(plan: unknown) {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_url: unknown, init?: unknown) => {
+        const body = JSON.parse(
+          (init as { body: string }).body,
+        ) as { messages: { role: string; content: string }[] };
+        lastUserPrompt =
+          body.messages.find((m) => m.role === "user")?.content ?? "";
+        return dietCompletion(plan);
+      },
+    );
+  }
+
+  const onePlan = {
+    name: "Dieta gerada",
+    notes: null,
+    meals: [
+      { name: "Café da manhã", time: "07:00", items: [{ food: 1, grams: 100 }] },
+      { name: "Almoço", time: "12:30", items: [{ food: 1, grams: 150 }] },
+    ],
+  };
+
+  const dietInput = {
+    objective: "emagrecimento",
+    restrictions: [],
+    meals: ["cafe_da_manha", "almoco"] as MealSlot[],
+    mealsPerDay: null,
+    preferences: null,
+    avoid: null,
+    fromScratch: false,
+    targetKcal: null,
+    targetProteinG: null,
+    targetCarbsG: null,
+    targetFatG: null,
+  };
+
+  beforeAll(async () => {
+    process.env.LLM_API_KEY = "test-key";
+    const eps = await makeClinic("epsilon", "clinica");
+    ctx = eps.ctx;
+    studentId = eps.studentId;
+    await completedAnamnesis(ctx, studentId);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends no baseline for a student with no diet yet", async () => {
+    stubProvider(onePlan);
+    const result = await generateDiet(ctx, studentId, { ...dietInput });
+    expect(result.ok).toBe(true);
+    // "Adjust this" over nothing is an instruction with no referent.
+    expect(lastUserPrompt).not.toContain("Dieta atual do aluno");
+  });
+
+  it("sends the existing draft as the baseline on the next generation", async () => {
+    // The first generation left a draft; the second must build on it rather
+    // than hand the aluno a stranger's plan.
+    stubProvider(onePlan);
+    const result = await generateDiet(ctx, studentId, { ...dietInput });
+    expect(result.ok).toBe(true);
+
+    expect(lastUserPrompt).toContain("Dieta atual do aluno");
+    expect(lastUserPrompt).toContain("ajuste esta dieta, não monte outra");
+    // Rendered as catalog indices, not names — the model has to be able to
+    // reuse the exact same rows.
+    const catalog = await buildFoodCatalog(ctx);
+    expect(lastUserPrompt).toContain(`- 1 — `);
+    expect(catalog.byIndex.get(1)).toBeTruthy();
+  });
+
+  it("omits the baseline when the coach ticks 'recomeçar do zero'", async () => {
+    stubProvider(onePlan);
+    const result = await generateDiet(ctx, studentId, {
+      ...dietInput,
+      fromScratch: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(lastUserPrompt).not.toContain("Dieta atual do aluno");
+  });
+
+  // The three ways a coach can describe the day have to reach the model as three
+  // *different* instructions — the count-only and partial modes are the ones
+  // where a bare number used to make the model invent a split.
+  it("names the meals, with kind and clock anchor, when they were ticked", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, { ...dietInput });
+    expect(lastUserPrompt).toContain("Refeições a montar (nesta ordem):");
+    expect(lastUserPrompt).toContain("Café da manhã (~07:00) —");
+    expect(lastUserPrompt).not.toContain("Complete as outras");
+  });
+
+  it("offers the full slot menu when only a count was given", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, {
+      ...dietInput,
+      meals: [],
+      mealsPerDay: 6,
+    });
+    expect(lastUserPrompt).toContain("Refeições a montar: 6 no dia");
+    // Not a bare "6 refeições": the model picks from real slots, each carrying
+    // the kind that keeps arroz out of the café da manhã.
+    expect(lastUserPrompt).toContain("Café da manhã (~07:00) —");
+    expect(lastUserPrompt).toContain("Pré-treino (~17:00) —");
+  });
+
+  it("splits mandatory from fill-in when both were given", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, { ...dietInput, mealsPerDay: 5 });
+    expect(lastUserPrompt).toContain("Refeições a montar: 5 no dia");
+    expect(lastUserPrompt).toContain("Obrigatórias — monte todas estas 2:");
+    expect(lastUserPrompt).toContain("Complete as outras 3 escolhendo entre:");
+    // The chosen two must not also show up in the fill-in menu.
+    const menu = lastUserPrompt.split("Complete as outras")[1] ?? "";
+    expect(menu).not.toContain("Café da manhã (~07:00)");
+    expect(menu).toContain("Ceia (~22:00)");
+  });
+
+  it("passes only the macro targets that were given", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, {
+      ...dietInput,
+      targetKcal: 2400,
+      targetProteinG: 180,
+    });
+    expect(lastUserPrompt).toContain("2400 kcal");
+    expect(lastUserPrompt).toContain("180 g de proteína");
+    // The two left blank must not appear as zero — "no opinion" is not "0 g".
+    expect(lastUserPrompt).not.toContain("0 g de gordura");
+    expect(lastUserPrompt).not.toContain("0 g de carboidrato");
   });
 });

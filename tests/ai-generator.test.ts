@@ -8,7 +8,16 @@ import {
   cacheHitRatio,
   formatAiUsage,
   formatCacheHitRatio,
+  numOrNull,
 } from "@/lib/ai-programs";
+import { MEAL_SUGGESTIONS } from "@/lib/diets";
+import {
+  DEFAULT_AI_MEALS,
+  MEAL_SLOT_KINDS,
+  MEAL_SLOT_LABELS,
+  MEAL_SLOT_TIMES,
+  MEAL_SLOT_VALUES,
+} from "@/lib/meals";
 import { resolveAiGenerations } from "@/lib/plans";
 import { resolveIndices, type CatalogBlock } from "@/server/ai/catalog";
 import { dietSystemPrompt, workoutSystemPrompt } from "@/server/ai/prompts";
@@ -222,13 +231,86 @@ describe("aiWorkoutGenerateSchema", () => {
     const parsed = aiWorkoutGenerateSchema.safeParse({
       ...valid,
       restrictions: ["vegano"],
-      mealsPerDay: 5,
+      meals: ["almoco", "jantar"],
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data).not.toHaveProperty("restrictions");
-      expect(parsed.data).not.toHaveProperty("mealsPerDay");
+      expect(parsed.data).not.toHaveProperty("meals");
     }
+  });
+});
+
+describe("meal slots — one list for the builder and the generator", () => {
+  it("offers the same meals in the builder chips as the AI picker", () => {
+    // These were two hand-maintained lists and they had already drifted: the
+    // builder offered Pré-treino and the generator could not produce it, so a
+    // coach could hand-build a plan the AI was structurally unable to match.
+    expect(MEAL_SUGGESTIONS).toEqual(
+      MEAL_SLOT_VALUES.map((s) => MEAL_SLOT_LABELS[s]),
+    );
+  });
+
+  it("includes both training meals", () => {
+    expect(MEAL_SLOT_VALUES).toContain("pre_treino");
+    expect(MEAL_SLOT_VALUES).toContain("pos_treino");
+  });
+
+  it("leaves the training meals OUT of the AI default", () => {
+    // They only make sense next to a session. Generating them unasked hands
+    // every sedentary aluno two meals they do not need — the coach ticks them.
+    expect(DEFAULT_AI_MEALS).not.toContain("pre_treino");
+    expect(DEFAULT_AI_MEALS).not.toContain("pos_treino");
+    expect(DEFAULT_AI_MEALS).toHaveLength(5);
+  });
+
+  it("accepts the training meals when the coach does select them", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({
+        objective: "hipertrofia",
+        restrictions: [],
+        meals: ["pre_treino", "pos_treino"],
+        mealsPerDay: null,
+        preferences: "",
+        avoid: "",
+        fromScratch: false,
+        targetKcal: null,
+        targetProteinG: null,
+        targetCarbsG: null,
+        targetFatG: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("gives every slot a label, a time and a kind", () => {
+    // A slot missing any of the three reaches the prompt as an empty string and
+    // the model quietly invents that meal's rules.
+    for (const slot of MEAL_SLOT_VALUES) {
+      expect(MEAL_SLOT_LABELS[slot]).toBeTruthy();
+      expect(MEAL_SLOT_TIMES[slot]).toMatch(/^\d{2}:\d{2}$/);
+      expect(MEAL_SLOT_KINDS[slot]).toBeTruthy();
+    }
+  });
+});
+
+describe("numOrNull", () => {
+  it("reads a blank box as 'no opinion', not as zero", () => {
+    // `Number("")` is 0, so without the empty check first, clearing the kcal
+    // field would send a target of zero calories.
+    expect(numOrNull("")).toBeNull();
+    expect(numOrNull("   ")).toBeNull();
+  });
+
+  it("keeps a real zero the coach actually typed", () => {
+    expect(numOrNull("0")).toBe(0);
+  });
+
+  it("reads a number", () => {
+    expect(numOrNull("2400")).toBe(2400);
+  });
+
+  it("is null for anything unparseable", () => {
+    expect(numOrNull("abc")).toBeNull();
   });
 });
 
@@ -236,7 +318,15 @@ describe("aiDietGenerateSchema", () => {
   const valid = {
     objective: "emagrecimento",
     restrictions: [],
-    mealsPerDay: 5,
+    meals: ["cafe_da_manha", "almoco", "jantar"],
+    mealsPerDay: null,
+    preferences: "",
+    avoid: "",
+    fromScratch: false,
+    targetKcal: null,
+    targetProteinG: null,
+    targetCarbsG: null,
+    targetFatG: null,
   };
 
   it("accepts an empty restrictions array — 'none' is a real answer", () => {
@@ -249,13 +339,117 @@ describe("aiDietGenerateSchema", () => {
     expect(aiDietGenerateSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("rejects 1 and 9 meals per day", () => {
+  // The day can be described three ways, and all three are real answers a coach
+  // gives: name the meals, say how many, or name the ones that matter and let
+  // the model fill the rest.
+  it("accepts named meals with no count", () => {
+    const parsed = aiDietGenerateSchema.parse(valid);
+    expect(parsed.meals).toHaveLength(3);
+    expect(parsed.mealsPerDay).toBeNull();
+  });
+
+  it("accepts a bare count with no named meals", () => {
+    // A coach who only cares that the day has six meals should not have to
+    // invent a split to say so.
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      meals: [],
+      mealsPerDay: 6,
+    });
+    expect(parsed.meals).toEqual([]);
+    expect(parsed.mealsPerDay).toBe(6);
+  });
+
+  it("accepts both — the named meals are mandatory inside the total", () => {
+    const parsed = aiDietGenerateSchema.parse({ ...valid, mealsPerDay: 6 });
+    expect(parsed.meals).toHaveLength(3);
+    expect(parsed.mealsPerDay).toBe(6);
+  });
+
+  it("rejects neither — the day has to be pinned down somehow", () => {
     expect(
-      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 1 }).success,
+      aiDietGenerateSchema.safeParse({ ...valid, meals: [], mealsPerDay: null })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a total below the meals already chosen", () => {
+    // Three named meals inside a two-meal day is not a shape anyone can build.
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 2 }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a count outside 2..8 — one meal is not a plan", () => {
+    for (const mealsPerDay of [1, 9]) {
+      expect(
+        aiDietGenerateSchema.safeParse({ ...valid, meals: [], mealsPerDay })
+          .success,
+      ).toBe(false);
+    }
+  });
+
+  it("rejects an unknown meal slot", () => {
+    // Slots are an enum, not free text, because each one carries a *kind* the
+    // prompt uses to keep arroz-e-feijão out of the café da manhã.
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, meals: ["brunch"] }).success,
+    ).toBe(false);
+  });
+
+  it("keeps the coach's chosen order — chronology is theirs to decide", () => {
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      meals: ["almoco", "cafe_da_manha", "ceia"],
+    });
+    expect(parsed.meals).toEqual(["almoco", "cafe_da_manha", "ceia"]);
+  });
+
+  it("normalises blank preferences/avoid to null, not empty strings", () => {
+    // The prompt skips the line when null; an empty label would invite the
+    // model to fill it in with something nobody asked for.
+    const parsed = aiDietGenerateSchema.parse(valid);
+    expect(parsed.preferences).toBeNull();
+    expect(parsed.avoid).toBeNull();
+  });
+
+  it("defaults to adjusting, not restarting", () => {
+    // The default carries the whole design: a monthly review is an adjustment,
+    // and a coach who forgets to think about this should get continuity.
+    expect(aiDietGenerateSchema.parse(valid).fromScratch).toBe(false);
+  });
+
+  it("accepts partial macro targets — 'no opinion' is a real answer", () => {
+    // A coach often carries a kcal figure and a protein floor and nothing else;
+    // requiring all four would make them invent two numbers.
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      targetKcal: 2400,
+      targetProteinG: 180,
+    });
+    expect(parsed.targetKcal).toBe(2400);
+    expect(parsed.targetCarbsG).toBeNull();
+  });
+
+  it("rejects a zero or negative target", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, targetKcal: 0 }).success,
     ).toBe(false);
     expect(
-      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 9 }).success,
+      aiDietGenerateSchema.safeParse({ ...valid, targetProteinG: -10 }).success,
     ).toBe(false);
+  });
+
+  it("keeps preferences and avoid as separate answers", () => {
+    // `restrictions` is four coded diets; `avoid` is "não come peixe". A form
+    // that only had the checkboxes could not express the second at all.
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      preferences: "  ovo, banana  ",
+      avoid: "jiló",
+    });
+    expect(parsed.preferences).toBe("ovo, banana");
+    expect(parsed.avoid).toBe("jiló");
   });
 
   it("rejects an unknown restriction value", () => {

@@ -6,7 +6,7 @@ import { Loader2, Sparkles } from "lucide-react";
 
 import {
   AI_DEFAULT_DAYS_PER_WEEK,
-  AI_DEFAULT_MEALS_PER_DAY,
+  numOrNull,
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
   AI_RESTRICTION_LABELS,
@@ -17,6 +17,12 @@ import {
   type AiGenerateResultDto,
   type AiRestriction,
 } from "@/lib/ai-programs";
+import {
+  DEFAULT_AI_MEALS,
+  MEAL_SLOT_LABELS,
+  MEAL_SLOT_VALUES,
+  type MealSlot,
+} from "@/lib/meals";
 import { apiFetch } from "@/lib/api-client";
 import type { PlanUsageDto } from "@/lib/plans";
 import type { StudentAnamnesisDto } from "@/lib/student-anamneses";
@@ -66,6 +72,7 @@ type Props = {
 
 const NOUN = { workout: "treino", diet: "dieta" } as const;
 
+
 /**
  * **Objetivo** is the one question both kinds ask, which is exactly why its
  * example cannot be shared: a single hard-coded "hipertrofia com foco em
@@ -97,7 +104,21 @@ export function AiGenerateButton({
   const [equipment, setEquipment] = useState<AiEquipment[]>([]);
   const [daysPerWeek, setDaysPerWeek] = useState(AI_DEFAULT_DAYS_PER_WEEK);
   const [restrictions, setRestrictions] = useState<AiRestriction[]>([]);
-  const [mealsPerDay, setMealsPerDay] = useState(AI_DEFAULT_MEALS_PER_DAY);
+  const [meals, setMeals] = useState<MealSlot[]>(DEFAULT_AI_MEALS);
+  // The day's total, as a string so an emptied box is "" (→ null) rather than
+  // a 0 nobody typed. Blank is the normal case: the ticked slots already say
+  // how many there are.
+  const [mealsPerDayRaw, setMealsPerDayRaw] = useState("");
+  const [preferences, setPreferences] = useState("");
+  const [avoid, setAvoid] = useState("");
+  const [fromScratch, setFromScratch] = useState(false);
+  // Empty string, not 0 — "" renders an empty box and reaches the schema as
+  // null, whereas 0 would show a zero the coach never typed and read as a
+  // target of zero calories.
+  const [targetKcal, setTargetKcal] = useState("");
+  const [targetProteinG, setTargetProteinG] = useState("");
+  const [targetCarbsG, setTargetCarbsG] = useState("");
+  const [targetFatG, setTargetFatG] = useState("");
 
   // Both reads are already cached by other panels on these pages, so opening
   // the dialog costs nothing in practice.
@@ -154,12 +175,28 @@ export function AiGenerateButton({
   const toggle = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
+  /**
+   * The dieta's meal answer, in any of its three shapes: ticked slots, a bare
+   * total, or slots inside a larger total. The failure worth catching here is
+   * the last one — a total below the slots already ticked describes a day that
+   * cannot be built, and the coach should see why before spending a credit.
+   */
+  const mealsPerDay = numOrNull(mealsPerDayRaw);
+  const mealsProblem =
+    meals.length === 0 && mealsPerDay === null
+      ? "Escolha as refeições ou informe quantas por dia."
+      : mealsPerDay !== null && (mealsPerDay < 2 || mealsPerDay > MEAL_SLOT_VALUES.length)
+        ? `O total deve ficar entre 2 e ${MEAL_SLOT_VALUES.length}.`
+        : mealsPerDay !== null && mealsPerDay < meals.length
+          ? "O total não pode ser menor que as refeições escolhidas."
+          : null;
+
   // Equipment is the treino's only extra required answer; the dieta's
   // restrictions are legitimately answerable as "none", so it needs no gate
   // beyond the objective.
   const canSubmit =
     objective.trim().length >= 3 &&
-    (kind === "diet" || equipment.length > 0) &&
+    (kind === "diet" ? mealsProblem === null : equipment.length > 0) &&
     !generate.isPending;
 
   return (
@@ -299,20 +336,145 @@ export function AiGenerateButton({
                       Deixe em branco se não houver restrições.
                     </p>
                   </fieldset>
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Refeições do dia
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {MEAL_SLOT_VALUES.map((value) => (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5"
+                            checked={meals.includes(value)}
+                            onChange={() => setMeals((l) => toggle(l, value))}
+                          />
+                          {MEAL_SLOT_LABELS[value]}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label
+                        className="text-[13px] text-muted-foreground"
+                        htmlFor="ai-meals-per-day"
+                      >
+                        Total de refeições no dia{" "}
+                        <span className="text-muted-foreground">(opcional)</span>
+                      </label>
+                      <Input
+                        id="ai-meals-per-day"
+                        type="number"
+                        min={2}
+                        max={MEAL_SLOT_VALUES.length}
+                        inputMode="numeric"
+                        className="w-20"
+                        value={mealsPerDayRaw}
+                        onChange={(e) => setMealsPerDayRaw(e.target.value)}
+                        placeholder={String(meals.length || "")}
+                      />
+                    </div>
+                    {/* The three modes, said plainly — a coach should not have
+                        to discover that ticking two and typing six means "these
+                        two plus four you choose". */}
+                    <p className="text-[12px] text-muted-foreground">
+                      Escolher as refeições (e não só quantas) é o que faz a IA
+                      montar café da manhã como café da manhã. Só o total: a IA
+                      escolhe quais. Os dois: as marcadas são obrigatórias e a IA
+                      completa o resto até o total.
+                    </p>
+                    {mealsProblem !== null && (
+                      <p className="text-[12px] text-destructive">{mealsProblem}</p>
+                    )}
+                  </fieldset>
+
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium" htmlFor="ai-meals">
-                      Refeições por dia
+                    <label
+                      className="text-sm font-medium"
+                      htmlFor="ai-preferences"
+                    >
+                      Preferências <span className="font-normal text-muted-foreground">(opcional)</span>
                     </label>
                     <Input
-                      id="ai-meals"
-                      type="number"
-                      min={2}
-                      max={8}
-                      value={mealsPerDay}
-                      onChange={(e) => setMealsPerDay(Number(e.target.value))}
-                      className="w-24"
+                      id="ai-preferences"
+                      value={preferences}
+                      onChange={(e) => setPreferences(e.target.value)}
+                      placeholder="Ex. gosta de ovo, banana, frango, tapioca"
                     />
                   </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium" htmlFor="ai-avoid">
+                      Evitar <span className="font-normal text-muted-foreground">(opcional)</span>
+                    </label>
+                    <Input
+                      id="ai-avoid"
+                      value={avoid}
+                      onChange={(e) => setAvoid(e.target.value)}
+                      placeholder="Ex. não come peixe, odeia jiló"
+                    />
+                    <p className="text-[12px] text-muted-foreground">
+                      Aversões específicas, além das restrições acima.
+                    </p>
+                  </div>
+
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Metas{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (opcional)
+                      </span>
+                    </legend>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {(
+                        [
+                          ["ai-kcal", "kcal", targetKcal, setTargetKcal],
+                          ["ai-prot", "Proteína (g)", targetProteinG, setTargetProteinG],
+                          ["ai-carb", "Carbo (g)", targetCarbsG, setTargetCarbsG],
+                          ["ai-fat", "Gordura (g)", targetFatG, setTargetFatG],
+                        ] as const
+                      ).map(([id, label, value, set]) => (
+                        <div key={id} className="space-y-1">
+                          <label className="text-[12px] text-muted-foreground" htmlFor={id}>
+                            {label}
+                          </label>
+                          <Input
+                            id={id}
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            value={value}
+                            onChange={(e) => set(e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[12px] text-muted-foreground">
+                      Em branco, a IA calcula a partir da anamnese. Preenchido,
+                      vira alvo — não sugestão.
+                    </p>
+                  </fieldset>
+
+                  {/* Continuity is the default; the reset is the exception, and
+                      it says what it costs before it is ticked. */}
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border px-3 py-2.5 has-[:checked]:border-amber-300 has-[:checked]:bg-amber-50">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-3.5"
+                        checked={fromScratch}
+                        onChange={(e) => setFromScratch(e.target.checked)}
+                      />
+                      <span className="text-[13px]">
+                        <strong>Recomeçar do zero</strong>
+                        <span className="block text-muted-foreground">
+                          Por padrão, havendo dieta atual, a IA parte dela e só
+                          ajusta — o aluno continua com a rotina que já segue.
+                          Marque para ignorá-la e montar outra do zero.
+                        </span>
+                      </span>
+                    </label>
                 </>
               )}
 
@@ -344,7 +506,18 @@ export function AiGenerateButton({
                         : {
                             objective: objective.trim(),
                             restrictions,
+                            meals,
                             mealsPerDay,
+                            fromScratch,
+                            targetKcal: numOrNull(targetKcal),
+                            targetProteinG: numOrNull(targetProteinG),
+                            targetCarbsG: numOrNull(targetCarbsG),
+                            targetFatG: numOrNull(targetFatG),
+                            // Blank is normalised to null by the schema so the
+                            // prompt skips the line rather than sending an
+                            // empty label.
+                            preferences: preferences.trim() || null,
+                            avoid: avoid.trim() || null,
                           },
                     );
                   }}

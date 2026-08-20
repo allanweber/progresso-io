@@ -1,3 +1,4 @@
+import { MEAL_SLOT_VALUES } from "@/lib/meals";
 import { z } from "@/lib/validation";
 
 import type { AiSettingsDto } from "@/lib/ai-settings";
@@ -72,6 +73,33 @@ const objectiveField = z
   .min(3, "Descreva o objetivo.")
   .max(200, "Objetivo muito longo.");
 
+/**
+ * An optional free-text note that reaches the prompt. Normalised to `null` when
+ * blank so the renderer can skip the line entirely rather than sending the
+ * model an empty label to interpret.
+ */
+/**
+ * An optional whole-number field. Accepts `null` and — because an emptied number
+ * input yields `NaN` through `Number("")` — treats a non-finite value as "not
+ * given" rather than letting it reach the prompt as a target of NaN.
+ */
+const optionalPositiveInt = (max: number, message: string) =>
+  z
+    .number()
+    .nullable()
+    .transform((v) => (v === null || !Number.isFinite(v) ? null : v))
+    .refine(
+      (v) => v === null || (Number.isInteger(v) && v > 0 && v <= max),
+      message,
+    );
+
+const freeNote = z
+  .string()
+  .trim()
+  .max(300, "Texto muito longo.")
+  .transform((v) => (v === "" ? null : v))
+  .nullable();
+
 /** Treino: what the aluno can train with, and how often. */
 export const aiWorkoutGenerateSchema = z.object({
   objective: objectiveField,
@@ -91,23 +119,113 @@ export const aiWorkoutGenerateSchema = z.object({
  * `restrictions` may be an empty array: "no restrictions" is a real answer, and
  * a required field that cannot be answered "none" is a broken form.
  */
-export const aiDietGenerateSchema = z.object({
-  objective: objectiveField,
-  restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
-  mealsPerDay: z
-    .number()
-    .int("Informe um número inteiro de refeições.")
-    .min(2, "Mínimo de 2 refeições por dia.")
-    .max(8, "Máximo de 8 refeições por dia."),
-});
+export const aiDietGenerateSchema = z
+  .object({
+    objective: objectiveField,
+    restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
+    /**
+     * The meals to build, named. May be empty — see `mealsPerDay`.
+     *
+     * Naming them is what lets the prompt refuse arroz-e-feijão at 7h, so it is
+     * the answer worth giving; it is not the only allowed one, because a coach
+     * who only cares that the day has six meals should not have to invent a
+     * split to say so.
+     */
+    meals: z.array(z.enum(MEAL_SLOT_VALUES)),
+    /**
+     * How many meals the day should have, or `null` to let `meals` decide.
+     *
+     * With `meals` this is the **total**, and the named slots are the mandatory
+     * part of it — the model fills the remainder from the slots that were left
+     * unticked. Alone, it hands the split to the model entirely.
+     */
+    mealsPerDay: z
+      .number()
+      .nullable()
+      .transform((v) => (v === null || !Number.isFinite(v) ? null : v))
+      .refine(
+        (v) =>
+          v === null || (Number.isInteger(v) && v >= 2 && v <= MEAL_SLOT_VALUES.length),
+        `Informe de 2 a ${MEAL_SLOT_VALUES.length} refeições por dia.`,
+      ),
+    /**
+     * Foods the aluno actually likes, free text. A plan built only from what is
+     * *allowed* is a plan nobody follows — the restrictions say what is
+     * forbidden, this says what will actually get eaten.
+     */
+    preferences: freeNote,
+    /**
+     * Foods to keep out, free text. Distinct from `restrictions`: those are four
+     * coded diets, this is "odeia jiló, não come peixe" — the specific aversions
+     * no checkbox list will ever cover, and the ones an aluno notices first.
+     */
+    avoid: freeNote,
+    /**
+     * Ignore the aluno's current diet and start over.
+     *
+     * Default **false**, and that default is the whole point: a monthly review is
+     * an *adjustment*, not a new prescription. A coach who has spent three cycles
+     * learning that this aluno actually eats the tapioca and skips the salada
+     * loses all of it when the model starts from a blank page — and the aluno,
+     * who was adhering, is handed a stranger's plan. Ticking this is for a real
+     * reset (goal changed, injury, the plan is not working).
+     */
+    fromScratch: z.boolean(),
+    /**
+     * Optional targets. Null means "you work it out from the anamnese" — which is
+     * the honest default, because most coaches do not carry a kcal figure in
+     * their head for every aluno. When given they are a hard target, not a hint.
+     */
+    targetKcal: optionalPositiveInt(6000, "Calorias fora do intervalo aceito."),
+    targetProteinG: optionalPositiveInt(500, "Proteína fora do intervalo aceito."),
+    targetCarbsG: optionalPositiveInt(1000, "Carboidrato fora do intervalo aceito."),
+    targetFatG: optionalPositiveInt(400, "Gordura fora do intervalo aceito."),
+  })
+  /**
+   * The day has to be pinned down one way or the other, and a total below the
+   * number of meals already ticked is not a shape anyone can build.
+   */
+  .superRefine((v, ctx) => {
+    if (v.meals.length === 0 && v.mealsPerDay === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["meals"],
+        message: "Escolha as refeições ou informe quantas por dia.",
+      });
+    }
+    if (v.mealsPerDay !== null && v.mealsPerDay < v.meals.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["mealsPerDay"],
+        message:
+          "O total de refeições não pode ser menor que as refeições escolhidas.",
+      });
+    }
+  });
 
 export type AiWorkoutGenerateInput = z.infer<typeof aiWorkoutGenerateSchema>;
 export type AiDietGenerateInput = z.infer<typeof aiDietGenerateSchema>;
 export type AiGenerateInput = AiWorkoutGenerateInput | AiDietGenerateInput;
 
+/**
+ * A number input's value as a number, or `null` when left blank.
+ *
+ * The empty check comes first because `Number("")` is `0`, not `NaN` — without
+ * it, clearing the kcal box would send a target of zero calories rather than
+ * "no opinion". An emptied `<input type="number">` also yields `NaN`, which
+ * `JSON.stringify` turns into `null` on the way out; this makes that explicit
+ * instead of relying on it.
+ */
+export function numOrNull(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** What the dialogs open with, so the coach confirms rather than types. */
 export const AI_DEFAULT_DAYS_PER_WEEK = 3;
-export const AI_DEFAULT_MEALS_PER_DAY = 5;
+
 
 /** What the generate endpoints return on success. */
 export type AiGenerateResultDto = {
