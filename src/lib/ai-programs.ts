@@ -1,3 +1,4 @@
+import { MEAL_SLOT_VALUES } from "@/lib/meals";
 import { z } from "@/lib/validation";
 
 import type { AiSettingsDto } from "@/lib/ai-settings";
@@ -49,44 +50,6 @@ export const AI_RESTRICTION_LABELS: Record<AiRestriction, string> = {
   vegano: "Vegano",
   sem_lactose: "Sem lactose",
   sem_gluten: "Sem glúten",
-};
-
-/**
- * The meals a day can be split into, in chronological order.
- *
- * The coach picks *which* slots to fill, not just how many — "5 refeições" left
- * the model to invent the split, and it had no way to know whether the aluno
- * eats a lanche da tarde or trains through it. Naming the slot also gives each
- * meal a **kind**, which is what lets the prompt refuse arroz-e-feijão at
- * breakfast.
- */
-export const AI_MEAL_SLOT_VALUES = [
-  "cafe_da_manha",
-  "lanche_manha",
-  "almoco",
-  "lanche_tarde",
-  "jantar",
-  "ceia",
-] as const;
-export type AiMealSlot = (typeof AI_MEAL_SLOT_VALUES)[number];
-
-export const AI_MEAL_SLOT_LABELS: Record<AiMealSlot, string> = {
-  cafe_da_manha: "Café da manhã",
-  lanche_manha: "Lanche da manhã",
-  almoco: "Almoço",
-  lanche_tarde: "Lanche da tarde",
-  jantar: "Jantar",
-  ceia: "Ceia",
-};
-
-/** Typical clock time per slot — the model anchors `time` to these. */
-export const AI_MEAL_SLOT_TIMES: Record<AiMealSlot, string> = {
-  cafe_da_manha: "07:00",
-  lanche_manha: "10:00",
-  almoco: "12:30",
-  lanche_tarde: "16:00",
-  jantar: "19:30",
-  ceia: "22:00",
 };
 
 /**
@@ -160,7 +123,7 @@ export const aiDietGenerateSchema = z.object({
   objective: objectiveField,
   restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
   meals: z
-    .array(z.enum(AI_MEAL_SLOT_VALUES))
+    .array(z.enum(MEAL_SLOT_VALUES))
     .min(2, "Escolha ao menos duas refeições."),
   /**
    * Foods the aluno actually likes, free text. A plan built only from what is
@@ -218,14 +181,7 @@ export function numOrNull(raw: string): number | null {
 
 /** What the dialogs open with, so the coach confirms rather than types. */
 export const AI_DEFAULT_DAYS_PER_WEEK = 3;
-/** The five-meal split most coaches start from; the coach edits from there. */
-export const AI_DEFAULT_MEALS: AiMealSlot[] = [
-  "cafe_da_manha",
-  "lanche_manha",
-  "almoco",
-  "lanche_tarde",
-  "jantar",
-];
+
 
 /** What the generate endpoints return on success. */
 export type AiGenerateResultDto = {

@@ -1,3 +1,4 @@
+import { MEAL_SLOT_LABELS, MEAL_SLOT_VALUES } from "@/lib/meals";
 import { z } from "@/lib/validation";
 
 /**
@@ -16,16 +17,15 @@ export const DIET_ORIGIN_LABELS: Record<DietOrigin, string> = {
 /**
  * Quick meal-name suggestions shown as chips in the builder. They only prefill
  * the free-text field — the coach can still type anything.
+ *
+ * Derived from the canonical slot list rather than retyped: this and the AI
+ * generator's picker were two hand-maintained lists that had already drifted
+ * (the builder offered Pré-treino, the generator could not produce it), so a
+ * coach could hand-build a plan the AI was structurally unable to reproduce.
  */
-export const MEAL_SUGGESTIONS = [
-  "Café da manhã",
-  "Lanche da manhã",
-  "Almoço",
-  "Lanche da tarde",
-  "Jantar",
-  "Ceia",
-  "Pré-treino",
-] as const;
+export const MEAL_SUGGESTIONS = MEAL_SLOT_VALUES.map(
+  (slot) => MEAL_SLOT_LABELS[slot],
+);
 
 /* -------------------------------------------------------------------------- */
 /*  Read DTOs                                                                  */

@@ -6,21 +6,23 @@ import { Loader2, Sparkles } from "lucide-react";
 
 import {
   AI_DEFAULT_DAYS_PER_WEEK,
-  AI_DEFAULT_MEALS,
   numOrNull,
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
-  AI_MEAL_SLOT_LABELS,
-  AI_MEAL_SLOT_VALUES,
   AI_RESTRICTION_LABELS,
   AI_RESTRICTION_VALUES,
   formatAiUsage,
   type AiEquipment,
-  type AiMealSlot,
   type AiGenerateInput,
   type AiGenerateResultDto,
   type AiRestriction,
 } from "@/lib/ai-programs";
+import {
+  DEFAULT_AI_MEALS,
+  MEAL_SLOT_LABELS,
+  MEAL_SLOT_VALUES,
+  type MealSlot,
+} from "@/lib/meals";
 import { apiFetch } from "@/lib/api-client";
 import type { PlanUsageDto } from "@/lib/plans";
 import type { StudentAnamnesisDto } from "@/lib/student-anamneses";
@@ -102,7 +104,7 @@ export function AiGenerateButton({
   const [equipment, setEquipment] = useState<AiEquipment[]>([]);
   const [daysPerWeek, setDaysPerWeek] = useState(AI_DEFAULT_DAYS_PER_WEEK);
   const [restrictions, setRestrictions] = useState<AiRestriction[]>([]);
-  const [meals, setMeals] = useState<AiMealSlot[]>(AI_DEFAULT_MEALS);
+  const [meals, setMeals] = useState<MealSlot[]>(DEFAULT_AI_MEALS);
   const [preferences, setPreferences] = useState("");
   const [avoid, setAvoid] = useState("");
   const [fromScratch, setFromScratch] = useState(false);
@@ -319,7 +321,7 @@ export function AiGenerateButton({
                       Refeições do dia
                     </legend>
                     <div className="flex flex-wrap gap-2">
-                      {AI_MEAL_SLOT_VALUES.map((value) => (
+                      {MEAL_SLOT_VALUES.map((value) => (
                         <label
                           key={value}
                           className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
@@ -330,7 +332,7 @@ export function AiGenerateButton({
                             checked={meals.includes(value)}
                             onChange={() => setMeals((l) => toggle(l, value))}
                           />
-                          {AI_MEAL_SLOT_LABELS[value]}
+                          {MEAL_SLOT_LABELS[value]}
                         </label>
                       ))}
                     </div>

@@ -10,6 +10,14 @@ import {
   formatCacheHitRatio,
   numOrNull,
 } from "@/lib/ai-programs";
+import { MEAL_SUGGESTIONS } from "@/lib/diets";
+import {
+  DEFAULT_AI_MEALS,
+  MEAL_SLOT_KINDS,
+  MEAL_SLOT_LABELS,
+  MEAL_SLOT_TIMES,
+  MEAL_SLOT_VALUES,
+} from "@/lib/meals";
 import { resolveAiGenerations } from "@/lib/plans";
 import { resolveIndices, type CatalogBlock } from "@/server/ai/catalog";
 import { dietSystemPrompt, workoutSystemPrompt } from "@/server/ai/prompts";
@@ -229,6 +237,57 @@ describe("aiWorkoutGenerateSchema", () => {
     if (parsed.success) {
       expect(parsed.data).not.toHaveProperty("restrictions");
       expect(parsed.data).not.toHaveProperty("meals");
+    }
+  });
+});
+
+describe("meal slots — one list for the builder and the generator", () => {
+  it("offers the same meals in the builder chips as the AI picker", () => {
+    // These were two hand-maintained lists and they had already drifted: the
+    // builder offered Pré-treino and the generator could not produce it, so a
+    // coach could hand-build a plan the AI was structurally unable to match.
+    expect(MEAL_SUGGESTIONS).toEqual(
+      MEAL_SLOT_VALUES.map((s) => MEAL_SLOT_LABELS[s]),
+    );
+  });
+
+  it("includes both training meals", () => {
+    expect(MEAL_SLOT_VALUES).toContain("pre_treino");
+    expect(MEAL_SLOT_VALUES).toContain("pos_treino");
+  });
+
+  it("leaves the training meals OUT of the AI default", () => {
+    // They only make sense next to a session. Generating them unasked hands
+    // every sedentary aluno two meals they do not need — the coach ticks them.
+    expect(DEFAULT_AI_MEALS).not.toContain("pre_treino");
+    expect(DEFAULT_AI_MEALS).not.toContain("pos_treino");
+    expect(DEFAULT_AI_MEALS).toHaveLength(5);
+  });
+
+  it("accepts the training meals when the coach does select them", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({
+        objective: "hipertrofia",
+        restrictions: [],
+        meals: ["pre_treino", "pos_treino"],
+        preferences: "",
+        avoid: "",
+        fromScratch: false,
+        targetKcal: null,
+        targetProteinG: null,
+        targetCarbsG: null,
+        targetFatG: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("gives every slot a label, a time and a kind", () => {
+    // A slot missing any of the three reaches the prompt as an empty string and
+    // the model quietly invents that meal's rules.
+    for (const slot of MEAL_SLOT_VALUES) {
+      expect(MEAL_SLOT_LABELS[slot]).toBeTruthy();
+      expect(MEAL_SLOT_TIMES[slot]).toMatch(/^\d{2}:\d{2}$/);
+      expect(MEAL_SLOT_KINDS[slot]).toBeTruthy();
     }
   });
 });

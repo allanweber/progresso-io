@@ -2,12 +2,15 @@ import type { AnamnesisSection } from "@/lib/anamneses";
 import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import {
   AI_EQUIPMENT_LABELS,
-  AI_MEAL_SLOT_LABELS,
-  AI_MEAL_SLOT_TIMES,
   AI_RESTRICTION_LABELS,
   type AiDietGenerateInput,
   type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
+import {
+  MEAL_SLOT_KINDS,
+  MEAL_SLOT_LABELS,
+  MEAL_SLOT_TIMES,
+} from "@/lib/meals";
 import type { DietTree } from "@/lib/student-diets";
 import type { CatalogBlock } from "./catalog";
 import { DIET_JSON_SCHEMA, WORKOUT_JSON_SCHEMA } from "./schemas";
@@ -48,7 +51,7 @@ function renderDietForm(input: AiDietGenerateInput): string {
   // the model gets the split and the clock anchor, instead of a count it has
   // to guess a shape for.
   const meals = input.meals
-    .map((m) => `${AI_MEAL_SLOT_LABELS[m]} (~${AI_MEAL_SLOT_TIMES[m]})`)
+    .map((m) => `${MEAL_SLOT_LABELS[m]} (~${MEAL_SLOT_TIMES[m]}) — ${MEAL_SLOT_KINDS[m]}`)
     .join(", ");
   return [
     `Objetivo: ${input.objective}`,
@@ -206,8 +209,7 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     "",
     "Diretrizes:",
     "- Monte exatamente as refeições pedidas, na ordem dada, usando o nome de cada uma como o nome da refeição.",
-    "- **Cada alimento tem que fazer sentido na refeição em que está.** Café da manhã e lanches levam alimentos de café da manhã e lanche (pães, ovos, frutas, laticínios, aveia, tapioca, café). Almoço e jantar levam refeições completas (arroz, feijão, tubérculos, massas, carnes, saladas). Não coloque arroz, feijão ou bife no café da manhã, nem mingau de aveia no almoço — tecnicamente bate os macros e nenhum aluno come.",
-    "- A ceia é leve: laticínios, castanhas, fruta. Nunca uma refeição completa.",
+    "- **Cada alimento tem que fazer sentido na refeição em que está.** Cada refeição pedida vem com a descrição do que cabe nela — siga essa descrição. Não coloque arroz, feijão ou bife no café da manhã, nem mingau de aveia no almoço: tecnicamente bate os macros e nenhum aluno come.",
     "- Ajuste as quantidades ao objetivo, ao peso e à altura do aluno.",
     "- Respeite rigorosamente as restrições alimentares informadas.",
     "- Se houver preferências, use esses alimentos sempre que couberem nos macros — plano que o aluno gosta é plano que ele segue.",

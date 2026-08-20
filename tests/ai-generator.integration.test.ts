@@ -5,7 +5,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
-import { cacheHitRatio, type AiMealSlot } from "@/lib/ai-programs";
+import { cacheHitRatio } from "@/lib/ai-programs";
+import type { MealSlot } from "@/lib/meals";
 import {
   DEFAULT_AI_FALLBACK_MODELS,
   DEFAULT_AI_MODEL,
@@ -1306,7 +1307,7 @@ describe("generateDiet — continuity with the current diet", () => {
   const dietInput = {
     objective: "emagrecimento",
     restrictions: [],
-    meals: ["cafe_da_manha", "almoco"] as AiMealSlot[],
+    meals: ["cafe_da_manha", "almoco"] as MealSlot[],
     preferences: null,
     avoid: null,
     fromScratch: false,
