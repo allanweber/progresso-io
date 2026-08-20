@@ -116,6 +116,49 @@ export function avoidViolations(
   return [...hits];
 }
 
+/**
+ * Groups whose carbohydrate-dense rows are the meal's *staple* — the rice, the
+ * bread, the potato — as opposed to a side or a fruit.
+ *
+ * `leguminosas-e-derivados` is deliberately absent: feijão is carbohydrate-dense
+ * and pairing it with rice is the most ordinary Brazilian lunch there is. So is
+ * `frutas-e-derivados` — a banana next to the oats is not a second starch.
+ */
+const STAPLE_GROUPS = new Set([
+  "cereais-e-derivados",
+  "alimentos-preparados",
+  "miscelaneas",
+  // TACO files potatoes and cassava under vegetables, next to broccoli, so this
+  // group only counts with the density test below.
+  "verduras-hortalicas-e-derivados",
+]);
+
+/** Carbohydrate per 100 g above which a vegetable is really a starch. */
+const STAPLE_CARB_PER_100G = 15;
+
+/** Whether this food plays the role of the meal's main carbohydrate. */
+export function isStapleCarb(f: FoodFacts): boolean {
+  if (f.groupSlug === null || !STAPLE_GROUPS.has(f.groupSlug)) return false;
+  if (f.groupSlug === "cereais-e-derivados") return true;
+  return f.carbohydrate >= STAPLE_CARB_PER_100G;
+}
+
+/** Meals carrying more than one staple carbohydrate, with the offending foods. */
+export function stapleViolations(
+  plan: DietPlan,
+  foods: Map<number, FoodFacts>,
+): { meal: string; foods: string[] }[] {
+  const found: { meal: string; foods: string[] }[] = [];
+  for (const meal of plan.meals) {
+    const staples = meal.items
+      .map((i) => foods.get(i.food))
+      .filter((f): f is FoodFacts => f !== undefined && isStapleCarb(f))
+      .map((f) => f.description);
+    if (staples.length > 1) found.push({ meal: meal.name, foods: staples });
+  }
+  return found;
+}
+
 /** "2827 kcal (pedido: 2600, fora da margem de 5%)" */
 function targetLine(
   label: string,
@@ -137,11 +180,11 @@ function targetLine(
  * Everything wrong with this plan that the server can prove, in PT-BR, ready to
  * paste into the repair turn. Empty means the plan passed.
  *
- * Deliberately **not** checking the one-carb-per-meal rule: arroz com feijão is
- * two carbohydrate-dense rows and is also the most ordinary Brazilian lunch
- * there is. A checker cannot tell that pairing from pão com aveia without a
- * food taxonomy the catalog does not carry, and a false positive here would
- * burn a repair turn to "fix" a correct plan. That rule stays in the prompt.
+ * The one-carb-per-meal rule IS checked here, which took a food taxonomy to do
+ * safely: the naive "two carbohydrate-dense rows" test flags arroz com feijão,
+ * the most ordinary Brazilian lunch there is. TACO's groups separate cereals
+ * from legumes and fruit, so the check can catch pão com aveia and leave the
+ * feijão alone.
  */
 export function dietProblems(
   plan: DietPlan,
@@ -163,6 +206,15 @@ export function dietProblems(
       ? targetLine("Gordura", totals.fat, input.targetFatG, "g")
       : null,
   ].filter((p): p is string => p !== null);
+
+  // Pão com aveia, arroz com aveia, arroz com batata: the plate the coach
+  // objected to, and one the macros alone will never reveal.
+  for (const v of stapleViolations(plan, catalog.foods)) {
+    problems.push(
+      `${v.meal} tem dois carboidratos principais: ${v.foods.join(" e ")}. ` +
+        "Deixe só um e compense a quantidade — a exceção é arroz com leguminosa.",
+    );
+  }
 
   const avoided = avoidViolations(plan, catalog.foods, input.avoid);
   if (avoided.length > 0) {

@@ -1420,7 +1420,9 @@ describe("generateDiet — continuity with the current diet", () => {
     });
     expect(lastUserPrompt).toContain("Perfil de macros:");
     expect(lastUserPrompt).toContain("2,2 g por kg");
-    expect(lastUserPrompt).toContain("25% das calorias");
+    // The share the server's own fit targets, so the model aims where the
+    // portions will end up rather than somewhere it has to be dragged from.
+    expect(lastUserPrompt).toContain("22% das calorias");
     // No profile chosen → no section at all, rather than an empty heading.
     await generateDiet(ctx, studentId, { ...dietInput });
     expect(lastUserPrompt).not.toContain("Perfil de macros:");
@@ -1634,6 +1636,25 @@ describe("generateDiet — the server checks the answer", () => {
       expect(item?.grams).toBe(150);
       expect(item?.measureLabel).toBe("colher de sopa");
       expect(item?.measureGrams).toBe(50);
+    });
+
+    it("fits the portions to the target the model missed", async () => {
+      // End to end, on the real DAL: the model answers 300 g of rice (~372
+      // kcal) against a 500 kcal target and does not correct itself. What the
+      // coach opens is 500 kcal, because the server did the arithmetic.
+      stubSequence([rice(300)]);
+      const result = await generateDiet(ctx, studentId, {
+        ...base,
+        targetKcal: 500,
+      });
+      expect(result.ok).toBe(true);
+
+      const state = await studentDiets.getStudentDietState(ctx, studentId);
+      const kcal = state?.draft?.tree.totals.energyKcal ?? 0;
+      expect(Math.abs(kcal - 500) / 500).toBeLessThan(0.05);
+      // And it says so, rather than quietly handing over different numbers
+      // than the model wrote in its own observações.
+      expect(state?.draft?.notes).toContain("Porções ajustadas pelo sistema");
     });
 
     it("keeps plain grams when the model gives no count", async () => {

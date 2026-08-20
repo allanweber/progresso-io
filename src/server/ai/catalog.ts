@@ -49,6 +49,12 @@ export type FoodFacts = {
   /** The base household portion ("fatia", "unidade"), when the food has one. */
   measureLabel: string | null;
   measureGrams: number | null;
+  /**
+   * TACO group slug ("cereais-e-derivados"). Not rendered — it exists so the
+   * server can tell pão-com-aveia (two cereals in one meal, a mistake) from
+   * arroz-com-feijão (cereal + leguminosa, the ordinary Brazilian lunch).
+   */
+  groupSlug: string | null;
 };
 
 /** How the model's answer maps back to real rows. */
@@ -177,8 +183,12 @@ export async function buildFoodCatalog(
       protein: schema.food.protein,
       carbohydrate: schema.food.carbohydrate,
       fat: schema.food.fat,
+      groupSlug: schema.foodGroup.slug,
     })
     .from(schema.food)
+    // Left, not inner: a base row with no group must not vanish from the
+    // prefix — that would change the catalog for everyone.
+    .leftJoin(schema.foodGroup, eq(schema.food.groupId, schema.foodGroup.id))
     .where(
       and(
         isNull(schema.food.clinicId),
@@ -219,6 +229,7 @@ export async function buildFoodCatalog(
       fat: r.fat ?? 0,
       measureLabel: m?.label ?? null,
       measureGrams: m?.grams ?? null,
+      groupSlug: r.groupSlug,
     });
   });
   return { ...block, foods };
