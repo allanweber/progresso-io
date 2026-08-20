@@ -115,6 +115,21 @@ const objectiveField = z
  * blank so the renderer can skip the line entirely rather than sending the
  * model an empty label to interpret.
  */
+/**
+ * An optional whole-number field. Accepts `null` and — because an emptied number
+ * input yields `NaN` through `Number("")` — treats a non-finite value as "not
+ * given" rather than letting it reach the prompt as a target of NaN.
+ */
+const optionalPositiveInt = (max: number, message: string) =>
+  z
+    .number()
+    .nullable()
+    .transform((v) => (v === null || !Number.isFinite(v) ? null : v))
+    .refine(
+      (v) => v === null || (Number.isInteger(v) && v > 0 && v <= max),
+      message,
+    );
+
 const freeNote = z
   .string()
   .trim()
@@ -159,11 +174,47 @@ export const aiDietGenerateSchema = z.object({
    * no checkbox list will ever cover, and the ones an aluno notices first.
    */
   avoid: freeNote,
+  /**
+   * Ignore the aluno's current diet and start over.
+   *
+   * Default **false**, and that default is the whole point: a monthly review is
+   * an *adjustment*, not a new prescription. A coach who has spent three cycles
+   * learning that this aluno actually eats the tapioca and skips the salada
+   * loses all of it when the model starts from a blank page — and the aluno,
+   * who was adhering, is handed a stranger's plan. Ticking this is for a real
+   * reset (goal changed, injury, the plan is not working).
+   */
+  fromScratch: z.boolean(),
+  /**
+   * Optional targets. Null means "you work it out from the anamnese" — which is
+   * the honest default, because most coaches do not carry a kcal figure in
+   * their head for every aluno. When given they are a hard target, not a hint.
+   */
+  targetKcal: optionalPositiveInt(6000, "Calorias fora do intervalo aceito."),
+  targetProteinG: optionalPositiveInt(500, "Proteína fora do intervalo aceito."),
+  targetCarbsG: optionalPositiveInt(1000, "Carboidrato fora do intervalo aceito."),
+  targetFatG: optionalPositiveInt(400, "Gordura fora do intervalo aceito."),
 });
 
 export type AiWorkoutGenerateInput = z.infer<typeof aiWorkoutGenerateSchema>;
 export type AiDietGenerateInput = z.infer<typeof aiDietGenerateSchema>;
 export type AiGenerateInput = AiWorkoutGenerateInput | AiDietGenerateInput;
+
+/**
+ * A number input's value as a number, or `null` when left blank.
+ *
+ * The empty check comes first because `Number("")` is `0`, not `NaN` — without
+ * it, clearing the kcal box would send a target of zero calories rather than
+ * "no opinion". An emptied `<input type="number">` also yields `NaN`, which
+ * `JSON.stringify` turns into `null` on the way out; this makes that explicit
+ * instead of relying on it.
+ */
+export function numOrNull(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
 
 /** What the dialogs open with, so the coach confirms rather than types. */
 export const AI_DEFAULT_DAYS_PER_WEEK = 3;

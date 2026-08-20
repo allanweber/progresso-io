@@ -7,6 +7,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import {
   AI_DEFAULT_DAYS_PER_WEEK,
   AI_DEFAULT_MEALS,
+  numOrNull,
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
   AI_MEAL_SLOT_LABELS,
@@ -69,6 +70,7 @@ type Props = {
 
 const NOUN = { workout: "treino", diet: "dieta" } as const;
 
+
 /**
  * **Objetivo** is the one question both kinds ask, which is exactly why its
  * example cannot be shared: a single hard-coded "hipertrofia com foco em
@@ -103,6 +105,14 @@ export function AiGenerateButton({
   const [meals, setMeals] = useState<AiMealSlot[]>(AI_DEFAULT_MEALS);
   const [preferences, setPreferences] = useState("");
   const [avoid, setAvoid] = useState("");
+  const [fromScratch, setFromScratch] = useState(false);
+  // Empty string, not 0 — "" renders an empty box and reaches the schema as
+  // null, whereas 0 would show a zero the coach never typed and read as a
+  // target of zero calories.
+  const [targetKcal, setTargetKcal] = useState("");
+  const [targetProteinG, setTargetProteinG] = useState("");
+  const [targetCarbsG, setTargetCarbsG] = useState("");
+  const [targetFatG, setTargetFatG] = useState("");
 
   // Both reads are already cached by other panels on these pages, so opening
   // the dialog costs nothing in practice.
@@ -359,6 +369,62 @@ export function AiGenerateButton({
                       Aversões específicas, além das restrições acima.
                     </p>
                   </div>
+
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Metas{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (opcional)
+                      </span>
+                    </legend>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {(
+                        [
+                          ["ai-kcal", "kcal", targetKcal, setTargetKcal],
+                          ["ai-prot", "Proteína (g)", targetProteinG, setTargetProteinG],
+                          ["ai-carb", "Carbo (g)", targetCarbsG, setTargetCarbsG],
+                          ["ai-fat", "Gordura (g)", targetFatG, setTargetFatG],
+                        ] as const
+                      ).map(([id, label, value, set]) => (
+                        <div key={id} className="space-y-1">
+                          <label className="text-[12px] text-muted-foreground" htmlFor={id}>
+                            {label}
+                          </label>
+                          <Input
+                            id={id}
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            value={value}
+                            onChange={(e) => set(e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[12px] text-muted-foreground">
+                      Em branco, a IA calcula a partir da anamnese. Preenchido,
+                      vira alvo — não sugestão.
+                    </p>
+                  </fieldset>
+
+                  {/* Continuity is the default; the reset is the exception, and
+                      it says what it costs before it is ticked. */}
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border px-3 py-2.5 has-[:checked]:border-amber-300 has-[:checked]:bg-amber-50">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-3.5"
+                        checked={fromScratch}
+                        onChange={(e) => setFromScratch(e.target.checked)}
+                      />
+                      <span className="text-[13px]">
+                        <strong>Recomeçar do zero</strong>
+                        <span className="block text-muted-foreground">
+                          Por padrão, havendo dieta atual, a IA parte dela e só
+                          ajusta — o aluno continua com a rotina que já segue.
+                          Marque para ignorá-la e montar outra do zero.
+                        </span>
+                      </span>
+                    </label>
                 </>
               )}
 
@@ -391,6 +457,11 @@ export function AiGenerateButton({
                             objective: objective.trim(),
                             restrictions,
                             meals,
+                            fromScratch,
+                            targetKcal: numOrNull(targetKcal),
+                            targetProteinG: numOrNull(targetProteinG),
+                            targetCarbsG: numOrNull(targetCarbsG),
+                            targetFatG: numOrNull(targetFatG),
                             // Blank is normalised to null by the schema so the
                             // prompt skips the line rather than sending an
                             // empty label.

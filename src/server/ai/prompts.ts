@@ -8,6 +8,7 @@ import {
   type AiDietGenerateInput,
   type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
+import type { DietTree } from "@/lib/student-diets";
 import type { CatalogBlock } from "./catalog";
 import { DIET_JSON_SCHEMA, WORKOUT_JSON_SCHEMA } from "./schemas";
 
@@ -56,7 +57,57 @@ function renderDietForm(input: AiDietGenerateInput): string {
     // Skipped entirely when blank: an empty label invites the model to fill it.
     ...(input.preferences ? [`Preferências do aluno: ${input.preferences}`] : []),
     ...(input.avoid ? [`Alimentos a evitar: ${input.avoid}`] : []),
+    ...renderTargets(input),
   ].join("\n");
+}
+
+/**
+ * The macro targets, only the ones that were given.
+ *
+ * Partial is a real answer and a common one — a coach often carries a kcal
+ * figure and a protein floor but no opinion at all on how the rest splits.
+ * Sending the blanks as zero would turn "no opinion" into "zero grams of fat".
+ */
+function renderTargets(input: AiDietGenerateInput): string[] {
+  const parts = [
+    input.targetKcal !== null ? `${input.targetKcal} kcal` : null,
+    input.targetProteinG !== null ? `${input.targetProteinG} g de proteína` : null,
+    input.targetCarbsG !== null ? `${input.targetCarbsG} g de carboidrato` : null,
+    input.targetFatG !== null ? `${input.targetFatG} g de gordura` : null,
+  ].filter((p): p is string => p !== null);
+  return parts.length > 0
+    ? [`Metas do dia (alvo, não sugestão): ${parts.join(", ")}`]
+    : [];
+}
+
+/**
+ * The aluno's current diet, rendered as catalog indices so the model can reuse
+ * the exact same rows rather than picking a similar-looking food.
+ *
+ * A food that is no longer in the catalog (archived, or a clinic-custom row
+ * that never was) has no index. It is still listed, marked, and explicitly
+ * declared unusable — dropping it silently would make the model reinvent that
+ * slot with no idea it was ever deliberate.
+ */
+export function renderDietBaseline(
+  tree: DietTree,
+  catalog: CatalogBlock,
+): string {
+  const indexOf = new Map<string, number>();
+  for (const [index, id] of catalog.byIndex) indexOf.set(id, index);
+
+  const lines = tree.meals.map((meal) => {
+    const items = meal.items.map((item) => {
+      const index = item.foodId ? indexOf.get(item.foodId) : undefined;
+      return index !== undefined
+        ? `  - ${index} — ${item.description} — ${item.grams} g`
+        : `  - (fora do catálogo, sem número) ${item.description} — ${item.grams} g`;
+    });
+    return [`${meal.name}${meal.time ? ` (${meal.time})` : ""}:`, ...items].join(
+      "\n",
+    );
+  });
+  return lines.join("\n");
 }
 
 /**
@@ -163,6 +214,8 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     "- Se houver alimentos a evitar, não os use em nenhuma refeição, nem como substituto.",
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
     "- Distribua a proteína ao longo do dia, não concentrada em uma refeição.",
+    "- Se houver metas de kcal ou macros, o dia inteiro tem que bater nelas (±5%). Metas não informadas você calcula a partir da anamnese.",
+    "- Se vier uma dieta atual, ela é o ponto de partida: mantenha alimentos, horários e a cara do plano, mudando só o necessário. Trocar tudo é o pior resultado possível — o aluno já segue aquilo.",
     "",
     schemaBlock(DIET_JSON_SCHEMA),
     "",
@@ -182,7 +235,12 @@ export function userPrompt(
     answers: AnamnesisAnswers;
   } & (
     | { kind: "workout"; input: AiWorkoutGenerateInput }
-    | { kind: "diet"; input: AiDietGenerateInput }
+    | {
+        kind: "diet";
+        input: AiDietGenerateInput;
+        /** The current diet as catalog indices, when one exists and is being kept. */
+        baseline?: string | null;
+      }
   ),
 ): string {
   const what =
@@ -193,12 +251,27 @@ export function userPrompt(
     args.kind === "workout"
       ? renderWorkoutForm(args.input)
       : renderDietForm(args.input);
+  // The baseline goes AFTER the form and BEFORE the anamnese: it is the thing
+  // being adjusted, so the instruction to keep it has to sit next to it.
+  const baseline =
+    args.kind === "diet" && args.baseline
+      ? [
+          "",
+          "Dieta atual do aluno — **ajuste esta dieta, não monte outra**:",
+          "Mantenha os alimentos e os horários que já estão aqui e mexa só no que"
+            + " precisa mudar para atingir o objetivo e as metas. O aluno já segue"
+            + " esta rotina; trocar tudo joga fora a adesão que ele construiu.",
+          args.baseline,
+        ]
+      : [];
+
   return [
     what,
     "",
     `Aluno: ${args.studentName}`,
     "",
     form,
+    ...baseline,
     "",
     "Anamnese:",
     renderAnamnesis(args.sections, args.answers),

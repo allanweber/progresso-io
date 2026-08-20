@@ -8,6 +8,7 @@ import {
   cacheHitRatio,
   formatAiUsage,
   formatCacheHitRatio,
+  numOrNull,
 } from "@/lib/ai-programs";
 import { resolveAiGenerations } from "@/lib/plans";
 import { resolveIndices, type CatalogBlock } from "@/server/ai/catalog";
@@ -232,6 +233,27 @@ describe("aiWorkoutGenerateSchema", () => {
   });
 });
 
+describe("numOrNull", () => {
+  it("reads a blank box as 'no opinion', not as zero", () => {
+    // `Number("")` is 0, so without the empty check first, clearing the kcal
+    // field would send a target of zero calories.
+    expect(numOrNull("")).toBeNull();
+    expect(numOrNull("   ")).toBeNull();
+  });
+
+  it("keeps a real zero the coach actually typed", () => {
+    expect(numOrNull("0")).toBe(0);
+  });
+
+  it("reads a number", () => {
+    expect(numOrNull("2400")).toBe(2400);
+  });
+
+  it("is null for anything unparseable", () => {
+    expect(numOrNull("abc")).toBeNull();
+  });
+});
+
 describe("aiDietGenerateSchema", () => {
   const valid = {
     objective: "emagrecimento",
@@ -239,6 +261,11 @@ describe("aiDietGenerateSchema", () => {
     meals: ["cafe_da_manha", "almoco", "jantar"],
     preferences: "",
     avoid: "",
+    fromScratch: false,
+    targetKcal: null,
+    targetProteinG: null,
+    targetCarbsG: null,
+    targetFatG: null,
   };
 
   it("accepts an empty restrictions array — 'none' is a real answer", () => {
@@ -279,6 +306,33 @@ describe("aiDietGenerateSchema", () => {
     const parsed = aiDietGenerateSchema.parse(valid);
     expect(parsed.preferences).toBeNull();
     expect(parsed.avoid).toBeNull();
+  });
+
+  it("defaults to adjusting, not restarting", () => {
+    // The default carries the whole design: a monthly review is an adjustment,
+    // and a coach who forgets to think about this should get continuity.
+    expect(aiDietGenerateSchema.parse(valid).fromScratch).toBe(false);
+  });
+
+  it("accepts partial macro targets — 'no opinion' is a real answer", () => {
+    // A coach often carries a kcal figure and a protein floor and nothing else;
+    // requiring all four would make them invent two numbers.
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      targetKcal: 2400,
+      targetProteinG: 180,
+    });
+    expect(parsed.targetKcal).toBe(2400);
+    expect(parsed.targetCarbsG).toBeNull();
+  });
+
+  it("rejects a zero or negative target", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, targetKcal: 0 }).success,
+    ).toBe(false);
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, targetProteinG: -10 }).success,
+    ).toBe(false);
   });
 
   it("keeps preferences and avoid as separate answers", () => {
