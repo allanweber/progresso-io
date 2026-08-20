@@ -52,6 +52,44 @@ export const AI_RESTRICTION_LABELS: Record<AiRestriction, string> = {
 };
 
 /**
+ * The meals a day can be split into, in chronological order.
+ *
+ * The coach picks *which* slots to fill, not just how many — "5 refeições" left
+ * the model to invent the split, and it had no way to know whether the aluno
+ * eats a lanche da tarde or trains through it. Naming the slot also gives each
+ * meal a **kind**, which is what lets the prompt refuse arroz-e-feijão at
+ * breakfast.
+ */
+export const AI_MEAL_SLOT_VALUES = [
+  "cafe_da_manha",
+  "lanche_manha",
+  "almoco",
+  "lanche_tarde",
+  "jantar",
+  "ceia",
+] as const;
+export type AiMealSlot = (typeof AI_MEAL_SLOT_VALUES)[number];
+
+export const AI_MEAL_SLOT_LABELS: Record<AiMealSlot, string> = {
+  cafe_da_manha: "Café da manhã",
+  lanche_manha: "Lanche da manhã",
+  almoco: "Almoço",
+  lanche_tarde: "Lanche da tarde",
+  jantar: "Jantar",
+  ceia: "Ceia",
+};
+
+/** Typical clock time per slot — the model anchors `time` to these. */
+export const AI_MEAL_SLOT_TIMES: Record<AiMealSlot, string> = {
+  cafe_da_manha: "07:00",
+  lanche_manha: "10:00",
+  almoco: "12:30",
+  lanche_tarde: "16:00",
+  jantar: "19:30",
+  ceia: "22:00",
+};
+
+/**
  * The generate forms — **one per kind**, because the two generators need
  * genuinely different answers.
  *
@@ -71,6 +109,18 @@ const objectiveField = z
   .trim()
   .min(3, "Descreva o objetivo.")
   .max(200, "Objetivo muito longo.");
+
+/**
+ * An optional free-text note that reaches the prompt. Normalised to `null` when
+ * blank so the renderer can skip the line entirely rather than sending the
+ * model an empty label to interpret.
+ */
+const freeNote = z
+  .string()
+  .trim()
+  .max(300, "Texto muito longo.")
+  .transform((v) => (v === "" ? null : v))
+  .nullable();
 
 /** Treino: what the aluno can train with, and how often. */
 export const aiWorkoutGenerateSchema = z.object({
@@ -94,11 +144,21 @@ export const aiWorkoutGenerateSchema = z.object({
 export const aiDietGenerateSchema = z.object({
   objective: objectiveField,
   restrictions: z.array(z.enum(AI_RESTRICTION_VALUES)),
-  mealsPerDay: z
-    .number()
-    .int("Informe um número inteiro de refeições.")
-    .min(2, "Mínimo de 2 refeições por dia.")
-    .max(8, "Máximo de 8 refeições por dia."),
+  meals: z
+    .array(z.enum(AI_MEAL_SLOT_VALUES))
+    .min(2, "Escolha ao menos duas refeições."),
+  /**
+   * Foods the aluno actually likes, free text. A plan built only from what is
+   * *allowed* is a plan nobody follows — the restrictions say what is
+   * forbidden, this says what will actually get eaten.
+   */
+  preferences: freeNote,
+  /**
+   * Foods to keep out, free text. Distinct from `restrictions`: those are four
+   * coded diets, this is "odeia jiló, não come peixe" — the specific aversions
+   * no checkbox list will ever cover, and the ones an aluno notices first.
+   */
+  avoid: freeNote,
 });
 
 export type AiWorkoutGenerateInput = z.infer<typeof aiWorkoutGenerateSchema>;
@@ -107,7 +167,14 @@ export type AiGenerateInput = AiWorkoutGenerateInput | AiDietGenerateInput;
 
 /** What the dialogs open with, so the coach confirms rather than types. */
 export const AI_DEFAULT_DAYS_PER_WEEK = 3;
-export const AI_DEFAULT_MEALS_PER_DAY = 5;
+/** The five-meal split most coaches start from; the coach edits from there. */
+export const AI_DEFAULT_MEALS: AiMealSlot[] = [
+  "cafe_da_manha",
+  "lanche_manha",
+  "almoco",
+  "lanche_tarde",
+  "jantar",
+];
 
 /** What the generate endpoints return on success. */
 export type AiGenerateResultDto = {

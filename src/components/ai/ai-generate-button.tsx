@@ -6,13 +6,16 @@ import { Loader2, Sparkles } from "lucide-react";
 
 import {
   AI_DEFAULT_DAYS_PER_WEEK,
-  AI_DEFAULT_MEALS_PER_DAY,
+  AI_DEFAULT_MEALS,
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
+  AI_MEAL_SLOT_LABELS,
+  AI_MEAL_SLOT_VALUES,
   AI_RESTRICTION_LABELS,
   AI_RESTRICTION_VALUES,
   formatAiUsage,
   type AiEquipment,
+  type AiMealSlot,
   type AiGenerateInput,
   type AiGenerateResultDto,
   type AiRestriction,
@@ -97,7 +100,9 @@ export function AiGenerateButton({
   const [equipment, setEquipment] = useState<AiEquipment[]>([]);
   const [daysPerWeek, setDaysPerWeek] = useState(AI_DEFAULT_DAYS_PER_WEEK);
   const [restrictions, setRestrictions] = useState<AiRestriction[]>([]);
-  const [mealsPerDay, setMealsPerDay] = useState(AI_DEFAULT_MEALS_PER_DAY);
+  const [meals, setMeals] = useState<AiMealSlot[]>(AI_DEFAULT_MEALS);
+  const [preferences, setPreferences] = useState("");
+  const [avoid, setAvoid] = useState("");
 
   // Both reads are already cached by other panels on these pages, so opening
   // the dialog costs nothing in practice.
@@ -159,7 +164,7 @@ export function AiGenerateButton({
   // beyond the objective.
   const canSubmit =
     objective.trim().length >= 3 &&
-    (kind === "diet" || equipment.length > 0) &&
+    (kind === "diet" ? meals.length >= 2 : equipment.length > 0) &&
     !generate.isPending;
 
   return (
@@ -299,19 +304,60 @@ export function AiGenerateButton({
                       Deixe em branco se não houver restrições.
                     </p>
                   </fieldset>
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
+                      Refeições do dia
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {AI_MEAL_SLOT_VALUES.map((value) => (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5"
+                            checked={meals.includes(value)}
+                            onChange={() => setMeals((l) => toggle(l, value))}
+                          />
+                          {AI_MEAL_SLOT_LABELS[value]}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[12px] text-muted-foreground">
+                      Escolher as refeições (e não só quantas) é o que faz a IA
+                      montar café da manhã como café da manhã.
+                    </p>
+                  </fieldset>
+
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium" htmlFor="ai-meals">
-                      Refeições por dia
+                    <label
+                      className="text-sm font-medium"
+                      htmlFor="ai-preferences"
+                    >
+                      Preferências <span className="font-normal text-muted-foreground">(opcional)</span>
                     </label>
                     <Input
-                      id="ai-meals"
-                      type="number"
-                      min={2}
-                      max={8}
-                      value={mealsPerDay}
-                      onChange={(e) => setMealsPerDay(Number(e.target.value))}
-                      className="w-24"
+                      id="ai-preferences"
+                      value={preferences}
+                      onChange={(e) => setPreferences(e.target.value)}
+                      placeholder="Ex. gosta de ovo, banana, frango, tapioca"
                     />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium" htmlFor="ai-avoid">
+                      Evitar <span className="font-normal text-muted-foreground">(opcional)</span>
+                    </label>
+                    <Input
+                      id="ai-avoid"
+                      value={avoid}
+                      onChange={(e) => setAvoid(e.target.value)}
+                      placeholder="Ex. não come peixe, odeia jiló"
+                    />
+                    <p className="text-[12px] text-muted-foreground">
+                      Aversões específicas, além das restrições acima.
+                    </p>
                   </div>
                 </>
               )}
@@ -344,7 +390,12 @@ export function AiGenerateButton({
                         : {
                             objective: objective.trim(),
                             restrictions,
-                            mealsPerDay,
+                            meals,
+                            // Blank is normalised to null by the schema so the
+                            // prompt skips the line rather than sending an
+                            // empty label.
+                            preferences: preferences.trim() || null,
+                            avoid: avoid.trim() || null,
                           },
                     );
                   }}

@@ -2,6 +2,8 @@ import type { AnamnesisSection } from "@/lib/anamneses";
 import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import {
   AI_EQUIPMENT_LABELS,
+  AI_MEAL_SLOT_LABELS,
+  AI_MEAL_SLOT_TIMES,
   AI_RESTRICTION_LABELS,
   type AiDietGenerateInput,
   type AiWorkoutGenerateInput,
@@ -41,10 +43,19 @@ function renderDietForm(input: AiDietGenerateInput): string {
     input.restrictions.length > 0
       ? input.restrictions.map((r) => AI_RESTRICTION_LABELS[r]).join(", ")
       : "nenhuma informada";
+  // Named slots with their usual times, in the order they were declared —
+  // the model gets the split and the clock anchor, instead of a count it has
+  // to guess a shape for.
+  const meals = input.meals
+    .map((m) => `${AI_MEAL_SLOT_LABELS[m]} (~${AI_MEAL_SLOT_TIMES[m]})`)
+    .join(", ");
   return [
     `Objetivo: ${input.objective}`,
     `Restrições alimentares: ${restrictions}`,
-    `Refeições por dia: ${input.mealsPerDay}`,
+    `Refeições a montar (nesta ordem): ${meals}`,
+    // Skipped entirely when blank: an empty label invites the model to fill it.
+    ...(input.preferences ? [`Preferências do aluno: ${input.preferences}`] : []),
+    ...(input.avoid ? [`Alimentos a evitar: ${input.avoid}`] : []),
   ].join("\n");
 }
 
@@ -143,9 +154,13 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     sharedRules("alimentos"),
     "",
     "Diretrizes:",
-    "- Monte um dia completo, em ordem cronológica, com exatamente o número de refeições pedido.",
+    "- Monte exatamente as refeições pedidas, na ordem dada, usando o nome de cada uma como o nome da refeição.",
+    "- **Cada alimento tem que fazer sentido na refeição em que está.** Café da manhã e lanches levam alimentos de café da manhã e lanche (pães, ovos, frutas, laticínios, aveia, tapioca, café). Almoço e jantar levam refeições completas (arroz, feijão, tubérculos, massas, carnes, saladas). Não coloque arroz, feijão ou bife no café da manhã, nem mingau de aveia no almoço — tecnicamente bate os macros e nenhum aluno come.",
+    "- A ceia é leve: laticínios, castanhas, fruta. Nunca uma refeição completa.",
     "- Ajuste as quantidades ao objetivo, ao peso e à altura do aluno.",
     "- Respeite rigorosamente as restrições alimentares informadas.",
+    "- Se houver preferências, use esses alimentos sempre que couberem nos macros — plano que o aluno gosta é plano que ele segue.",
+    "- Se houver alimentos a evitar, não os use em nenhuma refeição, nem como substituto.",
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
     "- Distribua a proteína ao longo do dia, não concentrada em uma refeição.",
     "",

@@ -222,12 +222,12 @@ describe("aiWorkoutGenerateSchema", () => {
     const parsed = aiWorkoutGenerateSchema.safeParse({
       ...valid,
       restrictions: ["vegano"],
-      mealsPerDay: 5,
+      meals: ["almoco", "jantar"],
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data).not.toHaveProperty("restrictions");
-      expect(parsed.data).not.toHaveProperty("mealsPerDay");
+      expect(parsed.data).not.toHaveProperty("meals");
     }
   });
 });
@@ -236,7 +236,9 @@ describe("aiDietGenerateSchema", () => {
   const valid = {
     objective: "emagrecimento",
     restrictions: [],
-    mealsPerDay: 5,
+    meals: ["cafe_da_manha", "almoco", "jantar"],
+    preferences: "",
+    avoid: "",
   };
 
   it("accepts an empty restrictions array — 'none' is a real answer", () => {
@@ -249,13 +251,46 @@ describe("aiDietGenerateSchema", () => {
     expect(aiDietGenerateSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("rejects 1 and 9 meals per day", () => {
+  it("needs at least two meals — a one-meal day is not a plan", () => {
     expect(
-      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 1 }).success,
+      aiDietGenerateSchema.safeParse({ ...valid, meals: ["almoco"] }).success,
     ).toBe(false);
+  });
+
+  it("rejects an unknown meal slot", () => {
+    // Slots are an enum, not free text, because each one carries a *kind* the
+    // prompt uses to keep arroz-e-feijão out of the café da manhã.
     expect(
-      aiDietGenerateSchema.safeParse({ ...valid, mealsPerDay: 9 }).success,
+      aiDietGenerateSchema.safeParse({ ...valid, meals: ["brunch"] }).success,
     ).toBe(false);
+  });
+
+  it("keeps the coach's chosen order — chronology is theirs to decide", () => {
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      meals: ["almoco", "cafe_da_manha", "ceia"],
+    });
+    expect(parsed.meals).toEqual(["almoco", "cafe_da_manha", "ceia"]);
+  });
+
+  it("normalises blank preferences/avoid to null, not empty strings", () => {
+    // The prompt skips the line when null; an empty label would invite the
+    // model to fill it in with something nobody asked for.
+    const parsed = aiDietGenerateSchema.parse(valid);
+    expect(parsed.preferences).toBeNull();
+    expect(parsed.avoid).toBeNull();
+  });
+
+  it("keeps preferences and avoid as separate answers", () => {
+    // `restrictions` is four coded diets; `avoid` is "não come peixe". A form
+    // that only had the checkboxes could not express the second at all.
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      preferences: "  ovo, banana  ",
+      avoid: "jiló",
+    });
+    expect(parsed.preferences).toBe("ovo, banana");
+    expect(parsed.avoid).toBe("jiló");
   });
 
   it("rejects an unknown restriction value", () => {
