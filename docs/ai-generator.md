@@ -169,11 +169,34 @@ changes. All three are silent failures — no error, just a cold cache.
    - **Preferências / Evitar**, free text. `restrictions` is four coded diets;
      these are "gosta de tapioca" and "odeia jiló" — what will actually get
      eaten, and the specific aversions no checkbox list will ever cover.
+   - **Perfil de macros** — alta proteína, alto carboidrato, baixo carboidrato,
+     baixa gordura; none to several, and combining them is the point (alta
+     proteína com baixo carbo is the classic cut). This is the answer most
+     coaches actually have: very few carry "180 g de proteína, 60 g de gordura"
+     for every aluno, nearly all of them know they want this one high in protein
+     and low in carbohydrate. Without it that intent had two outlets, both bad —
+     invent four numbers, or write it into the free-text objective and hope the
+     model read it as a macro instruction. Each profile reaches the prompt as a
+     **number**, not an adjective (`~2,2 g/kg`, `≤25% das calorias`, fat "perto
+     de 20% e nunca abaixo"), because "alto carboidrato" alone lets the model
+     settle on whatever its training data called high — which is how two
+     generations for the same aluno come back different with no reason the coach
+     can see. There is deliberately **no "baixa proteína"**: nobody prescribes
+     it, and offering it would make the low end look like a legitimate goal.
+
+     Two combinations are refused, in the schema and in the dialog: **alto +
+     baixo carbo** (a straight contradiction) and **baixo carbo + baixa
+     gordura** — the subtler one, and the reason the check is a list rather
+     than an either/or, since cutting both leaves protein carrying the whole
+     day's calories.
    - **Metas** (kcal, protein, carbs, fat), each optional and each independent.
      Blank means "work it out from the anamnese", which is the honest default —
      most coaches do not carry a kcal figure for every aluno. Given, it is a
      hard target (±5%), and only the ones given reach the prompt: sending the
-     blanks as zero would turn "no opinion" into "zero grams of fat".
+     blanks as zero would turn "no opinion" into "zero grams of fat". A gram
+     target **wins over the profile** for its macro, and the prompt says so —
+     "alta proteína" and "150 g de proteína" are not a contradiction the model
+     should be left to resolve on its own.
    - **Recomeçar do zero**, default **off**. With it off and a diet already on
      file, that diet is sent as a baseline and the model is told to *adjust* it —
      keep the foods and the times, move only what the objective requires. A

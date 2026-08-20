@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
+  AI_MACRO_PROFILE_LABELS,
+  AI_MACRO_PROFILE_VALUES,
   aiDietGenerateSchema,
+  macroProfileConflict,
   aiWorkoutGenerateSchema,
   cacheHitRatio,
   formatAiUsage,
@@ -271,6 +274,7 @@ describe("meal slots — one list for the builder and the generator", () => {
         restrictions: [],
         meals: ["pre_treino", "pos_treino"],
         mealsPerDay: null,
+        macroProfiles: [],
         preferences: "",
         avoid: "",
         fromScratch: false,
@@ -320,6 +324,7 @@ describe("aiDietGenerateSchema", () => {
     restrictions: [],
     meals: ["cafe_da_manha", "almoco", "jantar"],
     mealsPerDay: null,
+    macroProfiles: [],
     preferences: "",
     avoid: "",
     fromScratch: false,
@@ -452,11 +457,82 @@ describe("aiDietGenerateSchema", () => {
     expect(parsed.avoid).toBe("jiló");
   });
 
+  // The macro profile is the answer most coaches actually have: few carry
+  // "180 g de proteína" per aluno, nearly all know they want this one high in
+  // protein and low in carbohydrate.
+  it("accepts several macro profiles at once", () => {
+    const parsed = aiDietGenerateSchema.parse({
+      ...valid,
+      macroProfiles: ["alta_proteina", "baixo_carbo"],
+    });
+    expect(parsed.macroProfiles).toEqual(["alta_proteina", "baixo_carbo"]);
+  });
+
+  it("accepts none — no profile means 'balance it yourself'", () => {
+    expect(aiDietGenerateSchema.parse(valid).macroProfiles).toEqual([]);
+  });
+
+  it("rejects alto + baixo carboidrato", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({
+        ...valid,
+        macroProfiles: ["alto_carbo", "baixo_carbo"],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects baixo carbo with baixa gordura — the calories have to come from somewhere", () => {
+    // The subtler conflict, and the reason the check is a list rather than a
+    // single either/or: cut both and protein is left carrying the whole day.
+    expect(
+      aiDietGenerateSchema.safeParse({
+        ...valid,
+        macroProfiles: ["baixo_carbo", "baixa_gordura"],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("allows alto carbo with baixa gordura — that pair is a real diet", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({
+        ...valid,
+        macroProfiles: ["alto_carbo", "baixa_gordura"],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an unknown macro profile", () => {
+    expect(
+      aiDietGenerateSchema.safeParse({ ...valid, macroProfiles: ["cetogenica"] })
+        .success,
+    ).toBe(false);
+  });
+
   it("rejects an unknown restriction value", () => {
     expect(
       aiDietGenerateSchema.safeParse({ ...valid, restrictions: ["low_carb"] })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("macroProfileConflict", () => {
+  it("names the offending pair, not a generic 'inválido'", () => {
+    // The dialog shows this string verbatim, so it has to say which pair.
+    expect(macroProfileConflict(["alto_carbo", "baixo_carbo"])).toMatch(/carboidrato/);
+  });
+
+  it("is null for anything buildable", () => {
+    expect(macroProfileConflict([])).toBeNull();
+    expect(macroProfileConflict(["alta_proteina"])).toBeNull();
+    expect(macroProfileConflict(["alta_proteina", "baixa_gordura"])).toBeNull();
+  });
+
+  it("gives every profile a label", () => {
+    // A missing label renders an empty checkbox in the dialog.
+    for (const value of AI_MACRO_PROFILE_VALUES) {
+      expect(AI_MACRO_PROFILE_LABELS[value]).toBeTruthy();
+    }
   });
 });
 

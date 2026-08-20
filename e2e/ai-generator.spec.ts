@@ -218,6 +218,28 @@ test.describe("ai program generator", () => {
     await total.fill("");
     await expect(submit).toBeEnabled();
 
+    // The macro profile is the shape of the plan, without asking the coach to
+    // calculate grams. Combinations are the point — alta proteína com baixo
+    // carbo is the classic cut — but two of them describe no buildable day.
+    const macros = page.getByRole("group", { name: "Perfil de macros" });
+    await macros.getByRole("checkbox", { name: "Alta proteína" }).check();
+    await macros.getByRole("checkbox", { name: "Baixo carboidrato" }).check();
+    await expect(submit).toBeEnabled();
+
+    await macros.getByRole("checkbox", { name: "Alto carboidrato" }).check();
+    await expect(submit).toBeDisabled();
+    await expect(
+      page.getByText("Escolha alto ou baixo carboidrato — não os dois."),
+    ).toBeVisible();
+    await macros.getByRole("checkbox", { name: "Alto carboidrato" }).uncheck();
+    await expect(submit).toBeEnabled();
+
+    // The subtler pair: cut carbs and fat and protein carries the whole day.
+    await macros.getByRole("checkbox", { name: "Baixa gordura" }).check();
+    await expect(submit).toBeDisabled();
+    await macros.getByRole("checkbox", { name: "Baixo carboidrato" }).uncheck();
+    await expect(submit).toBeEnabled();
+
     await page.screenshot({
       path: "test-results/screens/coach-ai-generator-diet-desktop.png",
       fullPage: true,

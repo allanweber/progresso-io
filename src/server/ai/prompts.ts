@@ -3,6 +3,7 @@ import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import {
   AI_EQUIPMENT_LABELS,
   AI_RESTRICTION_LABELS,
+  type AiMacroProfile,
   type AiDietGenerateInput,
   type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
@@ -53,6 +54,7 @@ function renderDietForm(input: AiDietGenerateInput): string {
     `Objetivo: ${input.objective}`,
     `Restrições alimentares: ${restrictions}`,
     ...renderMeals(input),
+    ...renderMacroProfiles(input),
     // Skipped entirely when blank: an empty label invites the model to fill it.
     ...(input.preferences ? [`Preferências do aluno: ${input.preferences}`] : []),
     ...(input.avoid ? [`Alimentos a evitar: ${input.avoid}`] : []),
@@ -101,6 +103,52 @@ function renderMeals(input: AiDietGenerateInput): string[] {
     ...chosen.map((s) => `  - ${renderMealSlot(s)}`),
     `Complete as outras ${total - chosen.length} escolhendo entre:`,
     ...rest.map((s) => `  - ${renderMealSlot(s)}`),
+  ];
+}
+
+/**
+ * What each macro profile means in numbers.
+ *
+ * Ballpark figures, not a bare adjective: "alto carboidrato" alone lets the
+ * model settle on whatever its training data considered high, which is how two
+ * generations for the same aluno come back with different diets and no reason
+ * the coach can see. The floors are the clinically load-bearing part — fat
+ * carries the fat-soluble vitamins and the essential fatty acids, so "baixa"
+ * has a bottom.
+ */
+const MACRO_PROFILE_RULES: Record<AiMacroProfile, string> = {
+  alta_proteina:
+    "proteína alta — em torno de 2,2 g por kg de peso corporal, distribuída entre as refeições e não concentrada em uma",
+  alto_carbo:
+    "carboidrato alto — a maior fatia das calorias vem do carboidrato, com as porções maiores perto do treino",
+  baixo_carbo:
+    "carboidrato baixo — no máximo ~25% das calorias, com o restante em proteína e gordura",
+  baixa_gordura:
+    "gordura baixa — perto de 20% das calorias e nunca abaixo disso: é onde estão as vitaminas lipossolúveis e os ácidos graxos essenciais",
+};
+
+/**
+ * The macro shape the coach asked for, if any.
+ *
+ * When gram targets were also given, the numbers win and the prompt says so —
+ * "alta proteína" and "150 g de proteína" are not a contradiction the model
+ * should be left to resolve on its own, and the number is the more specific
+ * instruction of the two.
+ */
+function renderMacroProfiles(input: AiDietGenerateInput): string[] {
+  if (input.macroProfiles.length === 0) return [];
+  const hasGramTargets =
+    input.targetProteinG !== null ||
+    input.targetCarbsG !== null ||
+    input.targetFatG !== null;
+  return [
+    "Perfil de macros:",
+    ...input.macroProfiles.map((p) => `  - ${MACRO_PROFILE_RULES[p]}`),
+    ...(hasGramTargets
+      ? [
+          "Onde houver meta em gramas, a meta manda; o perfil vale para os macros sem número.",
+        ]
+      : []),
   ];
 }
 

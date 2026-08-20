@@ -53,6 +53,70 @@ export const AI_RESTRICTION_LABELS: Record<AiRestriction, string> = {
 };
 
 /**
+ * How the day's calories should be split — the shape of the plan, as opposed to
+ * `restrictions` (what is forbidden) or the gram targets (exact numbers).
+ *
+ * This is the answer most coaches actually have. Very few carry "180 g de
+ * proteína, 60 g de gordura" for every aluno; nearly all of them know they want
+ * this one high in protein and low in carbohydrate. Without it that intent had
+ * only two outlets — invent four numbers, or write it into the free-text
+ * objective and hope the model reads it as a macro instruction.
+ *
+ * There is deliberately **no "baixa proteína"**. It is not a thing anyone
+ * prescribes for a training aluno, and offering it would make the low end of
+ * protein look like a legitimate goal rather than the failure it is.
+ */
+export const AI_MACRO_PROFILE_VALUES = [
+  "alta_proteina",
+  "alto_carbo",
+  "baixo_carbo",
+  "baixa_gordura",
+] as const;
+export type AiMacroProfile = (typeof AI_MACRO_PROFILE_VALUES)[number];
+
+export const AI_MACRO_PROFILE_LABELS: Record<AiMacroProfile, string> = {
+  alta_proteina: "Alta proteína",
+  alto_carbo: "Alto carboidrato",
+  baixo_carbo: "Baixo carboidrato",
+  baixa_gordura: "Baixa gordura",
+};
+
+/**
+ * Profile pairs that describe no buildable day. Kept here, next to the values,
+ * because both the schema and the dialog have to agree on them.
+ *
+ * - **alto + baixo carbo** is a straight contradiction.
+ * - **baixo carbo + baixa gordura** is the subtler one, and the reason this
+ *   list exists at all: energy has to come from somewhere. Cut both and the
+ *   only macro left carrying the calories is protein, which is neither what the
+ *   coach meant nor something to feed a real person.
+ */
+export const AI_MACRO_PROFILE_CONFLICTS: [AiMacroProfile, AiMacroProfile, string][] =
+  [
+    [
+      "alto_carbo",
+      "baixo_carbo",
+      "Escolha alto ou baixo carboidrato — não os dois.",
+    ],
+    [
+      "baixo_carbo",
+      "baixa_gordura",
+      "Baixo carboidrato com baixa gordura não fecha as calorias — escolha um.",
+    ],
+  ];
+
+/** The first conflict present in a selection, or `null`. */
+export function macroProfileConflict(
+  profiles: readonly AiMacroProfile[],
+): string | null {
+  const chosen = new Set(profiles);
+  for (const [a, b, message] of AI_MACRO_PROFILE_CONFLICTS) {
+    if (chosen.has(a) && chosen.has(b)) return message;
+  }
+  return null;
+}
+
+/**
  * The generate forms — **one per kind**, because the two generators need
  * genuinely different answers.
  *
@@ -133,6 +197,11 @@ export const aiDietGenerateSchema = z
      */
     meals: z.array(z.enum(MEAL_SLOT_VALUES)),
     /**
+     * The macro shape, none to several. Empty is the normal answer: no profile
+     * means "balance it yourself from the anamnese", same as a blank target.
+     */
+    macroProfiles: z.array(z.enum(AI_MACRO_PROFILE_VALUES)),
+    /**
      * How many meals the day should have, or `null` to let `meals` decide.
      *
      * With `meals` this is the **total**, and the named slots are the mandatory
@@ -200,6 +269,10 @@ export const aiDietGenerateSchema = z
         message:
           "O total de refeições não pode ser menor que as refeições escolhidas.",
       });
+    }
+    const conflict = macroProfileConflict(v.macroProfiles);
+    if (conflict !== null) {
+      ctx.addIssue({ code: "custom", path: ["macroProfiles"], message: conflict });
     }
   });
 

@@ -1309,6 +1309,7 @@ describe("generateDiet — continuity with the current diet", () => {
     restrictions: [],
     meals: ["cafe_da_manha", "almoco"] as MealSlot[],
     mealsPerDay: null,
+    macroProfiles: [],
     preferences: null,
     avoid: null,
     fromScratch: false,
@@ -1399,6 +1400,41 @@ describe("generateDiet — continuity with the current diet", () => {
     const menu = lastUserPrompt.split("Complete as outras")[1] ?? "";
     expect(menu).not.toContain("Café da manhã (~07:00)");
     expect(menu).toContain("Ceia (~22:00)");
+  });
+
+  it("turns the macro profile into numbers, not an adjective", async () => {
+    // "alto carboidrato" alone lets the model settle on whatever its training
+    // data called high — which is how two generations for the same aluno come
+    // back different with no reason the coach can see.
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, {
+      ...dietInput,
+      macroProfiles: ["alta_proteina", "baixo_carbo"],
+    });
+    expect(lastUserPrompt).toContain("Perfil de macros:");
+    expect(lastUserPrompt).toContain("2,2 g por kg");
+    expect(lastUserPrompt).toContain("25% das calorias");
+    // No profile chosen → no section at all, rather than an empty heading.
+    await generateDiet(ctx, studentId, { ...dietInput });
+    expect(lastUserPrompt).not.toContain("Perfil de macros:");
+  });
+
+  it("tells the model the gram target wins over the profile", async () => {
+    stubProvider(onePlan);
+    await generateDiet(ctx, studentId, {
+      ...dietInput,
+      macroProfiles: ["alta_proteina"],
+      targetProteinG: 150,
+    });
+    expect(lastUserPrompt).toContain("a meta manda");
+
+    // With no gram target there is nothing to rank, so the line stays out.
+    await generateDiet(ctx, studentId, {
+      ...dietInput,
+      macroProfiles: ["alta_proteina"],
+      targetKcal: 2000,
+    });
+    expect(lastUserPrompt).not.toContain("a meta manda");
   });
 
   it("passes only the macro targets that were given", async () => {
