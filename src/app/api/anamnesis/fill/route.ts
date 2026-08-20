@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { validateAnswers } from "@/lib/anamneses";
-import { normalizePhone } from "@/lib/phone";
+import { phonesMatch } from "@/lib/phone";
 import { fillSubmitSchema, type FillPageState } from "@/lib/student-anamneses";
 import { z } from "@/lib/validation";
 import { notifications, studentAnamneses } from "@/server/dal";
@@ -66,7 +66,7 @@ export const POST = withRoute("anamneseFill.submit", async (request) => {
   }
 
   // The number the aluno typed must match the one on file (the "login").
-  if (normalizePhone(phone) !== found.student.phone) {
+  if (!phonesMatch(phone, found.student.phone)) {
     recordFailure(key);
     return apiError("O WhatsApp informado não confere. Verifique o número.", 403);
   }

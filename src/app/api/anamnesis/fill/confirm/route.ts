@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
-import { normalizePhone } from "@/lib/phone";
+import { phonesMatch } from "@/lib/phone";
 import type { FillRevealDto } from "@/lib/student-anamneses";
 import { z } from "@/lib/validation";
 import { studentAnamneses } from "@/server/dal";
@@ -42,7 +42,7 @@ export const POST = withRoute("anamneseFill.confirm", async (request) => {
     return apiError("Muitas tentativas. Tente novamente mais tarde.", 429);
   }
 
-  if (normalizePhone(phone) !== found.student.phone) {
+  if (!phonesMatch(phone, found.student.phone)) {
     recordFailure(key);
     return apiError("O WhatsApp informado não confere. Verifique o número.", 403);
   }

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { formatPhone } from "@/lib/phone";
 import type { Modality } from "@/db/schema";
 import { fieldError } from "@/lib/form";
 import {
@@ -54,7 +55,10 @@ function toValues(student: StudentDto): StudentFormValues {
     firstName: student.firstName,
     lastName: student.lastName,
     email: student.email ?? "",
-    phone: student.phone ?? "",
+    // Shown formatted (`+55 (11) …`, `+31 636051199`) rather than as the raw
+    // stored digits: the coach needs to see the country code they saved. It
+    // round-trips — normalizePhone parses this back to the same canonical form.
+    phone: formatPhone(student.phone),
     goal: student.goal ?? "",
     modality: student.modality,
   };
@@ -170,8 +174,8 @@ export function StudentForm({
           {(field) => (
             <Field
               id="phone"
-              label="Telefone (opcional)"
-              placeholder="(11) 90000-0000"
+              label="WhatsApp"
+              placeholder="+55 11 99999-0000"
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={(e) => field.handleChange(e.target.value)}
