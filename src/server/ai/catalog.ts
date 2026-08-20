@@ -30,6 +30,27 @@ import type { TenantContext } from "@/server/tenant";
  *   attends to better.
  */
 
+/**
+ * What one food row is, beyond its rendered line — the numbers the server needs
+ * to CHECK the model's answer instead of trusting it.
+ *
+ * The model is shown these macros and asked to hit a kcal target; it does the
+ * arithmetic in prose and gets it wrong often enough to matter (a 2600 kcal
+ * request came back at 2827). Keeping the facts next to the index is what lets
+ * `verifyDietPlan` add the day up itself.
+ */
+export type FoodFacts = {
+  id: string;
+  description: string;
+  energyKcal: number;
+  protein: number;
+  carbohydrate: number;
+  fat: number;
+  /** The base household portion ("fatia", "unidade"), when the food has one. */
+  measureLabel: string | null;
+  measureGrams: number | null;
+};
+
 /** How the model's answer maps back to real rows. */
 export type CatalogBlock = {
   /** The rendered text, verbatim, for the system prompt. */
@@ -41,6 +62,9 @@ export type CatalogBlock = {
   /** How many rows the block carries — logged, and useful in tests. */
   size: number;
 };
+
+/** The food catalog, plus the facts behind each index. */
+export type FoodCatalogBlock = CatalogBlock & { foods: Map<number, FoodFacts> };
 
 /** Hash + index map for a rendered block. */
 function finish(lines: string[], ids: string[]): CatalogBlock {
@@ -119,7 +143,31 @@ export async function buildExerciseCatalog(
  */
 export async function buildFoodCatalog(
   ctx: TenantContext,
-): Promise<CatalogBlock> {
+): Promise<FoodCatalogBlock> {
+  // Platform measures only (clinicId IS NULL), same rule as the foods
+  // themselves: a clinic's own "fatia" would make the prefix differ per tenant
+  // and cost every clinic its cache hit.
+  const measures = await ctx.db
+    .select({
+      foodId: schema.foodMeasure.foodId,
+      label: schema.foodMeasure.label,
+      grams: schema.foodMeasure.grams,
+    })
+    .from(schema.foodMeasure)
+    .where(
+      and(
+        isNull(schema.foodMeasure.clinicId),
+        eq(schema.foodMeasure.isDefault, true),
+      ),
+    )
+    // Deterministic pick when a food somehow has two defaults — otherwise the
+    // block's bytes depend on row order and the cache dies silently.
+    .orderBy(asc(schema.foodMeasure.label), asc(schema.foodMeasure.grams));
+  const measureOf = new Map<string, { label: string; grams: number }>();
+  for (const m of measures) {
+    if (!measureOf.has(m.foodId)) measureOf.set(m.foodId, m);
+  }
+
   const rows = await ctx.db
     .select({
       id: schema.food.id,
@@ -147,12 +195,33 @@ export async function buildFoodCatalog(
   // One decimal everywhere: enough precision for a diet, and a fixed width so
   // a float that round-trips differently can't shift the bytes.
   const n = (v: number | null) => (v ?? 0).toFixed(1);
-  const lines = rows.map(
-    (r, i) =>
+  const lines = rows.map((r, i) => {
+    const m = measureOf.get(r.id);
+    // The household portion, where the food has one. This is what turns "50 g
+    // de pão de forma" into "2 fatias" on the aluno's plan — a diet written in
+    // grams for foods that nobody weighs is a diet nobody follows.
+    const measure = m ? ` [1 ${m.label} = ${m.grams.toFixed(0)}g]` : "";
+    return (
       `${i + 1}: ${r.description} — ${n(r.energyKcal)}kcal ` +
-      `P${n(r.protein)} C${n(r.carbohydrate)} G${n(r.fat)} /100g`,
-  );
-  return finish(lines, rows.map((r) => r.id));
+      `P${n(r.protein)} C${n(r.carbohydrate)} G${n(r.fat)} /100g${measure}`
+    );
+  });
+  const block = finish(lines, rows.map((r) => r.id));
+  const foods = new Map<number, FoodFacts>();
+  rows.forEach((r, i) => {
+    const m = measureOf.get(r.id);
+    foods.set(i + 1, {
+      id: r.id,
+      description: r.description,
+      energyKcal: r.energyKcal ?? 0,
+      protein: r.protein ?? 0,
+      carbohydrate: r.carbohydrate ?? 0,
+      fat: r.fat ?? 0,
+      measureLabel: m?.label ?? null,
+      measureGrams: m?.grams ?? null,
+    });
+  });
+  return { ...block, foods };
 }
 
 /**

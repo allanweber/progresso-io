@@ -9,12 +9,16 @@ import {
   numOrNull,
   AI_EQUIPMENT_LABELS,
   AI_EQUIPMENT_VALUES,
+  AI_MACRO_PROFILE_LABELS,
+  AI_MACRO_PROFILE_VALUES,
   AI_RESTRICTION_LABELS,
   AI_RESTRICTION_VALUES,
   formatAiUsage,
+  macroProfileConflict,
   type AiEquipment,
   type AiGenerateInput,
   type AiGenerateResultDto,
+  type AiMacroProfile,
   type AiRestriction,
 } from "@/lib/ai-programs";
 import {
@@ -109,6 +113,7 @@ export function AiGenerateButton({
   // a 0 nobody typed. Blank is the normal case: the ticked slots already say
   // how many there are.
   const [mealsPerDayRaw, setMealsPerDayRaw] = useState("");
+  const [macroProfiles, setMacroProfiles] = useState<AiMacroProfile[]>([]);
   const [preferences, setPreferences] = useState("");
   const [avoid, setAvoid] = useState("");
   const [fromScratch, setFromScratch] = useState(false);
@@ -194,9 +199,16 @@ export function AiGenerateButton({
   // Equipment is the treino's only extra required answer; the dieta's
   // restrictions are legitimately answerable as "none", so it needs no gate
   // beyond the objective.
+  // Alto + baixo carbo contradict each other, and low-carb + low-fat leaves
+  // protein carrying the calories. Caught here so the coach sees which pair is
+  // the problem, rather than a 400 after a credit was claimed.
+  const profileProblem = macroProfileConflict(macroProfiles);
+
   const canSubmit =
     objective.trim().length >= 3 &&
-    (kind === "diet" ? mealsProblem === null : equipment.length > 0) &&
+    (kind === "diet"
+      ? mealsProblem === null && profileProblem === null
+      : equipment.length > 0) &&
     !generate.isPending;
 
   return (
@@ -422,6 +434,45 @@ export function AiGenerateButton({
 
                   <fieldset className="space-y-2">
                     <legend className="text-sm font-medium">
+                      Perfil de macros{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (opcional)
+                      </span>
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {AI_MACRO_PROFILE_VALUES.map((value) => (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5"
+                            checked={macroProfiles.includes(value)}
+                            onChange={() =>
+                              setMacroProfiles((l) => toggle(l, value))
+                            }
+                          />
+                          {AI_MACRO_PROFILE_LABELS[value]}
+                        </label>
+                      ))}
+                    </div>
+                    {/* The answer most coaches actually have: they rarely carry
+                        "180 g de proteína" per aluno, but they do know they want
+                        this one alta proteína e baixo carbo. */}
+                    <p className="text-[12px] text-muted-foreground">
+                      A forma do plano, sem precisar calcular gramas. Combine à
+                      vontade — ex. alta proteína com baixo carboidrato.
+                    </p>
+                    {profileProblem !== null && (
+                      <p className="text-[12px] text-destructive">
+                        {profileProblem}
+                      </p>
+                    )}
+                  </fieldset>
+
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">
                       Metas{" "}
                       <span className="font-normal text-muted-foreground">
                         (opcional)
@@ -453,7 +504,7 @@ export function AiGenerateButton({
                     </div>
                     <p className="text-[12px] text-muted-foreground">
                       Em branco, a IA calcula a partir da anamnese. Preenchido,
-                      vira alvo — não sugestão.
+                      vira alvo — não sugestão, e manda sobre o perfil acima.
                     </p>
                   </fieldset>
 
@@ -508,6 +559,7 @@ export function AiGenerateButton({
                             restrictions,
                             meals,
                             mealsPerDay,
+                            macroProfiles,
                             fromScratch,
                             targetKcal: numOrNull(targetKcal),
                             targetProteinG: numOrNull(targetProteinG),

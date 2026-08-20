@@ -127,6 +127,17 @@ export const dietPlanSchema = z.object({
               food: z.number().int().positive(),
               /** Portion in grams. Must be > 0 — the DAL enforces it too. */
               grams: z.number().positive().max(5000),
+              /**
+               * How many household portions that is ("2" fatias), when the
+               * catalog line offered one. Nullable because most foods have no
+               * portion and because the model is allowed to prescribe in grams.
+               *
+               * `grams` stays the source of truth for every calculation; this
+               * only labels it. The server recomputes grams from the count when
+               * both are given, so a model that says "2 fatias, 60 g" for a
+               * 25 g slice can't leave the plan disagreeing with itself.
+               */
+              measures: z.number().positive().max(100).nullable().optional(),
             }),
           )
           .min(1)
@@ -170,7 +181,7 @@ export const DIET_JSON_SCHEMA = {
             items: {
               type: "object",
               additionalProperties: false,
-              required: ["food", "grams"],
+              required: ["food", "grams", "measures"],
               properties: {
                 food: {
                   type: "integer",
@@ -180,6 +191,13 @@ export const DIET_JSON_SCHEMA = {
                 grams: {
                   type: "number",
                   description: "Quantidade em gramas.",
+                },
+                measures: {
+                  type: ["number", "null"],
+                  description:
+                    "Quantas medidas caseiras isso representa, quando o alimento "
+                    + "tiver uma no catálogo (ex. 2 para '2 fatias'). Use número "
+                    + "inteiro. null quando o alimento não tiver medida.",
                 },
               },
             },

@@ -3,6 +3,7 @@ import type { AnamnesisAnswers } from "@/lib/student-anamneses";
 import {
   AI_EQUIPMENT_LABELS,
   AI_RESTRICTION_LABELS,
+  type AiMacroProfile,
   type AiDietGenerateInput,
   type AiWorkoutGenerateInput,
 } from "@/lib/ai-programs";
@@ -53,6 +54,7 @@ function renderDietForm(input: AiDietGenerateInput): string {
     `Objetivo: ${input.objective}`,
     `Restrições alimentares: ${restrictions}`,
     ...renderMeals(input),
+    ...renderMacroProfiles(input),
     // Skipped entirely when blank: an empty label invites the model to fill it.
     ...(input.preferences ? [`Preferências do aluno: ${input.preferences}`] : []),
     ...(input.avoid ? [`Alimentos a evitar: ${input.avoid}`] : []),
@@ -101,6 +103,52 @@ function renderMeals(input: AiDietGenerateInput): string[] {
     ...chosen.map((s) => `  - ${renderMealSlot(s)}`),
     `Complete as outras ${total - chosen.length} escolhendo entre:`,
     ...rest.map((s) => `  - ${renderMealSlot(s)}`),
+  ];
+}
+
+/**
+ * What each macro profile means in numbers.
+ *
+ * Ballpark figures, not a bare adjective: "alto carboidrato" alone lets the
+ * model settle on whatever its training data considered high, which is how two
+ * generations for the same aluno come back with different diets and no reason
+ * the coach can see. The floors are the clinically load-bearing part — fat
+ * carries the fat-soluble vitamins and the essential fatty acids, so "baixa"
+ * has a bottom.
+ */
+const MACRO_PROFILE_RULES: Record<AiMacroProfile, string> = {
+  alta_proteina:
+    "proteína alta — em torno de 2,2 g por kg de peso corporal, distribuída entre as refeições e não concentrada em uma",
+  alto_carbo:
+    "carboidrato alto — a maior fatia das calorias vem do carboidrato, com as porções maiores perto do treino",
+  baixo_carbo:
+    "carboidrato baixo — no máximo ~25% das calorias, com o restante em proteína e gordura",
+  baixa_gordura:
+    "gordura baixa — perto de 20% das calorias e nunca abaixo disso: é onde estão as vitaminas lipossolúveis e os ácidos graxos essenciais",
+};
+
+/**
+ * The macro shape the coach asked for, if any.
+ *
+ * When gram targets were also given, the numbers win and the prompt says so —
+ * "alta proteína" and "150 g de proteína" are not a contradiction the model
+ * should be left to resolve on its own, and the number is the more specific
+ * instruction of the two.
+ */
+function renderMacroProfiles(input: AiDietGenerateInput): string[] {
+  if (input.macroProfiles.length === 0) return [];
+  const hasGramTargets =
+    input.targetProteinG !== null ||
+    input.targetCarbsG !== null ||
+    input.targetFatG !== null;
+  return [
+    "Perfil de macros:",
+    ...input.macroProfiles.map((p) => `  - ${MACRO_PROFILE_RULES[p]}`),
+    ...(hasGramTargets
+      ? [
+          "Onde houver meta em gramas, a meta manda; o perfil vale para os macros sem número.",
+        ]
+      : []),
   ];
 }
 
@@ -251,12 +299,18 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     "- Monte exatamente as refeições pedidas, na ordem dada, usando o nome de cada uma como o nome da refeição. Quando o pedido der um total maior que as refeições nomeadas, complete o restante com as opções listadas — sempre em ordem cronológica, e nunca repetindo uma refeição.",
     "- **Cada alimento tem que fazer sentido na refeição em que está.** Cada refeição pedida vem com a descrição do que cabe nela — siga essa descrição. Não coloque arroz, feijão ou bife no café da manhã, nem mingau de aveia no almoço: tecnicamente bate os macros e nenhum aluno come.",
     "- Ajuste as quantidades ao objetivo, ao peso e à altura do aluno.",
+    // Two rows of starch in one meal is the single most common way a
+    // macro-correct plan turns into a plate nobody serves.
+    "- **Um carboidrato principal por refeição.** Pão com aveia no café, arroz com batata no almoço, macarrão com mandioca no jantar: escolha um só. A exceção é a dupla arroz + leguminosa (feijão, lentilha, grão-de-bico), que é o prato brasileiro normal — fruta e legumes também não contam como segundo carboidrato.",
+    // A plan in grams for foods nobody weighs is a plan nobody follows.
+    "- **Use medidas caseiras onde o catálogo oferece uma** (aparecem como [1 fatia = 25g]). Prescreva um número INTEIRO de medidas, ponha esse número em \"measures\" e ponha em \"grams\" o resultado da conta (2 fatias de 25 g = 50 g). Sem medida no catálogo, use gramas em múltiplos práticos e deixe \"measures\" null.",
     "- Respeite rigorosamente as restrições alimentares informadas.",
     "- Se houver preferências, use esses alimentos sempre que couberem nos macros — plano que o aluno gosta é plano que ele segue.",
     "- Se houver alimentos a evitar, não os use em nenhuma refeição, nem como substituto.",
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
+    "- Alimentos a evitar são proibição, não preferência: não aparecem em refeição nenhuma, em quantidade nenhuma.",
     "- Distribua a proteína ao longo do dia, não concentrada em uma refeição.",
-    "- Se houver metas de kcal ou macros, o dia inteiro tem que bater nelas (±5%). Metas não informadas você calcula a partir da anamnese.",
+    "- Se houver metas de kcal ou macros, **some o dia inteiro e confira antes de responder**: kcal por 100 g × gramas ÷ 100, item por item. O total tem que cair dentro de ±5% da meta — o sistema refaz essa conta e devolve a dieta se não bater. Metas não informadas você calcula a partir da anamnese.",
     "- Se vier uma dieta atual, ela é o ponto de partida: mantenha alimentos, horários e a cara do plano, mudando só o necessário. Trocar tudo é o pior resultado possível — o aluno já segue aquilo.",
     "",
     schemaBlock(DIET_JSON_SCHEMA),
@@ -328,11 +382,31 @@ export function userPrompt(
  * re-sending the whole task, so the retry is cheap and the model's attention is
  * on the one thing it got wrong.
  */
-export function repairPrompt(base: string, invalid: number[]): string {
+export function repairPrompt(
+  base: string,
+  invalid: number[],
+  problems: string[] = [],
+): string {
   return [
     base,
     "",
-    `ATENÇÃO: na tentativa anterior você usou números que não existem no catálogo: ${invalid.join(", ")}.`,
-    "Refaça a resposta usando somente números presentes no catálogo.",
+    ...(invalid.length > 0
+      ? [
+          `ATENÇÃO: na tentativa anterior você usou números que não existem no catálogo: ${invalid.join(", ")}.`,
+          "Refaça a resposta usando somente números presentes no catálogo.",
+        ]
+      : []),
+    // The server checked the previous answer and these are things it can prove
+    // wrong — arithmetic and a word search, not opinions. Stated as findings
+    // with the real figures, because "bata a meta" is what failed the first
+    // time; "você entregou 2827 e a meta era 2600" is actionable.
+    ...(problems.length > 0
+      ? [
+          "ATENÇÃO: a resposta anterior foi conferida pelo sistema e tem estes problemas:",
+          ...problems.map((p) => `- ${p}`),
+          "Refaça a dieta inteira corrigindo TODOS eles. Some você mesmo os macros de cada item"
+            + " (kcal por 100 g × gramas ÷ 100) e confira o total antes de responder.",
+        ]
+      : []),
   ].join("\n");
 }
