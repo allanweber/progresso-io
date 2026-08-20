@@ -277,18 +277,51 @@ export async function markInvoicePaid(
   db: DB,
   invoiceId: string,
   input: MarkPaidInput,
+  /**
+   * The admin settling it. Given, the clinic is moved onto the plan the invoice
+   * was raised for and the move is audited in `clinic_plan_change` like any
+   * other. Omitted, only the ledger changes (kept for callers with no session).
+   */
+  grantedBy?: string,
 ): Promise<InvoiceDto | null> {
-  const [row] = await db
-    .update(schema.invoice)
-    .set({
-      status: "paid",
-      paidAt: input.paidAt,
-      paymentMethod: input.paymentMethod,
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.invoice.id, invoiceId))
-    .returning({ id: schema.invoice.id });
-  return row ? getInvoice(db, invoiceId) : null;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(schema.invoice)
+      .set({
+        status: "paid",
+        paidAt: input.paidAt,
+        paymentMethod: input.paymentMethod,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.invoice.id, invoiceId))
+      .returning({
+        id: schema.invoice.id,
+        clinicId: schema.invoice.clinicId,
+        planSnapshot: schema.invoice.planSnapshot,
+      });
+    if (!row) return null;
+
+    // Money in, plan granted — in the same transaction.
+    //
+    // These used to be two independent admin actions, and the failure that
+    // caused was the worst one a billing flow has: a coach pays R$379, the
+    // fatura reads "Paga", and the clinic sits on Free until somebody
+    // remembers the second click. The invoice already records which plan it
+    // billed (`planSnapshot`), so nothing has to be inferred.
+    //
+    // `setClinicPlan` is a no-op when the clinic is already on that plan, so
+    // settling a renewal changes nothing and writes no audit row.
+    if (grantedBy) {
+      await setClinicPlan(
+        tx as unknown as DB,
+        row.clinicId,
+        row.planSnapshot,
+        grantedBy,
+        `Fatura paga (${input.paymentMethod})`,
+      );
+    }
+    return getInvoice(tx as unknown as DB, invoiceId);
+  });
 }
 
 /** Cancels an invoice (keeps it in the ledger). Null when unknown. */
