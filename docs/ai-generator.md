@@ -147,6 +147,30 @@ changes. All three are silent failures — no error, just a cold cache.
 - **`needsReview = true` foods excluded** (~24 duplicate descriptions). Asking a
   model to choose between two identically-named rows invites the wrong choice.
 
+## The anamnese
+
+**Both generators send the whole anamnese, and neither runs without one.** The
+gate refuses with `no_anamnesis` before a credit is claimed — generating a diet
+without weight or age produces confident nonsense, and this is health-adjacent
+output going to a real person.
+
+`renderAnamnesis` walks the snapshot's sections in order and emits every
+answered question as `- <label>: <value>`, grouped under its section title.
+Nothing is filtered, truncated or summarised: a coach who added a question about
+shift work gets that question in the prompt, and it costs the same whether the
+model uses it or not. Unanswered questions are skipped rather than sent blank,
+because an empty label invites the model to fill it in.
+
+It rides in the **user** half of the prompt, next to the coach's form and the
+current diet — per-aluno content must never enter the cacheable system prefix.
+
+The anamnese also feeds one piece of *arithmetic* rather than judgement: the
+canonical `peso_atual` answer becomes the aluno's body weight, and "alta
+proteína" is then prescribed as 2,2 g per kg (`PROTEIN_G_PER_KG`) instead of a
+share of the day's calories. That is what the prompt says and what a coach
+means. An anamnese with no usable weight falls back to the share — never to a
+guessed weight, since a wrong one silently moves the target.
+
 ## The server checks the answer
 
 The prompt states the targets and the aversions, and the model still misses

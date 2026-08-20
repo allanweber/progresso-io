@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AiDietGenerateInput } from "@/lib/ai-programs";
+import { bodyWeightKg } from "@/lib/student-anamneses";
 import type { FoodCatalogBlock, FoodFacts } from "@/server/ai/catalog";
 import type { DietPlan } from "@/server/ai/schemas";
 import {
@@ -304,5 +305,31 @@ describe("dietProblems", () => {
     expect(problems).toHaveLength(2);
     expect(problems[1]).toContain("Feijão, carioca, cozido");
     expect(problems[1]).toContain("não é negociável");
+  });
+});
+
+describe("bodyWeightKg", () => {
+  it("reads the canonical peso_atual answer", () => {
+    expect(bodyWeightKg({ peso_atual: "82" })).toBe(82);
+  });
+
+  it("accepts how people actually type it", () => {
+    // Free text: comma decimals and a trailing unit are both normal.
+    expect(bodyWeightKg({ peso_atual: "82,5" })).toBe(82.5);
+    expect(bodyWeightKg({ peso_atual: "82 kg" })).toBe(82);
+  });
+
+  it("is null rather than a guess when there is nothing usable", () => {
+    // A wrong weight is worse than none: it silently moves a protein target.
+    expect(bodyWeightKg({})).toBeNull();
+    expect(bodyWeightKg({ peso_atual: "" })).toBeNull();
+    expect(bodyWeightKg({ peso_atual: "não sei" })).toBeNull();
+    expect(bodyWeightKg({ peso_atual: true })).toBeNull();
+  });
+
+  it("rejects a figure no human weighs", () => {
+    // Someone answering in grams, or typing an extra digit.
+    expect(bodyWeightKg({ peso_atual: "8200" })).toBeNull();
+    expect(bodyWeightKg({ peso_atual: "7" })).toBeNull();
   });
 });

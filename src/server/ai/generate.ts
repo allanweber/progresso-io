@@ -22,6 +22,7 @@ import {
   studentWorkouts,
 } from "@/server/dal";
 import { logger } from "@/server/observability";
+import { bodyWeightKg } from "@/lib/student-anamneses";
 import type { TenantContext } from "@/server/tenant";
 import {
   buildExerciseCatalog,
@@ -518,7 +519,14 @@ export async function generateDiet(
   // again: 2600 kcal came back as 2827 and then 3214, and a low-carb 2500 came
   // back at 1832 with 61% of the calories from carbohydrate. Only quantities
   // move — the food selection and the meal order are the model's work.
-  const fitted = rebalance(asked.plan, catalog.foods, input);
+  const fitted = rebalance(
+    asked.plan,
+    catalog.foods,
+    input,
+    // The anamnese is not only prose for the model to read: the aluno's weight
+    // is what turns "alta proteína" into a number of grams.
+    bodyWeightKg(anamnesis.answers),
+  );
   if (fitted.changed) {
     logger.info("ai.diet_rebalanced", {
       beforeKcal: Math.round(fitted.before.kcal),
