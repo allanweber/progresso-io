@@ -60,6 +60,26 @@ it via the DAL, `src/server/dal/whatsapp.ts`):
   `connectedAt`. The home for real provider credentials later; powers the coach
   page's status dot and the admin overview.
 
+### Apagar o aluno apaga o histórico (migração `0035`)
+
+`whatsapp_conversation.student_id` cascades. Deleting an aluno deletes their
+thread, and the messages go with it through
+`whatsapp_message.conversation_id`, which already cascaded.
+
+It was `ON DELETE SET NULL` until 0035, which was wrong twice over: the messages
+are personal data that the erasure was supposed to remove, and the leftover
+thread reappeared in the coach's inbox as a nameless conversation nobody could
+act on. Note this applies to a **hard delete** only — archiving an aluno is a
+status change and keeps everything.
+
+The rule lives in the foreign key rather than in `hardDeleteStudent`, so no
+delete path can forget it.
+
+**Migration 0035 does not backfill.** A conversation with a null `student_id` is
+also the legitimate state for an inbound from a number that never belonged to a
+student, and after the fact nothing distinguishes the two. Any threads orphaned
+before 0035 need a human to look at them.
+
 No new plan-gate column — the inbox reuses the existing `plan_limit.whatsapp`
 capability (`plans.canUseWhatsapp`), so Free is excluded and every paid plan is
 included, with the per-clinic `clinic.whatsapp_override` still applying.
