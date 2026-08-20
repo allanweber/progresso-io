@@ -9,7 +9,7 @@ import { createAuth } from "@/lib/auth";
 import { WEEKDAY_INDEX, weekdayOf } from "@/lib/calendar";
 import { normalizePhone } from "@/lib/phone";
 import { isWindowOpen } from "@/lib/whatsapp-inbox";
-import { plans, whatsapp } from "@/server/dal";
+import { plans, students as studentsDal, whatsapp } from "@/server/dal";
 import {
   WhatsAppInboundError,
   WhatsAppSendError,
@@ -575,5 +575,88 @@ describe("scheduled check-in reminders", () => {
         );
       expect(rows).toHaveLength(0);
     }
+  });
+});
+
+describe("deleting an aluno removes their WhatsApp history", () => {
+  it("deletes the conversation and its messages, and leaves other threads alone", async () => {
+    const ctx = await ownerContext("wa-delete@example.com", "clinica");
+    const doomedId = await addStudent(ctx, "11999990001", "Ana", "Some");
+    const keptId = await addStudent(ctx, "11999990002", "Bia", "Fica");
+
+    // Give both a real thread, inbound + outbound.
+    await whatsapp.ingestInboundMessage(ctx, {
+      from: "11999990001",
+      body: "Oi coach",
+    });
+    await whatsapp.ingestInboundMessage(ctx, {
+      from: "11999990002",
+      body: "Bom dia",
+    });
+
+    const threadOf = async (studentId: string) => {
+      const [row] = await db
+        .select({ id: schema.whatsappConversation.id })
+        .from(schema.whatsappConversation)
+        .where(eq(schema.whatsappConversation.studentId, studentId));
+      return row?.id;
+    };
+    const doomedThread = await threadOf(doomedId);
+    const keptThread = await threadOf(keptId);
+    expect(doomedThread).toBeDefined();
+    expect(keptThread).toBeDefined();
+
+    const messagesIn = async (conversationId: string) => {
+      const rows = await db
+        .select({ id: schema.whatsappMessage.id })
+        .from(schema.whatsappMessage)
+        .where(eq(schema.whatsappMessage.conversationId, conversationId));
+      return rows.length;
+    };
+    expect(await messagesIn(doomedThread!)).toBeGreaterThan(0);
+
+    expect(await studentsDal.hardDeleteStudent(ctx, doomedId)).toBe(true);
+
+    // The thread goes with the aluno — it must NOT survive as an orphan with a
+    // null studentId, which is what the old `set null` rule produced.
+    expect(await threadOf(doomedId)).toBeUndefined();
+    const [orphan] = await db
+      .select({ id: schema.whatsappConversation.id })
+      .from(schema.whatsappConversation)
+      .where(eq(schema.whatsappConversation.id, doomedThread!));
+    expect(orphan).toBeUndefined();
+
+    // And the messages go with the thread, not just the link to it — they are
+    // the personal data the deletion was supposed to remove.
+    expect(await messagesIn(doomedThread!)).toBe(0);
+
+    // The other aluno's thread is untouched.
+    expect(await threadOf(keptId)).toBe(keptThread);
+    expect(await messagesIn(keptThread!)).toBeGreaterThan(0);
+  });
+
+  it("leaves an unlinked thread alone — a never-a-student number is not an orphan", async () => {
+    const ctx = await ownerContext("wa-delete-2@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11999990003", "Cau", "Aluno");
+
+    // An inbound from a number that belongs to nobody. This is exactly why
+    // migration 0035 does not backfill-delete NULL-student conversations: this
+    // row is indistinguishable from one orphaned by an old deletion.
+    await whatsapp.ingestInboundMessage(ctx, {
+      from: "11988887777",
+      body: "Oi, queria saber dos planos",
+    });
+    await whatsapp.ingestInboundMessage(ctx, {
+      from: "11999990003",
+      body: "Oi",
+    });
+
+    expect(await studentsDal.hardDeleteStudent(ctx, studentId)).toBe(true);
+
+    const rows = await db
+      .select({ phone: schema.whatsappConversation.phone })
+      .from(schema.whatsappConversation)
+      .where(eq(schema.whatsappConversation.clinicId, ctx.clinicId));
+    expect(rows.map((r) => r.phone)).toEqual([normalizePhone("11988887777")]);
   });
 });
