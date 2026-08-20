@@ -621,6 +621,23 @@ describe("system prompts", () => {
     expect(dietSystemPrompt(catalog)).toContain('"meals"');
   });
 
+  it("state the plate rules a macro-correct plan can still break", () => {
+    // Three failures from one real generation. Each has to survive in the
+    // cacheable prefix, because none of them is derivable from the macros: a
+    // day can hit 2600 kcal exactly and still be pão-com-aveia at breakfast,
+    // arroz-com-batata at lunch, and written in grams nobody weighs.
+    const prompt = dietSystemPrompt(catalog);
+    expect(prompt).toContain("Um carboidrato principal por refeição");
+    // ...with the one Brazilian pairing that is not a mistake spelled out,
+    // because a blanket rule would ban arroz com feijão.
+    expect(prompt).toContain("arroz + leguminosa");
+    expect(prompt).toContain("medidas caseiras");
+    expect(prompt).toContain("Alimentos a evitar são proibição");
+    // The kcal rule names the arithmetic and says the server re-does it — the
+    // vaguer "bata a meta" is what shipped a 2827 kcal answer to a 2600 ask.
+    expect(prompt).toContain("some o dia inteiro e confira antes de responder");
+  });
+
   it("keep the catalog last, after the schema", () => {
     // The catalog is the bulk of the cacheable prefix; anything appended after
     // it would push a second variable-length block into the cached span.

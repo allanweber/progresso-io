@@ -46,6 +46,7 @@ import {
   type DietPlan,
   type WorkoutPlan,
 } from "./schemas";
+import { dietProblems } from "./verify";
 
 /**
  * The generation service: quota → model → validate → repair → draft.
@@ -133,6 +134,13 @@ async function askWithRepair<T>(
     parse: (json: unknown) => { ok: true; plan: T } | { ok: false };
     indicesOf: (plan: T) => number[];
     catalog: CatalogBlock;
+    /**
+     * Soft checks the server can prove — targets missed, an avoided food used.
+     * Worth one free repair each; a plan that still fails is DELIVERED, because
+     * a draft 8% over on calories is fixable in thirty seconds and nothing at
+     * all is not.
+     */
+    verify?: (plan: T) => string[];
   },
 ): Promise<
   | { ok: true; plan: T; usage: LlmUsage; call: LlmCall | null; repaired: boolean }
@@ -197,11 +205,19 @@ async function askWithRepair<T>(
 
     const check = resolveIndices(args.catalog, args.indicesOf(parsed.plan));
     if (check.ok) {
+      const problems = args.verify?.(parsed.plan) ?? [];
+      if (problems.length > 0 && attempt === 0) {
+        logger.warn("ai.plan_problems", { problems: problems.slice(0, 4) });
+        user = repairPrompt(args.user, [], problems);
+        continue;
+      }
       return {
         ok: true,
         plan: parsed.plan,
         usage: total,
         call,
+        // A second attempt is a repair whichever check triggered it — the
+        // coach is not charged for it either way.
         repaired: attempt > 0,
       };
     }
@@ -225,6 +241,36 @@ async function askWithRepair<T>(
     message: "Não foi possível gerar um programa válido.",
     usage: total,
     call,
+  };
+}
+
+/**
+ * The quantity as it will be stored: grams, plus the household portion when the
+ * model prescribed one and the food really has one.
+ *
+ * **Grams are recomputed from the count**, never taken from the model when both
+ * are present. A model that answers "2 fatias, 60 g" for a 25 g slice has said
+ * two different things; trusting the count keeps the label and the number
+ * agreeing, and the count is the one the aluno will act on.
+ */
+function householdPortion(
+  item: { grams: number; measures?: number | null },
+  facts: { measureLabel: string | null; measureGrams: number | null } | undefined,
+): { grams: number; measureLabel?: string; measureGrams?: number } {
+  const count = item.measures ?? null;
+  if (
+    count === null ||
+    !facts ||
+    facts.measureLabel === null ||
+    facts.measureGrams === null ||
+    facts.measureGrams <= 0
+  ) {
+    return { grams: item.grams };
+  }
+  return {
+    grams: count * facts.measureGrams,
+    measureLabel: facts.measureLabel,
+    measureGrams: facts.measureGrams,
   };
 }
 
@@ -442,6 +488,7 @@ export async function generateDiet(
     },
     indicesOf: dietIndices,
     catalog,
+    verify: (plan) => dietProblems(plan, catalog, input),
   });
 
   const durationMs = Date.now() - startedAt;
@@ -472,7 +519,7 @@ export async function generateDiet(
       time: m.time,
       items: m.items.map((i) => ({
         foodId: ids.ids.get(i.food)!,
-        grams: i.grams,
+        ...householdPortion(i, catalog.foods.get(i.food)),
         substitutes: [],
       })),
     })),

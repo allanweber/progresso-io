@@ -11,7 +11,14 @@ import {
   DEFAULT_AI_FALLBACK_MODELS,
   DEFAULT_AI_MODEL,
 } from "@/lib/ai-settings";
-import { ai, aiSettings, plans, providerPrices, studentWorkouts } from "@/server/dal";
+import {
+  ai,
+  aiSettings,
+  plans,
+  providerPrices,
+  studentDiets,
+  studentWorkouts,
+} from "@/server/dal";
 import { monthStart } from "@/server/dal/ai";
 import { buildExerciseCatalog, buildFoodCatalog } from "@/server/ai/catalog";
 import { generateDiet, generateWorkout } from "@/server/ai/generate";
@@ -1449,5 +1456,193 @@ describe("generateDiet — continuity with the current diet", () => {
     // The two left blank must not appear as zero — "no opinion" is not "0 g".
     expect(lastUserPrompt).not.toContain("0 g de gordura");
     expect(lastUserPrompt).not.toContain("0 g de carboidrato");
+  });
+});
+
+/**
+ * The checks the server runs on the model's answer, and the free repair turn
+ * they feed.
+ *
+ * Both rules come from a real generation that shipped wrong — a 2600 kcal
+ * request that came back at 2827, and a plan told to avoid feijão that served
+ * feijão. The prompt already said both things, which is why the fix is
+ * arithmetic the server does itself.
+ */
+describe("generateDiet — the server checks the answer", () => {
+  let ctx: TenantContext;
+  let studentId: string;
+  let prompts: string[] = [];
+
+  /** Answers with `plans[n]` on the n-th call, recording each user prompt. */
+  function stubSequence(plans: unknown[]) {
+    let call = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_url: unknown, init?: unknown) => {
+        const body = JSON.parse((init as { body: string }).body) as {
+          messages: { role: string; content: string }[];
+        };
+        prompts.push(body.messages.find((m) => m.role === "user")?.content ?? "");
+        const plan = plans[Math.min(call, plans.length - 1)];
+        call += 1;
+        return {
+          ok: true,
+          json: async () => ({
+            id: "gen-check",
+            model: DEFAULT_AI_MODEL.replace(":floor", ""),
+            choices: [
+              { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
+            ],
+            usage: { prompt_tokens: 900, completion_tokens: 200 },
+          }),
+        } as unknown as Response;
+      },
+    );
+  }
+
+  /** Arroz integral cozido is catalog index 1: 124 kcal / 100 g. */
+  const rice = (grams: number, measures?: number) => ({
+    name: "Dieta",
+    notes: null,
+    meals: [
+      {
+        name: "Almoço",
+        time: "12:30",
+        items: [{ food: 1, grams, ...(measures !== undefined ? { measures } : {}) }],
+      },
+    ],
+  });
+
+  const base = {
+    objective: "emagrecimento",
+    restrictions: [],
+    meals: ["almoco"] as MealSlot[],
+    mealsPerDay: null,
+    macroProfiles: [],
+    preferences: null,
+    avoid: null,
+    fromScratch: true,
+    targetKcal: null,
+    targetProteinG: null,
+    targetCarbsG: null,
+    targetFatG: null,
+  };
+
+  beforeAll(async () => {
+    process.env.LLM_API_KEY = "test-key";
+    const made = await makeClinic("verifica", "clinica");
+    ctx = made.ctx;
+    studentId = made.studentId;
+    await completedAnamnesis(ctx, studentId);
+  });
+
+  beforeEach(() => {
+    prompts = [];
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("accepts a plan that hits the target in one call", async () => {
+    // 200 g × 124 kcal/100 g = 248 kcal, against a 250 kcal target.
+    stubSequence([rice(200)]);
+    const result = await generateDiet(ctx, studentId, {
+      ...base,
+      targetKcal: 250,
+    });
+    expect(result.ok).toBe(true);
+    expect(prompts).toHaveLength(1);
+    if (result.ok) expect(result.repaired).toBe(false);
+  });
+
+  it("sends the real total back when the day misses the target", async () => {
+    // The generation that prompted this: asked for one number, delivered
+    // another, and nothing in the system noticed.
+    stubSequence([rice(100), rice(1600)]);
+    const result = await generateDiet(ctx, studentId, {
+      ...base,
+      targetKcal: 2000,
+    });
+    expect(result.ok).toBe(true);
+    expect(prompts).toHaveLength(2);
+    // The repair names the figure the model actually produced, not "bata a
+    // meta" — which is what the first prompt already said.
+    expect(prompts[1]).toContain("conferida pelo sistema");
+    expect(prompts[1]).toContain("124");
+    expect(prompts[1]).toContain("2000");
+    // The repair is free: it is flagged, not charged.
+    if (result.ok) expect(result.repaired).toBe(true);
+  });
+
+  it("delivers the draft anyway when the second answer still misses", async () => {
+    // The credit is already spent. A plan 8% over is fixable in thirty seconds;
+    // handing back nothing is not.
+    stubSequence([rice(100)]);
+    const result = await generateDiet(ctx, studentId, {
+      ...base,
+      targetKcal: 2000,
+    });
+    expect(result.ok).toBe(true);
+    expect(prompts).toHaveLength(2);
+  });
+
+  it("catches an avoided food and names it", async () => {
+    stubSequence([rice(200), rice(200)]);
+    await generateDiet(ctx, studentId, { ...base, avoid: "arroz" });
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("Arroz integral cozido");
+    expect(prompts[1]).toContain("não é negociável");
+  });
+
+  it("does not check what the coach did not ask for", async () => {
+    // No target and no aversion → nothing to prove wrong, one call.
+    stubSequence([rice(100)]);
+    await generateDiet(ctx, studentId, { ...base });
+    expect(prompts).toHaveLength(1);
+  });
+
+  describe("medidas caseiras", () => {
+    beforeAll(async () => {
+      const [food] = await db
+        .select({ id: schema.food.id })
+        .from(schema.food)
+        .where(eq(schema.food.code, "1"));
+      await db.insert(schema.foodMeasure).values({
+        clinicId: null,
+        foodId: food.id,
+        label: "colher de sopa",
+        grams: 50,
+        isDefault: true,
+      });
+    });
+
+    it("offers the portion in the catalog line", async () => {
+      const catalog = await buildFoodCatalog(ctx);
+      expect(catalog.text).toContain("[1 colher de sopa = 50g]");
+      expect(catalog.foods.get(1)?.measureGrams).toBe(50);
+    });
+
+    it("stores the count, and takes the grams from it rather than the model", async () => {
+      // "3 colheres, 999 g" is the model saying two different things. The count
+      // is the one the aluno acts on, so it decides.
+      stubSequence([rice(999, 3)]);
+      const result = await generateDiet(ctx, studentId, { ...base });
+      expect(result.ok).toBe(true);
+
+      const state = await studentDiets.getStudentDietState(ctx, studentId);
+      const item = state?.draft?.tree.meals[0].items[0];
+      expect(item?.grams).toBe(150);
+      expect(item?.measureLabel).toBe("colher de sopa");
+      expect(item?.measureGrams).toBe(50);
+    });
+
+    it("keeps plain grams when the model gives no count", async () => {
+      stubSequence([rice(180)]);
+      await generateDiet(ctx, studentId, { ...base });
+      const state = await studentDiets.getStudentDietState(ctx, studentId);
+      const item = state?.draft?.tree.meals[0].items[0];
+      expect(item?.grams).toBe(180);
+      expect(item?.measureLabel).toBeNull();
+    });
   });
 });

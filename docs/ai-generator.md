@@ -147,6 +147,52 @@ changes. All three are silent failures — no error, just a cold cache.
 - **`needsReview = true` foods excluded** (~24 duplicate descriptions). Asking a
   model to choose between two identically-named rows invites the wrong choice.
 
+## The server checks the answer
+
+The prompt states the targets and the aversions, and the model still misses
+them. A real generation asked for 2600 kcal and came back at 2827; another was
+told to avoid feijão and served feijão at lunch. Both are things the server can
+check **exactly** — it has every food's macros and the coach's own words — so
+`src/server/ai/verify.ts` checks them instead of asking more firmly:
+
+- **Targets.** The day is summed from the catalog (`kcal/100 g × grams ÷ 100`)
+  and compared against each given target. More than **5%** off is a finding.
+- **Evitar.** The free text is split into searchable words (≥4 characters,
+  accent-folded, minus a small stopword list) and matched against the
+  description of every food used. Word-level because the phrase as the coach
+  wrote it — "não come peixe" — appears in no food description.
+
+Findings go back through the **repair turn that already exists** for
+hallucinated catalog indices: one extra round-trip, costing tokens and not a
+credit, naming the real figures ("a dieta soma 2827 kcal e a meta é 2600").
+That specificity is the point — "bata a meta" is what the first prompt already
+said.
+
+**The checks are soft.** Unlike an invalid catalog index, which cannot be
+persisted at all, a plan 8% over on calories is a real plan a coach fixes in
+thirty seconds. So a violation that survives the repair is **delivered as a
+draft anyway**: the credit is already spent, and handing back nothing is the
+worse of the two outcomes.
+
+One rule deliberately stays in the prompt rather than becoming a check:
+**one main carbohydrate per meal**. Arroz com feijão is two carbohydrate-dense
+rows and also the most ordinary Brazilian lunch there is; a checker cannot tell
+that pairing from pão com aveia without a food taxonomy the catalog does not
+carry, and a false positive would burn a repair turn to "fix" a correct plan.
+
+### Medidas caseiras
+
+The food catalog line carries the platform's default household portion where the
+food has one — `[1 fatia = 25g]` — and the model answers with a whole `measures`
+count alongside the grams. A diet written in grams for foods nobody weighs is a
+diet nobody follows.
+
+The server **recomputes grams from the count** rather than trusting both: a
+model that says "2 fatias, 60 g" for a 25 g slice has said two different things,
+and the count is the one the aluno acts on. Only platform measures
+(`clinic_id IS NULL`, `is_default`) enter the block — a clinic's own portion
+would make the prefix differ per tenant and cost every clinic its cache hit.
+
 ## Generation flow
 
 1. **Gate: the aluno needs a `filled` anamnese.** The button is *disabled with an
