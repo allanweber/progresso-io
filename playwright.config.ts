@@ -127,6 +127,14 @@ export default defineConfig({
       },
     },
     {
+      // The portfolio tour. Each describe sets its own storageState — the tour
+      // crosses all three roles, which one project-level session cannot.
+      name: "portfolio",
+      testMatch: /portfolio\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], launchOptions },
+    },
+    {
       name: "admin",
       testMatch: /admin-(maintenance|admins|billing|whatsapp|ai)\.spec\.ts/,
       dependencies: ["setup"],
