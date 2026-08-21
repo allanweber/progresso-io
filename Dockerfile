@@ -34,6 +34,10 @@ RUN corepack enable
 # different call on build scripts here than it does locally, which is exactly
 # the local/prod divergence this image is meant to avoid.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Provision the pinned pnpm as its own step. Without it a corepack that cannot
+# resolve `packageManager` silently falls back to "latest stable" — this fails
+# loudly on the version the repo actually declares instead.
+RUN corepack install
 RUN --mount=type=cache,target=/pnpm/store \
   pnpm install --frozen-lockfile
 
