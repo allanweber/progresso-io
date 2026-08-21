@@ -130,6 +130,37 @@ describe("macroTargets", () => {
     expect(s.carbs).toBeCloseTo(0.22, 2);
   });
 
+  it("prescribes alta proteína per kilo when the anamnese recorded a weight", () => {
+    // 2,2 g/kg is what the prompt says and what a coach means; a share of the
+    // calories is only the fallback. 80 kg → 176 g.
+    const t = macroTargets(
+      input({ targetKcal: 2500, macroProfiles: ["alta_proteina"] }),
+      current,
+      80,
+    )!;
+    expect(t.protein).toBeCloseTo(176, 0);
+  });
+
+  it("falls back to the share when the anamnese has no weight", () => {
+    const t = macroTargets(
+      input({ targetKcal: 2500, macroProfiles: ["alta_proteina"] }),
+      current,
+      null,
+    )!;
+    expect((t.protein * 4) / t.kcal).toBeCloseTo(0.32, 2);
+  });
+
+  it("keeps a per-kilo protein target inside sane bounds", () => {
+    // A light aluno on a large intake would otherwise get a "high protein"
+    // floor of 12% of the day, which is not a high-protein diet.
+    const t = macroTargets(
+      input({ targetKcal: 4000, macroProfiles: ["alta_proteina"] }),
+      current,
+      45,
+    )!;
+    expect((t.protein * 4) / t.kcal).toBeGreaterThanOrEqual(0.2);
+  });
+
   it("lets an explicit gram target override the profile's share", () => {
     const t = macroTargets(
       input({ targetKcal: 2000, macroProfiles: ["baixo_carbo"], targetCarbsG: 300 }),

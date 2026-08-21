@@ -67,6 +67,9 @@ const KCAL = { protein: 4, carbs: 4, fat: 9 } as const;
  */
 const DEFAULT_SHARES = { protein: 0.25, carbs: 0.45, fat: 0.3 };
 
+/** The "alta proteína" prescription, when the aluno's weight is known. */
+export const PROTEIN_G_PER_KG = 2.2;
+
 const PROFILE_SHARES: Record<AiMacroProfile, Partial<typeof DEFAULT_SHARES>> = {
   alta_proteina: { protein: 0.32 },
   alto_carbo: { carbs: 0.55 },
@@ -117,6 +120,8 @@ export function totalsOf(
 export function macroTargets(
   input: AiDietGenerateInput,
   current: Totals,
+  /** From the anamnese, when it recorded one. See `PROTEIN_G_PER_KG`. */
+  bodyWeightKg: number | null = null,
 ): MacroTargets | null {
   const hasAny =
     input.targetKcal !== null ||
@@ -132,6 +137,16 @@ export function macroTargets(
   // Profile shares first, then the remainder over whatever they left alone.
   const asked: Partial<typeof DEFAULT_SHARES> = {};
   for (const p of input.macroProfiles) Object.assign(asked, PROFILE_SHARES[p]);
+
+  // "Alta proteína" is prescribed per kilo of the aluno, not as a share of the
+  // day — that is what the prompt says and what a coach means. The share is
+  // only the fallback for an anamnese that recorded no weight. Bounded, because
+  // a light aluno on a large intake would otherwise get a protein floor so low
+  // it stops being a high-protein diet.
+  if (input.macroProfiles.includes("alta_proteina") && bodyWeightKg !== null) {
+    const fromWeight = (PROTEIN_G_PER_KG * bodyWeightKg * KCAL.protein) / kcal;
+    asked.protein = Math.min(0.45, Math.max(0.2, fromWeight));
+  }
 
   const keys = ["protein", "carbs", "fat"] as const;
   const fixed = keys.filter((k) => asked[k] !== undefined);
@@ -260,9 +275,10 @@ export function rebalance(
   plan: DietPlan,
   foods: Map<number, FoodFacts>,
   input: AiDietGenerateInput,
+  bodyWeightKg: number | null = null,
 ): RebalanceResult {
   const before = totalsOf(plan, foods);
-  const targets = macroTargets(input, before);
+  const targets = macroTargets(input, before, bodyWeightKg);
   if (targets === null) {
     return { plan, changed: false, before, after: before, targets: null };
   }

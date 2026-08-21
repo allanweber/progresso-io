@@ -65,6 +65,24 @@ export const PROFILE_METRIC_LABELS: Record<ProfileMetricKey, string> = {
   frequencia: "Frequência",
 };
 
+/**
+ * The aluno's body weight in kg, from the canonical `peso_atual` answer.
+ *
+ * Body weight is the one anamnese figure that feeds *arithmetic* rather than
+ * the model's judgement — "alta proteína" means 2,2 g per kg, and without the
+ * kg it can only mean a share of the calories. Free text, so it arrives as
+ * "82", "82,5" or "82 kg"; anything that is not a plausible human weight is
+ * `null` rather than a guess, because a wrong weight is worse than none.
+ */
+export function bodyWeightKg(answers: AnamnesisAnswers): number | null {
+  const raw = answers["peso_atual"];
+  if (raw === null || raw === undefined || typeof raw === "boolean") return null;
+  const match = String(raw).replace(",", ".").match(/\d+(\.\d+)?/);
+  if (!match) return null;
+  const kg = Number(match[0]);
+  return Number.isFinite(kg) && kg >= 25 && kg <= 400 ? kg : null;
+}
+
 /** A resolved Perfil metric (label + display value) for the profile card. */
 export type ProfileMetric = { key: ProfileMetricKey; label: string; value: string };
 

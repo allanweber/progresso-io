@@ -23,7 +23,8 @@
     "db:transform-exercises": "node scripts/transform-exercises.mjs",
     "db:build-exercise-substitutions": "node scripts/build-exercise-substitutions.mjs",
     "db:fetch-exercise-images": "node scripts/fetch-exercise-images.mjs",
-    "db:upload-exercise-images": "node scripts/upload-exercise-images.mjs"
+    "db:upload-exercise-images": "node scripts/upload-exercise-images.mjs",
+    "landing:optimize": "node scripts/optimize-landing.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1104.0",
