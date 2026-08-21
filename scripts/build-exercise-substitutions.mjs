@@ -15,7 +15,7 @@
 // one dumbbell alternative and vice versa (when the group has one). Selection is
 // fully deterministic (sorted, no randomness).
 //
-// Run: npm run db:build-exercise-substitutions
+// Run: pnpm db:build-exercise-substitutions
 import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { join } from "node:path";

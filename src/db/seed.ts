@@ -4,7 +4,7 @@
  *   - an aluno who belongs to that same clinic and is linked to the coach,
  *   - a platform admin (no clinic).
  *
- * Run with: `npm run db:seed` (requires DATABASE_URL). Idempotent.
+ * Run with: `pnpm db:seed` (requires DATABASE_URL). Idempotent.
  *
  * Default credentials (override via env):
  *   COACH  coach@progresso.io  / progresso123

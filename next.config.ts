@@ -92,6 +92,15 @@ const nextConfig: NextConfig = {
   // runtime; keeping it external stops the bundler from breaking those requires
   // and ensures the whole package is traced into the standalone output.
   serverExternalPackages: ["pdfkit"],
+  // Next's tracer copies only @swc/helpers/cjs into the standalone output, but
+  // the generated server requires the ESM helpers (e.g.
+  // `@swc/helpers/esm/_interop_require_default.js`) through that package's
+  // `./esm/*` export — so the standalone server dies with MODULE_NOT_FOUND on
+  // boot without this. Globbed on the version directory so a @swc/helpers bump
+  // does not silently reintroduce the failure.
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

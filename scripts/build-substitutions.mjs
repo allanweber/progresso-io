@@ -7,7 +7,7 @@
 // and clamped — so the swap delivers ~the same energy as 100 g of the main food.
 // Foods are referenced by their unique `code` (stable across the seed).
 //
-// Run: npm run db:build-substitutions
+// Run: pnpm db:build-substitutions
 import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { join } from "node:path";

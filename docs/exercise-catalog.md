@@ -25,9 +25,9 @@ live in `src/lib/exercises.ts`.
 
 | Step | Command | Output |
 | --- | --- | --- |
-| 1. Build seed artifact | `npm run db:transform-exercises` | `drizzle/data/exercises-catalog.ndjson.gz` |
-| 2. Build substitutions | `npm run db:build-exercise-substitutions` | `drizzle/data/exercise-substitutions.json` |
-| (optional) Cache images locally | `npm run db:fetch-exercise-images` | `drizzle/data/exercises-images/<code>/<n>.jpg` (git-ignored) |
+| 1. Build seed artifact | `pnpm db:transform-exercises` | `drizzle/data/exercises-catalog.ndjson.gz` |
+| 2. Build substitutions | `pnpm db:build-exercise-substitutions` | `drizzle/data/exercise-substitutions.json` |
+| (optional) Cache images locally | `pnpm db:fetch-exercise-images` | `drizzle/data/exercises-images/<code>/<n>.jpg` (git-ignored) |
 
 The images are **not** committed — 100 MB of binaries have no place in the repo
 (and would bloat every Dokploy clone). They live only in the Cloudflare R2
@@ -46,7 +46,7 @@ Steps 1–3 are done once, in dev, and their outputs are committed. On deploy,
    source CDN (or a local `drizzle/data/exercises-images/` folder if present).
    Automatic and idempotent (it skips once a full upload's manifest is present,
    and skips entirely when the `R2_*` env vars aren't set). No manual
-   `npm run db:upload-exercise-images` is required (that script still exists for
+   `pnpm db:upload-exercise-images` is required (that script still exists for
    ad-hoc runs). A failed upload is non-fatal — the deploy continues and the app
    falls back to the source CDN for serving.
 

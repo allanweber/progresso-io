@@ -8,9 +8,20 @@ ARG NODE_VERSION=22.13.1-slim
 # ---- Dependencies ----
 FROM node:${NODE_VERSION} AS dependencies
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN --mount=type=cache,target=/root/.npm \
-  npm ci --no-audit --no-fund
+# Corepack resolves pnpm from the `packageManager` field in package.json, so the
+# image installs with the exact pnpm version the repo declares — no drift
+# between a developer's machine and the shipped artifact.
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+# pnpm-workspace.yaml carries the `allowBuilds` gating that decides which
+# packages may run install scripts. It MUST be copied: without it pnpm makes a
+# different call on build scripts here than it does locally, which is exactly
+# the local/prod divergence this image is meant to avoid.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,target=/pnpm/store \
+  pnpm install --frozen-lockfile
 
 # ---- Builder ----
 FROM node:${NODE_VERSION} AS builder
@@ -19,6 +30,10 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 # Public env vars are inlined at build time, so they must be present here.
 # Provide the Google Analytics id as a build arg (empty = analytics disabled).
 ARG NEXT_PUBLIC_GA_ID=""
@@ -47,7 +62,7 @@ ARG SENTRY_PROJECT=""
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
 ARG SENTRY_AUTH_TOKEN=""
 ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
-RUN npm run build
+RUN pnpm build
 
 # ---- Migrator ----
 # One-shot image that applies the Drizzle SQL migrations and exits. Run as its
@@ -56,7 +71,7 @@ RUN npm run build
 # the migration SQL in drizzle/, and the script — NOT the Next build.
 #
 # It deliberately does NOT copy from `builder`: doing so made this image depend
-# on the `RUN npm run build` stage, so `docker compose --build` ran `next build`
+# on the `RUN pnpm build` stage, so `docker compose --build` ran `next build`
 # TWICE in parallel (once for the app, once here), doubling peak build memory and
 # OOM-ing constrained hosts. Sourcing node_modules from `dependencies` and the
 # data/scripts from the build context keeps this image build cheap and lets the

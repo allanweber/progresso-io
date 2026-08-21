@@ -12,7 +12,7 @@
 // food_nutrient row (read as null). `1e-05` is a measured trace ("Tr") →
 // a row with value=null and isTrace=true. Everything else is a number.
 //
-// Run: npm run db:transform-taco
+// Run: pnpm db:transform-taco
 import { readFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";
