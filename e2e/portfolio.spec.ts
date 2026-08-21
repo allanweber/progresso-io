@@ -358,3 +358,156 @@ test.describe("landing assets — aluno", () => {
     await page.screenshot({ path: `${LANDING_OUT}/app-portal.png` });
   });
 });
+
+/**
+ * The landing page's FEATURE imagery — the coach's screens, cropped.
+ *
+ * Cropped, not whole windows, and that is the point. A 1440px screenshot shown
+ * in a ~620px feature column renders at 0.43 and every label turns to mush; a
+ * ~760px crop of the region that actually demonstrates the feature renders near
+ * 1:1 and can be read. The hero can afford a whole window because it spans the
+ * container; a feature row cannot.
+ *
+ * Coach screens throughout: the coach is who pays for this. The aluno's phone
+ * appears once, as the secondary image it is.
+ */
+const FEATURE_VIEWPORT = { width: 1280, height: 900 };
+
+/**
+ * Clips `size` out of the page starting at the top-left of `anchor`.
+ *
+ * Anchored on an element rather than fixed coordinates so a layout change moves
+ * the crop with the content instead of silently photographing the gap next to
+ * it.
+ */
+async function shootRegion(
+  page: Page,
+  name: string,
+  anchor: ReturnType<Page["locator"]>,
+  size: { width: number; height: number },
+) {
+  const box = await anchor.boundingBox();
+  expect(box, `bounding box for the ${name} crop`).toBeTruthy();
+  await page.screenshot({
+    path: `${LANDING_OUT}/${name}.png`,
+    clip: { x: box!.x, y: box!.y, width: size.width, height: size.height },
+  });
+}
+
+test.describe("landing assets — coach features", () => {
+  test.use({
+    storageState: COACH_STORAGE,
+    viewport: FEATURE_VIEWPORT,
+    deviceScaleFactor: 2,
+  });
+
+  test("the diet feature shows a day that adds up", async ({ page, request }) => {
+    await page.goto(`/coach/students/${await anaId(request)}/diet`);
+    await page.getByRole("button", { name: /^(Editar|Continuar editando)$/ }).click();
+    await expect(page.getByText(/Total da dieta/i)).toBeVisible();
+    await expect(page.getByText("Arroz, tipo 1, cozido").first()).toBeVisible();
+    await hideTenantBanner(page);
+    // From the totals bar down through the first meal — the running total next
+    // to the foods that produce it is the whole claim.
+    await shootRegion(
+      page,
+      "feat-diet",
+      page.getByText(/Total da dieta/i),
+      { width: 700, height: 470 },
+    );
+  });
+
+  test("the AI feature shows the questions, not a magic button", async ({
+    page,
+    request,
+  }) => {
+    await page.goto(`/coach/students/${await anaId(request)}/diet`);
+    await page.getByRole("button", { name: "Gerar dieta com IA" }).click();
+    const replace = page.getByRole("button", { name: "Substituir rascunho" });
+    if (await replace.isVisible()) await replace.click();
+    await expect(page.getByText("Restrições alimentares")).toBeVisible();
+    await expect(page.getByText("Perfil de macros")).toBeVisible();
+    // The dialog is ~470px wide natively, so this crop is shown at roughly its
+    // own size — the sharpest image on the page.
+    await shootRegion(
+      page,
+      "feat-ai",
+      page.getByRole("dialog").first(),
+      { width: 500, height: 620 },
+    );
+  });
+
+  test("the WhatsApp feature shows the inbox with the reply window", async ({ page }) => {
+    await page.goto("/coach/whatsapp");
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /WhatsApp/i }).first()).toBeVisible();
+    await hideTenantBanner(page);
+    await shootRegion(
+      page,
+      "feat-whatsapp",
+      page.getByRole("heading", { name: /WhatsApp/i }).first(),
+      { width: 760, height: 480 },
+    );
+  });
+
+  test("the calendar feature shows a real week", async ({ page }) => {
+    await page.goto("/coach/calendar");
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: /Agenda|Calendário/i }),
+    ).toBeVisible();
+    await hideTenantBanner(page);
+    await shootRegion(
+      page,
+      "feat-calendar",
+      page.getByRole("heading", { name: /Agenda|Calendário/i }),
+      { width: 760, height: 470 },
+    );
+  });
+
+  test("the workout feature shows a real session", async ({ page, request }) => {
+    await page.goto(`/coach/students/${await anaId(request)}/workout`);
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Gerar treino com IA" })).toBeVisible();
+    await hideTenantBanner(page);
+    await shootRegion(
+      page,
+      "feat-workout",
+      page.getByRole("button", { name: "Gerar treino com IA" }),
+      { width: 720, height: 470 },
+    );
+  });
+
+  test("the roster feature shows the alunos and their state", async ({ page }) => {
+    await page.goto("/coach/students");
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByText("Ana").first()).toBeVisible();
+    await hideTenantBanner(page);
+    await shootRegion(
+      page,
+      "feat-students",
+      page.getByRole("heading", { name: /Alunos/i }),
+      { width: 760, height: 430 },
+    );
+  });
+});
+
+test.describe("landing assets — coach on a phone", () => {
+  test.use({
+    storageState: COACH_STORAGE,
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+  });
+
+  test("the coach's own dashboard is usable on a phone", async ({ page }) => {
+    await page.goto("/coach");
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByText("•••")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Sua fila de hoje" })).toBeVisible();
+    await hideTenantBanner(page);
+    // Below `lg` the hero cannot show a 1440px window, and the answer is NOT to
+    // fall back to the aluno's app: the coach is the buyer. Their own dashboard
+    // at phone width is both legible and the right thing to be selling.
+    await page.screenshot({ path: `${LANDING_OUT}/app-coach-phone.png` });
+  });
+});
