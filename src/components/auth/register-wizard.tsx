@@ -33,7 +33,7 @@ export function RegisterWizard() {
     <>
       <StepIndicator current={step} />
 
-      <div className="w-full max-w-[460px] rounded-2xl bg-white px-10 py-9 shadow-[0_4px_24px_rgba(15,23,42,0.08)]">
+      <div className="w-full max-w-[460px] rounded-2xl bg-white px-10 py-9 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         {step === 1 && (
           <AccountStep
             account={account}

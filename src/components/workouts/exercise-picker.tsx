@@ -63,7 +63,7 @@ export function ExercisePicker({
   // Prescription step -----------------------------------------------------
   const thumb = exerciseImageUrl(selected.thumbnail);
   return (
-    <div className="rounded-xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.06)]">
+    <div className="rounded-xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
       <button
         type="button"
         onClick={() => setSelected(null)}

@@ -163,7 +163,7 @@ export default function StudentEvolutionPage() {
         <div className="mt-6 flex flex-col gap-4">
           {/* Weight chart */}
           {weightSeries.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.06)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] text-muted-foreground">
@@ -200,7 +200,7 @@ export default function StudentEvolutionPage() {
 
           {/* Comparable photos */}
           {hasComparablePhotos ? (
-            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.06)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="font-heading text-[15px] font-semibold">
                   Fotos comparáveis
@@ -238,7 +238,7 @@ export default function StudentEvolutionPage() {
 
           {/* Medidas Δ table */}
           {measureRows.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.06)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               <div className="mb-3 font-heading text-[15px] font-semibold">
                 Medidas
               </div>

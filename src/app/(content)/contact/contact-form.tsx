@@ -72,7 +72,7 @@ export function ContactForm() {
 
   if (state?.ok) {
     return (
-      <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-[0_2px_16px_rgba(15,23,42,0.05)]">
+      <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[#DCFCE7]">
           <Check className="size-7 text-primary" strokeWidth={2.5} />
         </div>
@@ -89,7 +89,7 @@ export function ContactForm() {
   return (
     <form
       action={formAction}
-      className="rounded-2xl border border-border bg-white p-6 shadow-[0_2px_16px_rgba(15,23,42,0.05)]"
+      className="rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
     >
       {state?.formError && (
         <p

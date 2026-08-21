@@ -213,7 +213,7 @@ function TimelineCard({
       <button
         type="button"
         onClick={onOpen}
-        className="w-full rounded-2xl border border-border bg-white p-4 text-left shadow-[0_1px_8px_rgba(15,23,42,0.06)] transition-colors hover:border-primary/40 dark:bg-card"
+        className="w-full rounded-2xl border border-border bg-white p-4 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary/40 dark:bg-card"
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold">{style.title}</span>

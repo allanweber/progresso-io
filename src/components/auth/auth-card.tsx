@@ -18,7 +18,7 @@ export function AuthCard({
       </Link>
       <div
         className={cn(
-          "w-full max-w-[400px] rounded-2xl bg-white px-10 py-9 shadow-[0_4px_24px_rgba(15,23,42,0.08)]",
+          "w-full max-w-[400px] rounded-2xl bg-white px-10 py-9 shadow-[0_1px_8px_rgba(15,23,42,0.05)]",
           className,
         )}
       >

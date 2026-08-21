@@ -53,7 +53,7 @@ export function CookieConsent() {
         <div
           role="dialog"
           aria-label="Aviso de cookies"
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-6 py-4 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur-md"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-6 py-4 shadow-[0_-8px_40px_rgba(15,23,42,0.15)] backdrop-blur-md"
         >
           <div className="mx-auto flex max-w-[1120px] flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[13px] leading-[1.6] text-muted-foreground">

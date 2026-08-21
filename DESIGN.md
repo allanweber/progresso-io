@@ -318,28 +318,26 @@ dialog, a sheet. Everything else is separated by tone and a whisper of shadow.
 ### Shadow Vocabulary
 
 - **Rest** (`box-shadow: 0 1px 8px rgba(15,23,42,0.05)`): every panel, card,
-  table container and empty state. The single canonical resting elevation, used
-  158 times.
+  table container, empty state and auth card. The single resting elevation in the
+  system, used 184 times.
 - **Overlay** (`box-shadow: 0 8px 40px rgba(15,23,42,0.15)`): dialog, sheet,
-  select content, popover. Applied with total consistency across all four Radix
-  surfaces — the healthiest part of the system.
+  select content, popover, the notification dropdown and transient toasts —
+  anything genuinely floating above the page.
+- **Overlay, upward** (`box-shadow: 0 -8px 40px rgba(15,23,42,0.15)`): the same
+  weight cast upward, for a surface anchored to the bottom of the viewport where
+  a downward shadow would fall off-screen. Currently the cookie banner alone.
+  This is a direction change, not a fourth tier — the blur and opacity are
+  Overlay's.
 - **Theatre** (`box-shadow: 0 32px 80px rgba(15,23,42,0.25)`): the landing hero's
   product mockup only. A marketing device, never permitted inside the app.
 
-### Known Drift
+The whole app now uses these four values and nothing else. Verify with:
 
-Four additional rest-state values exist and should converge on **Rest**:
+```bash
+grep -rho "shadow-\[[^]]*\]" src --include=*.tsx | sort | uniq -c
+```
 
-| Value | Where | Note |
-|---|---|---|
-| `0 2px 16px rgba(15,23,42,0.07)` | `components/ui/card.tsx` | the primitive disagrees with the 158 hand-rolled panels that ignore it |
-| `0 1px 8px rgba(15,23,42,0.06)` | evolution, feedback, pickers | |
-| `0 1px 12px rgba(15,23,42,0.06)` | aluno portal | |
-| `0 2px 16px rgba(15,23,42,0.05)` | admin home, contact form | |
-
-A handful of floating-but-not-overlay elements (auth card, notification
-dropdown, cookie banner, the public microsite) also carry bespoke values. Treat
-these as debt: new work uses **Rest** or **Overlay**, nothing between.
+Four lines out means the system is intact; a fifth is a regression.
 
 ### Named Rules
 

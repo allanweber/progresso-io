@@ -259,7 +259,7 @@ export default function StudentPortalPage() {
         <div className="grid items-start gap-6 lg:grid-cols-[262px_1fr]">
           {/* Desktop sidebar */}
           <aside className="sticky top-[88px] hidden flex-col gap-4 lg:flex">
-            <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               <div className="mx-auto mb-3 flex size-[68px] items-center justify-center rounded-full bg-primary text-[25px] font-semibold text-primary-foreground">
                 {p ? initials(p.name) : "…"}
               </div>
@@ -280,7 +280,7 @@ export default function StudentPortalPage() {
                 </span>
               ) : null}
             </div>
-            <nav className="flex flex-col gap-0.5 rounded-2xl bg-white p-2 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+            <nav className="flex flex-col gap-0.5 rounded-2xl bg-white p-2 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const active = t.id === tab;
@@ -405,7 +405,7 @@ function CheckinTab() {
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           Check-in
         </h1>
-        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
           <div className="flex size-14 items-center justify-center rounded-full bg-primary-light text-primary">
             <Check className="size-7" />
           </div>
@@ -449,7 +449,7 @@ function CheckinTab() {
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
         {/* Weight */}
         <form.Field name="weightKg">
           {(field) => (
@@ -626,7 +626,7 @@ function EvolucaoTab() {
 
       {/* Weight chart */}
       {weightSeries.length > 0 ? (
-        <div className="mt-5 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+        <div className="mt-5 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="text-[13px] text-muted-foreground">
@@ -665,7 +665,7 @@ function EvolucaoTab() {
       ) : null}
 
       {/* History */}
-      <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+      <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
         <div className="mb-1 text-sm font-semibold">Histórico de check-ins</div>
         <div className="flex flex-col">
           {checkins.map((c) => (
@@ -928,7 +928,7 @@ function DietTab() {
           </div>
 
           {/* Total macros + ratio */}
-          <div className="mb-4 rounded-2xl bg-white p-4 shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+          <div className="mb-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
             <MacroSummary totals={current.tree.totals} />
             <RatioBar macros={current.tree.totals} className="mt-3.5" />
           </div>
@@ -1016,7 +1016,7 @@ function MealCard({
   onOpenFood: (item: TreeItem) => void;
 }) {
   return (
-    <div className="self-start overflow-hidden rounded-2xl bg-white shadow-[0_1px_12px_rgba(15,23,42,0.06)] dark:bg-card">
+    <div className="self-start overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
       <div className="flex items-baseline gap-2.5 border-b border-[#EEF2F7] px-[18px] py-3.5 dark:border-border">
         <span className="font-heading text-[15px] font-semibold">
           {meal.name}

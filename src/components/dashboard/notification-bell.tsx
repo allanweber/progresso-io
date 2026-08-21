@@ -92,7 +92,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="fixed inset-x-3 top-[66px] z-50 overflow-hidden rounded-[12px] border border-border bg-white shadow-[0_8px_28px_rgba(15,23,42,0.12)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
+        <div className="fixed inset-x-3 top-[66px] z-50 overflow-hidden rounded-[12px] border border-border bg-white shadow-[0_8px_40px_rgba(15,23,42,0.15)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
           {/* Mobile: a viewport-width sheet pinned below the header (the 320px
               dropdown would overflow the left edge, since the bell sits mid-header).
               sm+: the anchored dropdown below the bell. */}

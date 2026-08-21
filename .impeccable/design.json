@@ -8,167 +8,422 @@
         "role": "primary",
         "displayName": "Vital Emerald",
         "canonical": "#059669",
-        "tonalRamp": ["#022c1c", "#04432a", "#065f46", "#047857", "#059669", "#34d399", "#a7f3d0", "#f0fdf4"]
+        "tonalRamp": [
+          "#022c1c",
+          "#04432a",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#f0fdf4"
+        ]
       },
       "primary-hover": {
         "role": "primary",
         "displayName": "Deep Emerald",
         "canonical": "#047857",
-        "tonalRamp": ["#022c1c", "#04432a", "#065f46", "#047857", "#059669", "#34d399", "#a7f3d0", "#f0fdf4"]
+        "tonalRamp": [
+          "#022c1c",
+          "#04432a",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#f0fdf4"
+        ]
       },
       "primary-light": {
         "role": "primary",
         "displayName": "Emerald Wash",
         "canonical": "#f0fdf4",
-        "tonalRamp": ["#022c1c", "#065f46", "#047857", "#059669", "#34d399", "#86efac", "#dcfce7", "#f0fdf4"]
+        "tonalRamp": [
+          "#022c1c",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#86efac",
+          "#dcfce7",
+          "#f0fdf4"
+        ]
       },
       "primary-light-border": {
         "role": "primary",
         "displayName": "Emerald Hairline",
         "canonical": "#bbf7d0",
-        "tonalRamp": ["#022c1c", "#065f46", "#047857", "#059669", "#34d399", "#86efac", "#bbf7d0", "#f0fdf4"]
+        "tonalRamp": [
+          "#022c1c",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#86efac",
+          "#bbf7d0",
+          "#f0fdf4"
+        ]
       },
       "foreground": {
         "role": "neutral",
         "displayName": "Ink",
         "canonical": "#0f172a",
-        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1"
+        ]
       },
       "text-secondary": {
         "role": "neutral",
         "displayName": "Reading Grey",
         "canonical": "#475569",
-        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"]
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0"
+        ]
       },
       "muted-foreground": {
         "role": "neutral",
         "displayName": "Context Grey",
         "canonical": "#64748b",
-        "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"]
+        "tonalRamp": [
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#f1f5f9"
+        ]
       },
       "meta": {
         "role": "neutral",
         "displayName": "Meta Grey",
         "canonical": "#94a3b8",
-        "tonalRamp": ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"]
+        "tonalRamp": [
+          "#0f172a",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
       },
       "background": {
         "role": "neutral",
         "displayName": "Paper",
         "canonical": "#ffffff",
-        "tonalRamp": ["#0f172a", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc", "#ffffff"]
+        "tonalRamp": [
+          "#0f172a",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f8fafc",
+          "#ffffff"
+        ]
       },
       "surface-light": {
         "role": "neutral",
         "displayName": "Cool Ground",
         "canonical": "#f8fafc",
-        "tonalRamp": ["#0f172a", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"]
+        "tonalRamp": [
+          "#0f172a",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f1f5f9",
+          "#f8fafc"
+        ]
       },
       "ground-aluno": {
         "role": "neutral",
         "displayName": "Aluno Ground",
         "canonical": "#eef1f5",
-        "tonalRamp": ["#0f172a", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#dde3ea", "#eef1f5", "#f8fafc"]
+        "tonalRamp": [
+          "#0f172a",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#dde3ea",
+          "#eef1f5",
+          "#f8fafc"
+        ]
       },
       "surface-dark": {
         "role": "neutral",
         "displayName": "Night Slate",
         "canonical": "#0f172a",
-        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1"
+        ]
       },
       "surface-dark-mid": {
         "role": "neutral",
         "displayName": "Night Slate Mid",
         "canonical": "#1e293b",
-        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1"
+        ]
       },
       "border": {
         "role": "neutral",
         "displayName": "Divider",
         "canonical": "#e2e8f0",
-        "tonalRamp": ["#0f172a", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"]
+        "tonalRamp": [
+          "#0f172a",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f1f5f9",
+          "#f8fafc"
+        ]
       },
       "border-light": {
         "role": "neutral",
         "displayName": "Hairline",
         "canonical": "#f1f5f9",
-        "tonalRamp": ["#0f172a", "#475569", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc", "#ffffff"]
+        "tonalRamp": [
+          "#0f172a",
+          "#475569",
+          "#94a3b8",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f1f5f9",
+          "#f8fafc",
+          "#ffffff"
+        ]
       },
       "destructive": {
         "role": "tertiary",
         "displayName": "Danger",
         "canonical": "#ef4444",
-        "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fecaca", "#fef2f2"]
+        "tonalRamp": [
+          "#450a0a",
+          "#7f1d1d",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#f87171",
+          "#fecaca",
+          "#fef2f2"
+        ]
       },
       "warn-bg": {
         "role": "tertiary",
         "displayName": "Warn Wash",
         "canonical": "#fef3c7",
-        "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#fbbf24", "#fef3c7", "#fffbeb"]
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fef3c7",
+          "#fffbeb"
+        ]
       },
       "warn-fg": {
         "role": "tertiary",
         "displayName": "Warn Ink",
         "canonical": "#92400e",
-        "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#fbbf24", "#fef3c7", "#fffbeb"]
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fef3c7",
+          "#fffbeb"
+        ]
       },
       "base-bg": {
         "role": "tertiary",
         "displayName": "Base Wash",
         "canonical": "#eef2ff",
-        "tonalRamp": ["#1e1b4b", "#312e81", "#3730a3", "#4338ca", "#6366f1", "#a5b4fc", "#e0e7ff", "#eef2ff"]
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#6366f1",
+          "#a5b4fc",
+          "#e0e7ff",
+          "#eef2ff"
+        ]
       },
       "base-fg": {
         "role": "tertiary",
         "displayName": "Base Indigo",
         "canonical": "#4338ca",
-        "tonalRamp": ["#1e1b4b", "#312e81", "#3730a3", "#4338ca", "#6366f1", "#a5b4fc", "#e0e7ff", "#eef2ff"]
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#6366f1",
+          "#a5b4fc",
+          "#e0e7ff",
+          "#eef2ff"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "The landing hero headline. One per marketing page, never inside the app." },
-      "headline": { "displayName": "Headline", "purpose": "The page title on every coach, admin and aluno screen — the app's true top level." },
-      "title": { "displayName": "Title", "purpose": "Panel, card and dialog titles; the name of a section within a page." },
-      "body": { "displayName": "Body", "purpose": "The default: descriptions, prose, form values, button labels." },
-      "body-dense": { "displayName": "Body Dense", "purpose": "Table cells and list-row metadata. What makes a fifty-row roster fit." },
-      "label": { "displayName": "Label", "purpose": "Field labels, column headers, chip text." },
-      "eyebrow": { "displayName": "Eyebrow", "purpose": "The only uppercase role — small tags above a feature title." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "The landing hero headline. One per marketing page, never inside the app."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The page title on every coach, admin and aluno screen — the app's true top level."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel, card and dialog titles; the name of a section within a page."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The default: descriptions, prose, form values, button labels."
+      },
+      "body-dense": {
+        "displayName": "Body Dense",
+        "purpose": "Table cells and list-row metadata. What makes a fifty-row roster fit."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, column headers, chip text."
+      },
+      "eyebrow": {
+        "displayName": "Eyebrow",
+        "purpose": "The only uppercase role — small tags above a feature title."
+      }
     },
     "shadows": [
-      { "name": "rest", "value": "0 1px 8px rgba(15,23,42,0.05)", "purpose": "Every resting panel, card, table container and empty state. The single canonical elevation (158 usages)." },
-      { "name": "overlay", "value": "0 8px 40px rgba(15,23,42,0.15)", "purpose": "Dialog, sheet, select content, popover — anything genuinely floating above the page." },
-      { "name": "theatre", "value": "0 32px 80px rgba(15,23,42,0.25)", "purpose": "The landing hero product mockup only. Never permitted inside the app." }
-    ],
-    "shadowDrift": [
-      { "value": "0 2px 16px rgba(15,23,42,0.07)", "where": "components/ui/card.tsx", "converge": "rest", "note": "The primitive disagrees with the 158 hand-rolled panels that ignore it." },
-      { "value": "0 1px 8px rgba(15,23,42,0.06)", "where": "evolution, feedback, food/exercise pickers", "converge": "rest" },
-      { "value": "0 1px 12px rgba(15,23,42,0.06)", "where": "aluno portal", "converge": "rest" },
-      { "value": "0 2px 16px rgba(15,23,42,0.05)", "where": "admin home, contact form", "converge": "rest" },
-      { "value": "0 4px 24px rgba(15,23,42,0.08)", "where": "auth card, register wizard", "converge": "rest" },
-      { "value": "0 8px 28px rgba(15,23,42,0.12)", "where": "notification bell dropdown", "converge": "overlay" },
-      { "value": "0 4px 20px rgba(15,23,42,0.12)", "where": "starters toast", "converge": "overlay" },
-      { "value": "0 -4px 24px rgba(15,23,42,0.08)", "where": "cookie consent (bottom-anchored, inverted)", "converge": "overlay" },
-      { "value": "0 2px 16px rgba(15,23,42,0.10)", "where": "public clinic microsite", "converge": "rest" }
+      {
+        "name": "rest",
+        "value": "0 1px 8px rgba(15,23,42,0.05)",
+        "purpose": "Every resting panel, card, table container, empty state and auth card. The single resting elevation in the system (184 usages)."
+      },
+      {
+        "name": "overlay",
+        "value": "0 8px 40px rgba(15,23,42,0.15)",
+        "purpose": "Dialog, sheet, select content, popover, notification dropdown and transient toasts — anything genuinely floating above the page."
+      },
+      {
+        "name": "overlay-up",
+        "value": "0 -8px 40px rgba(15,23,42,0.15)",
+        "purpose": "Overlay cast upward, for a surface anchored to the bottom of the viewport where a downward shadow would fall off-screen. A direction change, not a fourth tier."
+      },
+      {
+        "name": "theatre",
+        "value": "0 32px 80px rgba(15,23,42,0.25)",
+        "purpose": "The landing hero product mockup only. Never permitted inside the app."
+      }
     ],
     "motion": [
-      { "name": "transition-colors", "value": "transition-property: color, background-color, border-color; transition-duration: 150ms", "purpose": "The only transition the system uses (138 usages). Hover and focus change color, never position or elevation." },
-      { "name": "animate-spin", "value": "animation: spin 1s linear infinite", "purpose": "Indeterminate progress. The single motion that earns its place." }
+      {
+        "name": "transition-colors",
+        "value": "transition-property: color, background-color, border-color; transition-duration: 150ms",
+        "purpose": "The only transition the system uses (138 usages). Hover and focus change color, never position or elevation."
+      },
+      {
+        "name": "animate-spin",
+        "value": "animation: spin 1s linear infinite",
+        "purpose": "Indeterminate progress. The single motion that earns its place."
+      }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
     ],
     "containers": [
-      { "name": "form", "value": "max-w-2xl / max-w-3xl", "purpose": "Forms and detail views in the coach app." },
-      { "name": "listing", "value": "max-w-5xl / max-w-6xl", "purpose": "Rosters, catalogs and dashboards." },
-      { "name": "marketing", "value": "1120px", "purpose": "Landing and content pages, px-6 gutters, py-20–py-24 rhythm." },
-      { "name": "aluno", "value": "1180px", "purpose": "The aluno portal shell." }
+      {
+        "name": "form",
+        "value": "max-w-2xl / max-w-3xl",
+        "purpose": "Forms and detail views in the coach app."
+      },
+      {
+        "name": "listing",
+        "value": "max-w-5xl / max-w-6xl",
+        "purpose": "Rosters, catalogs and dashboards."
+      },
+      {
+        "name": "marketing",
+        "value": "1120px",
+        "purpose": "Landing and content pages, px-6 gutters, py-20–py-24 rhythm."
+      },
+      {
+        "name": "aluno",
+        "value": "1180px",
+        "purpose": "The aluno portal shell."
+      }
     ],
     "fonts": [
-      { "name": "Space Grotesk", "role": "heading", "weights": "400–700", "delivery": "self-hosted variable woff2 at src/app/fonts/, next/font/local, display: swap" },
-      { "name": "DM Sans", "role": "body", "weights": "400–600", "delivery": "self-hosted variable woff2 at src/app/fonts/, next/font/local, display: swap" }
-    ]
+      {
+        "name": "Space Grotesk",
+        "role": "heading",
+        "weights": "400–700",
+        "delivery": "self-hosted variable woff2 at src/app/fonts/, next/font/local, display: swap"
+      },
+      {
+        "name": "DM Sans",
+        "role": "body",
+        "weights": "400–600",
+        "delivery": "self-hosted variable woff2 at src/app/fonts/, next/font/local, display: swap"
+      }
+    ],
+    "shadowInvariant": {
+      "check": "grep -rho \"shadow-\\\\[[^]]*\\\\]\" src --include=*.tsx | sort | uniq -c",
+      "expect": "exactly four distinct values: rest, overlay, overlay-up, theatre",
+      "note": "Converged 2026-08-21 from twelve distinct values; occurrence count conserved (192)."
+    }
   },
   "components": [
     {
@@ -199,7 +454,7 @@
       "name": "Panel Card",
       "kind": "card",
       "refersTo": "card",
-      "description": "Paper on the cool ground at the single canonical rest elevation. Never lifts.",
+      "description": "Paper on the cool ground at the single resting elevation. Never lifts. ui/card.tsx now emits this exact shadow.",
       "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Próximo check-in</div><div class=\"ds-card-desc\">Ana Souza responde toda segunda-feira.</div></div>",
       "css": ".ds-card { background: #fff; color: #0f172a; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 1px 8px rgba(15,23,42,0.05); } .ds-card-title { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 18px; font-weight: 600; line-height: 1; } .ds-card-desc { margin-top: 6px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #64748b; }"
     },
@@ -264,17 +519,61 @@
       "Two postures on one token set: a desktop-first coach app and a phone-first aluno portal"
     ],
     "rules": [
-      { "name": "The One Voice Rule", "body": "Emerald is the only chromatic voice in the interface. Every other color in a coach or aluno screen is slate, or a status pigment confined to a chip. If a screen needs a second accent to work, the screen is wrong, not the palette.", "section": "colors" },
-      { "name": "The Alive Rule", "body": "Emerald describes the state of a real thing, not the importance of a UI element. An active aluno, a published version, the tab you are on, the input you are in. It never tints a section header, an icon that is merely decorative, or a background that means nothing.", "section": "colors" },
-      { "name": "The Two Grounds Rule", "body": "#f8fafc is the coach's ground; #eef1f5 is the aluno's. A surface never sits on the wrong one. That half-step of temperature is the entire signal that says which app you are in.", "section": "colors" },
-      { "name": "The Two Voices Rule", "body": "Space Grotesk sets structure — page titles, panel titles, numbers a coach reads at a glance. DM Sans carries everything meant to be read as language. There is no third font, and no role that uses both.", "section": "typography" },
-      { "name": "The Uppercase Licence", "body": "Uppercase appears only in the 10px eyebrow with 0.08em tracking. Buttons, labels, headings and nav items are sentence case, in Portuguese, always.", "section": "typography" },
-      { "name": "The Two Renderings Rule", "body": "A data listing ships twice: a table from md up, and a stack of tappable cards below it — same data, different shape, not a squeezed table. Every roster, catalog and history view follows this.", "section": "layout" },
-      { "name": "The min-w-0 Rule", "body": "Any flex or grid child that can contain a table, a long name, or user text carries min-w-0. Horizontal page scroll is a defect, not a tradeoff.", "section": "layout" },
-      { "name": "The No-Lift Rule", "body": "Nothing rises on hover. Interactive surfaces respond by changing their border to emerald (hover:border-primary) or their text (hover:text-primary). Elevation is reserved for things that are literally on top of the page.", "section": "elevation" },
-      { "name": "The Stillness Rule", "body": "transition-colors is the only transition the system uses (138 usages against 2 transition-all). Movement is reserved for genuine indeterminate progress — a spinner. The interface does not slide, scale, or bounce.", "section": "elevation" },
-      { "name": "The Three Radii Rule", "body": "10px if you touch it, 16px if it holds things, full if it labels something. A fourth radius means the element has no clear job.", "section": "shapes" },
-      { "name": "The Thicker Stroke Rule", "body": "Anything a user aims at gets a 1.5px border, so the target reads as a target. Decorative and structural lines stay at 1px.", "section": "shapes" }
+      {
+        "name": "The One Voice Rule",
+        "body": "Emerald is the only chromatic voice in the interface. Every other color in a coach or aluno screen is slate, or a status pigment confined to a chip. If a screen needs a second accent to work, the screen is wrong, not the palette.",
+        "section": "colors"
+      },
+      {
+        "name": "The Alive Rule",
+        "body": "Emerald describes the state of a real thing, not the importance of a UI element. An active aluno, a published version, the tab you are on, the input you are in. It never tints a section header, an icon that is merely decorative, or a background that means nothing.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Grounds Rule",
+        "body": "#f8fafc is the coach's ground; #eef1f5 is the aluno's. A surface never sits on the wrong one. That half-step of temperature is the entire signal that says which app you are in.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Space Grotesk sets structure — page titles, panel titles, numbers a coach reads at a glance. DM Sans carries everything meant to be read as language. There is no third font, and no role that uses both.",
+        "section": "typography"
+      },
+      {
+        "name": "The Uppercase Licence",
+        "body": "Uppercase appears only in the 10px eyebrow with 0.08em tracking. Buttons, labels, headings and nav items are sentence case, in Portuguese, always.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Renderings Rule",
+        "body": "A data listing ships twice: a table from md up, and a stack of tappable cards below it — same data, different shape, not a squeezed table. Every roster, catalog and history view follows this.",
+        "section": "layout"
+      },
+      {
+        "name": "The min-w-0 Rule",
+        "body": "Any flex or grid child that can contain a table, a long name, or user text carries min-w-0. Horizontal page scroll is a defect, not a tradeoff.",
+        "section": "layout"
+      },
+      {
+        "name": "The No-Lift Rule",
+        "body": "Nothing rises on hover. Interactive surfaces respond by changing their border to emerald (hover:border-primary) or their text (hover:text-primary). Elevation is reserved for things that are literally on top of the page.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Stillness Rule",
+        "body": "transition-colors is the only transition the system uses (138 usages against 2 transition-all). Movement is reserved for genuine indeterminate progress — a spinner. The interface does not slide, scale, or bounce.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Three Radii Rule",
+        "body": "10px if you touch it, 16px if it holds things, full if it labels something. A fourth radius means the element has no clear job.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Thicker Stroke Rule",
+        "body": "Anything a user aims at gets a 1.5px border, so the target reads as a target. Decorative and structural lines stay at 1px.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do use 0 1px 8px rgba(15,23,42,0.05) for every resting panel, and 0 8px 40px rgba(15,23,42,0.15) for anything genuinely floating. Nothing between.",
