@@ -310,7 +310,7 @@ export function DashboardShell({
             </Link>
             <SheetClose
               aria-label="Fechar menu"
-              className="flex size-9 items-center justify-center rounded-[10px] text-[#334155] transition-colors hover:bg-secondary focus:outline-none"
+              className="flex size-9 items-center justify-center rounded-[10px] text-[#334155] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <X className="size-5" />
             </SheetClose>
@@ -328,7 +328,7 @@ export function DashboardShell({
           <div className="flex items-center gap-2.5 md:hidden">
             <SheetTrigger
               aria-label="Abrir menu"
-              className="flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus:outline-none"
+              className="flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <Menu className="size-5" />
             </SheetTrigger>

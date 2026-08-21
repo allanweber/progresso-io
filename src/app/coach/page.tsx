@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { AlertCircle, Plus, RefreshCw, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
@@ -52,10 +52,19 @@ function SectionCard({
   aside?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  // Names the landmark so screen-reader users can jump between the dashboard's
+  // sections instead of hearing five anonymous regions.
+  const headingId = `section-${title.replace(/\W+/g, "-").toLowerCase()}`;
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <section
+      aria-labelledby={headingId}
+      className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+    >
       <div className="flex items-center gap-2.5 border-b border-border px-4 py-3.5">
-        <h2 className="font-heading text-[15px] font-semibold text-foreground">
+        <h2
+          id={headingId}
+          className="font-heading text-subtitle font-semibold text-foreground"
+        >
           {title}
         </h2>
         {badge}
@@ -105,6 +114,7 @@ function AgendaRow({
           style={{ background: meta.accent }}
           aria-hidden
         />
+        <span className="sr-only">{meta.label}:</span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-foreground">
             {item.title}
@@ -114,7 +124,7 @@ function AgendaRow({
           </div>
         </div>
         {item.overdue ? (
-          <span className="shrink-0 rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-semibold text-destructive">
+          <span className="shrink-0 rounded-full bg-danger-bg px-2.5 py-0.5 text-[11px] font-semibold text-danger-fg">
             atrasado
           </span>
         ) : null}
@@ -125,7 +135,7 @@ function AgendaRow({
 
 export default function CoachDashboardPage() {
   const today = useTodayLabel();
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["coach-dashboard"],
     queryFn: () => apiFetch<CoachDashboardDto>("/api/coach/dashboard"),
   });
@@ -142,40 +152,77 @@ export default function CoachDashboardPage() {
   const todayEvents = data?.todayEvents ?? [];
   const weekEvents = data?.weekEvents ?? [];
 
-  return (
-    <div className="mx-auto max-w-6xl">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-xs uppercase tracking-wide text-[#94A3B8]">
-            {today ?? " "}
-          </div>
-          <h1 className="mt-1 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
-            Sua fila de hoje
-          </h1>
+  // Shared by both returns below, so a failed load keeps the page title and
+  // the two escape hatches (roster, invite) instead of stranding the coach.
+  const header = (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <div className="text-xs uppercase tracking-wide text-[#94A3B8]">
+          {today ?? " "}
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          <Button asChild variant="outline">
-            <Link href="/coach/students">Ver todos os alunos</Link>
+        <h1 className="mt-1 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+          Sua fila de hoje
+        </h1>
+      </div>
+      <div className="flex flex-wrap gap-2.5">
+        <Button asChild variant="outline">
+          <Link href="/coach/students">Ver todos os alunos</Link>
+        </Button>
+        {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
+          <Button asChild>
+            <Link href="/coach/settings">
+              <Sparkles className="size-4" aria-hidden />
+              Limite de {usage.students.limit} alunos · ver planos
+            </Link>
           </Button>
-          {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
-            <Button
-              disabled
-              title={`Limite de ${usage.students.limit} alunos do plano ${usage.planName} atingido. Faça upgrade para adicionar mais.`}
-            >
+        ) : (
+          <Button asChild>
+            <Link href="/coach/students/new">
               <Plus className="size-4" />
               Convidar aluno
+            </Link>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  // A failed fetch must never fall through to the zero/empty branches below:
+  // a coach on bad signal would read "nothing pending" and put the phone away.
+  if (isError) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        {header}
+        <div
+          role="alert"
+          className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+        >
+          <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-8 text-center">
+            <AlertCircle className="size-8 text-destructive" aria-hidden />
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-foreground">
+                Não foi possível carregar seu painel
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {(error as Error).message}
+              </p>
+            </div>
+            <Button onClick={() => void refetch()} disabled={isFetching}>
+              <RefreshCw
+                className={cn("size-4", isFetching && "animate-spin")}
+                aria-hidden
+              />
+              {isFetching ? "Tentando…" : "Tentar de novo"}
             </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/coach/students/new">
-                <Plus className="size-4" />
-                Convidar aluno
-              </Link>
-            </Button>
-          )}
+          </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      {header}
 
       {/* KPIs — two real, two coming-soon */}
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
@@ -253,7 +300,10 @@ export default function CoachDashboardPage() {
             title="Check-ins aguardando resposta"
             badge={
               pendingCheckins.length > 0 ? (
-                <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                <span
+                  aria-label={`${pendingCheckins.length} aguardando resposta`}
+                  className="rounded-full bg-danger-bg px-2.5 py-0.5 text-xs font-semibold text-danger-fg"
+                >
                   {pendingCheckins.length}
                 </span>
               ) : undefined
@@ -293,7 +343,7 @@ export default function CoachDashboardPage() {
                           {c.weightKg != null ? ` · ${c.weightKg} kg` : ""}
                         </div>
                       </div>
-                      <span className="shrink-0 rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-[11px] font-semibold text-[#B45309]">
+                      <span className="shrink-0 rounded-full bg-warn-bg px-2.5 py-0.5 text-[11px] font-semibold text-warn-fg">
                         responder
                       </span>
                     </Link>
@@ -357,7 +407,10 @@ export default function CoachDashboardPage() {
             title="WhatsApp aguardando"
             badge={
               waWaiting.length > 0 ? (
-                <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary">
+                <span
+                  aria-label={`${waWaiting.length} conversas aguardando resposta`}
+                  className="rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary"
+                >
                   {waWaiting.length}
                 </span>
               ) : undefined
@@ -408,7 +461,10 @@ export default function CoachDashboardPage() {
             title="Sem treino ou dieta"
             badge={
               missingPlans.length > 0 ? (
-                <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                <span
+                  aria-label={`${missingPlans.length} alunos sem treino ou dieta`}
+                  className="rounded-full bg-danger-bg px-2.5 py-0.5 text-xs font-semibold text-danger-fg"
+                >
                   {missingPlans.length}
                 </span>
               ) : undefined
@@ -417,10 +473,6 @@ export default function CoachDashboardPage() {
             {isLoading ? (
               <div className="px-4 py-9 text-center text-sm text-muted-foreground">
                 Carregando…
-              </div>
-            ) : isError ? (
-              <div className="px-4 py-9 text-center text-sm text-destructive">
-                {(error as Error).message}
               </div>
             ) : missingPlans.length === 0 ? (
               <div className="px-4 py-9 text-center text-sm text-muted-foreground">
@@ -452,12 +504,12 @@ export default function CoachDashboardPage() {
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
                         {s.missingWorkout ? (
-                          <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-semibold text-destructive">
+                          <span className="rounded-full bg-danger-bg px-2.5 py-0.5 text-[11px] font-semibold text-danger-fg">
                             sem treino
                           </span>
                         ) : null}
                         {s.missingDiet ? (
-                          <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-semibold text-destructive">
+                          <span className="rounded-full bg-danger-bg px-2.5 py-0.5 text-[11px] font-semibold text-danger-fg">
                             sem dieta
                           </span>
                         ) : null}

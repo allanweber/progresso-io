@@ -10,7 +10,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -208,12 +208,11 @@ export default function StudentsPage() {
             </span>
           ) : null}
           {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
-            <Button
-              disabled
-              title={`Limite de ${usage.students.limit} alunos do plano ${usage.planName} atingido. Faça upgrade para adicionar mais.`}
-            >
-              <Plus className="size-4" />
-              Adicionar aluno
+            <Button asChild>
+              <Link href="/coach/settings">
+                <Sparkles className="size-4" aria-hidden />
+                Limite de {usage.students.limit} alunos · ver planos
+              </Link>
             </Button>
           ) : (
             <Button asChild>

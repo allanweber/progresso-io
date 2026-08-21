@@ -34,6 +34,17 @@
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
+  /*
+   * Status-chip pairs (DESIGN.md § Colors "Tertiary"). Foregrounds are the
+   * darkened rungs, not the pure pigment: chip text ships at 11-12px, where
+   * #ef4444 on #fee2e2 lands at 3.3:1 and fails the 4.5:1 floor for small
+   * text. These pass at 5.9:1 (danger) and 7.4:1 (warn).
+   */
+  --danger-bg: #fee2e2;
+  --danger-fg: #b91c1c;
+  --warn-bg: #fef3c7;
+  --warn-fg: #92400e;
+
   --border: #e2e8f0; /* slate-200 */
   --input: #e2e8f0;
   --ring: #059669;
@@ -96,6 +107,12 @@
   --accent-foreground: #f8fafc;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+
+  /* Washes darken and foregrounds lighten so chips stay legible on slate. */
+  --danger-bg: #450a0a;
+  --danger-fg: #fca5a5;
+  --warn-bg: #422006;
+  --warn-fg: #fcd34d;
   --border: #334155;
   --input: #334155;
   --ring: #059669;
@@ -123,6 +140,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-fg);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
