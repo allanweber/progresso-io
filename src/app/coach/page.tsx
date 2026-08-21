@@ -237,8 +237,18 @@ export default function CoachDashboardPage() {
 
       {/* Two-column body, faithful to the mockup */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        {/* Left column */}
-        <div className="flex flex-col gap-4">
+        {/* Left column.
+
+          `min-w-0` is load-bearing, not decoration: a grid item defaults to
+          `min-width: auto`, so it refuses to shrink below its content's
+          min-content width. Every row in these cards carries a `truncate`
+          line, and `truncate` means `white-space: nowrap` — a phone number or
+          a message preview therefore reports its FULL width as the minimum,
+          the column inflates past its track, and the whole page scrolls
+          sideways (427px of content in a 390px viewport). The ellipsis never
+          gets a chance to do its job. Zeroing the minimum hands the row back
+          to the track width, which is what makes `truncate` truncate. */}
+        <div className="flex min-w-0 flex-col gap-4">
           <SectionCard
             title="Check-ins aguardando resposta"
             badge={
@@ -297,8 +307,8 @@ export default function CoachDashboardPage() {
           </SectionCard>
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-4">
+        {/* Right column — `min-w-0` for the same reason as the left. */}
+        <div className="flex min-w-0 flex-col gap-4">
           <SectionCard
             title="Hoje"
             aside={

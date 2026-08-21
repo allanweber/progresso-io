@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
  */
 export function Hero() {
   return (
-    <section className="bg-gradient-to-b from-primary-light to-white px-6 pb-32 pt-20">
+    <section className="bg-gradient-to-b from-primary-light to-white px-6 pb-16 pt-20 lg:pb-32">
       <div className="mx-auto max-w-[760px] text-center">
         <Badge className="mb-6">
           <MessageCircle className="size-3.5" strokeWidth={2.5} />
@@ -65,7 +65,7 @@ export function Hero() {
         into a grey smudge — indistinguishable from the CSS mockup this
         replaced. Full container width keeps it near 0.78 and legible.
       */}
-      <div className="relative mx-auto mt-16 max-w-[1120px]">
+      <div className="relative mx-auto mt-10 max-w-[1120px] lg:mt-16">
         {/* The coach's workspace: the product being bought. */}
         <div className="hidden overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-[0_32px_80px_rgba(15,23,42,0.22)] lg:block">
           <Image
@@ -110,8 +110,14 @@ export function Hero() {
           the whole small-screen page arguing to the wrong person. It is the
           COACH's own dashboard, at phone width, where it is both legible and
           the thing being sold.
+
+          The width is `min(320px, 88vw)` rather than a fixed 266px because the
+          source is a 390px-wide capture: at 266px every label renders at 0.68
+          scale on a device that is itself a phone, which is the one context
+          where the screenshot could have been near 1:1. Capping at 88vw keeps
+          the margins on a narrow handset.
         */}
-        <div className="mx-auto w-[266px] overflow-hidden rounded-[32px] border-[8px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:hidden">
+        <div className="mx-auto w-[min(320px,88vw)] overflow-hidden rounded-[32px] border-[8px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:hidden">
           <Image
             src="/landing/app-coach-phone.png"
             alt="O painel do coach no celular, com a fila do dia e os check-ins aguardando resposta"
