@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
+import { Plus, Repeat, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,9 +112,7 @@ export function ExercisePrescriptionFields({
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Séries
-          </Label>
+          <Label>Séries</Label>
           <div className="mt-1">
             <NumberField
               value={value.sets}
@@ -124,20 +122,16 @@ export function ExercisePrescriptionFields({
               maxDigits={2}
               stepper
               ariaLabel="Séries"
-              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             />
           </div>
         </div>
         <div>
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Repetições
-          </Label>
+          <Label>Repetições</Label>
           <RepsInput value={value.reps} onChange={(reps) => onPatch({ reps })} />
         </div>
         <div>
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Carga (opcional)
-          </Label>
+          <Label>Carga (opcional)</Label>
           <Input
             value={value.load}
             onChange={(e) => onPatch({ load: e.target.value })}
@@ -145,9 +139,7 @@ export function ExercisePrescriptionFields({
           />
         </div>
         <div>
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Descanso (s)
-          </Label>
+          <Label>Descanso (s)</Label>
           <div className="mt-1">
             <NumberField
               value={value.rest}
@@ -158,16 +150,14 @@ export function ExercisePrescriptionFields({
               maxDigits={4}
               stepper
               ariaLabel="Descanso"
-              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             />
           </div>
         </div>
       </div>
 
       <div>
-        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Técnica avançada
-        </Label>
+        <Label>Técnica avançada</Label>
         <select
           value={value.technique ?? ""}
           onChange={(e) =>
@@ -177,7 +167,7 @@ export function ExercisePrescriptionFields({
                 : null,
             })
           }
-          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-body text-foreground outline-none focus:border-primary"
         >
           <option value="">Nenhuma técnica</option>
           {WORKOUT_TECHNIQUE_OPTIONS.map((o) => (
@@ -187,7 +177,7 @@ export function ExercisePrescriptionFields({
           ))}
         </select>
         {isGroupingTechnique(value.technique) && (
-          <p className="mt-1 text-[11px] text-muted-foreground">
+          <p className="mt-1 text-label text-muted-foreground">
             Encadeia com o próximo exercício da ficha, sem descanso entre eles.
             Para um giant set, marque também os exercícios seguintes.
           </p>
@@ -195,9 +185,7 @@ export function ExercisePrescriptionFields({
       </div>
 
       <div>
-        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Observação (opcional)
-        </Label>
+        <Label>Observação (opcional)</Label>
         <Textarea
           rows={2}
           value={value.note}
@@ -208,7 +196,7 @@ export function ExercisePrescriptionFields({
       </div>
 
       <div>
-        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <Label>
           Substituições · {total}
           {librarySubs.length > 0 ? ` (${librarySubs.length} da biblioteca)` : ""}
         </Label>
@@ -216,8 +204,8 @@ export function ExercisePrescriptionFields({
           <ul className="mt-1 space-y-1.5">
             {value.customSubstitutes.map((cs) => (
               <li key={cs.key} className="flex items-center gap-2">
-                <span className="text-amber-600">⇄</span>
-                <span className="min-w-0 flex-1 truncate text-sm">{cs.name}</span>
+                <Repeat className="size-3.5 shrink-0 text-amber-600" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-body">{cs.name}</span>
                 <Input
                   value={cs.note}
                   onChange={(e) =>
@@ -228,7 +216,7 @@ export function ExercisePrescriptionFields({
                     })
                   }
                   placeholder="Motivo (opcional)"
-                  className="h-8 w-40 text-xs"
+                  className="h-8 w-40 text-label"
                 />
                 <button
                   type="button"
@@ -264,7 +252,7 @@ export function ExercisePrescriptionFields({
             <button
               type="button"
               onClick={() => setAddingSub(true)}
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
+              className="inline-flex items-center gap-1 text-label font-medium text-muted-foreground hover:text-primary"
             >
               <Plus className="size-3.5" />
               Adicionar substituição

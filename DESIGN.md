@@ -41,6 +41,12 @@ typography:
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "normal"
+  subtitle:
+    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 600
+    lineHeight: 1.35
+    letterSpacing: "normal"
   body:
     fontFamily: "DM Sans, system-ui, sans-serif"
     fontSize: "14px"
@@ -245,8 +251,11 @@ product actually lives. The pairing lets a screen be dense without feeling harsh
   headline. One per marketing page, never inside the app.
 - **Headline** (700, 24px, `tracking-tight`): the page title on every coach,
   admin and aluno screen. This is the app's true top level.
-- **Title** (600, 18px): panel and card titles, dialog titles, the name of a
-  section within a page.
+- **Title** (600, 18px): panel and card titles, dialog titles.
+- **Subtitle** (600, 15px, Space Grotesk): the name of a section *inside* a
+  panel or dialog — "Como executar", "Substituições", a meal's name, "Dietas
+  anteriores". It is subordinate to the Title above it and unmistakably above
+  Body, which 14px semibold could not be at a 1px remove.
 - **Body** (400, 14px, 1.6): the default. Descriptions, prose, form values,
   button labels. Keep marketing prose to a `max-w-[460px]`–`max-w-[560px]`
   measure; app prose is bounded by its panel.
@@ -267,6 +276,33 @@ read as language. There is no third font, and no role that uses both.
 **The Uppercase Licence.** Uppercase appears only in the 10px eyebrow with
 `0.08em` tracking. Buttons, labels, headings and nav items are sentence case,
 in Portuguese, always.
+
+**The Named Rung Rule.** Every size in the app comes from a named `text-*`
+utility — `text-eyebrow · text-label · text-body-dense · text-body ·
+text-subtitle · text-title · text-headline`, registered in `globals.css`
+under `@theme inline`. There is no `text-[13px]`, and no half-step: a value
+that needs a bracket is a role the system has not named yet. Verify with:
+
+```bash
+grep -rn "text-\[[0-9.]*px\]" src --include=*.tsx
+```
+
+**The Two Postures Rule.** The ramp is one system read at two distances. The
+coach's is the default — desk density, a fifty-row roster. The aluno's is
+`.posture-reading`, which redefines `--fs-body-dense`, `--fs-body` and
+`--fs-subtitle` one rung up (14 / 15 / 16) for a phone held at arm's length in
+a gym. The structural rungs — eyebrow, label, title, headline — hold in both,
+so hierarchy is identical and only what you *read* grows. This is why the
+utilities are declared `@theme inline`: the value resolves at the element, not
+at `:root`, so a subtree can shift the whole ramp with three custom properties
+and no prop threading. A dialog portals to `<body>` and leaves that subtree, so
+it carries `posture-reading` (or `posture="reading"`) itself.
+
+**No Synthetic Bold.** The vendored variable faces carry Space Grotesk 400–700
+and **DM Sans 400–600**. `font-bold` on body text asks for a 700 DM Sans that
+is not in the file, and the browser smears a fake one — visible on exactly the
+cheap Android the aluno portal is built for. Body text tops out at
+`font-semibold`; 700 belongs to `font-heading`.
 
 ## Layout
 
@@ -463,7 +499,7 @@ A deliberate sub-world built from the same tokens with a different posture.
 - **Desktop:** a white 60px header, then a `[262px_1fr]` grid with a sticky
   profile card (68px emerald initials circle, name, coach, goal chip) above a
   nav panel — both Paper, 16px radius.
-- **Bottom bar:** fixed, white, safe-area padded, 11px labels under 20px icons.
+- **Bottom bar:** fixed, white, safe-area padded, `text-label` under 20px icons.
 
 ### Signature: the Billing Banner
 

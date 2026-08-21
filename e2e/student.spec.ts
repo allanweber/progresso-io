@@ -117,6 +117,50 @@ test.describe("aluno portal", () => {
     });
   });
 
+  test("reads at the aluno's posture, inline and inside a portalled dialog (desktop + mobile)", async ({
+    page,
+  }) => {
+    // The portal and the coach app share one type ramp; `.posture-reading`
+    // steps the reading rungs up one notch for the aluno (globals.css). Radix
+    // portals dialog content to <body>, outside the portal's subtree, so the
+    // posture has to ride on the dialog itself — that is what this asserts.
+    const px = (l: import("@playwright/test").Locator) =>
+      l.evaluate((el) => getComputedStyle(el).fontSize);
+
+    for (const [label, size] of [
+      ["desktop", { width: 1280, height: 900 }],
+      ["mobile", { width: 390, height: 844 }],
+    ] as const) {
+      await page.setViewportSize(size);
+      await page.goto("/student");
+
+      // Inline: a meal name is `text-subtitle`, a food row `text-body-dense`.
+      const meal = page.getByText("Café da manhã");
+      await expect(meal).toBeVisible();
+      expect(await px(meal)).toBe("16px");
+
+      const food = page.getByRole("button", { name: /Arroz/ }).first();
+      expect(await px(food)).toBe("14px");
+
+      await page.screenshot({
+        path: `test-results/screens/portal-type-${label}.png`,
+        fullPage: true,
+      });
+
+      // Portalled: the food dialog renders under <body>, and still reads at
+      // the aluno's posture rather than falling back to the coach's density.
+      await food.click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      expect(await px(dialog.getByText(/Batata/).first())).toBe("14px");
+      await dialog.screenshot({
+        path: `test-results/screens/portal-type-dialog-${label}.png`,
+      });
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden();
+    }
+  });
+
   test("renders the mobile chrome (bottom tab bar)", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/student");

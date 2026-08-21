@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Dumbbell, Repeat } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CornerDownRight,
+  Dumbbell,
+  Repeat,
+  TrendingUp,
+} from "lucide-react";
 
 import {
   Dialog,
@@ -26,6 +33,11 @@ import {
   techniqueInfo,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
+import {
+  TechniqueBadge,
+  TechniqueIcon,
+} from "@/components/workouts/technique-icon";
+import { cn } from "@/lib/utils";
 
 /**
  * Grouping context for an exercise inside a super-set / giant-set block. A block
@@ -80,9 +92,10 @@ function ExerciseRow({
   const inBlock = Boolean(group);
   // A block member shows the block's technique (its opener's) on the rail/badge;
   // a standalone exercise shows its own technique.
-  const tech = inBlock
-    ? techniqueInfo(group!.technique) ?? techniqueInfo(exercise.technique)
-    : techniqueInfo(exercise.technique);
+  const techKey = inBlock
+    ? group!.technique ?? exercise.technique
+    : exercise.technique;
+  const tech = techniqueInfo(techKey);
   const color = tech?.color ?? "#059669";
   const first = group?.position === 1;
   const last = group ? group.position === group.total : false;
@@ -106,14 +119,15 @@ function ExerciseRow({
         }}
       />
       <span
-        className="absolute flex size-4 items-center justify-center rounded-full bg-white text-[9px] leading-none"
+        className="absolute flex size-4 items-center justify-center rounded-full bg-white"
         style={{
           left: "1px",
           top: `calc(${NODE_TOP} - 0.5rem)`,
           border: `2px solid ${color}`,
+          color,
         }}
       >
-        {tech?.icon}
+        <TechniqueIcon technique={techKey} className="size-2.5" />
       </span>
     </div>
   ) : null;
@@ -124,40 +138,40 @@ function ExerciseRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="font-medium text-foreground">{exercise.name}</span>
+            <span className="text-body font-semibold text-foreground">
+              {exercise.name}
+            </span>
             {/* Label the block on its first row; the node marks the rest. */}
             {tech && (first || !inBlock) && (
-              <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                style={{ color: tech.color, backgroundColor: tech.bg }}
-              >
-                {tech.icon} {tech.label}
-                {group ? ` · ${group.total} em sequência` : ""}
-              </span>
+              <TechniqueBadge
+                technique={techKey}
+                suffix={group ? ` · ${group.total} em sequência` : undefined}
+              />
             )}
           </span>
-          <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-[#64748B]">
+          <span className="shrink-0 whitespace-nowrap text-body font-semibold tabular-nums text-muted-foreground">
             {exercise.sets}× {formatReps(exercise.reps)}
           </span>
         </div>
-        <div className="mt-0.5 text-xs text-muted-foreground">
+        <div className="mt-0.5 text-label text-muted-foreground">
           {exercise.category ? `${CATEGORY_LABELS[exercise.category]} · ` : ""}
           descanso {formatRest(exercise.rest)}
           {exercise.load ? ` · ${exercise.load}` : ""}
         </div>
         {group && group.nextName && (
-          <div className="mt-1 text-[11px] font-medium text-muted-foreground">
-            ↳ sem descanso → {group.nextName}
+          <div className="mt-1 flex items-center gap-1 text-label font-medium text-muted-foreground">
+            <CornerDownRight className="size-3 shrink-0" aria-hidden />
+            sem descanso → {group.nextName}
           </div>
         )}
         {exercise.note && (
-          <div className="mt-1 line-clamp-2 text-[11.5px] italic text-[#64748B]">
+          <div className="mt-1 line-clamp-2 text-body-dense italic text-muted-foreground">
             “{exercise.note}”
           </div>
         )}
         {/* Only a count indicator in the full view — the list is in the detail. */}
         {subCount > 0 && (
-          <div className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-medium text-amber-700">
+          <div className="mt-1.5 inline-flex items-center gap-1 text-label font-medium text-amber-700">
             <Repeat className="size-3 shrink-0" />
             {subCount} {subCount === 1 ? "substituição" : "substituições"}
           </div>
@@ -192,19 +206,29 @@ function ExerciseRow({
 export function WorkoutSessionsView({
   sessions,
   onExerciseClick,
+  posture,
 }: {
   sessions: WorkoutSessionDto[];
   onExerciseClick?: (exercise: WorkoutExerciseDto, group: GroupInfo | null) => void;
+  /**
+   * `"reading"` steps the reading rungs of the type ramp up one notch for the
+   * aluno portal (see `.posture-reading` in globals.css). The coach's dense
+   * default is deliberate — omit it there.
+   */
+  posture?: "reading";
 }) {
   if (sessions.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-white p-8 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className={cn(
+        "rounded-2xl border border-border bg-white p-8 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]",
+        posture === "reading" && "posture-reading",
+      )}>
         Este treino ainda não tem fichas.
       </div>
     );
   }
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", posture === "reading" && "posture-reading")}>
       {sessions.map((session) => {
         const groups = groupInfoFor(session.exercises);
         return (
@@ -213,15 +237,15 @@ export function WorkoutSessionsView({
             className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
           >
             <div className="flex items-center gap-2 border-b border-border bg-surface-light px-4 py-3">
-              <span className="font-heading font-semibold text-foreground">
+              <span className="font-heading text-subtitle font-semibold text-foreground">
                 {session.name}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-label text-muted-foreground">
                 {session.exercises.length} exercício(s)
               </span>
             </div>
             {session.exercises.length === 0 ? (
-              <div className="px-4 py-4 text-sm text-muted-foreground">
+              <div className="px-4 py-4 text-body text-muted-foreground">
                 Sem exercícios.
               </div>
             ) : (
@@ -359,16 +383,18 @@ export function WorkoutExerciseDetail({
   exercise,
   group,
   onClose,
+  posture,
 }: {
   exercise: WorkoutExerciseDto | null;
   group?: GroupInfo | null;
   onClose: () => void;
+  /** See `WorkoutSessionsView`. Carried onto the dialog, which portals out. */
+  posture?: "reading";
 }) {
   // Block members show the block's technique (the opener's) even when their own
   // `technique` is null (they are the chained tail of the super-set / giant set).
-  const tech =
-    techniqueInfo(exercise?.technique) ??
-    (group ? techniqueInfo(group.technique) : null);
+  const techKey = exercise?.technique ?? group?.technique ?? null;
+  const tech = techniqueInfo(techKey);
   const images = (exercise?.images ?? [])
     .map((k) => exerciseImageUrl(k))
     .filter((u): u is string => Boolean(u));
@@ -379,20 +405,18 @@ export function WorkoutExerciseDetail({
   return (
     <>
     <Dialog open={Boolean(exercise)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          "max-h-[88vh] overflow-y-auto sm:max-w-lg",
+          posture === "reading" && "posture-reading",
+        )}
+      >
         {exercise && (
           <>
             <DialogHeader>
               <DialogTitle className="flex flex-wrap items-center gap-2">
                 {exercise.name}
-                {tech && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[11px] font-bold"
-                    style={{ color: tech.color, backgroundColor: tech.bg }}
-                  >
-                    {tech.icon} {tech.label}
-                  </span>
-                )}
+                {tech && <TechniqueBadge technique={techKey} />}
               </DialogTitle>
             </DialogHeader>
 
@@ -412,10 +436,10 @@ export function WorkoutExerciseDetail({
                     key={s.label}
                     className="rounded-xl bg-surface-light px-2 py-3 text-center"
                   >
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="text-eyebrow font-semibold uppercase text-muted-foreground">
                       {s.label}
                     </div>
-                    <div className="mt-1 font-heading text-lg font-bold text-foreground">
+                    <div className="mt-1 font-heading text-title font-bold tabular-nums text-foreground">
                       {s.value}
                     </div>
                   </div>
@@ -424,18 +448,20 @@ export function WorkoutExerciseDetail({
 
               {/* Pyramid hint — the load rises as reps fall each set */}
               {exercise.reps.kind === "pyramid" && (
-                <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2 text-[13px] font-medium text-primary">
-                  🔺 Pirâmide — aumente a carga a cada série, reduzindo as repetições.
+                <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2 text-body font-medium text-primary">
+                  <TrendingUp className="size-4 shrink-0" aria-hidden />
+                  Pirâmide — aumente a carga a cada série, reduzindo as
+                  repetições.
                 </div>
               )}
 
               {/* Coach's note for this exercise */}
               {exercise.note && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                  <div className="mb-1 text-eyebrow font-semibold uppercase text-amber-700">
                     Observação do treinador
                   </div>
-                  <p className="text-[13px] leading-relaxed text-[#334155]">
+                  <p className="text-body text-[#334155]">
                     {exercise.note}
                   </p>
                 </div>
@@ -445,12 +471,13 @@ export function WorkoutExerciseDetail({
               {tech && (
                 <div className="rounded-2xl p-4" style={{ backgroundColor: tech.bg }}>
                   <div
-                    className="mb-1.5 flex items-center gap-2 text-[15px] font-bold"
+                    className="mb-1.5 flex items-center gap-2 text-subtitle font-semibold"
                     style={{ color: tech.color }}
                   >
-                    <span>{tech.icon}</span> Técnica: {tech.label}
+                    <TechniqueIcon technique={techKey} className="size-4 shrink-0" />
+                    Técnica: {tech.label}
                   </div>
-                  <p className="text-[13px] leading-relaxed text-[#334155]">
+                  <p className="text-body text-[#334155]">
                     {tech.description}
                   </p>
                 </div>
@@ -462,15 +489,15 @@ export function WorkoutExerciseDetail({
                   className="rounded-2xl border p-4"
                   style={{ borderColor: tech?.color ?? "#059669" }}
                 >
-                  <div className="text-[15px] font-bold text-foreground">
+                  <div className="text-subtitle font-semibold text-foreground">
                     Bloco · exercício {group.position} de {group.total}
                   </div>
                   {group.nextName ? (
-                    <div className="mt-1.5 text-[13px] text-[#334155]">
+                    <div className="mt-1.5 text-body text-[#334155]">
                       Sem descanso → <b>{group.nextName}</b>
                     </div>
                   ) : (
-                    <div className="mt-1.5 text-[13px] text-[#334155]">
+                    <div className="mt-1.5 text-body text-[#334155]">
                       Último do bloco — descanse ao final antes de repetir.
                     </div>
                   )}
@@ -480,7 +507,7 @@ export function WorkoutExerciseDetail({
               {/* Execution cues */}
               {exercise.instructions.length > 0 && (
                 <div>
-                  <h3 className="mb-3 font-heading text-[15px] font-semibold">
+                  <h3 className="mb-3 font-heading text-subtitle font-semibold">
                     Como executar
                   </h3>
                   <ol className="space-y-2.5">
@@ -489,10 +516,10 @@ export function WorkoutExerciseDetail({
                         key={i}
                         className="flex gap-3 rounded-xl bg-surface-light p-3.5"
                       >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-label font-semibold tabular-nums text-primary">
                           {i + 1}
                         </span>
-                        <span className="text-[13px] leading-relaxed text-[#334155]">
+                        <span className="text-body text-[#334155]">
                           {step}
                         </span>
                       </li>
@@ -504,7 +531,7 @@ export function WorkoutExerciseDetail({
               {/* Substitutions — tap one to see its own detail */}
               {exercise.substitutes.length > 0 && (
                 <div>
-                  <h3 className="mb-3 font-heading text-[15px] font-semibold">
+                  <h3 className="mb-3 font-heading text-subtitle font-semibold">
                     Substituições
                   </h3>
                   <ul className="overflow-hidden rounded-xl border border-border">
@@ -518,7 +545,7 @@ export function WorkoutExerciseDetail({
                           <button
                             type="button"
                             onClick={() => setSub(s)}
-                            className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13px] transition-colors hover:bg-surface-light"
+                            className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-surface-light"
                           >
                             {thumb ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -529,15 +556,15 @@ export function WorkoutExerciseDetail({
                               />
                             ) : (
                               <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-light text-amber-700">
-                                ⇄
+                                <Repeat className="size-4" aria-hidden />
                               </span>
                             )}
                             <span className="min-w-0 flex-1">
-                              <span className="block font-medium text-foreground">
+                              <span className="block text-body font-medium text-foreground">
                                 {s.name}
                               </span>
                               {s.note && (
-                                <span className="block truncate text-muted-foreground">
+                                <span className="block truncate text-body-dense text-muted-foreground">
                                   {s.note}
                                 </span>
                               )}
@@ -554,10 +581,10 @@ export function WorkoutExerciseDetail({
               {/* Muscles */}
               {exercise.primaryMuscles.length > 0 && (
                 <div>
-                  <h3 className="mb-2 font-heading text-[15px] font-semibold">
+                  <h3 className="mb-2 font-heading text-subtitle font-semibold">
                     Músculos trabalhados
                   </h3>
-                  <p className="text-[13px] text-[#334155]">
+                  <p className="text-body text-[#334155]">
                     {exercise.primaryMuscles
                       .map((m) => MUSCLE_LABELS[m])
                       .join(", ")}
@@ -570,7 +597,7 @@ export function WorkoutExerciseDetail({
       </DialogContent>
     </Dialog>
 
-    <SubstituteDetail sub={sub} onClose={() => setSub(null)} />
+    <SubstituteDetail sub={sub} onClose={() => setSub(null)} posture={posture} />
     </>
   );
 }
@@ -585,9 +612,11 @@ export function WorkoutExerciseDetail({
 function SubstituteDetail({
   sub,
   onClose,
+  posture,
 }: {
   sub: WorkoutExerciseSubstituteDto | null;
   onClose: () => void;
+  posture?: "reading";
 }) {
   const images = (sub?.images ?? [])
     .map((k) => exerciseImageUrl(k))
@@ -595,12 +624,17 @@ function SubstituteDetail({
 
   return (
     <Dialog open={Boolean(sub)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          "max-h-[88vh] overflow-y-auto sm:max-w-lg",
+          posture === "reading" && "posture-reading",
+        )}
+      >
         {sub && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <span className="text-amber-700">⇄</span>
+                <Repeat className="size-4 shrink-0 text-amber-700" aria-hidden />
                 {sub.name}
               </DialogTitle>
             </DialogHeader>
@@ -610,10 +644,10 @@ function SubstituteDetail({
 
               {sub.note && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                  <div className="mb-1 text-eyebrow font-semibold uppercase text-amber-700">
                     Por que substituir
                   </div>
-                  <p className="text-[13px] leading-relaxed text-[#334155]">
+                  <p className="text-body text-[#334155]">
                     {sub.note}
                   </p>
                 </div>
@@ -621,7 +655,7 @@ function SubstituteDetail({
 
               {sub.instructions.length > 0 ? (
                 <div>
-                  <h3 className="mb-3 font-heading text-[15px] font-semibold">
+                  <h3 className="mb-3 font-heading text-subtitle font-semibold">
                     Como executar
                   </h3>
                   <ol className="space-y-2.5">
@@ -630,10 +664,10 @@ function SubstituteDetail({
                         key={i}
                         className="flex gap-3 rounded-xl bg-surface-light p-3.5"
                       >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-label font-semibold tabular-nums text-primary">
                           {i + 1}
                         </span>
-                        <span className="text-[13px] leading-relaxed text-[#334155]">
+                        <span className="text-body text-[#334155]">
                           {step}
                         </span>
                       </li>
@@ -641,17 +675,17 @@ function SubstituteDetail({
                   </ol>
                 </div>
               ) : (
-                <p className="text-[13px] text-muted-foreground">
+                <p className="text-body text-muted-foreground">
                   Sem passos de execução cadastrados para este exercício.
                 </p>
               )}
 
               {sub.primaryMuscles.length > 0 && (
                 <div>
-                  <h3 className="mb-2 font-heading text-[15px] font-semibold">
+                  <h3 className="mb-2 font-heading text-subtitle font-semibold">
                     Músculos trabalhados
                   </h3>
-                  <p className="text-[13px] text-[#334155]">
+                  <p className="text-body text-[#334155]">
                     {sub.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
                   </p>
                 </div>

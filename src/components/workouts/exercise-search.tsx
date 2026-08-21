@@ -121,7 +121,7 @@ export function ExerciseSearch({
           }}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-border bg-white py-2.5 pl-9 pr-9 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+          className="w-full rounded-lg border border-border bg-white py-2.5 pl-9 pr-9 text-body text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
         {onClose && (
           <button
@@ -138,12 +138,12 @@ export function ExerciseSearch({
       {enabled && (
         <div className="mt-2 overflow-hidden">
           {isFetching && results.length === 0 ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 py-6 text-body text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               Buscando exercícios…
             </div>
           ) : results.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+            <div className="py-6 text-center text-body text-muted-foreground">
               Nenhum exercício encontrado.
             </div>
           ) : (
@@ -171,10 +171,10 @@ export function ExerciseSearch({
                         <div className="size-9 shrink-0 rounded-md bg-surface-light" />
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-foreground">
+                        <span className="block truncate text-body font-medium text-foreground">
                           {f.name}
                         </span>
-                        <span className="block truncate text-xs text-muted-foreground">
+                        <span className="block truncate text-label text-muted-foreground">
                           {CATEGORY_LABELS[f.category]}
                         </span>
                       </span>
@@ -184,14 +184,14 @@ export function ExerciseSearch({
               })}
             </ul>
           )}
-          <div className="mt-1 px-2 pt-1 text-[11px] text-muted-foreground">
+          <div className="mt-1 px-2 pt-1 text-label text-muted-foreground">
             ↑ ↓ navegar · Enter selecionar · Esc fechar
           </div>
         </div>
       )}
 
       {!enabled && (
-        <div className="mt-2 px-2 py-3 text-xs text-muted-foreground">
+        <div className="mt-2 px-2 py-3 text-label text-muted-foreground">
           Digite ao menos 2 letras para buscar.
         </div>
       )}

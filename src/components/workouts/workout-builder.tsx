@@ -63,6 +63,7 @@ import {
   techniqueInfo,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
+import { TechniqueBadge } from "@/components/workouts/technique-icon";
 import { assignGroupIds } from "@/lib/workout-grouping";
 import { z } from "@/lib/validation";
 
@@ -443,7 +444,7 @@ export function WorkoutBuilder({
         <button
           type="button"
           onClick={cancel}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1 text-body text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
           Cancelar
@@ -501,12 +502,12 @@ export function WorkoutBuilder({
       </div>
 
       {recovered && (
-        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
+        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-body-dense font-medium text-amber-700">
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
       {(serverBanner || actionError) && (
-        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {serverBanner ?? actionError}
         </div>
       )}
@@ -514,7 +515,7 @@ export function WorkoutBuilder({
       {/* Student workout (adapter) is always an unpublished draft in the builder
           — warn that saving/editing alone doesn't reach the aluno, only Publicar. */}
       {adapter && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-body-dense text-amber-800">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
           <p>
             <span className="font-semibold">Só editar não basta.</span> Salvar
@@ -558,7 +559,7 @@ export function WorkoutBuilder({
                 }}
               />
               {fieldError(field) && (
-                <p className="text-[13px] text-destructive">{fieldError(field)}</p>
+                <p className="text-body-dense text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -589,7 +590,7 @@ export function WorkoutBuilder({
       <button
         type="button"
         onClick={addSession}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-white py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-white py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
       >
         <Plus className="size-4" />
         Nova ficha
@@ -694,14 +695,14 @@ function SortableSession({
               <Trash2 className="size-4" />
             </button>
           </div>
-          {error && <p className="text-[13px] text-destructive">{error}</p>}
+          {error && <p className="text-body-dense text-destructive">{error}</p>}
           <div className="flex flex-wrap gap-1.5">
             {SESSION_SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => onNameChange(s)}
-                className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
+                className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-label font-medium text-[#475569] hover:border-primary hover:text-primary"
               >
                 {s}
               </button>
@@ -750,7 +751,7 @@ function SortableSession({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus className="size-4" />
             Adicionar exercício
@@ -817,25 +818,18 @@ function SortableExercise({
           className="min-w-0 flex-1 text-left"
         >
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-sm font-medium text-foreground">
+            <span className="truncate text-body font-medium text-foreground">
               {exercise.name}
             </span>
-            {tech && (
-              <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                style={{ color: tech.color, backgroundColor: tech.bg }}
-              >
-                {tech.icon} {tech.label}
-              </span>
-            )}
+            {tech && <TechniqueBadge technique={exercise.technique} />}
           </span>
-          <span className="block truncate text-xs text-muted-foreground">
+          <span className="block truncate text-label text-muted-foreground">
             {exercise.sets}× {formatReps(exercise.reps)}
             {exercise.load ? ` · ${exercise.load}` : ""} · {formatRest(exercise.rest)}
           </span>
           {isGroupingTechnique(exercise.technique) && (
             <span
-              className="mt-0.5 block text-[11px] font-medium"
+              className="mt-0.5 block text-label font-medium"
               style={{ color: tech?.color }}
             >
               ↓ sem descanso — encadeia com o próximo exercício

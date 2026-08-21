@@ -47,6 +47,36 @@
   --surface-dark: #0f172a; /* slate-900 */
   --surface-dark-mid: #1e293b; /* slate-800 */
   --border-light: #f1f5f9; /* slate-100 */
+
+  /*
+   * Type ramp (DESIGN.md § Typography). Seven rungs, each with a job:
+   * eyebrow · label · body-dense · body · subtitle · title · headline.
+   * These are the raw steps; `@theme inline` below turns them into
+   * `text-*` utilities that resolve *at the element*, so a posture can
+   * redefine a step for its own subtree.
+   *
+   * This is the coach's posture — desk density, a fifty-row roster.
+   */
+  --fs-eyebrow: 10px;
+  --fs-label: 12px;
+  --fs-body-dense: 13px;
+  --fs-body: 14px;
+  --fs-subtitle: 15px;
+  --fs-title: 18px;
+  --fs-headline: 24px;
+}
+
+/*
+ * The aluno's posture — a phone held at arm's length in a gym, on a cheap
+ * Android. The reading rungs step up one notch; the structural ones
+ * (eyebrow, label, title, headline) hold, so hierarchy stays identical and
+ * only the text you actually *read* grows. Applied on the /student subtree
+ * and on the dialogs it portals out of that subtree.
+ */
+.posture-reading {
+  --fs-body-dense: 14px;
+  --fs-body: 15px;
+  --fs-subtitle: 16px;
 }
 
 .dark {
@@ -108,6 +138,34 @@
 
   --font-sans: var(--font-dm-sans);
   --font-heading: var(--font-space-grotesk);
+
+  /*
+   * `inline` matters here: it inlines `var(--fs-*)` into each utility, so
+   * `.text-body` resolves against the element using it and `.posture-reading`
+   * can step it up. A non-inline @theme would freeze the value at :root.
+   * Line height is tuned per rung — tighter as the type gets larger.
+   */
+  --text-eyebrow: var(--fs-eyebrow);
+  --text-eyebrow--line-height: 1.4;
+  --text-eyebrow--letter-spacing: 0.08em;
+
+  --text-label: var(--fs-label);
+  --text-label--line-height: 1.4;
+
+  --text-body-dense: var(--fs-body-dense);
+  --text-body-dense--line-height: 1.5;
+
+  --text-body: var(--fs-body);
+  --text-body--line-height: 1.6;
+
+  --text-subtitle: var(--fs-subtitle);
+  --text-subtitle--line-height: 1.35;
+
+  --text-title: var(--fs-title);
+  --text-title--line-height: 1.3;
+
+  --text-headline: var(--fs-headline);
+  --text-headline--line-height: 1.15;
 }
 
 @layer base {

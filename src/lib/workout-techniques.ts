@@ -1,9 +1,10 @@
 /**
  * Advanced training techniques (técnicas avançadas) — a **static** app catalog,
  * not tenant data. A workout exercise item only stores the technique's *key*
- * (an enum) and, for grouping techniques, a shared `groupId`; the label, color,
- * icon and PT-BR **explanation** the aluno reads all live here, keyed by that
- * enum. Nothing technique-related is ever frozen onto a workout version, so we
+ * (an enum) and, for grouping techniques, a shared `groupId`; the label, color
+ * and PT-BR **explanation** the aluno reads all live here, keyed by that enum.
+ * The drawn mark lives in `components/workouts/technique-icon.tsx` — this
+ * module is imported by the schema and the DAL and stays free of React. Nothing technique-related is ever frozen onto a workout version, so we
  * can refine an explanation and every athlete sees it immediately.
  *
  * Two kinds:
@@ -35,8 +36,6 @@ export type WorkoutTechniqueInfo = {
   /** Badge foreground / background colors (hex). */
   color: string;
   bg: string;
-  /** A single emoji marker. */
-  icon: string;
   /**
    * Whether this technique **groups** consecutive exercises into one block run
    * without rest between them (super set / giant set). The builder only creates
@@ -55,7 +54,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "Drop set",
     color: "#DC2626",
     bg: "#FEE2E2",
-    icon: "📉",
     grouping: false,
     description:
       "Faça a série até a falha, reduza a carga em ~20-30% e continue sem descanso até falhar de novo. Uma redução de carga.",
@@ -64,7 +62,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "Triple drop set",
     color: "#B91C1C",
     bg: "#FEE2E2",
-    icon: "📉",
     grouping: false,
     description:
       "Como o drop set, mas com 3 reduções de carga seguidas, sem descanso — leve o músculo à falha em cada etapa.",
@@ -73,7 +70,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "Super set",
     color: "#059669",
     bg: "#DCFCE7",
-    icon: "🔗",
     grouping: true,
     description:
       "Dois exercícios executados em sequência, sem descanso entre eles. Descanse apenas ao final do par.",
@@ -82,7 +78,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "Giant set",
     color: "#0D9488",
     bg: "#CCFBF1",
-    icon: "⛓️",
     grouping: true,
     description:
       "Três ou mais exercícios em sequência, sem descanso entre eles. Alta densidade e intensidade metabólica.",
@@ -91,7 +86,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "GVT 10×10",
     color: "#1D4ED8",
     bg: "#DBEAFE",
-    icon: "🔟",
     grouping: false,
     description:
       "German Volume Training: 10 séries de 10 repetições com a mesma carga (~60% de 1RM) e descanso curto. Alto volume.",
@@ -100,7 +94,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "FS7",
     color: "#C026D3",
     bg: "#FAE8FF",
-    icon: "🌸",
     grouping: false,
     description:
       "Fascia Stretch 7: 7 séries do mesmo exercício com descanso curto (~30s) entre elas, buscando congestão máxima e alongamento da fáscia.",
@@ -109,7 +102,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "Rest-pause",
     color: "#EA580C",
     bg: "#FFEDD5",
-    icon: "⏸️",
     grouping: false,
     description:
       "Leve a série à falha, descanse 10-15s e faça mais algumas reps com a mesma carga. Repita 1-2 vezes.",
@@ -118,7 +110,6 @@ export const WORKOUT_TECHNIQUE_CATALOG: Record<
     label: "Cluster",
     color: "#7C3AED",
     bg: "#EDE9FE",
-    icon: "🧩",
     grouping: false,
     description:
       "Divida a série em mini-blocos (ex: 3 blocos de 5 reps) com pausas curtas de 10-20s entre eles, mantendo a carga alta.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, TrendingUp } from "lucide-react";
 
 import { NumberField } from "@/components/workouts/number-field";
 import { normalizeReps, type WorkoutReps } from "@/lib/workouts";
@@ -33,7 +33,7 @@ function SequenceEditor({
               min={1}
               max={1000}
               ariaLabel={`Posição ${i + 1}`}
-              inputClassName="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
+              inputClassName="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-body font-semibold tabular-nums text-foreground outline-none focus:border-primary"
             />
           </div>
         ))}
@@ -58,10 +58,11 @@ function SequenceEditor({
           </button>
         )}
       </div>
-      <p className="text-[11px] text-muted-foreground">{hint}</p>
+      <p className="text-label text-muted-foreground">{hint}</p>
       {kind === "pyramid" && (
-        <p className="text-[11px] font-medium text-primary">
-          🔺 A cada série o peso aumenta e as repetições diminuem.
+        <p className="flex items-center gap-1 text-label font-medium text-primary">
+          <TrendingUp className="size-3 shrink-0" aria-hidden />
+          A cada série o peso aumenta e as repetições diminuem.
         </p>
       )}
     </div>
@@ -87,7 +88,7 @@ export function RepsInput({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex overflow-hidden rounded-lg border border-border text-[11px] font-medium">
+      <div className="flex overflow-hidden rounded-lg border border-border text-label font-medium">
         {(
           [
             ["fixed", "Número"],
@@ -127,7 +128,7 @@ export function RepsInput({
           max={1000}
           stepper
           ariaLabel="Repetições"
-          inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-sm font-bold text-foreground outline-none focus:border-primary"
+          inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-body font-semibold tabular-nums text-foreground outline-none focus:border-primary"
         />
       )}
 
@@ -150,7 +151,7 @@ export function RepsInput({
       )}
 
       {value.kind === "failure" && (
-        <div className="rounded-lg border border-dashed border-border py-2 text-center text-sm font-medium text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-border py-2 text-center text-body font-medium text-muted-foreground">
           Até a falha
         </div>
       )}

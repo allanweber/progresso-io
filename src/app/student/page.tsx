@@ -198,16 +198,16 @@ export default function StudentPortalPage() {
   const p = profile.data;
 
   return (
-    <div className="min-h-screen bg-[#EEF1F5] text-foreground dark:bg-background">
+    <div className="posture-reading min-h-screen bg-[#EEF1F5] text-foreground dark:bg-background">
       {/* Desktop top bar */}
       <header className="hidden h-[60px] items-center gap-3.5 border-b border-border bg-white px-8 lg:flex dark:bg-card">
         <Logo size={30} />
-        <span className="font-heading text-base font-semibold">Progresso</span>
+        <span className="font-heading text-subtitle font-semibold">Progresso</span>
         <div className="flex-1" />
         {p?.clinicName ? (
-          <span className="text-sm text-muted-foreground">{p.clinicName}</span>
+          <span className="text-body text-muted-foreground">{p.clinicName}</span>
         ) : null}
-        <div className="flex size-[34px] items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground">
+        <div className="flex size-[34px] items-center justify-center rounded-full bg-primary text-body-dense font-semibold text-primary-foreground">
           {p ? initials(p.name) : "…"}
         </div>
         <Button
@@ -223,14 +223,14 @@ export default function StudentPortalPage() {
 
       {/* Mobile header */}
       <header className="flex items-center gap-3 bg-primary px-5 py-4 text-primary-foreground lg:hidden">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-base font-semibold">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-subtitle font-semibold">
           {p ? initials(p.name) : "…"}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-base font-semibold">
+          <div className="text-subtitle font-semibold">
             {p ? `Oi, ${p.firstName}!` : "…"}
           </div>
-          <div className="truncate text-xs opacity-75">
+          <div className="truncate text-label opacity-75">
             {p
               ? [p.coachName ? `Coach: ${p.coachName}` : null, p.clinicName]
                   .filter(Boolean)
@@ -239,7 +239,7 @@ export default function StudentPortalPage() {
           </div>
         </div>
         {p?.goal ? (
-          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-primary">
+          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-label font-semibold text-primary">
             {p.goal}
           </span>
         ) : null}
@@ -260,22 +260,22 @@ export default function StudentPortalPage() {
           {/* Desktop sidebar */}
           <aside className="sticky top-[88px] hidden flex-col gap-4 lg:flex">
             <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
-              <div className="mx-auto mb-3 flex size-[68px] items-center justify-center rounded-full bg-primary text-[25px] font-semibold text-primary-foreground">
+              <div className="mx-auto mb-3 flex size-[68px] items-center justify-center rounded-full bg-primary text-headline font-semibold text-primary-foreground">
                 {p ? initials(p.name) : "…"}
               </div>
-              <div className="font-heading text-[17px] font-semibold">
+              <div className="font-heading text-title font-semibold">
                 {p?.name ?? "…"}
               </div>
               {p?.coachName ? (
-                <div className="mt-1 text-[12.5px] text-muted-foreground">
+                <div className="mt-1 text-label text-muted-foreground">
                   Coach: {p.coachName}
                 </div>
               ) : null}
-              <div className="text-[12.5px] text-muted-foreground">
+              <div className="text-label text-muted-foreground">
                 {p?.clinicName ?? ""}
               </div>
               {p?.goal ? (
-                <span className="mt-3 inline-block rounded-full bg-primary-light px-3 py-1 text-[11px] font-bold text-primary">
+                <span className="mt-3 inline-block rounded-full bg-primary-light px-3 py-1 text-label font-semibold text-primary">
                   {p.goal}
                 </span>
               ) : null}
@@ -288,7 +288,7 @@ export default function StudentPortalPage() {
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
-                    className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-body font-medium transition-colors ${
                       active
                         ? "bg-primary-light font-semibold text-primary"
                         : "text-slate-600 hover:bg-muted dark:text-muted-foreground"
@@ -326,9 +326,9 @@ export default function StudentPortalPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex flex-1 flex-col items-center gap-1 border-t-[2.5px] px-1 pb-[calc(0.7rem+env(safe-area-inset-bottom,0))] pt-2.5 text-[11px] ${
+              className={`flex flex-1 flex-col items-center gap-1 border-t-[2.5px] px-1 pb-[calc(0.7rem+env(safe-area-inset-bottom,0))] pt-2.5 text-label ${
                 active
-                  ? "border-primary font-bold text-primary"
+                  ? "border-primary font-semibold text-primary"
                   : "border-transparent text-muted-foreground"
               }`}
             >
@@ -402,7 +402,7 @@ function CheckinTab() {
   if (done) {
     return (
       <div className="mt-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className="font-heading text-headline font-semibold tracking-tight">
           Check-in
         </h1>
         <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
@@ -410,10 +410,10 @@ function CheckinTab() {
             <Check className="size-7" />
           </div>
           <div>
-            <div className="font-heading text-lg font-semibold">
+            <div className="font-heading text-title font-semibold">
               Check-in enviado ao seu coach 💪
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Ele já pode ver seu peso, seu relato e suas fotos.
             </p>
           </div>
@@ -433,16 +433,16 @@ function CheckinTab() {
       }}
       className="mt-2"
     >
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">
+      <h1 className="font-heading text-headline font-semibold tracking-tight">
         {profile.data
           ? `Check-in ${FEEDBACK_FREQUENCY_LABELS[profile.data.feedbackFrequency].label.toLowerCase()}`
           : "Check-in"}
       </h1>
-      <p className="mt-1 text-[13px] text-muted-foreground">
+      <p className="mt-1 max-w-[52ch] text-body text-muted-foreground">
         Registrado na data de hoje. Seu coach recebe assim que você enviar.
       </p>
       {profile.data ? (
-        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-light px-3 py-1 text-[12px] font-medium text-primary">
+        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-light px-3 py-1 text-label font-medium text-primary">
           <CalendarClock className="size-3.5" />
           {FEEDBACK_FREQUENCY_LABELS[profile.data.feedbackFrequency].label} ·{" "}
           {WEEKDAY_LABELS[profile.data.feedbackPreferredDay]}
@@ -480,7 +480,7 @@ function CheckinTab() {
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Opcional.</p>
+              <p className="text-label text-muted-foreground">Opcional.</p>
             </div>
           )}
         </form.Field>
@@ -489,17 +489,17 @@ function CheckinTab() {
         <div className="space-y-2.5">
           <div className="flex items-baseline justify-between gap-2">
             <Label>Fotos</Label>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-label text-muted-foreground">
               As 4 poses são obrigatórias
             </span>
           </div>
 
           <details className="overflow-hidden rounded-xl border border-border bg-muted/40">
-            <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5 text-[12.5px] font-semibold text-foreground">
+            <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5 text-body-dense font-semibold text-foreground">
               Como tirar as fotos
               <ChevronRight className="size-4 text-muted-foreground" />
             </summary>
-            <ol className="flex list-decimal flex-col gap-1.5 px-7 pb-3 text-[12.5px] leading-snug text-muted-foreground">
+            <ol className="flex list-decimal flex-col gap-1.5 px-7 pb-3 text-body-dense text-muted-foreground">
               {CHECKIN_POSE_VALUES.map((pose) => (
                 <li key={pose}>
                   <strong className="font-semibold text-foreground">
@@ -526,7 +526,7 @@ function CheckinTab() {
         </div>
 
         {banner ? (
-          <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+          <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
             {banner}
           </div>
         ) : null}
@@ -541,7 +541,7 @@ function CheckinTab() {
             aria-valuenow={progress}
             aria-label="Enviando check-in"
           >
-            <div className="flex items-center justify-between text-[13px] font-medium text-foreground">
+            <div className="flex items-center justify-between text-body-dense font-medium text-foreground">
               <span>{progress < 100 ? "Enviando…" : "Finalizando…"}</span>
               <span className="tabular-nums text-muted-foreground">
                 {progress}%
@@ -585,11 +585,11 @@ function EvolucaoTab() {
   });
 
   if (state.isPending) {
-    return <p className="mt-8 text-sm text-muted-foreground">Carregando…</p>;
+    return <p className="mt-8 text-body text-muted-foreground">Carregando…</p>;
   }
   if (state.isError) {
     return (
-      <p className="mt-8 text-sm text-red-600">
+      <p className="mt-8 text-body text-red-600">
         Não foi possível carregar sua evolução. Tente novamente.
       </p>
     );
@@ -600,11 +600,11 @@ function EvolucaoTab() {
   if (checkins.length === 0) {
     return (
       <div className="mt-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className="font-heading text-headline font-semibold tracking-tight">
           Minha evolução
         </h1>
         <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
-          <p className="text-sm text-muted-foreground">
+          <p className="mx-auto max-w-[42ch] text-body text-muted-foreground">
             Você ainda não enviou nenhum check-in. Faça seu primeiro na aba
             Check-in e acompanhe sua evolução aqui.
           </p>
@@ -620,7 +620,7 @@ function EvolucaoTab() {
 
   return (
     <div className="mt-2 min-w-0">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">
+      <h1 className="font-heading text-headline font-semibold tracking-tight">
         Minha evolução
       </h1>
 
@@ -629,17 +629,17 @@ function EvolucaoTab() {
         <div className="mt-5 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <div className="text-[13px] text-muted-foreground">
+              <div className="text-label text-muted-foreground">
                 Peso atual
               </div>
-              <div className="font-heading text-2xl font-bold tracking-tight">
+              <div className="font-heading text-headline font-bold tabular-nums tracking-tight">
                 {last !== undefined ? `${formatCheckinWeight(last)} kg` : "—"}
               </div>
             </div>
             {delta !== undefined && delta !== 0 ? (
               <span
                 className={cn(
-                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-semibold",
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-body-dense font-semibold tabular-nums",
                   delta < 0
                     ? "bg-primary-light text-primary"
                     : "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
@@ -657,7 +657,7 @@ function EvolucaoTab() {
           </div>
           <WeightChart series={weightSeries} />
           {weightSeries.length === 1 ? (
-            <p className="mt-2 text-center text-[12px] text-muted-foreground">
+            <p className="mt-2 text-center text-label text-muted-foreground">
               Registre mais check-ins para ver sua curva de evolução.
             </p>
           ) : null}
@@ -666,7 +666,7 @@ function EvolucaoTab() {
 
       {/* History */}
       <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
-        <div className="mb-1 text-sm font-semibold">Histórico de check-ins</div>
+        <div className="mb-1 text-subtitle font-semibold">Histórico de check-ins</div>
         <div className="flex flex-col">
           {checkins.map((c) => (
             <CheckinRow key={c.id} checkin={c} onOpen={() => setDetailId(c.id)} />
@@ -699,7 +699,7 @@ function CheckinRow({
       <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-[13px] font-semibold">
+          <span className="text-body font-semibold tabular-nums">
             {checkin.weightKg !== null
               ? `${formatCheckinWeight(checkin.weightKg)} kg`
               : "Anotação"}
@@ -707,36 +707,36 @@ function CheckinRow({
           {checkin.author === "coach" ? (
             <Badge
               variant="neutral"
-              className="h-4 px-1.5 py-0 text-[10px] font-semibold"
+              className="h-4 px-1.5 py-0 text-eyebrow font-semibold"
             >
               coach
             </Badge>
           ) : null}
           {checkin.photoCount > 0 ? (
-            <span className="text-[11.5px] text-muted-foreground">
+            <span className="text-label text-muted-foreground">
               {checkin.photoCount}{" "}
               {checkin.photoCount === 1 ? "foto" : "fotos"}
             </span>
           ) : null}
           {checkin.author === "student" ? (
             isCheckinPending(checkin) ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-label font-semibold text-amber-700 dark:bg-amber-950/40">
                 <Clock className="size-3" /> aguardando resposta
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-1.5 py-0.5 text-label font-semibold text-primary">
                 <MessageCircle className="size-3" /> respondido
               </span>
             )
           ) : null}
         </div>
         {checkin.note ? (
-          <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted-foreground">
+          <p className="mt-0.5 line-clamp-2 text-body-dense text-muted-foreground">
             {checkin.note}
           </p>
         ) : null}
       </div>
-      <span className="flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
+      <span className="flex shrink-0 items-center gap-1 text-label text-muted-foreground">
         {formatCheckinDate(checkin.date)}
         <ChevronRight className="size-3.5" />
       </span>
@@ -763,38 +763,38 @@ function CheckinDetailDialog({
 
   return (
     <Dialog open={checkinId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="posture-reading max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 font-heading text-lg">
+          <DialogTitle className="flex items-center gap-2 font-heading text-title">
             {d?.weightKg !== null && d?.weightKg !== undefined
               ? `${formatCheckinWeight(d.weightKg)} kg`
               : "Check-in"}
             {d?.author === "coach" ? (
               <Badge
                 variant="neutral"
-                className="h-4 px-1.5 py-0 text-[10px] font-semibold"
+                className="h-4 px-1.5 py-0 text-eyebrow font-semibold"
               >
                 coach
               </Badge>
             ) : null}
           </DialogTitle>
           {d ? (
-            <p className="text-[12.5px] text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               {formatCheckinDate(d.date)}
             </p>
           ) : null}
         </DialogHeader>
 
         {detail.isPending && checkinId ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <p className="text-body text-muted-foreground">Carregando…</p>
         ) : detail.isError ? (
-          <p className="text-sm text-red-600">
+          <p className="text-body text-red-600">
             Não foi possível carregar este check-in.
           </p>
         ) : d ? (
           <div className="flex flex-col gap-4">
             {d.note ? (
-              <div className="rounded-xl bg-muted/40 px-3.5 py-3 text-[13px] text-foreground">
+              <div className="rounded-xl bg-muted/40 px-3.5 py-3 text-body text-foreground">
                 {d.note}
               </div>
             ) : null}
@@ -802,16 +802,16 @@ function CheckinDetailDialog({
             {/* The coach's response (once reviewed). */}
             {d.feedback ? (
               <div className="rounded-xl border border-primary/25 bg-primary-light/50 px-3.5 py-3">
-                <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
+                <div className="mb-1 flex items-center gap-1.5 text-label font-semibold text-primary">
                   <MessageCircle className="size-3.5" />
                   Resposta do coach
                 </div>
-                <p className="whitespace-pre-line text-[13px] text-foreground">
+                <p className="whitespace-pre-line text-body text-foreground">
                   {d.feedback}
                 </p>
               </div>
             ) : d.author === "student" ? (
-              <div className="flex items-center gap-1.5 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[12.5px] font-medium text-amber-700 dark:bg-amber-950/30">
+              <div className="flex items-center gap-1.5 rounded-xl bg-amber-50 px-3.5 py-2.5 text-body-dense font-medium text-amber-700 dark:bg-amber-950/30">
                 <Clock className="size-4" />
                 Aguardando resposta do seu coach.
               </div>
@@ -822,7 +822,7 @@ function CheckinDetailDialog({
 
             {d.photos.length > 0 ? (
               <div>
-                <div className="mb-2 text-xs font-medium text-muted-foreground">
+                <div className="mb-2 text-label font-medium text-muted-foreground">
                   Fotos
                 </div>
                 <CheckinPhotoGrid
@@ -831,7 +831,7 @@ function CheckinDetailDialog({
                 />
               </div>
             ) : (
-              <p className="text-[13px] text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Sem fotos neste check-in.
               </p>
             )}
@@ -856,11 +856,11 @@ function DietTab() {
   });
 
   if (state.isPending) {
-    return <p className="mt-8 text-sm text-muted-foreground">Carregando…</p>;
+    return <p className="mt-8 text-body text-muted-foreground">Carregando…</p>;
   }
   if (state.isError) {
     return (
-      <p className="mt-8 text-sm text-red-600">
+      <p className="mt-8 text-body text-red-600">
         Não foi possível carregar sua dieta. Tente novamente.
       </p>
     );
@@ -894,11 +894,11 @@ function DietTab() {
   if (!current && historyRows.length === 0) {
     return (
       <div className="mt-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className="font-heading text-headline font-semibold tracking-tight">
           Dieta
         </h1>
         <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
-          <p className="text-sm text-muted-foreground">
+          <p className="mx-auto max-w-[42ch] text-body text-muted-foreground">
             Você ainda não tem uma dieta. Assim que seu coach publicar, ela
             aparece aqui.
           </p>
@@ -914,10 +914,10 @@ function DietTab() {
           {/* Header */}
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2.5">
             <div>
-              <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              <h1 className="font-heading text-headline font-semibold tracking-tight">
                 {current.dietName}
               </h1>
-              <p className="mt-1 text-[13px] text-muted-foreground">
+              <p className="mt-1 text-body-dense text-muted-foreground">
                 Versão {current.version} · publicada em{" "}
                 {formatDate(current.publishedAt)}
               </p>
@@ -941,7 +941,7 @@ function DietTab() {
           </div>
         </>
       ) : (
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className="font-heading text-headline font-semibold tracking-tight">
           Dieta
         </h1>
       )}
@@ -949,7 +949,7 @@ function DietTab() {
       {/* History */}
       {historyRows.length > 0 ? (
         <section className="mt-8 border-t border-border pt-5">
-          <h2 className="mb-3 font-heading text-[15px] font-semibold text-muted-foreground">
+          <h2 className="mb-3 font-heading text-subtitle font-semibold text-muted-foreground">
             Dietas anteriores
           </h2>
           <div className="flex flex-col gap-2.5">
@@ -959,14 +959,14 @@ function DietTab() {
                 onClick={() => setHistoryVersionId(r.versionId)}
                 className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:bg-muted/40 dark:bg-card"
               >
-                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-[12.5px] font-bold text-white">
+                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-label font-bold tabular-nums text-white">
                   v{r.version}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13.5px] font-semibold">
+                  <div className="text-body font-semibold">
                     {r.dietName}
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
+                  <div className="mt-0.5 text-label text-muted-foreground">
                     {r.status === "archived" ? "Arquivada" : "Ativa"} · publicada
                     em {formatDate(r.publishedAt)}
                   </div>
@@ -1018,11 +1018,11 @@ function MealCard({
   return (
     <div className="self-start overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
       <div className="flex items-baseline gap-2.5 border-b border-[#EEF2F7] px-[18px] py-3.5 dark:border-border">
-        <span className="font-heading text-[15px] font-semibold">
+        <span className="font-heading text-subtitle font-semibold">
           {meal.name}
         </span>
         {meal.time ? (
-          <span className="text-xs text-muted-foreground">{meal.time}</span>
+          <span className="text-label text-muted-foreground">{meal.time}</span>
         ) : null}
       </div>
       {meal.items.map((item, ii) => {
@@ -1031,14 +1031,14 @@ function MealCard({
           <button
             key={ii}
             onClick={() => onOpenFood(item)}
-            className="flex w-full items-start gap-3 border-b border-[#F4F6FA] px-[18px] py-3 text-left text-[13px] transition-colors last:border-b-0 hover:bg-muted/40 dark:border-border"
+            className="flex w-full items-start gap-3 border-b border-[#F4F6FA] px-[18px] py-3 text-left text-body-dense transition-colors last:border-b-0 hover:bg-muted/40 dark:border-border"
           >
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-foreground">
                 {item.description}
               </div>
               {subCount(item) > 0 ? (
-                <div className="mt-1 inline-flex items-center gap-1 text-[11.5px] font-medium text-amber-700">
+                <div className="mt-1 inline-flex items-center gap-1 text-label font-medium text-amber-700">
                   <Repeat className="size-3 shrink-0" />
                   <span>
                     {subCount(item)}{" "}
@@ -1048,16 +1048,16 @@ function MealCard({
               ) : null}
             </div>
             <div className="shrink-0 text-right">
-              <div className="whitespace-nowrap text-[13.5px] font-bold text-foreground">
+              <div className="whitespace-nowrap text-body font-semibold tabular-nums text-foreground">
                 {q.main}
               </div>
               {q.sub ? (
-                <div className="mt-px text-[11px] text-muted-foreground">
+                <div className="mt-px text-label tabular-nums text-muted-foreground">
                   {q.sub}
                 </div>
               ) : null}
               {item.macros.energyKcal !== null ? (
-                <div className="mt-px text-[11px] text-muted-foreground/70">
+                <div className="mt-px text-label tabular-nums text-muted-foreground">
                   {formatKcal(item.macros.energyKcal)} kcal
                 </div>
               ) : null}
@@ -1122,14 +1122,14 @@ function FoodDetailDialog({
 
   return (
     <Dialog open={item !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[520px]">
+      <DialogContent className="posture-reading max-h-[88vh] overflow-y-auto sm:max-w-[520px]">
         {item ? (
           <>
             <DialogHeader>
-              <DialogTitle className="font-heading text-lg">
+              <DialogTitle className="font-heading text-title">
                 {item.description}
               </DialogTitle>
-              <p className="text-[12.5px] text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 Porção: {q!.main}
                 {q!.sub ? ` · ${q!.sub}` : ""}
               </p>
@@ -1140,19 +1140,19 @@ function FoodDetailDialog({
                 <div key={mc.label} className={`rounded-xl p-3.5 ${mc.bg}`}>
                   <div className="flex items-baseline gap-1">
                     <span
-                      className={`font-heading text-[22px] font-bold ${mc.color}`}
+                      className={`font-heading text-headline font-bold tabular-nums ${mc.color}`}
                     >
                       {mc.value}
                     </span>
                     {mc.unit ? (
                       <span
-                        className={`text-xs font-semibold opacity-80 ${mc.color}`}
+                        className={`text-label font-semibold opacity-80 ${mc.color}`}
                       >
                         {mc.unit}
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-1 text-xs font-medium text-muted-foreground">
+                  <div className="mt-1 text-label font-medium text-muted-foreground">
                     {mc.label}
                   </div>
                 </div>
@@ -1160,7 +1160,7 @@ function FoodDetailDialog({
             </div>
 
             <div className="rounded-xl bg-white p-3.5 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
+              <div className="mb-2 text-label font-medium text-muted-foreground">
                 Distribuição de macros
               </div>
               <div className="flex h-2 overflow-hidden rounded bg-muted">
@@ -1172,16 +1172,26 @@ function FoodDetailDialog({
                   />
                 ))}
               </div>
-              <div className="mt-2.5 flex flex-wrap gap-3.5 text-[11.5px] font-semibold">
-                <span className="text-blue-600">● Proteína</span>
-                <span className="text-red-600">● Carbo</span>
-                <span className="text-amber-600">● Gordura</span>
+              <div className="mt-2.5 flex flex-wrap gap-3.5 text-label font-semibold text-text-secondary">
+                {[
+                  { label: "Proteína", color: "bg-blue-600" },
+                  { label: "Carbo", color: "bg-red-600" },
+                  { label: "Gordura", color: "bg-amber-600" },
+                ].map((k) => (
+                  <span key={k.label} className="inline-flex items-center gap-1.5">
+                    <span
+                      className={`size-2 shrink-0 rounded-full ${k.color}`}
+                      aria-hidden
+                    />
+                    {k.label}
+                  </span>
+                ))}
               </div>
             </div>
 
             {subCount(item) > 0 ? (
               <div>
-                <div className="mb-2 font-heading text-[15px] font-semibold">
+                <div className="mb-2 font-heading text-subtitle font-semibold">
                   Substituições equivalentes
                 </div>
                 <div className="overflow-hidden rounded-xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
@@ -1195,7 +1205,7 @@ function FoodDetailDialog({
                     return (
                       <div
                         key={`e${si}`}
-                        className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-[13px] text-amber-700 last:border-b-0 dark:border-border"
+                        className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-amber-700 last:border-b-0 dark:border-border"
                       >
                         <Repeat className="size-3.5 shrink-0" />
                         <span>
@@ -1208,7 +1218,7 @@ function FoodDetailDialog({
                   {catalogSubs(item).map((s) => (
                     <div
                       key={`c${s.foodId}`}
-                      className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-[13px] text-amber-700 last:border-b-0 dark:border-border"
+                      className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-amber-700 last:border-b-0 dark:border-border"
                     >
                       <Repeat className="size-3.5 shrink-0" />
                       <span>
@@ -1248,24 +1258,24 @@ function HistoryVersionDialog({
 
   return (
     <Dialog open={versionId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="posture-reading max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle className="font-heading text-lg">
+          <DialogTitle className="font-heading text-title">
             {version.data
               ? `${version.data.dietName} · v${version.data.version}`
               : "Dieta"}
           </DialogTitle>
           {version.data ? (
-            <p className="text-[12.5px] text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               Publicada em {formatDate(version.data.publishedAt)}
             </p>
           ) : null}
         </DialogHeader>
 
         {version.isPending && versionId ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <p className="text-body text-muted-foreground">Carregando…</p>
         ) : version.isError ? (
-          <p className="text-sm text-red-600">
+          <p className="text-body text-red-600">
             Não foi possível carregar esta versão.
           </p>
         ) : version.data ? (
@@ -1275,10 +1285,10 @@ function HistoryVersionDialog({
                 key={mi}
                 className="overflow-hidden rounded-xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card"
               >
-                <div className="border-b border-[#EEF2F7] px-4 py-3 font-heading text-sm font-semibold dark:border-border">
+                <div className="border-b border-[#EEF2F7] px-4 py-3 font-heading text-subtitle font-semibold dark:border-border">
                   {meal.name}
                   {meal.time ? (
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    <span className="ml-2 text-label font-normal text-muted-foreground">
                       {meal.time}
                     </span>
                   ) : null}
@@ -1292,7 +1302,7 @@ function HistoryVersionDialog({
                   return (
                     <div
                       key={ii}
-                      className="flex items-center justify-between gap-2.5 border-b border-[#F4F6FA] px-4 py-2.5 text-[12.5px] last:border-b-0 dark:border-border"
+                      className="flex items-center justify-between gap-2.5 border-b border-[#F4F6FA] px-4 py-2.5 text-body-dense last:border-b-0 dark:border-border"
                     >
                       <span className="font-medium text-foreground">
                         {item.description}
@@ -1306,7 +1316,7 @@ function HistoryVersionDialog({
                 })}
               </div>
             ))}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               Versão arquivada · somente leitura.
             </p>
           </div>
@@ -1333,11 +1343,11 @@ function WorkoutTab() {
   });
 
   if (state.isPending) {
-    return <p className="mt-8 text-sm text-muted-foreground">Carregando…</p>;
+    return <p className="mt-8 text-body text-muted-foreground">Carregando…</p>;
   }
   if (state.isError) {
     return (
-      <p className="mt-8 text-sm text-red-600">
+      <p className="mt-8 text-body text-red-600">
         Não foi possível carregar seu treino. Tente novamente.
       </p>
     );
@@ -1369,11 +1379,11 @@ function WorkoutTab() {
   if (!current && historyRows.length === 0) {
     return (
       <div className="mt-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className="font-heading text-headline font-semibold tracking-tight">
           Treino
         </h1>
         <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
-          <p className="text-sm text-muted-foreground">
+          <p className="mx-auto max-w-[42ch] text-body text-muted-foreground">
             Você ainda não tem um treino. Assim que seu coach publicar, ele
             aparece aqui.
           </p>
@@ -1388,10 +1398,10 @@ function WorkoutTab() {
         <>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2.5">
             <div>
-              <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              <h1 className="font-heading text-headline font-semibold tracking-tight">
                 {current.workoutName}
               </h1>
-              <p className="mt-1 text-[13px] text-muted-foreground">
+              <p className="mt-1 text-body-dense text-muted-foreground">
                 Versão {current.version} · publicada em{" "}
                 {formatDate(current.publishedAt)}
               </p>
@@ -1404,17 +1414,18 @@ function WorkoutTab() {
           <WorkoutSessionsView
             sessions={current.sessions}
             onExerciseClick={(exercise, group) => setDetail({ exercise, group })}
+            posture="reading"
           />
         </>
       ) : (
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className="font-heading text-headline font-semibold tracking-tight">
           Treino
         </h1>
       )}
 
       {historyRows.length > 0 ? (
         <section className="mt-8 border-t border-border pt-5">
-          <h2 className="mb-3 font-heading text-[15px] font-semibold text-muted-foreground">
+          <h2 className="mb-3 font-heading text-subtitle font-semibold text-muted-foreground">
             Treinos anteriores
           </h2>
           <div className="flex flex-col gap-2.5">
@@ -1424,14 +1435,14 @@ function WorkoutTab() {
                 onClick={() => setHistoryVersionId(r.versionId)}
                 className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:bg-muted/40 dark:bg-card"
               >
-                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-[12.5px] font-bold text-white">
+                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-label font-bold tabular-nums text-white">
                   v{r.version}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13.5px] font-semibold">
+                  <div className="text-body font-semibold">
                     {r.workoutName}
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
+                  <div className="mt-0.5 text-label text-muted-foreground">
                     {r.status === "archived" ? "Arquivado" : "Ativo"} · publicado
                     em {formatDate(r.publishedAt)}
                   </div>
@@ -1447,6 +1458,7 @@ function WorkoutTab() {
         exercise={detail?.exercise ?? null}
         group={detail?.group ?? null}
         onClose={() => setDetail(null)}
+        posture="reading"
       />
       <WorkoutHistoryDialog
         versionId={historyVersionId}
@@ -1474,30 +1486,30 @@ function WorkoutHistoryDialog({
 
   return (
     <Dialog open={versionId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="posture-reading max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle className="font-heading text-lg">
+          <DialogTitle className="font-heading text-title">
             {version.data
               ? `${version.data.workoutName} · v${version.data.version}`
               : "Treino"}
           </DialogTitle>
           {version.data ? (
-            <p className="text-[12.5px] text-muted-foreground">
+            <p className="text-label text-muted-foreground">
               Publicado em {formatDate(version.data.publishedAt)}
             </p>
           ) : null}
         </DialogHeader>
 
         {version.isPending && versionId ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <p className="text-body text-muted-foreground">Carregando…</p>
         ) : version.isError ? (
-          <p className="text-sm text-red-600">
+          <p className="text-body text-red-600">
             Não foi possível carregar esta versão.
           </p>
         ) : version.data ? (
           <div className="flex flex-col gap-3.5">
-            <WorkoutSessionsView sessions={version.data.sessions} />
-            <p className="text-xs text-muted-foreground">
+            <WorkoutSessionsView sessions={version.data.sessions} posture="reading" />
+            <p className="text-label text-muted-foreground">
               Versão arquivada · somente leitura.
             </p>
           </div>

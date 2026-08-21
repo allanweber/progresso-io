@@ -200,6 +200,20 @@ test.describe("workout copy", () => {
       page.getByRole("heading", { name: /Programa completo/ }),
     ).toBeVisible();
     await expect(page.getByText(/Giant set/).first()).toBeVisible();
+    // Each técnica badge carries a drawn mark (lucide), never an emoji or a
+    // unicode glyph — see components/workouts/technique-icon.tsx. The marks
+    // must be real SVG *and* distinct from one another, so a technique reads
+    // without relying on its pigment.
+    const marks: string[] = [];
+    for (const label of ["Drop set", "Giant set", "Super set"]) {
+      const mark = page
+        .getByText(new RegExp(`^${label}`))
+        .first()
+        .locator("svg");
+      await expect(mark).toBeVisible();
+      marks.push(await mark.innerHTML());
+    }
+    expect(new Set(marks).size).toBe(marks.length);
     // The super set was authored by marking only the first item, yet chains into
     // the next: the block spans both exercises (its opener labels it).
     await expect(page.getByText(/Super set · 2 em sequência/)).toBeVisible();
@@ -215,6 +229,14 @@ test.describe("workout copy", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/Técnica: Drop set/)).toBeVisible();
     await expect(dialog.getByText(/Substituições/)).toBeVisible();
+    // The coach keeps the dense posture on the very same component the aluno
+    // portal steps up (`.posture-reading`, globals.css): a section heading is
+    // 15px here, 16px in the portal.
+    expect(
+      await dialog
+        .getByText(/Substituições/)
+        .evaluate((el) => getComputedStyle(el).fontSize),
+    ).toBe("15px");
     // The image carousel: two frames with prev/next controls.
     await expect(dialog.getByRole("button", { name: "Próxima imagem" })).toBeVisible();
     await dialog.screenshot({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { ChevronLeft, Plus } from "lucide-react";
 
 import { CATEGORY_LABELS, exerciseImageUrl } from "@/lib/exercises";
 import {
@@ -67,9 +67,10 @@ export function ExercisePicker({
       <button
         type="button"
         onClick={() => setSelected(null)}
-        className="mb-3 inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+        className="mb-3 inline-flex items-center gap-1 text-body-dense font-medium text-muted-foreground hover:text-foreground"
       >
-        ‹ Voltar aos resultados
+        <ChevronLeft className="size-3.5 shrink-0" aria-hidden />
+        Voltar aos resultados
       </button>
       <div className="mb-4 flex items-center gap-3">
         {thumb ? (
@@ -83,10 +84,10 @@ export function ExercisePicker({
           <div className="size-11 shrink-0 rounded-lg bg-surface-light" />
         )}
         <div className="min-w-0">
-          <div className="truncate text-[15px] font-semibold text-foreground">
+          <div className="truncate text-subtitle font-semibold text-foreground">
             {selected.name}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-label text-muted-foreground">
             {CATEGORY_LABELS[selected.category]}
           </div>
         </div>
@@ -106,7 +107,7 @@ export function ExercisePicker({
           setSelected(null);
           setDraft(newPrescription());
         }}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary/90"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-body font-semibold text-white hover:bg-primary/90"
       >
         <Plus className="size-4" />
         Adicionar ao treino
