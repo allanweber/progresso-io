@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, count, desc, eq, gte, or } from "drizzle-orm";
 
 import type { AiGenerationKind, Plan } from "@/db/schema";
 import type { DB } from "@/db";
@@ -26,8 +26,34 @@ import type { TenantContext } from "@/server/tenant";
  * the moment the call settles.
  */
 
-/** Statuses that consume a credit: in-flight and successful. */
-const BILLED_STATUSES = ["pending", "succeeded"] as const;
+/**
+ * How long a `pending` row may keep counting and blocking before it is treated
+ * as orphaned.
+ *
+ * Anything older than this did not settle, and the only way that happens is the
+ * process dying mid-call — a deploy or a restart — where no `catch` block ever
+ * runs. Ageing it out is what keeps a killed request from locking one aluno out
+ * of the feature permanently.
+ *
+ * The floor is how long a *live* generation can legitimately take: `askWithRepair`
+ * makes up to **two** provider calls, each bounded by `TIMEOUT_MS = 90s` in
+ * `src/lib/llm-provider.ts`, plus the catalog build and the draft write — call it
+ * three and a half minutes. Expiring earlier than that is the dangerous
+ * direction: `hasPendingGeneration` would stop blocking while the first request
+ * is still running, and two generations for the same aluno would race on
+ * `saveDraft` — exactly what the lock exists to prevent. Expiring late only
+ * makes a coach wait, so the margin is deliberately lopsided.
+ *
+ * Coupled to `TIMEOUT_MS` and to the repair attempt count. If either grows, or
+ * the generator becomes a polled background job (see the docstring on
+ * `generateWorkout`'s module), this has to clear the new ceiling.
+ */
+const PENDING_TTL_MS = 10 * 60 * 1000;
+
+/** The instant before which a still-`pending` row is considered orphaned. */
+function pendingCutoff(now: Date): Date {
+  return new Date(now.getTime() - PENDING_TTL_MS);
+}
 
 /**
  * Start of the current calendar month in **America/São_Paulo**, as a UTC instant.
@@ -84,7 +110,16 @@ export async function countGenerationsThisMonth(
       and(
         eq(schema.aiGeneration.clinicId, ctx.clinicId),
         gte(schema.aiGeneration.createdAt, monthStart(now)),
-        inArray(schema.aiGeneration.status, [...BILLED_STATUSES]),
+        or(
+          eq(schema.aiGeneration.status, "succeeded"),
+          // A `pending` row bills only while it could still be in flight; past
+          // the cutoff it was orphaned by a dead process and must stop eating a
+          // credit for the rest of the month.
+          and(
+            eq(schema.aiGeneration.status, "pending"),
+            gte(schema.aiGeneration.createdAt, pendingCutoff(now)),
+          ),
+        ),
       ),
     );
   return row?.value ?? 0;
@@ -94,11 +129,17 @@ export async function countGenerationsThisMonth(
  * Whether this aluno already has a generation of this kind in flight. A second
  * concurrent generation for the same aluno would race on `saveDraft`, so the
  * route rejects rather than letting both write.
+ *
+ * Only a **fresh** `pending` row blocks. A row left behind by a process that
+ * died mid-call has no one to settle it, and without the cutoff it would answer
+ * `already_running` for that aluno forever — there is no reaper and no UI that
+ * can clear it. Past {@link PENDING_TTL_MS} it ages out instead.
  */
 export async function hasPendingGeneration(
   ctx: TenantContext,
   studentId: string,
   kind: AiGenerationKind,
+  now = new Date(),
 ): Promise<boolean> {
   const [row] = await ctx.db
     .select({ id: schema.aiGeneration.id })
@@ -109,6 +150,7 @@ export async function hasPendingGeneration(
         eq(schema.aiGeneration.studentId, studentId),
         eq(schema.aiGeneration.kind, kind),
         eq(schema.aiGeneration.status, "pending"),
+        gte(schema.aiGeneration.createdAt, pendingCutoff(now)),
       ),
     )
     .limit(1);
@@ -243,6 +285,46 @@ export async function failGeneration(
     );
 }
 
+/**
+ * Settles a generation as failed **only if it is still `pending`**.
+ *
+ * The status guard is what makes this safe to call from a `catch` block: the
+ * throw may have happened after the row was already settled, and overwriting a
+ * `succeeded` row with `failed` would refund a credit the coach actually spent
+ * and mark a delivered draft as a failure. A no-op is the correct outcome there.
+ *
+ * The known failure paths keep calling {@link failGeneration} — they know the
+ * row is theirs and unsettled, and the guard would only hide a bug.
+ */
+export async function failGenerationIfPending(
+  ctx: TenantContext,
+  id: string,
+  errorCode: string,
+  outcome?: Partial<GenerationOutcome>,
+): Promise<void> {
+  await ctx.db
+    .update(schema.aiGeneration)
+    .set({
+      status: "failed",
+      errorCode,
+      ...callColumns(outcome?.call),
+      inputTokens: outcome?.usage?.inputTokens ?? null,
+      cachedInputTokens: outcome?.usage?.cachedInputTokens ?? null,
+      cacheWriteTokens: outcome?.usage?.cacheWriteTokens ?? null,
+      outputTokens: outcome?.usage?.outputTokens ?? null,
+      reportedCostMicroUsd: outcome?.usage?.reportedCostMicroUsd ?? null,
+      durationMs: outcome?.durationMs ?? null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(schema.aiGeneration.id, id),
+        eq(schema.aiGeneration.clinicId, ctx.clinicId),
+        eq(schema.aiGeneration.status, "pending"),
+      ),
+    );
+}
+
 /** A generation as an audit/usage screen would list it. */
 export type AiGenerationRow = {
   id: string;
@@ -302,7 +384,11 @@ export type AdminAiTenantRow = {
   effectivePlan: Plan;
   /** The clinic's effective monthly allowance. `null` = unlimited. */
   limit: number | null;
-  /** Billed generations this month (pending + succeeded) — matches the gate. */
+  /**
+   * Billed generations this month — succeeded, plus pendings young enough to
+   * still be in flight. Matches the gate in `countGenerationsThisMonth`, which
+   * is the point: this is the number the coach is being held to.
+   */
   used: number;
   succeeded: number;
   failed: number;
@@ -409,6 +495,7 @@ export async function getAdminAiOverview(
   now = new Date(),
 ): Promise<AdminAiOverview> {
   const since = monthStart(now);
+  const cutoff = pendingCutoff(now);
 
   const clinics = await db
     .select({
@@ -497,7 +584,13 @@ export async function getAdminAiOverview(
   for (const row of rows) {
     const acc = byClinic.get(row.clinicId) ?? empty();
     const model = byModel.get(row.model) ?? emptyModel(row.model);
-    const billed = (BILLED_STATUSES as readonly string[]).includes(row.status);
+    // Same rule as `countGenerationsThisMonth`, deliberately: if the two drift,
+    // the admin screen and the coach's own counter tell different stories about
+    // the same clinic, and an orphaned row would show it capped while the gate
+    // still lets it generate.
+    const billed =
+      row.status === "succeeded" ||
+      (row.status === "pending" && row.createdAt >= cutoff);
     if (billed) acc.used += 1;
     if (row.status === "succeeded") acc.succeeded += 1;
     if (row.status === "failed") acc.failed += 1;
