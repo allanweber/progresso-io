@@ -165,3 +165,54 @@ export const plans: Plan[] = [
     dark: true,
   },
 ];
+
+/**
+ * The features that get a screenshot, in order.
+ *
+ * Every one is a COACH screen. The coach is who pays for this, so the page
+ * argues to them; the aluno's app appears once, as the secondary image in the
+ * hero, because "your aluno gets an app" is a selling point *to the coach* and
+ * not the product being sold.
+ *
+ * The images are crops of the real app, captured by the e2e suite
+ * (`e2e/portfolio.spec.ts` → "landing assets"), so they cannot drift away from
+ * what ships. Cropped rather than whole windows: a full 1440px screenshot in
+ * this column would render at ~0.4 and be unreadable.
+ */
+export type Showcase = {
+  title: string;
+  description: string;
+  image: string;
+  alt: string;
+};
+
+export const showcase: Showcase[] = [
+  {
+    title: "A dieta fecha os números",
+    description:
+      "Monte a partir de um catálogo com a tabela TACO e veja kcal e macros somarem enquanto você digita. Cada alimento leva substituições, então o aluno troca o arroz pela mandioca sem te mandar mensagem.",
+    image: "/landing/feat-diet.png",
+    alt: "Refeição montada no Progresso IO: alimentos em gramas e kcal, substituições e o total da refeição",
+  },
+  {
+    title: "Treino com técnica, não só uma lista",
+    description:
+      "Séries, repetições em sequência (10-8-6-4), descanso, carga e observação por exercício — com drop set e super set marcados na ficha. As alternativas aparecem para o aluno no app.",
+    image: "/landing/feat-workout.png",
+    alt: "Ficha de treino com séries, repetições, descanso, drop set, super set e substituições",
+  },
+  {
+    title: "WhatsApp na mesma tela",
+    description:
+      "Caixa de entrada compartilhada, com a janela de 24 horas à vista em cada conversa. Fora dela só sai modelo aprovado — é a regra que derruba o número de quem a esconde.",
+    image: "/landing/feat-whatsapp.png",
+    alt: "Caixa de entrada do WhatsApp com as conversas, a janela aberta ou fechada e o tempo restante",
+  },
+  {
+    title: "A agenda já sabe o que vence",
+    description:
+      "Consultorias, avaliações e renovações num calendário só — junto com os check-ins que vencem sozinhos, calculados a partir da rotina de cada aluno.",
+    image: "/landing/feat-calendar.png",
+    alt: "Calendário do mês com consultoria, avaliação física, check-in e renovação nos próximos 14 dias",
+  },
+];
