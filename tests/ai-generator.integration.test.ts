@@ -289,6 +289,127 @@ describe("generation lifecycle", () => {
   });
 });
 
+/**
+ * A `pending` row nobody is going to settle: the request threw, or the process
+ * was killed mid-call. Without a guard on both ends it blocks that aluno's
+ * generations forever and bills a credit for the rest of the month.
+ */
+describe("orphaned pending rows", () => {
+  /**
+   * The clock these tests reason with. Anchored an hour into the current month
+   * rather than "ten minutes ago" so a row can be older than the TTL and still
+   * comfortably inside the month window — otherwise a run in the first minutes
+   * of a month would be testing `monthStart`, not the cutoff, and would pass for
+   * the wrong reason.
+   */
+  const orphanedAt = new Date(monthStart(new Date()).getTime() + 60 * 60 * 1000);
+  /** Half an hour later: comfortably past the TTL, same month. */
+  const afterTtl = new Date(orphanedAt.getTime() + 30 * 60 * 1000);
+  /** Two minutes before `afterTtl`: still inside the TTL. */
+  const withinTtl = new Date(afterTtl.getTime() - 2 * 60 * 1000);
+
+  it("failGenerationIfPending releases a still-pending row", async () => {
+    const { ctx, studentId } = await makeClinic("orphan-release", "solo");
+    const id = await ai.startGeneration(ctx, {
+      studentId,
+      kind: "workout",
+      provider: "test",
+      model: "m",
+      catalogHash: "h",
+      anamnesisSnapshotId: null,
+    });
+    expect(await ai.countGenerationsThisMonth(ctx)).toBe(1);
+
+    await ai.failGenerationIfPending(ctx, id, "unexpected");
+
+    // The throw cost the coach nothing: the credit is back.
+    expect(await ai.countGenerationsThisMonth(ctx)).toBe(0);
+    const [row] = await db
+      .select()
+      .from(schema.aiGeneration)
+      .where(eq(schema.aiGeneration.id, id));
+    expect(row.status).toBe("failed");
+    expect(row.errorCode).toBe("unexpected");
+  });
+
+  it("failGenerationIfPending leaves an already-settled row standing", async () => {
+    const { ctx, studentId } = await makeClinic("orphan-settled", "solo");
+    const id = await ai.startGeneration(ctx, {
+      studentId,
+      kind: "diet",
+      provider: "test",
+      model: "m",
+      catalogHash: "h",
+      anamnesisSnapshotId: null,
+    });
+    await ai.finishGeneration(ctx, id, {
+      usage: {
+        inputTokens: 10,
+        cachedInputTokens: 0,
+        cacheWriteTokens: 0,
+        outputTokens: 5,
+        reportedCostMicroUsd: 1,
+      },
+      call: null,
+      durationMs: 10,
+      repaired: false,
+    });
+
+    // A throw raised *after* the draft was delivered must not rewrite history:
+    // flipping this to `failed` would refund a credit the coach really spent
+    // and mark a saved program as a failure.
+    await ai.failGenerationIfPending(ctx, id, "unexpected");
+
+    const [row] = await db
+      .select()
+      .from(schema.aiGeneration)
+      .where(eq(schema.aiGeneration.id, id));
+    expect(row.status).toBe("succeeded");
+    expect(row.errorCode).toBeNull();
+    expect(await ai.countGenerationsThisMonth(ctx)).toBe(1);
+  });
+
+  it("a stale pending row stops counting against the month", async () => {
+    const { ctx, studentId } = await makeClinic("orphan-count", "solo");
+    await addGeneration(ctx, studentId, "pending", orphanedAt);
+    // Still inside the month — this is the TTL doing the work, not the window.
+    expect(orphanedAt.getTime()).toBeGreaterThan(monthStart(afterTtl).getTime());
+    expect(await ai.countGenerationsThisMonth(ctx, afterTtl)).toBe(0);
+
+    // A pending row that could still be in flight keeps billing, as it must.
+    await addGeneration(ctx, studentId, "pending", withinTtl);
+    expect(await ai.countGenerationsThisMonth(ctx, afterTtl)).toBe(1);
+  });
+
+  it("the admin ledger bills the same rows the coach's gate does", async () => {
+    const { ctx, studentId } = await makeClinic("orphan-admin", "solo");
+    await addGeneration(ctx, studentId, "pending", orphanedAt);
+    await addGeneration(ctx, studentId, "succeeded", orphanedAt);
+
+    const overview = await ai.getAdminAiOverview(h, afterTtl);
+    const row = overview.tenants.find((t) => t.clinicId === ctx.clinicId)!;
+    // If these disagree the admin screen shows a clinic capped while the gate
+    // still lets it generate — two numbers for the same question.
+    expect(row.used).toBe(await ai.countGenerationsThisMonth(ctx, afterTtl));
+    expect(row.used).toBe(1);
+  });
+
+  it("a stale pending row stops blocking the aluno", async () => {
+    const { ctx, studentId } = await makeClinic("orphan-block", "solo");
+    await addGeneration(ctx, studentId, "pending", orphanedAt);
+    // Without the cutoff this is `true` forever and the coach can never generate
+    // for this aluno again.
+    expect(await ai.hasPendingGeneration(ctx, studentId, "workout", afterTtl)).toBe(
+      false,
+    );
+
+    await addGeneration(ctx, studentId, "pending", withinTtl);
+    expect(await ai.hasPendingGeneration(ctx, studentId, "workout", afterTtl)).toBe(
+      true,
+    );
+  });
+});
+
 describe("plan limits", () => {
   it("resolves the seeded per-plan allowance", async () => {
     // Migration 0031 backfills these; Solo is 10.
@@ -1256,5 +1377,57 @@ describe("generateWorkout end to end", () => {
       .from(schema.studentWorkout)
       .where(eq(schema.studentWorkout.clinicId, ctx.clinicId));
     expect(drafts).toHaveLength(1);
+  });
+
+  it("settles the row as failed when the save throws unexpectedly", async () => {
+    const victim = await makeClinic("throws", "solo");
+    await completedAnamnesis(victim.ctx, victim.studentId);
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      completion({
+        name: "Treino que não salva",
+        notes: null,
+        sessions: [
+          {
+            name: "Ficha A",
+            exercises: [
+              { exercise: 1, sets: 3, reps: [12], rest: 60, note: null },
+            ],
+          },
+        ],
+      }),
+    );
+    // A database error inside `saveAsDraft` — the one unknown failure the
+    // service cannot classify. It propagates, `withRoute` turns it into a 500,
+    // and the audit row must not be left `pending` behind it.
+    vi.spyOn(studentWorkouts, "createBlankDraft").mockRejectedValue(
+      new Error("connection terminated"),
+    );
+
+    await expect(
+      generateWorkout(victim.ctx, victim.studentId, {
+        objective: "hipertrofia",
+        equipment: ["academia"],
+        daysPerWeek: 3,
+      }),
+    ).rejects.toThrow("connection terminated");
+
+    const [row] = await h
+      .select()
+      .from(schema.aiGeneration)
+      .where(eq(schema.aiGeneration.clinicId, victim.ctx.clinicId));
+    expect(row.status).toBe("failed");
+    expect(row.errorCode).toBe("unexpected");
+    // The model answered before the save blew up, so those tokens were really
+    // spent. Releasing the credit must not also erase the cost — a row with no
+    // usage at all is skipped by the admin cost rollup entirely.
+    expect(row.inputTokens).toBe(1200);
+    expect(row.outputTokens).toBe(300);
+    expect(row.reportedCostMicroUsd).toBe(400);
+    // The credit is released and the aluno is not locked out of retrying.
+    expect(await ai.countGenerationsThisMonth(victim.ctx)).toBe(0);
+    expect(
+      await ai.hasPendingGeneration(victim.ctx, victim.studentId, "workout"),
+    ).toBe(false);
   });
 });

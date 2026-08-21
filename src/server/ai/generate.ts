@@ -283,12 +283,69 @@ async function preflight(
   return { provider, studentName, anamnesis, limit, used };
 }
 
+/**
+ * One generation's `pending` row, recorded by the body so the guard can settle
+ * it. `id` stays `null` until {@link ai.startGeneration} has actually written it
+ * — a throw before that has no row to settle.
+ *
+ * `usage` and `call` are filled in once the model has answered, so that a throw
+ * *after* the call still lands the tokens on the row. Releasing the credit
+ * without recording the spend would hide real money from the ledger.
+ */
+type PendingRow = {
+  id: string | null;
+  startedAt: number;
+  usage: LlmUsage | null;
+  call: LlmCall | null;
+};
+
+/**
+ * Runs one generation, guaranteeing its audit row is settled even when the body
+ * throws.
+ *
+ * Every *known* failure inside `generateWorkout`/`generateDiet` settles the row
+ * itself and returns. This covers the rest: a DB error inside `saveAsDraft`, or
+ * anything else unforeseen. `withRoute` catches the throw and answers 500, so
+ * without this the row would stay `pending` — permanently blocking that aluno
+ * via `hasPendingGeneration` and burning a credit for the month.
+ *
+ * Settling is idempotent (`failGenerationIfPending` only touches a row that is
+ * still `pending`), so a throw raised after the row was already settled leaves
+ * the real outcome standing.
+ */
+async function withSettledRow(
+  ctx: TenantContext,
+  run: (row: PendingRow) => Promise<GenerateResult>,
+): Promise<GenerateResult> {
+  const row: PendingRow = { id: null, startedAt: 0, usage: null, call: null };
+  try {
+    return await run(row);
+  } catch (error) {
+    if (row.id) {
+      // Best-effort: if settling itself fails there is nothing further to do,
+      // and the original error is the one worth propagating. The staleness
+      // cutoff in the DAL is the backstop for exactly this case.
+      await ai
+        .failGenerationIfPending(ctx, row.id, "unexpected", {
+          // The credit goes back; the tokens do not. Same rule the known
+          // failure paths follow — see `failGeneration` in the DAL.
+          usage: row.usage ?? undefined,
+          call: row.call,
+          durationMs: Date.now() - row.startedAt,
+        })
+        .catch(() => {});
+    }
+    throw error;
+  }
+}
+
 /** Generates a workout draft for the student. */
 export async function generateWorkout(
   ctx: TenantContext,
   studentId: string,
   input: AiWorkoutGenerateInput,
 ): Promise<GenerateResult> {
+  return withSettledRow(ctx, async (row) => {
   const pre = await preflight(ctx, studentId, "workout");
   if ("refusal" in pre) return { ok: false, refusal: pre.refusal };
   const { provider, studentName, anamnesis, limit, used } = pre;
@@ -303,6 +360,8 @@ export async function generateWorkout(
     anamnesisSnapshotId: anamnesis.id,
   });
   const startedAt = Date.now();
+  row.id = generationId;
+  row.startedAt = startedAt;
 
   const asked = await askWithRepair<WorkoutPlan>(provider, {
     system: workoutSystemPrompt(catalog),
@@ -324,6 +383,9 @@ export async function generateWorkout(
   });
 
   const durationMs = Date.now() - startedAt;
+  // Past this point a throw has real spend behind it.
+  row.usage = asked.usage;
+  row.call = asked.call;
   if (!asked.ok) {
     await ai.failGeneration(ctx, generationId, asked.errorCode, {
       usage: asked.usage,
@@ -383,6 +445,7 @@ export async function generateWorkout(
     repaired: asked.repaired,
   });
   return { ok: true, used: used + 1, limit, repaired: asked.repaired };
+  });
 }
 
 /** Generates a diet draft for the student. */
@@ -391,6 +454,7 @@ export async function generateDiet(
   studentId: string,
   input: AiDietGenerateInput,
 ): Promise<GenerateResult> {
+  return withSettledRow(ctx, async (row) => {
   const pre = await preflight(ctx, studentId, "diet");
   if ("refusal" in pre) return { ok: false, refusal: pre.refusal };
   const { provider, studentName, anamnesis, limit, used } = pre;
@@ -405,6 +469,8 @@ export async function generateDiet(
     anamnesisSnapshotId: anamnesis.id,
   });
   const startedAt = Date.now();
+  row.id = generationId;
+  row.startedAt = startedAt;
 
   const asked = await askWithRepair<DietPlan>(provider, {
     system: dietSystemPrompt(catalog),
@@ -426,6 +492,9 @@ export async function generateDiet(
   });
 
   const durationMs = Date.now() - startedAt;
+  // Past this point a throw has real spend behind it.
+  row.usage = asked.usage;
+  row.call = asked.call;
   if (!asked.ok) {
     await ai.failGeneration(ctx, generationId, asked.errorCode, {
       usage: asked.usage,
@@ -476,6 +545,7 @@ export async function generateDiet(
     repaired: asked.repaired,
   });
   return { ok: true, used: used + 1, limit, repaired: asked.repaired };
+  });
 }
 
 /**
