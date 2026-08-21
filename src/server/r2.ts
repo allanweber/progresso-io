@@ -41,6 +41,59 @@ function r2Env() {
   return { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PREFIX };
 }
 
+/**
+ * The R2 client, built once per process.
+ *
+ * The AWS SDK client is not a thin wrapper: constructing one resolves the
+ * credential chain and rebuilds the middleware stack, and — the part that
+ * actually costs — it carries its own connection pool. Building one per request
+ * meant every check-in photo and every clinic logo paid a fresh TLS handshake,
+ * because the pool was discarded the moment the request ended.
+ *
+ * Cached against the resolved config rather than unconditionally: a test that
+ * stubs the R2 environment must not be served a client built from the previous
+ * stub.
+ */
+let cachedClient: { key: string; client: S3Client } | null = null;
+
+function r2Client(env: NonNullable<ReturnType<typeof r2Env>>): S3Client {
+  // Identity of the config, never its contents in a log — this string holds a
+  // secret key and must not be printed, thrown or attached to an error.
+  const key = [
+    env.R2_ACCOUNT_ID,
+    env.R2_ACCESS_KEY_ID,
+    env.R2_SECRET_ACCESS_KEY,
+    env.R2_BUCKET,
+  ].join(" ");
+  if (cachedClient?.key === key) return cachedClient.client;
+
+  const client = new S3Client({
+    region: "auto",
+    endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    },
+    // Recent aws-sdk v3 sends integrity checksum headers by default, which
+    // Cloudflare R2 rejects with "SignatureDoesNotMatch". Only send them when
+    // the operation actually requires it (PutObject does not).
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
+  });
+  cachedClient = { key, client };
+  return client;
+}
+
+/**
+ * The bucket-side key prefix, normalized with exactly one trailing slash.
+ *
+ * Not part of the client cache key on purpose: it shapes the object key passed
+ * per call, not the identity of the connection.
+ */
+function keyPrefix(env: NonNullable<ReturnType<typeof r2Env>>): string {
+  return env.R2_PREFIX ? `${env.R2_PREFIX.replace(/\/+$/, "")}/` : "";
+}
+
 /** Whether R2 write credentials are configured in this environment. */
 export function isR2Configured(): boolean {
   return r2Env() !== null;
@@ -54,20 +107,8 @@ async function r2PutObject(
   contentType: string,
   cacheControl: string,
 ): Promise<void> {
-  const prefix = env.R2_PREFIX ? `${env.R2_PREFIX.replace(/\/+$/, "")}/` : "";
-  const s3 = new S3Client({
-    region: "auto",
-    endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: env.R2_ACCESS_KEY_ID,
-      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-    },
-    // Recent aws-sdk v3 sends integrity checksum headers by default, which
-    // Cloudflare R2 rejects with "SignatureDoesNotMatch". Only send them when
-    // the operation actually requires it (PutObject does not).
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
-  });
+  const prefix = keyPrefix(env);
+  const s3 = r2Client(env);
   await s3.send(
     new PutObjectCommand({
       Bucket: env.R2_BUCKET,
@@ -246,19 +287,8 @@ export async function readCheckinPhoto(
   const env = r2Env();
   if (env) {
     try {
-      const prefix = env.R2_PREFIX
-        ? `${env.R2_PREFIX.replace(/\/+$/, "")}/`
-        : "";
-      const s3 = new S3Client({
-        region: "auto",
-        endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-        credentials: {
-          accessKeyId: env.R2_ACCESS_KEY_ID,
-          secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-        },
-        requestChecksumCalculation: "WHEN_REQUIRED",
-        responseChecksumValidation: "WHEN_REQUIRED",
-      });
+      const prefix = keyPrefix(env);
+      const s3 = r2Client(env);
       const res = await s3.send(
         new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: prefix + key }),
       );
