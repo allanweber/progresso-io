@@ -46,7 +46,11 @@ with several coaches sharing one roster.
 ### 1. Landing, pricing and self-serve sign-up
 
 A real funnel: positioning, feature tour, four-tier pricing, 14-day trial with
-no card.
+no card. The hero shows **actual screenshots of the running app** — the coach's
+dashboard and the aluno's phone — captured by the same e2e suite that tests it,
+so the marketing page cannot drift away from the product. (It used to be a
+mockup drawn in CSS: window chrome and grey bars where text would go. It
+photographed well and told a visitor nothing.)
 
 ![Landing page](images/01-landing-desktop.png)
 
@@ -254,7 +258,10 @@ Every screen at both viewports, in `images/`:
 
 ```bash
 npm run test:e2e -- --project=portfolio
+npm run landing:optimize
 ```
 
-Boots a throwaway PostgreSQL, migrates and seeds it, builds the production
-bundle, runs the tour, and writes `portfolio/images/`.
+The first boots a throwaway PostgreSQL, migrates and seeds it, builds the
+production bundle, runs the 30-test tour, and writes both `portfolio/images/`
+(this document) and `public/landing/` (the marketing page's product imagery,
+shot at 2× for retina). The second downscales the latter.

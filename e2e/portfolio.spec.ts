@@ -283,3 +283,78 @@ test.describe("portfolio — admin", () => {
     await shoot(page, "24-admin-maintenance");
   });
 });
+
+/**
+ * The landing page's product imagery — real screenshots of the real app,
+ * replacing the grey-rectangle mockup the hero used to draw in CSS.
+ *
+ * Captured at **deviceScaleFactor 2** so they stay sharp on a retina display,
+ * then downscaled by `scripts/optimize-landing.mjs`. They land in `public/`
+ * because the marketing page serves them; the tour's own images stay in
+ * `portfolio/`.
+ *
+ * The demo tenant's overdue-invoice banner is hidden for these shots only. It
+ * is a notification about *that seeded clinic's* billing, not part of any
+ * feature being advertised — and every other pixel is the untouched product.
+ */
+const LANDING_OUT = "public/landing";
+
+async function hideTenantBanner(page: Page) {
+  await page.addStyleTag({ content: '[role="status"] { display: none !important; }' });
+}
+
+test.describe("landing assets — coach", () => {
+  test.use({
+    storageState: COACH_STORAGE,
+    // 800 rather than 900: the dashboard's content ends around 780px and the
+    // rest is empty page, which in the hero reads as a panel with a hole in the
+    // bottom half rather than as a product.
+    viewport: { width: 1440, height: 800 },
+    deviceScaleFactor: 2,
+  });
+
+  test("the hero shot is a real workspace with loaded data", async ({ page }) => {
+    await page.goto("/coach");
+    // **The data must have arrived.** A label is on screen from the first
+    // paint, so asserting one photographs a skeleton: the first version of this
+    // shot was a dashboard of "Carregando…" and "•••" in every widget, and the
+    // test went green because "Alunos ativos" was technically visible.
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByText("•••")).toHaveCount(0);
+    // Queues with real counts in them — the thing the hero is claiming.
+    await expect(page.getByRole("heading", { name: "Sua fila de hoje" })).toBeVisible();
+    await hideTenantBanner(page);
+    await page.screenshot({ path: `${LANDING_OUT}/app-dashboard.png` });
+  });
+
+  test("the second shot is a real plan with real food and real macros", async ({
+    page,
+    request,
+  }) => {
+    await page.goto(`/coach/students/${await anaId(request)}/diet`);
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Cutting" })).toBeVisible();
+    await expect(page.getByText("Arroz, tipo 1, cozido").first()).toBeVisible();
+    await expect(page.getByText(/kcal/).first()).toBeVisible();
+    await hideTenantBanner(page);
+    await page.screenshot({ path: `${LANDING_OUT}/app-diet.png` });
+  });
+});
+
+test.describe("landing assets — aluno", () => {
+  test.use({
+    storageState: ALUNO_STORAGE,
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+  });
+
+  test("the phone shot shows a published plan", async ({ page }) => {
+    await page.goto("/student");
+    // Marketing must not show a draft: the whole publishing model exists so an
+    // aluno never sees one.
+    await expect(page.getByText("Carregando…")).toHaveCount(0);
+    await expect(page.getByText(/rascunho/i)).toHaveCount(0);
+    await expect(page.getByText(/kcal/).first()).toBeVisible();
+    await page.screenshot({ path: `${LANDING_OUT}/app-portal.png` });
+  });
+});
