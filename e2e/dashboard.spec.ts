@@ -90,6 +90,19 @@ test.describe("coach dashboard", () => {
     ).toBeVisible();
     await expect(page.getByText(`${first} Teste`)).toBeVisible();
 
+    // The page must not scroll sideways on a phone. It used to, by 37px: the
+    // triage columns are grid items, which default to `min-width: auto`, and
+    // every row inside them carries a `truncate` (i.e. `white-space: nowrap`)
+    // line — so a long message preview or a phone number set the column's
+    // minimum to its own full width and pushed the cards past the viewport.
+    // Half of every badge on the right-hand edge was unreachable, and the
+    // marketing screenshot cut through it mid-word.
+    const [viewportWidth, scrollWidth] = await page.evaluate(() => [
+      document.documentElement.clientWidth,
+      document.documentElement.scrollWidth,
+    ]);
+    expect(scrollWidth).toBeLessThanOrEqual(viewportWidth);
+
     await page.screenshot({
       path: "test-results/screens/coach-dashboard-mobile.png",
       fullPage: true,

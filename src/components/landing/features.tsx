@@ -28,13 +28,31 @@ export function Features() {
               key={item.title}
               className="grid items-center gap-8 lg:grid-cols-12 lg:gap-14"
             >
+              {/*
+                The copy comes FIRST in the DOM, which is what a phone gets: a
+                stacked screenshot with its heading underneath is an unlabelled
+                picture, and the reader has to look at it before being told what
+                they are looking at. `lg:order-*` then alternates the sides on a
+                wide screen, where both halves are visible at once.
+              */}
+              <div
+                className={cn(
+                  "lg:col-span-5",
+                  index % 2 === 0 ? "lg:order-2" : "lg:order-1",
+                )}
+              >
+                <h3 className="mb-3 font-heading text-[clamp(22px,2.6vw,28px)] font-bold leading-tight tracking-[-0.02em] text-foreground">
+                  {item.title}
+                </h3>
+                <p className="text-[15px] leading-[1.7] text-text-secondary">
+                  {item.description}
+                </p>
+              </div>
+
               <div
                 className={cn(
                   "lg:col-span-7",
-                  // Alternating sides, and the ORDER is what alternates rather
-                  // than the column start: on a phone everything stacks, and
-                  // the image must stay under its own heading either way.
-                  index % 2 === 1 && "lg:order-2",
+                  index % 2 === 0 ? "lg:order-1" : "lg:order-2",
                 )}
               >
                 <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_18px_44px_rgba(15,23,42,0.13)]">
@@ -47,7 +65,7 @@ export function Features() {
                     // so they never compete with the hero.
                     loading="lazy"
                     // `unoptimized` on purpose. These are already optimized
-                    // artifacts: captured at 2x andcompressed by
+                    // artifacts: captured at 2x and compressed by
                     // `npm run landing:optimize`, at the size they are shown.
                     // Sending them through Next's optimizer only re-encodes
                     // them — and worse, a declared width of 1040 puts the 2x
@@ -68,14 +86,6 @@ export function Features() {
                 </div>
               </div>
 
-              <div className={cn("lg:col-span-5", index % 2 === 1 && "lg:order-1")}>
-                <h3 className="mb-3 font-heading text-[clamp(22px,2.6vw,28px)] font-bold leading-tight tracking-[-0.02em] text-foreground">
-                  {item.title}
-                </h3>
-                <p className="text-[15px] leading-[1.7] text-text-secondary">
-                  {item.description}
-                </p>
-              </div>
             </div>
           ))}
         </div>
