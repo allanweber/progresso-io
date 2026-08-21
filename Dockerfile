@@ -3,7 +3,21 @@
 # Pinned to an exact patch for reproducible builds — bump deliberately (ideally
 # to a sha256 digest once the deploy registry is known). Overridable via
 # `--build-arg NODE_VERSION=…`.
-ARG NODE_VERSION=22.13.1-slim
+#
+# **Do not go back below 22.23.x.** The bundled corepack is what installs pnpm
+# here, and 22.13.1 shipped corepack 0.30.0, whose built-in npm signing keys npm
+# has since rotated. That corepack consults the registry's "latest stable"
+# metadata even when `packageManager` pins an exact version, fails the signature
+# check, and kills the build before a single dependency is fetched:
+#
+#   Error: Cannot find matching keyid: {"signatures":[…],"keys":[…]}
+#       at verifySignature … at fetchLatestStableVersion
+#
+# Nothing in this repository changed to cause that — the key rotation happened
+# upstream, so a build that had been green started failing on its own. 22.23.2
+# bundles corepack 0.34.6, which resolves the pin directly and never takes that
+# path.
+ARG NODE_VERSION=22.23.2-slim
 
 # ---- Dependencies ----
 FROM node:${NODE_VERSION} AS dependencies
