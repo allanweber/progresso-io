@@ -15,9 +15,9 @@ Brazilian Portuguese.
 ## Getting started
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env   # set DATABASE_URL
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -26,14 +26,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Script                | Description                          |
 | --------------------- | ------------------------------------ |
-| `npm run dev`         | Start the dev server                 |
-| `npm run build`       | Production build (standalone output) |
-| `npm run start`       | Serve the production build           |
-| `npm run lint`        | Run ESLint                           |
-| `npm run db:generate` | Generate Drizzle migrations          |
-| `npm run db:migrate`  | Apply migrations                     |
-| `npm run db:push`     | Push schema to the database directly |
-| `npm run db:studio`   | Open Drizzle Studio                  |
+| `pnpm dev`         | Start the dev server                 |
+| `pnpm build`       | Production build (standalone output) |
+| `pnpm start`       | Serve the production build           |
+| `pnpm lint`        | Run ESLint                           |
+| `pnpm db:generate` | Generate Drizzle migrations          |
+| `pnpm db:migrate`  | Apply migrations                     |
+| `pnpm db:push`     | Push schema to the database directly |
+| `pnpm db:studio`   | Open Drizzle Studio                  |
 
 ## Project structure
 
@@ -50,7 +50,7 @@ src/
 
 ## Self-hosting
 
-The app builds to a standalone Node server. After `npm run build`:
+The app builds to a standalone Node server. After `pnpm build`:
 
 ```bash
 node .next/standalone/server.js

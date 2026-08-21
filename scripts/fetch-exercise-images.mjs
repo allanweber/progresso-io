@@ -8,7 +8,7 @@
 // folder to the Cloudflare R2 bucket the app serves from.
 //
 // Idempotent: an image already on disk is skipped, so re-runs only fetch what's
-// missing. Run: npm run db:fetch-exercise-images
+// missing. Run: pnpm db:fetch-exercise-images
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { gunzipSync } from "node:zlib";

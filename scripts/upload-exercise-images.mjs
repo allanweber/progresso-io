@@ -7,7 +7,7 @@
 // Image source: the images are NOT committed to the repo (100 MB of binaries).
 // Instead the keys come from the seed catalog, and each image is read from a
 // local folder if present (drizzle/data/exercises-images/, populated by
-// `npm run db:fetch-exercise-images` for a fast local upload) or streamed from
+// `pnpm db:fetch-exercise-images` for a fast local upload) or streamed from
 // the free-exercise-db CDN otherwise (the deploy path — nothing to clone).
 //
 // Required env (see .env.example): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
@@ -142,7 +142,7 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
   return { skipped: false, uploaded: done };
 }
 
-// Allow running the uploader directly: `npm run db:upload-exercise-images`.
+// Allow running the uploader directly: `pnpm db:upload-exercise-images`.
 if (import.meta.url === `file://${process.argv[1]}`) {
   await import("dotenv/config");
   const result = await uploadExerciseImages();

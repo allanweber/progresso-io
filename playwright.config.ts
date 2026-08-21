@@ -24,7 +24,7 @@ const ADMIN_STORAGE = "e2e/.auth/admin.json";
  * - `coach`   — authenticated student-management flows, reusing that session.
  *
  * The suite runs against a REAL Postgres via `node scripts/e2e.mjs`
- * (`npm run test:e2e`), which boots + migrates + seeds the DB, builds the app
+ * (`pnpm test:e2e`), which boots + migrates + seeds the DB, builds the app
  * and serves it with `ENABLE_TEST_OUTBOX=true` so the invite→accept loop is
  * drivable. Running `playwright test` directly (no DB) only fits the `public`
  * project, and still needs a standalone build present.

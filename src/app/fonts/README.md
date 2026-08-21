@@ -15,8 +15,8 @@ Both are the `latin` variable (`wght`) files from the Fontsource packages
 repackage the upstream SIL Open Font License fonts. To refresh:
 
 ```sh
-npm i -D @fontsource-variable/dm-sans @fontsource-variable/space-grotesk
+pnpm add -D @fontsource-variable/dm-sans @fontsource-variable/space-grotesk
 cp node_modules/@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2 src/app/fonts/
 cp node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2 src/app/fonts/
-npm remove @fontsource-variable/dm-sans @fontsource-variable/space-grotesk
+pnpm remove @fontsource-variable/dm-sans @fontsource-variable/space-grotesk
 ```

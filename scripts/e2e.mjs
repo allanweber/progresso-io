@@ -155,7 +155,7 @@ try {
   run("node", ["scripts/migrate.mjs"], { env });
 
   console.info("→ Seeding a verified coach…");
-  run("npx", ["tsx", "src/db/seed.ts"], { env });
+  run("pnpm", ["exec", "tsx", "src/db/seed.ts"], { env });
 
   // Playwright serves a PRODUCTION build, not `next dev` — a dev server
   // compiles each route on its first request, which cost the suite more wall
@@ -170,13 +170,13 @@ try {
   // in by hand; that's documented in the self-hosting guide, not automatic.
   if (process.env.E2E_SKIP_BUILD !== "1") {
     console.info("→ Building the app…");
-    run("npm", ["run", "build"], { env });
+    run("pnpm", ["build"], { env });
     cpSync("public", ".next/standalone/public", { recursive: true });
     cpSync(".next/static", ".next/standalone/.next/static", { recursive: true });
   }
 
   console.info("→ Running Playwright…");
-  run("npx", ["playwright", "test", ...process.argv.slice(2)], { env });
+  run("pnpm", ["exec", "playwright", "test", ...process.argv.slice(2)], { env });
 } finally {
   stopLocalPg();
 }

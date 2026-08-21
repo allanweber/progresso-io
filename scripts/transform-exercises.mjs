@@ -18,7 +18,7 @@
 //
 // `code` is the source id (e.g. "3_4_Sit-Up"); it doubles as the image folder.
 //
-// Run: npm run db:transform-exercises
+// Run: pnpm db:transform-exercises
 import { readFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";

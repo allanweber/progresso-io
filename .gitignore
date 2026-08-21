@@ -58,6 +58,11 @@ next-env.d.ts
 /playwright/.cache/
 
 # Exercise images are NOT committed (100 MB of binaries). They live in the
-# Cloudflare R2 bucket the app serves from; `npm run db:fetch-exercise-images`
+# Cloudflare R2 bucket the app serves from; `pnpm db:fetch-exercise-images`
 # can repopulate this folder locally for a fast upload, but it stays out of git.
 /drizzle/data/exercises-images/
+
+plans/
+# This project installs with pnpm; a package-lock.json here means someone ran
+# npm by mistake and would reintroduce a second, divergent dependency graph.
+package-lock.json

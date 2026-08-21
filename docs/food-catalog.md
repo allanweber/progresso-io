@@ -43,7 +43,7 @@ TBCA it replaced — far easier to search). The normalized source CSVs live in
 [`brolesi/taco`](https://github.com/brolesi/taco) pipeline). Two steps turn them
 into the running catalog:
 
-1. **Transform** (`npm run db:transform-taco`, dev-time) —
+1. **Transform** (`pnpm db:transform-taco`, dev-time) —
    `scripts/transform-taco.mjs` joins the three CSVs (composição centesimal,
    ácidos graxos, aminoácidos) into a compact `drizzle/data/taco-catalog.ndjson.gz`
    (~0.1 MB), applying:

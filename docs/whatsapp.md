@@ -244,7 +244,7 @@ the **caller's own** clinic (the same `ingestInboundMessage` path):
 ```bash
 # 1) enable it (dev only)
 export WHATSAPP_ALLOW_SIMULATE=1
-npm run dev
+pnpm dev
 
 # 2) with a logged-in coach session cookie, simulate an inbound message:
 curl -X POST http://localhost:3000/api/whatsapp/dev/simulate-inbound \
