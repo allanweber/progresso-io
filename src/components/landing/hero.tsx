@@ -15,9 +15,12 @@ import { Button } from "@/components/ui/button";
  * TACO food list, real macros, a real published version), captured by the e2e
  * suite so they cannot drift away from what ships.
  *
- * Two images, not one, because the product is two products: the coach's
- * workspace on a desktop and the aluno's plan on a phone. Showing only the
- * first hides the half that the aluno actually experiences.
+ * **Coach-first at every width.** The coach is who pays, so the coach's
+ * workspace is the image that leads — wide on a desktop, and their own
+ * dashboard at phone width below `lg`. The aluno's phone stays as a small
+ * overlay on large screens only: "seu aluno ganha um app" is an argument aimed
+ * at the coach, not the product being sold. The small-screen page used to show
+ * the aluno's app alone, which argued the whole way down to the wrong person.
  */
 export function Hero() {
   return (
@@ -63,6 +66,7 @@ export function Hero() {
         replaced. Full container width keeps it near 0.78 and legible.
       */}
       <div className="relative mx-auto mt-16 max-w-[1120px]">
+        {/* The coach's workspace: the product being bought. */}
         <div className="hidden overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-[0_32px_80px_rgba(15,23,42,0.22)] lg:block">
           <Image
             src="/landing/app-dashboard.png"
@@ -72,6 +76,9 @@ export function Hero() {
             // The largest paint on the page, above the fold: it must not wait
             // for an intersection observer.
             priority
+            // Pre-optimized artifact shown at its own size — see the note in
+            // features.tsx: the optimizer only re-encodes it, and upscales.
+            unoptimized
             className="block h-auto w-full"
           />
         </div>
@@ -79,7 +86,9 @@ export function Hero() {
         {/*
           The aluno's phone, overlapping the empty bottom-left of the panel —
           the one region of that screenshot with nothing in it, so the overlap
-          costs no information.
+          costs no information. Deliberately SMALL and secondary: "seu aluno
+          ganha um app" is a selling point aimed at the coach, not the thing
+          being sold.
         */}
         <div className="absolute -bottom-16 -left-10 hidden w-[186px] overflow-hidden rounded-[26px] border-[6px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:block">
           <Image
@@ -88,20 +97,31 @@ export function Hero() {
             width={390}
             height={844}
             priority
+            // Pre-optimized artifact shown at its own size — see the note in
+            // features.tsx: the optimizer only re-encodes it, and upscales.
+            unoptimized
             className="block h-auto w-full rounded-[20px]"
           />
         </div>
 
-        {/* Below lg the desktop shot would be unreadable, so the phone — which
-            is what an aluno actually holds — carries the section alone. */}
-        <div className="mx-auto w-[240px] overflow-hidden rounded-[30px] border-[7px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:hidden">
+        {/*
+          Below `lg` a 1440px window is unreadable — but the answer is NOT to
+          fall back to the aluno's app, which is what this used to do and left
+          the whole small-screen page arguing to the wrong person. It is the
+          COACH's own dashboard, at phone width, where it is both legible and
+          the thing being sold.
+        */}
+        <div className="mx-auto w-[266px] overflow-hidden rounded-[32px] border-[8px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:hidden">
           <Image
-            src="/landing/app-portal.png"
-            alt="O plano do aluno no celular, com porções em medidas caseiras e substituições"
+            src="/landing/app-coach-phone.png"
+            alt="O painel do coach no celular, com a fila do dia e os check-ins aguardando resposta"
             width={390}
             height={844}
             priority
-            className="block h-auto w-full rounded-[24px]"
+            // Pre-optimized artifact shown at its own size — see the note in
+            // features.tsx: the optimizer only re-encodes it, and upscales.
+            unoptimized
+            className="block h-auto w-full rounded-[25px]"
           />
         </div>
       </div>

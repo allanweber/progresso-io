@@ -46,7 +46,86 @@ async function shoot(page: Page, name: string, desktop = DESKTOP) {
 
   await page.setViewportSize(desktop);
   await page.waitForTimeout(250);
+  await loadLazyImages(page);
+  await flattenStickyChrome(page);
   await page.screenshot({ path: `${OUT}/${name}-desktop.png`, fullPage: true });
+}
+
+/**
+ * Drops every `fixed`/`sticky` element back into normal flow.
+ *
+ * A `fullPage` screenshot stitches a tall image without scrolling, so anything
+ * pinned to the viewport is stamped into the MIDDLE of the result: the landing
+ * page's site header landed across a feature row, and the aluno portal's tab
+ * bar across its meal list. Both look like rendering bugs and neither is one.
+ * `relative` rather than `static` so absolutely-positioned children keep their
+ * anchor.
+ *
+ * Last thing before the shutter — it is a change to the page, so nothing may
+ * be asserted after it.
+ */
+async function flattenStickyChrome(page: Page) {
+  await page.evaluate(() => {
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("*"))) {
+      const position = getComputedStyle(el).position;
+      if (position === "fixed" || position === "sticky") {
+        el.style.position = "relative";
+      }
+    }
+  });
+  await page.waitForTimeout(150);
+}
+
+/**
+ * Walks the page so `loading="lazy"` images below the fold actually load, then
+ * waits for every one of them to finish.
+ *
+ * A `fullPage` screenshot does not scroll, so the intersection observer never
+ * fires and the tall image is stitched with empty boxes where the lazy images
+ * are. The landing page's feature rows came out as three blank rectangles that
+ * way — a picture that says the feature is broken when it is not.
+ */
+async function loadLazyImages(page: Page) {
+  await page.evaluate(async () => {
+    // Scroll until the window stops moving rather than up to
+    // `document.body.scrollHeight`. The body under-reports on this layout, so
+    // the loop ended before the last feature rows ever entered the viewport —
+    // their lazy images were never requested and the page was photographed
+    // with two empty boxes in it.
+    let previous = -1;
+    while (window.scrollY !== previous) {
+      previous = window.scrollY;
+      window.scrollBy(0, window.innerHeight);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    }
+    window.scrollTo(0, 0);
+  });
+  // Generous, because Next optimizes each size variant on its FIRST request:
+  // a 2880px source resized by sharp for three breakpoints is seconds of work
+  // the first time round, and 10s was not enough for a page with seven of them.
+  // Subsequent runs hit the cache and return immediately.
+  try {
+    await page.waitForFunction(
+      () => Array.from(document.images).every((img) => img.complete),
+      undefined,
+      { timeout: 60_000 },
+    );
+  } catch (error) {
+    // Name the offender. "some image never finished" is not something anyone
+    // can act on; the src is.
+    const pending = await page.evaluate(() =>
+      Array.from(document.images)
+        .filter((img) => !img.complete)
+        .map((img) => ({
+          src: (img.currentSrc || img.getAttribute("src") || "(none)").slice(0, 120),
+          hidden: img.offsetParent === null,
+        })),
+    );
+    throw new Error(
+      `images never finished loading: ${JSON.stringify(pending)}\n${String(error)}`,
+    );
+  }
+  await page.waitForTimeout(200);
 }
 
 /**
@@ -79,10 +158,29 @@ test.describe("portfolio — público", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("landing page sells the product", async ({ page }) => {
+    // The heaviest test here: seven product screenshots, each optimized by
+    // Next on its FIRST request (a 2880px PNG resized by sharp), across two
+    // viewports. Warm, it finishes in seconds; cold — a fresh CI checkout —
+    // it does not fit the 30s default.
+    test.setTimeout(120_000);
+
     await page.goto("/");
     // A landing page that does not name the audience and offer a way in is a
     // brochure, not a funnel.
     await expect(page.getByRole("link", { name: /Entrar/ }).first()).toBeVisible();
+
+    // Every product screenshot must actually be on screen. `naturalWidth` is
+    // the check that matters: a broken or unloaded `next/image` still renders
+    // an <img> element of the right size, so `toBeVisible` passes over a blank
+    // box and the tour photographs a page that looks broken.
+    await loadLazyImages(page);
+    const broken = await page.evaluate(() =>
+      Array.from(document.images)
+        .filter((img) => img.naturalWidth === 0)
+        .map((img) => img.getAttribute("src") ?? "(no src)"),
+    );
+    expect(broken, "landing images that failed to load").toEqual([]);
+
     await shoot(page, "01-landing");
   });
 
@@ -374,6 +472,13 @@ test.describe("landing assets — aluno", () => {
 const FEATURE_VIEWPORT = { width: 1280, height: 900 };
 
 /**
+ * One size for every feature crop, so the rows on the landing page share an
+ * aspect ratio instead of jumping around. Wide enough to hold the content
+ * column at this viewport (1280 − 240px sidebar − padding).
+ */
+const FEATURE_CROP = { width: 1040, height: 520 };
+
+/**
  * Clips `size` out of the page starting at the top-left of `anchor`.
  *
  * Anchored on an element rather than fixed coordinates so a layout change moves
@@ -384,13 +489,82 @@ async function shootRegion(
   page: Page,
   name: string,
   anchor: ReturnType<Page["locator"]>,
-  size: { width: number; height: number },
+  size = FEATURE_CROP,
 ) {
-  const box = await anchor.boundingBox();
-  expect(box, `bounding box for the ${name} crop`).toBeTruthy();
+  // Bring the anchor to the top of the viewport first. Playwright clips a
+  // screenshot to the viewport, so an anchor sitting low on the page silently
+  // yields a sliver — the first diet crop came out 700×240 of a requested
+  // 700×470 and looked like a cropping bug rather than a feature.
+  // Two steps, because neither alone works on every page here.
+  // `scrollIntoView` walks every scrollable ancestor — the diet builder keeps
+  // its content in an inner scroller, so a plain `window.scrollTo` cannot move
+  // it at all — but it stops once that inner scroller is exhausted, leaving the
+  // anchor partway down the viewport. The window nudge closes the remainder.
+  const TOP_MARGIN = 16;
+
+  /**
+   * The anchor's box once it stops moving.
+   *
+   * Measuring once made this flaky: the page is still settling — fonts swap,
+   * queries resolve, the builder re-renders after "Editar" — so a box read
+   * immediately after scrolling could be stale by the time the shutter fired,
+   * and the run failed the fit assertion on one attempt and passed on the
+   * retry. A screenshot source that is right most of the time is not a source.
+   */
+  const settled = async () => {
+    let previous: { x: number; y: number } | null = null;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const box = await anchor.boundingBox();
+      if (
+        box &&
+        previous &&
+        Math.abs(box.y - previous.y) < 1 &&
+        Math.abs(box.x - previous.x) < 1
+      ) {
+        return box;
+      }
+      previous = box ? { x: box.x, y: box.y } : null;
+      await page.waitForTimeout(100);
+    }
+    return anchor.boundingBox();
+  };
+
+  await anchor.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  let anchorBox = await settled();
+
+  const leftover = (anchorBox?.y ?? 0) - TOP_MARGIN;
+  if (leftover > 0) {
+    await page.evaluate((dy) => window.scrollBy(0, dy), leftover);
+    anchorBox = await settled();
+  }
+
+  expect(anchorBox, `bounding box for the ${name} crop`).toBeTruthy();
+
+  // The anchor decides WHERE VERTICALLY to crop; the left edge comes from the
+  // content column. Anchoring x on the element too put the crop wherever that
+  // text happened to sit inside its card — "Total da dieta" starts 400px in, so
+  // the frame ran off the right of the viewport.
+  const contentBox = await page.locator("main").boundingBox();
+  expect(contentBox, `content column for the ${name} crop`).toBeTruthy();
+
+  const x = contentBox!.x;
+  const y = Math.max(0, anchorBox!.y - TOP_MARGIN);
+
+  const viewport = page.viewportSize()!;
+  // Assert rather than clamp: a crop that no longer fits is a layout change
+  // this test should report, not quietly photograph half of. The first version
+  // shipped a 700×240 sliver of a requested 700×470 and looked like a bug.
+  expect(
+    y + size.height,
+    `${name}: crop must fit the viewport after scrolling`,
+  ).toBeLessThanOrEqual(viewport.height);
+  expect(x + size.width, `${name}: crop must fit the width`).toBeLessThanOrEqual(
+    viewport.width,
+  );
+
   await page.screenshot({
     path: `${LANDING_OUT}/${name}.png`,
-    clip: { x: box!.x, y: box!.y, width: size.width, height: size.height },
+    clip: { x, y, width: size.width, height: size.height },
   });
 }
 
@@ -409,31 +583,14 @@ test.describe("landing assets — coach features", () => {
     await hideTenantBanner(page);
     // From the totals bar down through the first meal — the running total next
     // to the foods that produce it is the whole claim.
+    // Anchored on the meal card, NOT on the "Total da dieta" bar: that bar is
+    // sticky, so `getBoundingClientRect().top + scrollY` reports where it is
+    // currently stuck rather than where it sits in the document, and scrolling
+    // to that offset goes straight past it.
     await shootRegion(
       page,
       "feat-diet",
-      page.getByText(/Total da dieta/i),
-      { width: 700, height: 470 },
-    );
-  });
-
-  test("the AI feature shows the questions, not a magic button", async ({
-    page,
-    request,
-  }) => {
-    await page.goto(`/coach/students/${await anaId(request)}/diet`);
-    await page.getByRole("button", { name: "Gerar dieta com IA" }).click();
-    const replace = page.getByRole("button", { name: "Substituir rascunho" });
-    if (await replace.isVisible()) await replace.click();
-    await expect(page.getByText("Restrições alimentares")).toBeVisible();
-    await expect(page.getByText("Perfil de macros")).toBeVisible();
-    // The dialog is ~470px wide natively, so this crop is shown at roughly its
-    // own size — the sharpest image on the page.
-    await shootRegion(
-      page,
-      "feat-ai",
-      page.getByRole("dialog").first(),
-      { width: 500, height: 620 },
+      page.getByText("Pão, trigo, francês").first(),
     );
   });
 
@@ -446,7 +603,6 @@ test.describe("landing assets — coach features", () => {
       page,
       "feat-whatsapp",
       page.getByRole("heading", { name: /WhatsApp/i }).first(),
-      { width: 760, height: 480 },
     );
   });
 
@@ -461,7 +617,6 @@ test.describe("landing assets — coach features", () => {
       page,
       "feat-calendar",
       page.getByRole("heading", { name: /Agenda|Calendário/i }),
-      { width: 760, height: 470 },
     );
   });
 
@@ -474,22 +629,9 @@ test.describe("landing assets — coach features", () => {
       page,
       "feat-workout",
       page.getByRole("button", { name: "Gerar treino com IA" }),
-      { width: 720, height: 470 },
     );
   });
 
-  test("the roster feature shows the alunos and their state", async ({ page }) => {
-    await page.goto("/coach/students");
-    await expect(page.getByText("Carregando…")).toHaveCount(0);
-    await expect(page.getByText("Ana").first()).toBeVisible();
-    await hideTenantBanner(page);
-    await shootRegion(
-      page,
-      "feat-students",
-      page.getByRole("heading", { name: /Alunos/i }),
-      { width: 760, height: 430 },
-    );
-  });
 });
 
 test.describe("landing assets — coach on a phone", () => {
