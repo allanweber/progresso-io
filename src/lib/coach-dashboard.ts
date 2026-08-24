@@ -1,50 +1,53 @@
 import type { CalendarItemDto } from "@/lib/calendar";
 
 /**
- * Client-facing DTOs for the coach dashboard (`GET /api/coach/dashboard`). The
- * data-backed cards are typed here — active-student count, the "sem treino ou
- * dieta" list, the "check-ins aguardando resposta" queue, the "WhatsApp
- * aguardando" queue (conversations with unanswered inbound), and the calendar
- * "Hoje" / "Esta semana" agenda. The mockup's weight-alerts section has no
- * backend yet and renders an "em breve" state, so it carries no payload.
+ * Client-facing DTOs for the coach dashboard (`GET /api/coach/dashboard`).
+ *
+ * The screen is a work queue, not a report: the four backlogs a coach actually
+ * owes someone — an unanswered check-in, an unanswered WhatsApp message, an
+ * aluno with no plan, and a draft never published — are merged server-side into
+ * one list ranked by how long each has been waiting. The client renders that
+ * list; it does not re-derive it.
  */
 
-export type MissingPlanStudentDto = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  goal: string | null;
-  missingDiet: boolean;
-  missingWorkout: boolean;
+/** What kind of work a queue row represents. Never encoded by colour alone. */
+export type QueueItemKind = "checkin" | "whatsapp" | "missing-plan" | "draft";
+
+/** PT-BR label for each kind, rendered as the row's chip. */
+export const QUEUE_KIND_LABELS: Record<QueueItemKind, string> = {
+  checkin: "check-in",
+  whatsapp: "WhatsApp",
+  "missing-plan": "sem plano",
+  draft: "rascunho",
 };
 
-/** An aluno check-in still waiting on the coach's feedback. */
-export type PendingCheckinDto = {
-  id: string;
-  studentId: string;
-  firstName: string;
-  lastName: string;
-  /** Check-in day, `YYYY-MM-DD`. */
-  date: string;
-  weightKg: number | null;
-};
-
-/** A WhatsApp conversation with unanswered inbound (awaiting a coach reply). */
-export type WaWaitingDto = {
-  conversationId: string;
-  studentId: string | null;
+/** One thing the coach owes someone, with the wait that ranks it. */
+export type QueueItemDto = {
+  /** Stable client key (`<kind>:<id>`). */
+  key: string;
+  kind: QueueItemKind;
+  /** Aluno name, or the conversation's display name. */
   name: string;
+  /** Seed for the deterministic avatar colour — the aluno id where there is one. */
+  avatarSeed: string;
   initials: string;
-  preview: string | null;
+  /** ISO timestamp this has been waiting since. The sort key. */
+  waitingSince: string;
+  /** Where the row goes — the task, never the record. */
+  href: string;
+  /** One short secondary fact: weight, message preview, what is missing. */
+  detail: string | null;
 };
 
 export type CoachDashboardDto = {
   activeCount: number;
-  missingPlans: MissingPlanStudentDto[];
-  pendingCheckins: PendingCheckinDto[];
-  waWaiting: WaWaitingDto[];
+  /**
+   * The merged queue, oldest wait first, capped server-side. One rule, no
+   * hidden weighting: a coach can explain the order to themselves.
+   */
+  queue: QueueItemDto[];
+  /** Total before the cap, so the UI can offer "ver todos (N)". */
+  queueTotal: number;
   /** Calendar items dated today, sorted by start time (timed first). */
   todayEvents: CalendarItemDto[];
-  /** Calendar items from tomorrow through the end of this week (Sat). */
-  weekEvents: CalendarItemDto[];
 };

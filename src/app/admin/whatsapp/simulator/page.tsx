@@ -183,7 +183,7 @@ export default async function AdminWhatsappSimulatorPage({
                       {s.clinicName}
                       {s.coachName ? ` · coach ${s.coachName}` : ""}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                       {formatPhone(s.phone) || s.phone}
                     </span>
                   </Link>
@@ -244,19 +244,19 @@ export default async function AdminWhatsappSimulatorPage({
                           }`}
                         >
                           {!fromStudent && (
-                            <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-primary">
+                            <span className="mb-0.5 block text-eyebrow font-semibold uppercase tracking-wide text-primary">
                               coach
                             </span>
                           )}
                           {m.type === "template" && (
-                            <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-primary">
+                            <span className="mb-0.5 block text-eyebrow font-semibold uppercase tracking-wide text-primary">
                               template
                             </span>
                           )}
                           <p className="whitespace-pre-wrap break-words text-foreground">
                             <MessageText text={m.body} />
                           </p>
-                          <div className="mt-1 text-right text-[10px] text-muted-foreground">
+                          <div className="mt-1 text-right text-eyebrow text-muted-foreground">
                             {hhmm(m.createdAt)}
                           </div>
                         </div>

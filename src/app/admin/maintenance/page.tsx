@@ -258,7 +258,7 @@ function AnamnesesMaintenance() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-medium text-foreground">{a.name}</div>
-                <div className="text-[13px] text-muted-foreground">
+                <div className="text-body-dense text-muted-foreground">
                   {a.clinicName}
                 </div>
               </div>
@@ -298,7 +298,7 @@ function AnamnesesMaintenance() {
             <DialogTitle>Excluir anamnese</DialogTitle>
           </DialogHeader>
           {deleteTarget && (
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body-dense text-muted-foreground">
               A anamnese “{deleteTarget.name}” da clínica{" "}
               <strong className="text-foreground">
                 {deleteTarget.clinicName}
@@ -318,7 +318,7 @@ function AnamnesesMaintenance() {
             </p>
           )}
           {del.isError && (
-            <p className="text-[13px] font-medium text-destructive">
+            <p className="text-body-dense font-medium text-destructive">
               {(del.error as Error).message}
             </p>
           )}
@@ -480,7 +480,7 @@ function ClinicsMaintenance() {
                 >
                   {c.name}
                 </Link>
-                <div className="text-[13px] text-muted-foreground">
+                <div className="text-body-dense text-muted-foreground">
                   {c.ownerEmail ?? "—"} · Plano {c.plan}
                 </div>
               </div>
@@ -522,7 +522,7 @@ function ClinicsMaintenance() {
           </DialogHeader>
           {deleteTarget && (
             <>
-              <p className="text-[13px] text-muted-foreground">
+              <p className="text-body-dense text-muted-foreground">
                 A clínica{" "}
                 <strong className="text-foreground">{deleteTarget.name}</strong> e
                 TODOS os seus dados serão excluídos permanentemente:{" "}
@@ -553,7 +553,7 @@ function ClinicsMaintenance() {
             </>
           )}
           {del.isError && (
-            <p className="text-[13px] font-medium text-destructive">
+            <p className="text-body-dense font-medium text-destructive">
               {(del.error as Error).message}
             </p>
           )}
@@ -774,7 +774,7 @@ function TemplateMaintenance({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-medium text-foreground">{a.name}</div>
-                <div className="text-[13px] text-muted-foreground">
+                <div className="text-body-dense text-muted-foreground">
                   {a.clinicName}
                 </div>
               </div>
@@ -813,7 +813,7 @@ function TemplateMaintenance({
             <DialogTitle>{copy.deleteTitle}</DialogTitle>
           </DialogHeader>
           {deleteTarget && (
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body-dense text-muted-foreground">
               {copy.the} “{deleteTarget.name}” da clínica{" "}
               <strong className="text-foreground">
                 {deleteTarget.clinicName}
@@ -833,7 +833,7 @@ function TemplateMaintenance({
             </p>
           )}
           {del.isError && (
-            <p className="text-[13px] font-medium text-destructive">
+            <p className="text-body-dense font-medium text-destructive">
               {(del.error as Error).message}
             </p>
           )}
@@ -933,7 +933,7 @@ function TemplateImportDialog({
         <DialogHeader>
           <DialogTitle>{copy.importTitle}</DialogTitle>
         </DialogHeader>
-        <p className="text-[13px] text-muted-foreground">{copy.importDesc}</p>
+        <p className="text-body-dense text-muted-foreground">{copy.importDesc}</p>
 
         <div className="space-y-1.5">
           <Label htmlFor={`import-${resource}-clinic`}>Clínica de destino</Label>
@@ -956,7 +956,7 @@ function TemplateImportDialog({
             <Label>{copy.startersLabel}</Label>
             <button
               type="button"
-              className="text-[13px] font-medium text-primary hover:underline"
+              className="text-body-dense font-medium text-primary hover:underline"
               onClick={() =>
                 setKeys(allSelected ? new Set() : new Set(all.map((s) => s.key)))
               }
@@ -980,7 +980,7 @@ function TemplateImportDialog({
               </label>
             ))}
             {starters.isLoading && (
-              <p className="px-2 py-1.5 text-[13px] text-muted-foreground">
+              <p className="px-2 py-1.5 text-body-dense text-muted-foreground">
                 Carregando…
               </p>
             )}
@@ -988,13 +988,13 @@ function TemplateImportDialog({
         </div>
 
         {importMut.isSuccess && importMut.data && (
-          <p className="text-[13px] font-medium text-primary">
+          <p className="text-body-dense font-medium text-primary">
             {importMut.data.imported.length} importado(s),{" "}
             {importMut.data.skipped.length} já existiam.
           </p>
         )}
         {banner && (
-          <p className="text-[13px] font-medium text-destructive">{banner}</p>
+          <p className="text-body-dense font-medium text-destructive">{banner}</p>
         )}
 
         <DialogFooter>
@@ -1075,7 +1075,7 @@ function ImportDialog({
         <DialogHeader>
           <DialogTitle>Importar anamneses do sistema</DialogTitle>
         </DialogHeader>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body-dense text-muted-foreground">
           Copia as anamneses selecionadas para a clínica. As que a clínica já
           possui são ignoradas.
         </p>
@@ -1101,7 +1101,7 @@ function ImportDialog({
             <Label>Anamneses do sistema</Label>
             <button
               type="button"
-              className="text-[13px] font-medium text-primary hover:underline"
+              className="text-body-dense font-medium text-primary hover:underline"
               onClick={() =>
                 setKeys(allSelected ? new Set() : new Set(all.map((s) => s.key)))
               }
@@ -1125,7 +1125,7 @@ function ImportDialog({
               </label>
             ))}
             {starters.isLoading && (
-              <p className="px-2 py-1.5 text-[13px] text-muted-foreground">
+              <p className="px-2 py-1.5 text-body-dense text-muted-foreground">
                 Carregando…
               </p>
             )}
@@ -1133,13 +1133,13 @@ function ImportDialog({
         </div>
 
         {importMut.isSuccess && importMut.data && (
-          <p className="text-[13px] font-medium text-primary">
+          <p className="text-body-dense font-medium text-primary">
             {importMut.data.imported.length} importada(s),{" "}
             {importMut.data.skipped.length} já existiam.
           </p>
         )}
         {banner && (
-          <p className="text-[13px] font-medium text-destructive">{banner}</p>
+          <p className="text-body-dense font-medium text-destructive">{banner}</p>
         )}
 
         <DialogFooter>

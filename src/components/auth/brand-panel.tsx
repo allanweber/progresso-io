@@ -69,7 +69,7 @@ export function BrandPanel() {
               </span>
               <div>
                 <div className="text-sm font-semibold text-white">{title}</div>
-                <div className="text-[13px] leading-snug text-white/70">
+                <div className="text-body-dense leading-snug text-white/70">
                   {description}
                 </div>
               </div>
@@ -79,7 +79,7 @@ export function BrandPanel() {
       </div>
 
       <div className="relative max-md:hidden">
-        <p className="text-[13px] text-white/60">
+        <p className="text-body-dense text-white/60">
           14 dias grátis · sem cartão de crédito
         </p>
       </div>

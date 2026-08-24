@@ -41,7 +41,7 @@ export default function EditExercisePage() {
           {(error as Error).message}
         </div>
       ) : data && data.origin !== "clinic" ? (
-        <div className="mt-6 rounded-xl border border-border bg-surface-light px-4 py-3 text-[13px] text-muted-foreground">
+        <div className="mt-6 rounded-xl border border-border bg-surface-light px-4 py-3 text-body-dense text-muted-foreground">
           Este é um exercício do catálogo base — somente leitura.
         </div>
       ) : data ? (

@@ -177,7 +177,7 @@ export function FoodForm({
       className="space-y-5"
     >
       {banner && (
-        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       )}
@@ -222,7 +222,7 @@ export function FoodForm({
                     ))}
                   </SelectContent>
                 </Select>
-                {err && <p className="text-[13px] text-destructive">{err}</p>}
+                {err && <p className="text-body-dense text-destructive">{err}</p>}
               </div>
             );
           }}

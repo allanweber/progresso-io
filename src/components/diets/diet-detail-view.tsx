@@ -58,7 +58,7 @@ function ItemRow({ item }: { item: DietItemDto }) {
           <span className="font-medium text-foreground">{item.description}</span>
           <Badge
             variant={item.origin === "base" ? "base" : "clinic"}
-            className="px-1.5 py-0 text-[10px] font-semibold"
+            className="px-1.5 py-0 text-eyebrow font-semibold"
           >
             {item.origin === "base"
               ? DIET_ORIGIN_LABELS.base
@@ -95,7 +95,7 @@ function ItemRow({ item }: { item: DietItemDto }) {
       </div>
       <div className="shrink-0 text-right">
         <div className="text-sm font-semibold text-foreground">{q.main}</div>
-        {q.sub && <div className="text-[11px] text-muted-foreground">{q.sub}</div>}
+        {q.sub && <div className="text-caption text-muted-foreground">{q.sub}</div>}
       </div>
       <div className="w-14 shrink-0 text-right text-xs text-muted-foreground">
         {formatKcal(item.macros.energyKcal)} kcal

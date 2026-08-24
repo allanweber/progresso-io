@@ -154,7 +154,7 @@ export function PhotoUploadSlot({
           {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
           <img src={slot.url} alt={label} className="h-full w-full object-cover" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
-            <span className="text-[11px] font-semibold text-white">{label}</span>
+            <span className="text-caption font-semibold text-white">{label}</span>
           </div>
           <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
             <Check className="size-3" />
@@ -172,8 +172,8 @@ export function PhotoUploadSlot({
       ) : slot?.compressing ? (
         <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-muted/30 text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
-          <span className="text-[11px]">Comprimindo…</span>
-          <span className="text-[11px] font-semibold text-foreground">{label}</span>
+          <span className="text-caption">Comprimindo…</span>
+          <span className="text-caption font-semibold text-foreground">{label}</span>
         </div>
       ) : (
         <button
@@ -185,10 +185,10 @@ export function PhotoUploadSlot({
           <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Camera className="size-4" />
           </span>
-          <span className="px-2 text-[11.5px] font-semibold leading-tight text-foreground">
+          <span className="px-2 text-caption font-semibold leading-tight text-foreground">
             {label}
           </span>
-          <span className="text-[11px] text-muted-foreground">Adicionar</span>
+          <span className="text-caption text-muted-foreground">Adicionar</span>
         </button>
       )}
 
@@ -235,7 +235,7 @@ export function CheckinPhotoGrid({
             className="h-full w-full object-cover"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
-            <span className="text-[11px] font-semibold text-white">
+            <span className="text-caption font-semibold text-white">
               {CHECKIN_POSE_LABELS[p.pose]}
             </span>
           </div>

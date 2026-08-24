@@ -196,7 +196,7 @@ export default function DietsListPage() {
                     <div className="font-heading text-lg font-bold text-primary">
                       {formatKcal(d.totalKcal)}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">kcal</div>
+                    <div className="text-caption text-muted-foreground">kcal</div>
                   </div>
                 </Link>
               </li>

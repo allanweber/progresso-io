@@ -133,7 +133,7 @@ export default function StudentEvolutionPage() {
     <div className="mx-auto max-w-3xl">
       <Link
         href="/coach/students"
-        className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
       >
         ← Alunos
       </Link>
@@ -166,7 +166,7 @@ export default function StudentEvolutionPage() {
             <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-[13px] text-muted-foreground">
+                  <div className="text-body-dense text-muted-foreground">
                     Peso ao longo do tempo
                   </div>
                   <div className="font-heading text-2xl font-bold tracking-tight">
@@ -178,7 +178,7 @@ export default function StudentEvolutionPage() {
                 {deltaW !== undefined && deltaW !== 0 ? (
                   <span
                     className={cn(
-                      "flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-semibold",
+                      "flex items-center gap-1 rounded-full px-2.5 py-1 text-body-dense font-semibold",
                       deltaW < 0
                         ? "bg-primary-light text-primary"
                         : "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
@@ -202,7 +202,7 @@ export default function StudentEvolutionPage() {
           {hasComparablePhotos ? (
             <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="font-heading text-[15px] font-semibold">
+                <div className="font-heading text-subtitle font-semibold">
                   Fotos comparáveis
                 </div>
                 <div className="flex gap-1">
@@ -212,7 +212,7 @@ export default function StudentEvolutionPage() {
                       type="button"
                       onClick={() => setPose(p)}
                       className={cn(
-                        "rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors",
+                        "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
                         pose === p
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/70",
@@ -228,7 +228,7 @@ export default function StudentEvolutionPage() {
                 {photoSets.length > 1 ? (
                   <ComparePhoto studentId={id} set={latestPhotos} pose={pose} />
                 ) : (
-                  <div className="flex aspect-[3/4] items-center justify-center rounded-xl border border-dashed border-border text-center text-[12px] text-muted-foreground">
+                  <div className="flex aspect-[3/4] items-center justify-center rounded-xl border border-dashed border-border text-center text-label text-muted-foreground">
                     Envie mais check-ins com fotos para comparar.
                   </div>
                 )}
@@ -239,13 +239,13 @@ export default function StudentEvolutionPage() {
           {/* Medidas Δ table */}
           {measureRows.length > 0 ? (
             <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
-              <div className="mb-3 font-heading text-[15px] font-semibold">
+              <div className="mb-3 font-heading text-subtitle font-semibold">
                 Medidas
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
+                <table className="w-full text-body-dense">
                   <thead>
-                    <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <tr className="text-caption uppercase tracking-wide text-muted-foreground">
                       <th className="pb-2 text-left font-medium">Medida</th>
                       <th className="pb-2 text-right font-medium">
                         {firstAssessment
@@ -265,7 +265,7 @@ export default function StudentEvolutionPage() {
                       <tr key={r.label} className="border-t border-border/60">
                         <td className="py-1.5 font-medium text-foreground">
                           {r.label}{" "}
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-caption text-muted-foreground">
                             ({r.unit})
                           </span>
                         </td>
@@ -295,7 +295,7 @@ export default function StudentEvolutionPage() {
                 </table>
               </div>
               {lastAssessment ? (
-                <p className="mt-2 text-[11.5px] text-muted-foreground">
+                <p className="mt-2 text-caption text-muted-foreground">
                   Última avaliação em {formatCheckinDate(lastAssessment.date)}.
                 </p>
               ) : null}
@@ -329,18 +329,18 @@ function ComparePhoto({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[12px] text-muted-foreground">
+          <div className="flex h-full items-center justify-center text-label text-muted-foreground">
             Sem foto
           </div>
         )}
         {set ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-5 text-center text-[11.5px] font-semibold text-white">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-5 text-center text-caption font-semibold text-white">
             {formatCheckinDate(set.date)}
           </div>
         ) : null}
       </div>
       {set?.weightKg !== null && set?.weightKg !== undefined ? (
-        <div className="mt-1 text-center text-[11.5px] text-muted-foreground">
+        <div className="mt-1 text-center text-caption text-muted-foreground">
           {formatCheckinWeight(set.weightKg)} kg
         </div>
       ) : null}

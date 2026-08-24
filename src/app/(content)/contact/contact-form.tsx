@@ -94,7 +94,7 @@ export function ContactForm() {
       {state?.formError && (
         <p
           role="alert"
-          className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive"
+          className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive"
         >
           {state.formError}
         </p>
@@ -140,11 +140,11 @@ export function ContactForm() {
           {/* A `maxLength` textarea just stops accepting keystrokes, with no
               hint why — so the budget is shown rather than left to be
               discovered by typing into a field that has gone dead. */}
-          <p className="text-right text-[12px] text-muted-foreground">
+          <p className="text-right text-label text-muted-foreground">
             {messageLength}/{CONTACT_LIMITS.message}
           </p>
           {state?.fieldErrors?.message && (
-            <p id="message-error" className="text-[13px] text-destructive">
+            <p id="message-error" className="text-body-dense text-destructive">
               {state.fieldErrors.message}
             </p>
           )}

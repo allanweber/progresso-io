@@ -61,7 +61,7 @@ export default async function ClinicPortalPage({ params }: Params) {
         ) : (
           <div
             className="mb-6 flex size-24 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
-            style={{ backgroundColor: accent ?? "var(--color-primary, #16a34a)" }}
+            style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
           >
             {b.name.trim().charAt(0).toUpperCase()}
           </div>
@@ -73,13 +73,13 @@ export default async function ClinicPortalPage({ params }: Params) {
         {b.headline && (
           <p
             className="mt-3 text-lg font-medium"
-            style={{ color: accent ?? "var(--color-primary, #16a34a)" }}
+            style={{ color: accent ?? "var(--color-primary, #059669)" }}
           >
             {b.headline}
           </p>
         )}
         {b.description && (
-          <p className="mt-4 max-w-prose whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
+          <p className="mt-4 max-w-prose whitespace-pre-line text-subtitle leading-relaxed text-muted-foreground">
             {b.description}
           </p>
         )}
@@ -87,7 +87,7 @@ export default async function ClinicPortalPage({ params }: Params) {
         <Link
           href={`/${b.slug}/entrar`}
           className="mt-8 inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
-          style={{ backgroundColor: accent ?? "var(--color-primary, #16a34a)" }}
+          style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
         >
           Área do aluno
         </Link>

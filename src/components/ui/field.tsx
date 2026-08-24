@@ -20,7 +20,7 @@ export function Field({ label, id, error, ...inputProps }: FieldProps) {
         {...inputProps}
       />
       {error && (
-        <p id={`${id}-error`} className="text-[13px] text-destructive">
+        <p id={`${id}-error`} className="text-body-dense text-destructive">
           {error}
         </p>
       )}

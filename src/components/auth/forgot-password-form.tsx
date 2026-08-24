@@ -37,7 +37,7 @@ export function ForgotPasswordForm() {
         </Button>
         <Link
           href="/login"
-          className="mt-3 block w-full text-[13px] text-[#94A3B8] hover:text-muted-foreground"
+          className="mt-3 block w-full text-body-dense text-[#94A3B8] hover:text-muted-foreground"
         >
           Voltar ao login
         </Link>

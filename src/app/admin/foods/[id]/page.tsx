@@ -147,7 +147,7 @@ export default function AdminFoodDetailPage() {
                 </div>
               )
             ) : (
-              <div className="mt-4 rounded-xl border border-border bg-surface-light px-4 py-2.5 text-[13px] text-muted-foreground">
+              <div className="mt-4 rounded-xl border border-border bg-surface-light px-4 py-2.5 text-body-dense text-muted-foreground">
                 Alimento próprio da clínica{" "}
                 <span className="font-medium text-foreground">
                   {data.clinicName}
@@ -344,7 +344,7 @@ function BaseSubstitutes({
                 <div className="space-y-1.5">
                   <label
                     htmlFor="sub-grams"
-                    className="block text-[13px] font-medium text-foreground"
+                    className="block text-body-dense font-medium text-foreground"
                   >
                     Gramas ≡ 100 g de {food.description.split(",")[0]}
                   </label>
@@ -415,7 +415,7 @@ function BaseSubstitutes({
           )}
 
           {addError && (
-            <p className="mt-3 text-[13px] text-destructive">{addError}</p>
+            <p className="mt-3 text-body-dense text-destructive">{addError}</p>
           )}
         </div>
       )}

@@ -291,7 +291,7 @@ export function ExerciseDetail({
               <h2 className="text-sm font-semibold text-foreground">
                 Músculos primários
               </h2>
-              <p className="mt-1 text-[13px] text-[#475569]">
+              <p className="mt-1 text-body-dense text-[#475569]">
                 {data.primaryMuscles.length > 0
                   ? data.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")
                   : "—"}
@@ -301,7 +301,7 @@ export function ExerciseDetail({
               <h2 className="text-sm font-semibold text-foreground">
                 Músculos secundários
               </h2>
-              <p className="mt-1 text-[13px] text-[#475569]">
+              <p className="mt-1 text-body-dense text-[#475569]">
                 {data.secondaryMuscles.length > 0
                   ? data.secondaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")
                   : "—"}
@@ -380,7 +380,7 @@ export function ExerciseDetail({
               <ol className="mt-3 space-y-3">
                 {data.instructions.map((step, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-[13px] font-semibold text-primary">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
                       {i + 1}
                     </span>
                     <p className="text-sm leading-relaxed text-[#334155]">
@@ -571,7 +571,7 @@ function SubstitutionsManager({
             )}
           </div>
           {addError && (
-            <p className="mt-3 text-[13px] text-destructive">{addError}</p>
+            <p className="mt-3 text-body-dense text-destructive">{addError}</p>
           )}
         </div>
       )}

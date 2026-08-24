@@ -226,7 +226,7 @@ export function ExerciseForm({
       className="space-y-6"
     >
       {banner && (
-        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       )}
@@ -287,7 +287,7 @@ export function ExerciseForm({
               onChange={(e) => field.handleChange(e.target.value)}
             />
             {fieldError(field, serverErrors?.description) && (
-              <p className="text-[13px] text-destructive">
+              <p className="text-body-dense text-destructive">
                 {fieldError(field, serverErrors?.description)}
               </p>
             )}
@@ -324,7 +324,7 @@ export function ExerciseForm({
                     ))}
                   </SelectContent>
                 </Select>
-                {err && <p className="text-[13px] text-destructive">{err}</p>}
+                {err && <p className="text-body-dense text-destructive">{err}</p>}
               </div>
             );
           }}
@@ -355,7 +355,7 @@ export function ExerciseForm({
                     ))}
                   </SelectContent>
                 </Select>
-                {err && <p className="text-[13px] text-destructive">{err}</p>}
+                {err && <p className="text-body-dense text-destructive">{err}</p>}
               </div>
             );
           }}
@@ -447,14 +447,14 @@ export function ExerciseForm({
               </Button>
             </div>
             {field.state.value.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">
+              <p className="text-body-dense text-muted-foreground">
                 Nenhum passo. Adicione as instruções de execução, uma por passo.
               </p>
             ) : (
               <ol className="space-y-2">
                 {field.state.value.map((_, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="mt-2.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-[13px] font-semibold text-primary">
+                    <span className="mt-2.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
                       {i + 1}
                     </span>
                     <form.Field name={`instructions[${i}]`}>
@@ -568,8 +568,8 @@ function MusclePicker({
               aria-pressed={active}
               className={
                 active
-                  ? "rounded-full border border-primary bg-primary-light px-3 py-1.5 text-[13px] font-medium text-primary"
-                  : "rounded-full border border-border bg-white px-3 py-1.5 text-[13px] text-[#475569] transition-colors hover:border-primary"
+                  ? "rounded-full border border-primary bg-primary-light px-3 py-1.5 text-body-dense font-medium text-primary"
+                  : "rounded-full border border-border bg-white px-3 py-1.5 text-body-dense text-[#475569] transition-colors hover:border-primary"
               }
             >
               {o.label}
@@ -672,7 +672,7 @@ function ImageUploader({
         ))}
 
         {canAdd && (
-          <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-white text-[12px] text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+          <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-white text-label text-muted-foreground transition-colors hover:border-primary hover:text-primary">
             <Upload className="size-5" />
             {busy ? "Enviando…" : "Adicionar"}
             <input
@@ -689,7 +689,7 @@ function ImageUploader({
           </label>
         )}
       </div>
-      {error && <p className="text-[13px] text-destructive">{error}</p>}
+      {error && <p className="text-body-dense text-destructive">{error}</p>}
     </div>
   );
 }

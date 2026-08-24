@@ -7,7 +7,7 @@ export function IntegrationsBar() {
         <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
           Integra com
         </span>
-        <span className="flex items-center gap-2 text-[15px] font-bold text-text-secondary">
+        <span className="flex items-center gap-2 text-subtitle font-bold text-text-secondary">
           <MessageCircle className="size-[22px] text-[#25D366]" fill="#25D366" stroke="white" />
           WhatsApp Business
         </span>

@@ -387,7 +387,7 @@ export function ExerciseCatalog({
                     {ex.thumbnail && (
                       <span
                         title="Contém imagens"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-light px-2 py-0.5 text-[11px] font-medium text-[#475569]"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-light px-2 py-0.5 text-caption font-medium text-[#475569]"
                       >
                         <ImageIcon className="size-3.5" aria-hidden />
                         imagem
@@ -423,7 +423,7 @@ export function ExerciseCatalog({
                     )}
                   </div>
                   {ex.primaryMuscles.length > 0 && (
-                    <p className="mt-2 truncate text-[13px] text-[#475569]">
+                    <p className="mt-2 truncate text-body-dense text-[#475569]">
                       {ex.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
                     </p>
                   )}

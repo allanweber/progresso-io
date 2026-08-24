@@ -125,14 +125,14 @@ function FeatureCard({ feature }: { feature: Feature }) {
           />
         </span>
         {featured && eyebrow && (
-          <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
+          <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-eyebrow font-bold uppercase tracking-[0.08em] text-primary">
             {eyebrow}
           </span>
         )}
       </div>
 
       {!featured && eyebrow && (
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
+        <div className="mb-2 text-eyebrow font-bold uppercase tracking-[0.08em] text-primary">
           {eyebrow}
         </div>
       )}

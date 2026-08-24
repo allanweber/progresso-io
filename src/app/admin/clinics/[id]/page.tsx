@@ -173,7 +173,7 @@ export default function AdminClinicDetailPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Plano</h2>
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body-dense text-muted-foreground">
               Alterar o plano libera ou revoga na hora o limite de alunos e o
               portal com marca própria. As faturas são independentes.
             </p>
@@ -184,7 +184,7 @@ export default function AdminClinicDetailPage() {
         {/* Subscription context for issuing the fatura by hand: what the coach
             asked for at sign-up, and whether a trial is still carrying them. */}
         {(clinic.intendedPlan || clinic.trialEndsAt) && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[10px] bg-secondary px-3 py-2 text-[13px] text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[10px] bg-secondary px-3 py-2 text-body-dense text-muted-foreground">
             {clinic.intendedPlan && (
               <span>
                 Plano escolhido no cadastro:{" "}
@@ -212,12 +212,12 @@ export default function AdminClinicDetailPage() {
 
         {planChanges.length > 0 && (
           <div className="mt-5 border-t border-border pt-4">
-            <h3 className="text-[13px] font-semibold text-muted-foreground">
+            <h3 className="text-body-dense font-semibold text-muted-foreground">
               Histórico de alterações
             </h3>
             <ul className="mt-2 space-y-2">
               {planChanges.map((ch) => (
-                <li key={ch.id} className="text-[13px] text-muted-foreground">
+                <li key={ch.id} className="text-body-dense text-muted-foreground">
                   <span className="text-foreground">
                     {ch.fromPlan ? PLAN_META[ch.fromPlan].name : "—"} →{" "}
                     {PLAN_META[ch.toPlan].name}
@@ -237,7 +237,7 @@ export default function AdminClinicDetailPage() {
         <h2 className="text-lg font-semibold text-foreground">
           Limites desta clínica
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body-dense text-muted-foreground">
           Ajuste os limites só para esta clínica, sem trocar o plano. Deixe em
           branco (ou “Padrão do plano”) para herdar o plano {limits.planName}.
         </p>
@@ -388,7 +388,7 @@ export default function AdminClinicDetailPage() {
             <DialogTitle>Cancelar fatura</DialogTitle>
           </DialogHeader>
           {cancelTarget && (
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body-dense text-muted-foreground">
               A fatura{" "}
               <strong className="text-foreground">#{cancelTarget.number}</strong>{" "}
               será marcada como cancelada. Ela permanece no histórico.
@@ -422,7 +422,7 @@ export default function AdminClinicDetailPage() {
             <DialogTitle>Excluir fatura</DialogTitle>
           </DialogHeader>
           {deleteTarget && (
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body-dense text-muted-foreground">
               A fatura{" "}
               <strong className="text-foreground">#{deleteTarget.number}</strong>{" "}
               e seus itens serão excluídos permanentemente. Esta ação não pode ser
@@ -453,7 +453,7 @@ function BackLink() {
   return (
     <Link
       href="/admin/maintenance"
-      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+      className="inline-flex items-center gap-1.5 text-body-dense font-medium text-muted-foreground hover:text-foreground"
     >
       <ArrowLeft className="size-4" />
       Voltar para Clínicas
@@ -556,7 +556,7 @@ function PlanForm({
       </form.Subscribe>
 
       {banner && (
-        <p className="text-[13px] text-destructive sm:col-span-3">{banner}</p>
+        <p className="text-body-dense text-destructive sm:col-span-3">{banner}</p>
       )}
     </form>
   );
@@ -697,7 +697,7 @@ function InvoiceDialog({
           className="space-y-4"
         >
           {banner && (
-            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
               {banner}
             </div>
           )}
@@ -879,7 +879,7 @@ function InvoiceDialog({
                 reaisToCents(discount || "0"),
               );
               return (
-                <div className="rounded-[10px] bg-muted/50 px-4 py-3 text-[13px]">
+                <div className="rounded-[10px] bg-muted/50 px-4 py-3 text-body-dense">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
                     <span>{formatBRL(subtotalCents)}</span>
@@ -968,7 +968,7 @@ function MarkPaidDialog({
           className="space-y-4"
         >
           {banner && (
-            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
               {banner}
             </div>
           )}
@@ -1111,7 +1111,7 @@ function LimitsForm({
   return (
     <div className="mt-4">
       {banner ? (
-        <div className="mb-3 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="mb-3 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       ) : null}

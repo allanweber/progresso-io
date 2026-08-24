@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, ne } from "drizzle-orm";
 
 import { type Database, schema } from "@/db";
 import type { Modality, Student, StudentStatus } from "@/db/schema";
@@ -169,6 +169,8 @@ export type MissingPlanStudent = {
   goal: string | null;
   missingDiet: boolean;
   missingWorkout: boolean;
+  /** Join day — how long this aluno has been waiting for a plan. */
+  createdAt: Date;
 };
 
 /** A student check-in awaiting the coach's feedback (dashboard triage). */
@@ -181,13 +183,39 @@ export type PendingCheckin = {
   weightKg: number | null;
 };
 
+/**
+ * A plan version still sitting in `draft` — written but never published, so the
+ * aluno cannot see it. Principle 2: nothing reaches the student until the coach
+ * publishes, which makes a forgotten draft real, invisible work.
+ */
+export type PendingDraft = {
+  id: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  kind: "diet" | "workout";
+  /** Last edit — how long this draft has sat unpublished. */
+  updatedAt: Date;
+};
+
 /** The real (data-backed) part of the coach dashboard. */
 export type CoachDashboard = {
   activeCount: number;
   missingPlans: MissingPlanStudent[];
   /** Aluno-submitted check-ins with no coach response yet (newest first). */
   pendingCheckins: PendingCheckin[];
+  /** Never-published diet/workout drafts, longest-untouched first. */
+  pendingDrafts: PendingDraft[];
 };
+
+/**
+ * Hard ceiling on each unbounded dashboard list. The active-student query needs
+ * no cap — a clinic's roster is already bounded by its plan (100 on Clínica) and
+ * the full set is needed for the count and the has-a-plan set difference. These
+ * three can grow without limit, so they are capped at the source: the dashboard
+ * shows a queue, not an archive.
+ */
+const DASHBOARD_LIST_LIMIT = 50;
 
 /**
  * Powers the coach dashboard's two real cards: the active-student count and the
@@ -199,13 +227,15 @@ export type CoachDashboard = {
 export async function getCoachDashboard(
   ctx: TenantContext,
 ): Promise<CoachDashboard> {
-  const [active, dietRows, workoutRows, pendingRows] = await Promise.all([
+  const [active, dietRows, workoutRows, pendingRows, dietDrafts, workoutDrafts] =
+    await Promise.all([
     ctx.db
       .select({
         id: schema.students.id,
         firstName: schema.students.firstName,
         lastName: schema.students.lastName,
         goal: schema.students.goal,
+        createdAt: schema.students.createdAt,
       })
       .from(schema.students)
       .where(
@@ -255,7 +285,66 @@ export async function getCoachDashboard(
           isNull(schema.studentCheckin.feedbackAt),
         ),
       )
-      .orderBy(desc(schema.studentCheckin.date)),
+      .orderBy(desc(schema.studentCheckin.date))
+      .limit(DASHBOARD_LIST_LIMIT),
+    // Diet drafts that were never published — oldest edit first, so the queue
+    // surfaces the ones the coach has genuinely forgotten.
+    ctx.db
+      .select({
+        id: schema.studentDietVersion.id,
+        studentId: schema.studentDiet.studentId,
+        updatedAt: schema.studentDietVersion.updatedAt,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+      })
+      .from(schema.studentDietVersion)
+      .innerJoin(
+        schema.studentDiet,
+        eq(schema.studentDiet.id, schema.studentDietVersion.studentDietId),
+      )
+      .innerJoin(
+        schema.students,
+        eq(schema.students.id, schema.studentDiet.studentId),
+      )
+      .where(
+        and(
+          eq(schema.studentDiet.clinicId, ctx.clinicId),
+          eq(schema.studentDietVersion.status, "draft"),
+          eq(schema.students.status, "active"),
+        ),
+      )
+      .orderBy(asc(schema.studentDietVersion.updatedAt))
+      .limit(DASHBOARD_LIST_LIMIT),
+    // Same, for workout drafts.
+    ctx.db
+      .select({
+        id: schema.studentWorkoutVersion.id,
+        studentId: schema.studentWorkout.studentId,
+        updatedAt: schema.studentWorkoutVersion.updatedAt,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+      })
+      .from(schema.studentWorkoutVersion)
+      .innerJoin(
+        schema.studentWorkout,
+        eq(
+          schema.studentWorkout.id,
+          schema.studentWorkoutVersion.studentWorkoutId,
+        ),
+      )
+      .innerJoin(
+        schema.students,
+        eq(schema.students.id, schema.studentWorkout.studentId),
+      )
+      .where(
+        and(
+          eq(schema.studentWorkout.clinicId, ctx.clinicId),
+          eq(schema.studentWorkoutVersion.status, "draft"),
+          eq(schema.students.status, "active"),
+        ),
+      )
+      .orderBy(asc(schema.studentWorkoutVersion.updatedAt))
+      .limit(DASHBOARD_LIST_LIMIT),
   ]);
 
   const hasDiet = new Set(dietRows.map((r) => r.studentId));
@@ -267,10 +356,12 @@ export async function getCoachDashboard(
       firstName: s.firstName,
       lastName: s.lastName,
       goal: s.goal,
+      createdAt: s.createdAt,
       missingDiet: !hasDiet.has(s.id),
       missingWorkout: !hasWorkout.has(s.id),
     }))
-    .filter((s) => s.missingDiet || s.missingWorkout);
+    .filter((s) => s.missingDiet || s.missingWorkout)
+    .slice(0, DASHBOARD_LIST_LIMIT);
 
   const pendingCheckins: PendingCheckin[] = pendingRows.map((r) => ({
     id: r.id,
@@ -281,7 +372,19 @@ export async function getCoachDashboard(
     weightKg: r.weightKg,
   }));
 
-  return { activeCount: active.length, missingPlans, pendingCheckins };
+  const pendingDrafts: PendingDraft[] = [
+    ...dietDrafts.map((r) => ({ ...r, kind: "diet" as const })),
+    ...workoutDrafts.map((r) => ({ ...r, kind: "workout" as const })),
+  ]
+    .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
+    .slice(0, DASHBOARD_LIST_LIMIT);
+
+  return {
+    activeCount: active.length,
+    missingPlans,
+    pendingCheckins,
+    pendingDrafts,
+  };
 }
 
 export async function createStudent(

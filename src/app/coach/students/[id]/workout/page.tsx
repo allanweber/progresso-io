@@ -206,7 +206,7 @@ export default function StudentWorkoutPage() {
     <div className="mx-auto max-w-3xl">
       <Link
         href="/coach/students"
-        className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
       >
         ← Alunos
       </Link>
@@ -216,7 +216,7 @@ export default function StudentWorkoutPage() {
       </div>
 
       {banner && (
-        <div className="mt-4 rounded-[10px] bg-primary/10 px-4 py-2.5 text-[13px] font-medium text-primary">
+        <div className="mt-4 rounded-[10px] bg-primary/10 px-4 py-2.5 text-body-dense font-medium text-primary">
           {banner}
         </div>
       )}
@@ -265,7 +265,7 @@ export default function StudentWorkoutPage() {
           <p className="font-heading text-base font-semibold text-foreground">
             {draft.workoutName}
           </p>
-          <p className="mt-1 text-[13px] text-amber-700">
+          <p className="mt-1 text-body-dense text-amber-700">
             Rascunho não publicado — o aluno ainda não vê este treino. Publique para
             deixá-lo ativo.
           </p>
@@ -342,7 +342,7 @@ export default function StudentWorkoutPage() {
               maxLength={120}
             />
             {startBlank.isError && (
-              <p className="text-[13px] text-destructive">
+              <p className="text-body-dense text-destructive">
                 {(startBlank.error as Error).message}
               </p>
             )}
@@ -373,7 +373,7 @@ export default function StudentWorkoutPage() {
             picking={assign.isPending}
           />
           {assign.isError && (
-            <p className="text-[13px] text-destructive">
+            <p className="text-body-dense text-destructive">
               {(assign.error as Error).message}
             </p>
           )}
@@ -468,7 +468,7 @@ function CurrentView({
           <h2 className="font-heading text-lg font-bold text-foreground">
             {current.workoutName}
           </h2>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body-dense text-muted-foreground">
             Versão {current.version} · publicada em {fmtDate(current.publishedAt)}
           </p>
         </div>
@@ -493,7 +493,7 @@ function CurrentView({
 
       {hasDraft && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-[13px] font-medium text-amber-700">
+          <p className="text-body-dense font-medium text-amber-700">
             {/* A generated draft is a *different* treino with its own name, not
                 another version of this one — naming it is the only thing on
                 this screen that shows the generation produced anything. */}
@@ -531,7 +531,7 @@ function CurrentView({
           </h3>
           {olderOfCurrent.length > 0 && (
             <div className="mt-3">
-              <p className="text-[13px] font-medium text-foreground">
+              <p className="text-body-dense font-medium text-foreground">
                 {current.workoutName} — versões anteriores
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -550,7 +550,7 @@ function CurrentView({
           )}
           {pastWorkouts.map((h) => (
             <div key={h.workoutId} className="mt-3">
-              <p className="text-[13px] font-medium text-foreground">
+              <p className="text-body-dense font-medium text-foreground">
                 {h.workoutName}{" "}
                 <span className="text-xs font-normal text-muted-foreground">
                   (arquivado)
@@ -675,7 +675,7 @@ function VersionView({
           {data.workoutName} · v{data.version}
         </DialogTitle>
       </DialogHeader>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-body-dense text-muted-foreground">
         Publicada em {fmtDate(data.publishedAt)}
       </p>
       {data.notes && (

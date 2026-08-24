@@ -163,7 +163,7 @@ export default function StudentProfilePage() {
       <div className="mx-auto max-w-3xl">
         <Link
           href="/coach/students"
-          className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+          className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
         >
           ← Alunos
         </Link>
@@ -192,7 +192,7 @@ export default function StudentProfilePage() {
     <div className="mx-auto max-w-3xl">
       <Link
         href="/coach/students"
-        className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
       >
         ← Alunos
       </Link>
@@ -279,13 +279,13 @@ export default function StudentProfilePage() {
       </div>
 
       {invite.isSuccess && (
-        <p className="mt-3 text-[13px] font-medium text-primary">
+        <p className="mt-3 text-body-dense font-medium text-primary">
           Convite enviado por WhatsApp
           {student.email ? " e e-mail" : ""}.
         </p>
       )}
       {(invite.isError || archive.isError || reactivate.isError) && (
-        <p className="mt-3 text-[13px] font-medium text-destructive">
+        <p className="mt-3 text-body-dense font-medium text-destructive">
           {
             ((invite.error ?? archive.error ?? reactivate.error) as ApiError)
               .message
@@ -310,7 +310,7 @@ export default function StudentProfilePage() {
               Arquivar alunos está disponível nos planos pagos.
             </p>
             {hardDelete.error instanceof ApiError ? (
-              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
                 {hardDelete.error.message}
               </div>
             ) : null}
@@ -379,7 +379,7 @@ export default function StudentProfilePage() {
             </p>
           ) : (
             <>
-              <p className="mt-2 text-[13px] text-muted-foreground">{am.name}</p>
+              <p className="mt-2 text-body-dense text-muted-foreground">{am.name}</p>
               {am.status === "completed" ? (
                 <dl className="mt-4 space-y-3 text-sm">
                   {am.sections.flatMap((s) =>
@@ -441,12 +441,12 @@ export default function StudentProfilePage() {
                   )}
               </div>
               {resendAnamnesis.isSuccess && (
-                <p className="mt-3 text-[13px] font-medium text-primary">
+                <p className="mt-3 text-body-dense font-medium text-primary">
                   Link da anamnese enviado por WhatsApp.
                 </p>
               )}
               {resendAnamnesis.isError && (
-                <p className="mt-3 text-[13px] font-medium text-destructive">
+                <p className="mt-3 text-body-dense font-medium text-destructive">
                   {(resendAnamnesis.error as ApiError).message}
                 </p>
               )}
@@ -461,7 +461,7 @@ export default function StudentProfilePage() {
           <DialogHeader>
             <DialogTitle>Trocar template da anamnese</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body-dense text-muted-foreground">
             Escolha outro template. As respostas atuais serão descartadas e a
             anamnese voltará a ficar pendente.
           </p>
@@ -483,7 +483,7 @@ export default function StudentProfilePage() {
             </SelectContent>
           </Select>
           {replaceTemplate.isError && (
-            <p className="text-[13px] font-medium text-destructive">
+            <p className="text-body-dense font-medium text-destructive">
               {(replaceTemplate.error as Error).message}
             </p>
           )}

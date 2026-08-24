@@ -157,7 +157,7 @@ export default function CoachWhatsappPage() {
                             {c.name}
                           </span>
                           {c.unreadCount > 0 && (
-                            <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                            <span className="flex size-4 items-center justify-center rounded-full bg-primary text-eyebrow font-bold text-white">
                               {c.unreadCount}
                             </span>
                           )}
@@ -166,7 +166,7 @@ export default function CoachWhatsappPage() {
                           {c.lastMessagePreview ?? "—"}
                         </p>
                         <span
-                          className={`mt-1 inline-flex items-center gap-1 text-[11px] font-semibold ${
+                          className={`mt-1 inline-flex items-center gap-1 text-caption font-semibold ${
                             open ? "text-primary" : "text-destructive"
                           }`}
                         >
@@ -219,7 +219,7 @@ export default function CoachWhatsappPage() {
                 </div>
                 <span
                   data-testid="wa-window-badge"
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold ${
                     windowOpen
                       ? "bg-primary-light text-primary"
                       : "bg-destructive/10 text-destructive"
@@ -304,7 +304,7 @@ export default function CoachWhatsappPage() {
                                 {t.body}
                               </div>
                             </div>
-                            <span className="flex-shrink-0 text-[11px] font-semibold text-primary">
+                            <span className="flex-shrink-0 text-caption font-semibold text-primary">
                               Enviar →
                             </span>
                           </button>
@@ -383,14 +383,14 @@ function MessageList({
             }`}
           >
             {m.type === "template" && (
-              <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-primary">
+              <span className="mb-0.5 block text-eyebrow font-semibold uppercase tracking-wide text-primary">
                 template
               </span>
             )}
             <p className="whitespace-pre-wrap break-words text-foreground">
               <MessageText text={m.body} />
             </p>
-            <div className="mt-1 text-right text-[10px] text-muted-foreground">
+            <div className="mt-1 text-right text-eyebrow text-muted-foreground">
               {messageTime(m.createdAt)}
             </div>
           </div>

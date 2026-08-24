@@ -56,7 +56,7 @@ export function CookieConsent() {
           className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-6 py-4 shadow-[0_-8px_40px_rgba(15,23,42,0.15)] backdrop-blur-md"
         >
           <div className="mx-auto flex max-w-[1120px] flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[13px] leading-[1.6] text-muted-foreground">
+            <p className="text-body-dense leading-[1.6] text-muted-foreground">
               Usamos cookies essenciais para manter você conectado e, com sua
               permissão, cookies de análise (Google Analytics) para melhorar o
               produto. Saiba mais na{" "}

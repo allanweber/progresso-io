@@ -319,7 +319,7 @@ export default function AdminFoodsPage() {
                     </span>
                     <SubstituteBadge count={f.substituteCount} />
                   </div>
-                  <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[13px]">
+                  <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-body-dense">
                     {[
                       ["kcal", f.energyKcal],
                       ["Prot.", f.protein],
@@ -327,7 +327,7 @@ export default function AdminFoodsPage() {
                       ["Gord.", f.fat],
                     ].map(([label, value]) => (
                       <div key={label as string}>
-                        <dt className="text-[11px] text-[#94A3B8]">{label}</dt>
+                        <dt className="text-caption text-[#94A3B8]">{label}</dt>
                         <dd className="tabular-nums text-[#475569]">
                           {fmt(value as number | null)}
                         </dd>
@@ -397,10 +397,10 @@ export default function AdminFoodsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-[13px] text-[#475569]">
+                    <TableCell className="text-body-dense text-[#475569]">
                       {f.groupName}
                     </TableCell>
-                    <TableCell className="text-[13px] text-[#475569]">
+                    <TableCell className="text-body-dense text-[#475569]">
                       {FOOD_TYPE_LABELS[f.type]}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">

@@ -75,7 +75,7 @@ export default function CoachFillAnamnesisPage() {
       <div className="mx-auto max-w-2xl">
         <Link
           href={`/coach/students/${id}`}
-          className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+          className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
         >
           ← Voltar ao aluno
         </Link>
@@ -94,7 +94,7 @@ export default function CoachFillAnamnesisPage() {
     <div className="mx-auto max-w-2xl">
       <Link
         href={`/coach/students/${id}`}
-        className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
       >
         ← Voltar ao aluno
       </Link>
@@ -106,7 +106,7 @@ export default function CoachFillAnamnesisPage() {
       </p>
 
       {banner && (
-        <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       )}

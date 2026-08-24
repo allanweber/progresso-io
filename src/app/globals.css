@@ -27,6 +27,7 @@
 
   --muted: #f1f5f9; /* slate-100 */
   --muted-foreground: #64748b; /* slate-500 */
+  --meta: #94a3b8; /* slate-400 — column headers, timestamps, "last activity" */
 
   --accent: #f0fdf4; /* emerald-50 */
   --accent-foreground: #047857; /* emerald-700 */
@@ -61,7 +62,8 @@
 
   /*
    * Type ramp (DESIGN.md § Typography). Seven rungs, each with a job:
-   * eyebrow · label · body-dense · body · subtitle · title · headline.
+   * eyebrow · caption · label · body-dense · body · subtitle · title ·
+   * headline.
    * These are the raw steps; `@theme inline` below turns them into
    * `text-*` utilities that resolve *at the element*, so a posture can
    * redefine a step for its own subtree.
@@ -69,6 +71,7 @@
    * This is the coach's posture — desk density, a fifty-row roster.
    */
   --fs-eyebrow: 10px;
+  --fs-caption: 11px;
   --fs-label: 12px;
   --fs-body-dense: 13px;
   --fs-body: 14px;
@@ -103,6 +106,7 @@
   --secondary-foreground: #f8fafc;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
+  --meta: #94a3b8;
   --accent: #1e293b;
   --accent-foreground: #f8fafc;
   --destructive: #ef4444;
@@ -136,6 +140,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-meta: var(--meta);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -169,6 +174,9 @@
   --text-eyebrow: var(--fs-eyebrow);
   --text-eyebrow--line-height: 1.4;
   --text-eyebrow--letter-spacing: 0.08em;
+
+  --text-caption: var(--fs-caption);
+  --text-caption--line-height: 1.45;
 
   --text-label: var(--fs-label);
   --text-label--line-height: 1.4;

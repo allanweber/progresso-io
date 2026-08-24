@@ -227,7 +227,7 @@ export function AiGenerateButton({
           Gerar {NOUN[kind]} com IA
         </Button>
         {blocked !== null && (
-          <p className="max-w-[22rem] text-center text-[12px] text-muted-foreground">
+          <p className="max-w-[22rem] text-center text-label text-muted-foreground">
             {blocked}
           </p>
         )}
@@ -290,7 +290,7 @@ export function AiGenerateButton({
                       {AI_EQUIPMENT_VALUES.map((value) => (
                         <label
                           key={value}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-body-dense has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                         >
                           <input
                             type="checkbox"
@@ -330,7 +330,7 @@ export function AiGenerateButton({
                       {AI_RESTRICTION_VALUES.map((value) => (
                         <label
                           key={value}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-body-dense has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                         >
                           <input
                             type="checkbox"
@@ -344,7 +344,7 @@ export function AiGenerateButton({
                         </label>
                       ))}
                     </div>
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-label text-muted-foreground">
                       Deixe em branco se não houver restrições.
                     </p>
                   </fieldset>
@@ -356,7 +356,7 @@ export function AiGenerateButton({
                       {MEAL_SLOT_VALUES.map((value) => (
                         <label
                           key={value}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-body-dense has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                         >
                           <input
                             type="checkbox"
@@ -370,7 +370,7 @@ export function AiGenerateButton({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <label
-                        className="text-[13px] text-muted-foreground"
+                        className="text-body-dense text-muted-foreground"
                         htmlFor="ai-meals-per-day"
                       >
                         Total de refeições no dia{" "}
@@ -391,14 +391,14 @@ export function AiGenerateButton({
                     {/* The three modes, said plainly — a coach should not have
                         to discover that ticking two and typing six means "these
                         two plus four you choose". */}
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-label text-muted-foreground">
                       Escolher as refeições (e não só quantas) é o que faz a IA
                       montar café da manhã como café da manhã. Só o total: a IA
                       escolhe quais. Os dois: as marcadas são obrigatórias e a IA
                       completa o resto até o total.
                     </p>
                     {mealsProblem !== null && (
-                      <p className="text-[12px] text-destructive">{mealsProblem}</p>
+                      <p className="text-label text-destructive">{mealsProblem}</p>
                     )}
                   </fieldset>
 
@@ -427,7 +427,7 @@ export function AiGenerateButton({
                       onChange={(e) => setAvoid(e.target.value)}
                       placeholder="Ex. não come peixe, odeia jiló"
                     />
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-label text-muted-foreground">
                       Aversões específicas, além das restrições acima.
                     </p>
                   </div>
@@ -443,7 +443,7 @@ export function AiGenerateButton({
                       {AI_MACRO_PROFILE_VALUES.map((value) => (
                         <label
                           key={value}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-body-dense has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                         >
                           <input
                             type="checkbox"
@@ -460,12 +460,12 @@ export function AiGenerateButton({
                     {/* The answer most coaches actually have: they rarely carry
                         "180 g de proteína" per aluno, but they do know they want
                         this one alta proteína e baixo carbo. */}
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-label text-muted-foreground">
                       A forma do plano, sem precisar calcular gramas. Combine à
                       vontade — ex. alta proteína com baixo carboidrato.
                     </p>
                     {profileProblem !== null && (
-                      <p className="text-[12px] text-destructive">
+                      <p className="text-label text-destructive">
                         {profileProblem}
                       </p>
                     )}
@@ -488,7 +488,7 @@ export function AiGenerateButton({
                         ] as const
                       ).map(([id, label, value, set]) => (
                         <div key={id} className="space-y-1">
-                          <label className="text-[12px] text-muted-foreground" htmlFor={id}>
+                          <label className="text-label text-muted-foreground" htmlFor={id}>
                             {label}
                           </label>
                           <Input
@@ -502,7 +502,7 @@ export function AiGenerateButton({
                         </div>
                       ))}
                     </div>
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-label text-muted-foreground">
                       Em branco, a IA calcula a partir da anamnese. Preenchido,
                       vira alvo — não sugestão, e manda sobre o perfil acima.
                     </p>
@@ -517,7 +517,7 @@ export function AiGenerateButton({
                         checked={fromScratch}
                         onChange={(e) => setFromScratch(e.target.checked)}
                       />
-                      <span className="text-[13px]">
+                      <span className="text-body-dense">
                         <strong>Recomeçar do zero</strong>
                         <span className="block text-muted-foreground">
                           Por padrão, havendo dieta atual, a IA parte dela e só
@@ -529,14 +529,14 @@ export function AiGenerateButton({
                 </>
               )}
 
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 {formatAiUsage(used, limit)}. Treino e dieta são gerações
                 separadas — cada uma consome uma. O resultado fica como rascunho
                 — o aluno só vê depois que você publicar.
               </p>
 
               {error !== null && (
-                <p className="text-[13px] text-destructive">{error}</p>
+                <p className="text-body-dense text-destructive">{error}</p>
               )}
 
               <DialogFooter>

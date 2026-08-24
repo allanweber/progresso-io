@@ -50,7 +50,7 @@ export default async function ClinicLoginPage({
       {/* Branded panel — the clinic's identity. */}
       <div
         className="flex flex-col items-center justify-center gap-4 px-6 py-12 text-center text-white md:w-2/5"
-        style={{ backgroundColor: accent ?? "var(--color-primary, #16a34a)" }}
+        style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
       >
         {b.hasLogo ? (
           // eslint-disable-next-line @next/next/no-img-element

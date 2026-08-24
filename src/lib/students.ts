@@ -39,7 +39,7 @@ export const STUDENT_STATE_STYLES: Record<
   { color: string; bg: string }
 > = {
   active: { color: "#047857", bg: "#DCFCE7" },
-  inactive: { color: "#B45309", bg: "#FEF3C7" },
+  inactive: { color: "#92400E", bg: "#FEF3C7" },
   invited: { color: "#1D4ED8", bg: "#DBEAFE" },
   archived: { color: "#64748B", bg: "#F1F5F9" },
 };

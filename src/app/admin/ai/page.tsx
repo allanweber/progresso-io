@@ -108,7 +108,7 @@ function Kpi({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
-      <div className="text-[13px] text-muted-foreground">{label}</div>
+      <div className="text-body-dense text-muted-foreground">{label}</div>
       <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
         {value}
       </div>
@@ -166,7 +166,7 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
       }}
     >
       <div className="border-b border-border px-4 py-3.5">
-        <h2 className="font-heading text-[15px] font-semibold">
+        <h2 className="font-heading text-subtitle font-semibold">
           Modelo em uso
         </h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -228,7 +228,7 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
                 </Button>
               </div>
               {field.state.value.length === 0 ? (
-                <p className="text-[13px] text-amber-600">
+                <p className="text-body-dense text-amber-600">
                   Nenhuma alternativa — se o modelo principal sair do ar, a
                   geração falha até alguém editar este campo.
                 </p>
@@ -254,7 +254,7 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
                               onChange={(e) => sub.handleChange(e.target.value)}
                             />
                             {fieldError(sub) && (
-                              <p className="mt-1 text-[13px] text-destructive">
+                              <p className="mt-1 text-body-dense text-destructive">
                                 {fieldError(sub)}
                               </p>
                             )}
@@ -275,7 +275,7 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
                 </ul>
               )}
               {fieldError(field) && (
-                <p className="text-[13px] text-destructive">
+                <p className="text-body-dense text-destructive">
                   {fieldError(field)}
                 </p>
               )}
@@ -295,10 +295,10 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
         </p>
         <div className="flex items-center gap-3">
           {save.isSuccess && !save.isPending && (
-            <span className="text-[13px] text-muted-foreground">Salvo.</span>
+            <span className="text-body-dense text-muted-foreground">Salvo.</span>
           )}
           {save.isError && (
-            <span className="text-[13px] text-destructive">
+            <span className="text-body-dense text-destructive">
               {(save.error as Error).message}
             </span>
           )}
@@ -521,7 +521,7 @@ export default function AdminAiPage() {
           const r = ctx.row.original;
           return (
             <div>
-              <div className="font-mono text-[13px] font-medium">
+              <div className="font-mono text-body-dense font-medium">
                 {ctx.getValue()}
               </div>
               {/* Which host actually served it. The same slug is offered by
@@ -799,7 +799,7 @@ export default function AdminAiPage() {
       {overview.data && !overview.data.configured && (
         <div className="mt-5 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-          <p className="text-[13px] text-amber-800">
+          <p className="text-body-dense text-amber-800">
             Nenhum provedor de IA configurado nesta instalação — o botão “Gerar
             com IA” está desativado para todos os coaches. Basta definir{" "}
             <code className="font-mono">LLM_API_KEY</code> com uma chave do
@@ -867,7 +867,7 @@ export default function AdminAiPage() {
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
             <div className="border-b border-border px-4 py-3.5">
-              <h2 className="font-heading text-[15px] font-semibold">
+              <h2 className="font-heading text-subtitle font-semibold">
                 Uso de IA por tenant
               </h2>
             </div>
@@ -937,7 +937,7 @@ export default function AdminAiPage() {
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
             <div className="border-b border-border px-4 py-3.5">
-              <h2 className="font-heading text-[15px] font-semibold">
+              <h2 className="font-heading text-subtitle font-semibold">
                 Uso por modelo
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -996,7 +996,7 @@ export default function AdminAiPage() {
 
         <TabsContent value="prices" className="mt-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <p className="max-w-2xl text-[13px] text-muted-foreground">
+            <p className="max-w-2xl text-body-dense text-muted-foreground">
               Preços por <strong>milhão</strong> de tokens, em dólar. Cada
               geração é calculada com o preço vigente na data em que ela rodou —
               mudou o preço, cadastre uma nova linha e o histórico continua
@@ -1202,7 +1202,7 @@ export default function AdminAiPage() {
             </form.Field>
 
             {save.isError && !serverErrors && (
-              <p className="text-[13px] text-destructive">
+              <p className="text-body-dense text-destructive">
                 {(save.error as Error).message}
               </p>
             )}
@@ -1245,7 +1245,7 @@ export default function AdminAiPage() {
               dateFmt.format(new Date(pendingDelete.effectiveFrom))}
           </p>
           {remove.isError && (
-            <p className="text-[13px] text-destructive">
+            <p className="text-body-dense text-destructive">
               {(remove.error as Error).message}
             </p>
           )}

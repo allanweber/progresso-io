@@ -47,7 +47,7 @@ export function DateInput({
         aria-describedby={error ? `${id}-error` : undefined}
       />
       {error && (
-        <p id={`${id}-error`} className="text-[13px] text-destructive">
+        <p id={`${id}-error`} className="text-body-dense text-destructive">
           {error}
         </p>
       )}
@@ -89,7 +89,7 @@ export function TimeInput({
         aria-describedby={error ? `${id}-error` : undefined}
       />
       {error && (
-        <p id={`${id}-error`} className="text-[13px] text-destructive">
+        <p id={`${id}-error`} className="text-body-dense text-destructive">
           {error}
         </p>
       )}

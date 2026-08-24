@@ -279,7 +279,7 @@ export function DashboardShell({
           {label}
           {badge ? (
             <span
-              className="ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground"
+              className="ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold text-primary-foreground"
               aria-label={`${waWaitingCount} conversas aguardando resposta`}
             >
               {badge}
@@ -348,7 +348,7 @@ export function DashboardShell({
               type="button"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-3 py-2 text-[13px] font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
+              className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-3 py-2 text-body-dense font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
             >
               <LogOut className="size-4" />
               <span className="hidden sm:inline">Sair</span>
@@ -361,7 +361,7 @@ export function DashboardShell({
             role="status"
             data-testid="billing-banner"
             data-tone={billingNotice.tone}
-            className={`flex flex-col gap-2.5 border-b px-6 py-3 text-[13px] sm:flex-row sm:items-center sm:justify-between print:hidden ${
+            className={`flex flex-col gap-2.5 border-b px-6 py-3 text-body-dense sm:flex-row sm:items-center sm:justify-between print:hidden ${
               billingNotice.tone === "danger"
                 ? "border-red-200 bg-red-50 text-red-800"
                 : billingNotice.tone === "warning"
@@ -428,11 +428,11 @@ export function DashboardShell({
                     </p>
                     <p className="text-[20px] font-semibold text-foreground">
                       {PLAN_META[plan].price}
-                      <span className="text-[13px] font-normal text-muted-foreground">
+                      <span className="text-body-dense font-normal text-muted-foreground">
                         /mês
                       </span>
                     </p>
-                    <p className="mt-1 text-[13px] text-muted-foreground">
+                    <p className="mt-1 text-body-dense text-muted-foreground">
                       {PLAN_META[plan].desc}
                     </p>
                   </button>
@@ -440,7 +440,7 @@ export function DashboardShell({
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                <div className="flex items-baseline justify-between gap-3 text-body-dense">
                   <span className="text-muted-foreground">
                     Plano {subscribe.data.planName} · fatura #
                     {subscribe.data.invoice.number}
@@ -452,7 +452,7 @@ export function DashboardShell({
 
                 {subscribe.data.pixPayload ? (
                   <>
-                    <p className="text-[13px] font-medium text-foreground">
+                    <p className="text-body-dense font-medium text-foreground">
                       Pix copia e cola
                     </p>
                     <textarea
@@ -460,7 +460,7 @@ export function DashboardShell({
                       rows={3}
                       value={subscribe.data.pixPayload}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="w-full resize-none rounded-[10px] border-[1.5px] border-input bg-secondary p-2.5 font-mono text-[11px] leading-snug text-foreground"
+                      className="w-full resize-none rounded-[10px] border-[1.5px] border-input bg-secondary p-2.5 font-mono text-caption leading-snug text-foreground"
                     />
                     <button
                       type="button"
@@ -469,14 +469,14 @@ export function DashboardShell({
                     >
                       {pixCopied ? "Código copiado ✓" : "Copiar código Pix"}
                     </button>
-                    <p className="text-[13px] text-muted-foreground">
+                    <p className="text-body-dense text-muted-foreground">
                       Cole no app do seu banco. Já avisamos nosso time — assim
                       que o Pix cair, seu plano é liberado. Vence em{" "}
                       {formatDateBR(subscribe.data.invoice.dueDate)}.
                     </p>
                   </>
                 ) : (
-                  <p className="text-[13px] text-muted-foreground">
+                  <p className="text-body-dense text-muted-foreground">
                     Sua fatura #{subscribe.data.invoice.number} foi gerada e
                     nosso time já foi avisado — entraremos em contato com as
                     instruções de pagamento.
@@ -486,7 +486,7 @@ export function DashboardShell({
             )}
 
             {subscribe.isError && (
-              <p className="text-[13px] text-red-700">
+              <p className="text-body-dense text-red-700">
                 Não foi possível gerar a cobrança. Tente de novo em instantes.
               </p>
             )}

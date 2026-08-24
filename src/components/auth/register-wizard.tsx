@@ -79,7 +79,7 @@ function StepIndicator({ current }: { current: number }) {
               </span>
               <span
                 className={cn(
-                  "text-[10px] font-semibold",
+                  "text-eyebrow font-semibold",
                   active ? "text-primary" : "text-[#94A3B8]",
                 )}
               >
@@ -228,10 +228,10 @@ function PlanStep({
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="flex items-center gap-2 font-heading text-[15px] font-bold text-foreground">
+                  <div className="flex items-center gap-2 font-heading text-subtitle font-bold text-foreground">
                     {option.name}
                     {option.popular && (
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-eyebrow font-bold text-white">
                         popular
                       </span>
                     )}
@@ -244,7 +244,7 @@ function PlanStep({
                   <div className="font-heading text-lg font-bold text-foreground">
                     {option.price}
                   </div>
-                  <div className="text-[11px] text-[#94A3B8]">/mês</div>
+                  <div className="text-caption text-[#94A3B8]">/mês</div>
                 </div>
               </div>
             </button>
@@ -310,7 +310,7 @@ function ConfirmStep({
       <button
         type="button"
         onClick={onBack}
-        className="mt-3 w-full text-[13px] text-muted-foreground hover:text-foreground"
+        className="mt-3 w-full text-body-dense text-muted-foreground hover:text-foreground"
       >
         Voltar
       </button>

@@ -118,7 +118,7 @@ export function StudentForm({
       className="space-y-5"
     >
       {banner && (
-        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       )}

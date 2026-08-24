@@ -100,7 +100,7 @@ function SettingsCard({
   return (
     <section className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-6">
       <div className="mb-4 flex items-center gap-2.5">
-        <h2 className="font-heading text-[15px] font-semibold text-foreground">
+        <h2 className="font-heading text-subtitle font-semibold text-foreground">
           {title}
         </h2>
         {badge}
@@ -281,7 +281,7 @@ function InviteCoachDialog({
           className="space-y-4"
         >
           {banner ? (
-            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
               {banner}
             </div>
           ) : null}
@@ -370,7 +370,7 @@ function RemoveCoachDialog({
               responsável pela clínica, e o acesso dele é encerrado.
             </p>
             {error ? (
-              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
                 {error}
               </div>
             ) : null}
@@ -483,7 +483,7 @@ function CoachTeamCard() {
         ))}
       </div>
 
-      <p className="mt-4 border-t border-border pt-3 text-center text-[13px] text-muted-foreground">
+      <p className="mt-4 border-t border-border pt-3 text-center text-body-dense text-muted-foreground">
         Plano {team.planName} ·{" "}
         {team.maxCoaches === null
           ? "vagas ilimitadas"
@@ -598,7 +598,7 @@ function PlanUsageRows() {
   ];
 
   return (
-    <div className="mt-4 space-y-2 border-t border-border pt-3 text-[13px]">
+    <div className="mt-4 space-y-2 border-t border-border pt-3 text-body-dense">
       {counters.map(({ label, counter }) => (
         <div key={label} className="flex items-center justify-between">
           <span className="text-muted-foreground">{label}</span>
@@ -752,7 +752,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
         </h1>
         <div className="flex items-center gap-3">
           {mutation.isSuccess && !form.state.isDirty ? (
-            <span className="flex items-center gap-1 text-[13px] font-medium text-primary">
+            <span className="flex items-center gap-1 text-body-dense font-medium text-primary">
               <Check className="size-4" />
               Salvo
             </span>
@@ -764,7 +764,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
       </div>
 
       {banner ? (
-        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       ) : null}
@@ -794,14 +794,14 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
             title="Portal do aluno"
             badge={
               !branded ? (
-                <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-caption font-semibold text-muted-foreground">
                   Planos pagos
                 </span>
               ) : undefined
             }
           >
             {!branded ? (
-              <p className="py-2 text-[13px] text-muted-foreground">
+              <p className="py-2 text-body-dense text-muted-foreground">
                 Publique um endereço com a sua marca —{" "}
                 <span className="font-medium text-foreground">
                   app.progresso.io/sua-clinica
@@ -845,7 +845,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                     </label>
                   </div>
                   {logoUploadError ? (
-                    <p className="text-[13px] text-destructive">{logoUploadError}</p>
+                    <p className="text-body-dense text-destructive">{logoUploadError}</p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       JPG, PNG ou WEBP, até 5 MB. Salve um endereço para exibi-lo.
@@ -880,7 +880,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                           />
                         </div>
                         {err ? (
-                          <p className="text-[13px] text-destructive">{err}</p>
+                          <p className="text-body-dense text-destructive">{err}</p>
                         ) : (
                           <p className="text-xs text-muted-foreground">
                             Opcional. Letras minúsculas, números e hífens.
@@ -927,7 +927,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                           )}
                         />
                         {err ? (
-                          <p className="text-[13px] text-destructive">{err}</p>
+                          <p className="text-body-dense text-destructive">{err}</p>
                         ) : null}
                       </div>
                     );
@@ -1001,7 +1001,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                           Sem cor escolhida, usamos o verde padrão.
                         </p>
                         {err ? (
-                          <p className="text-[13px] text-destructive">{err}</p>
+                          <p className="text-body-dense text-destructive">{err}</p>
                         ) : null}
                       </div>
                     );
@@ -1145,7 +1145,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                 <div className="font-heading text-2xl font-bold text-foreground">
                   {plan.name}
                 </div>
-                <div className="mt-0.5 text-[13px] text-muted-foreground">
+                <div className="mt-0.5 text-body-dense text-muted-foreground">
                   {plan.desc} · {plan.price}
                   {initial.plan === "free" || initial.plan === "enterprise"
                     ? ""
@@ -1154,7 +1154,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
               </div>
             </div>
             <PlanUsageRows />
-            <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[13px]">
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-body-dense">
               <span className="text-muted-foreground">Cobrança e renovação</span>
               <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                 Em breve

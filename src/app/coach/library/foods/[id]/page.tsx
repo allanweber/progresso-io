@@ -320,7 +320,7 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="sub-grams"
-                    className="block text-[13px] font-medium text-foreground"
+                    className="block text-body-dense font-medium text-foreground"
                   >
                     Gramas ≡ 100 g de {food.description.split(",")[0]}
                   </label>
@@ -391,7 +391,7 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
           )}
 
           {addError && (
-            <p className="mt-3 text-[13px] text-destructive">{addError}</p>
+            <p className="mt-3 text-body-dense text-destructive">{addError}</p>
           )}
         </div>
       )}

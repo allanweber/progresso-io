@@ -256,7 +256,7 @@ export function FoodPicker({
 
       {suggestions && suggestions.length > 0 && !enabled && (
         <div className="mt-3">
-          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="mb-1.5 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             Sugestões do catálogo
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -311,7 +311,7 @@ export function FoodPicker({
                     </span>
                     <span className="shrink-0 text-sm font-bold text-primary">
                       {scaled(f.energyKcal, 100)}
-                      <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">
+                      <span className="ml-0.5 text-eyebrow font-normal text-muted-foreground">
                         kcal
                       </span>
                     </span>
@@ -320,7 +320,7 @@ export function FoodPicker({
               ))}
             </ul>
           )}
-          <div className="mt-1 px-2 pt-1 text-[11px] text-muted-foreground">
+          <div className="mt-1 px-2 pt-1 text-caption text-muted-foreground">
             valores por 100 g · ↑ ↓ navegar · Enter selecionar
           </div>
         </div>

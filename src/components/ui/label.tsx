@@ -7,7 +7,7 @@ function Label({ className, ...props }: React.ComponentProps<"label">) {
     <label
       data-slot="label"
       className={cn(
-        "block text-[13px] font-semibold text-[#334155] select-none",
+        "block text-body-dense font-semibold text-[#334155] select-none",
         className,
       )}
       {...props}

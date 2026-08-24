@@ -107,7 +107,7 @@ function MeasureInput({
 }) {
   return (
     <div className="space-y-1">
-      <Label htmlFor={id} className="text-[11px] font-medium text-muted-foreground">
+      <Label htmlFor={id} className="text-caption font-medium text-muted-foreground">
         {label} <span className="text-muted-foreground/60">({unit})</span>
       </Label>
       <Input
@@ -116,7 +116,7 @@ function MeasureInput({
         inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 px-2.5 text-[13px]"
+        className="h-9 px-2.5 text-body-dense"
       />
     </div>
   );

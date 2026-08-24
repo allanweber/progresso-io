@@ -64,7 +64,7 @@ const columns = [
       return (
         <div className="flex items-center gap-3">
           <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold text-white"
             style={{ background: avatarColor(s.id) }}
           >
             {studentInitials(s.firstName, s.lastName)}
@@ -99,7 +99,7 @@ const columns = [
     id: "access",
     header: "Acesso",
     cell: (ctx) => (
-      <span className="text-[13px] text-[#475569]">
+      <span className="text-body-dense text-[#475569]">
         {ACCESS_LABELS[deriveAccess(ctx.row.original)]}
       </span>
     ),
@@ -108,14 +108,14 @@ const columns = [
     id: "goal",
     header: "Objetivo",
     cell: (ctx) => (
-      <span className="text-[13px] text-[#475569]">{ctx.getValue()}</span>
+      <span className="text-body-dense text-[#475569]">{ctx.getValue()}</span>
     ),
   }),
   columnHelper.accessor("updatedAt", {
     id: "updatedAt",
     header: "Última atividade",
     cell: (ctx) => (
-      <span className="text-[13px] text-[#94A3B8]">
+      <span className="text-body-dense text-[#94A3B8]">
         {dateFmt.format(new Date(ctx.getValue()))}
       </span>
     ),
@@ -197,7 +197,7 @@ export default function StudentsPage() {
           {usage ? (
             <span
               className={cn(
-                "inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] font-medium",
+                "inline-flex items-center rounded-full border px-3 py-1.5 text-body-dense font-medium",
                 isAtLimit(usage.students.used, usage.students.limit)
                   ? "border-destructive/30 bg-destructive/10 text-destructive"
                   : "border-border bg-white text-muted-foreground",
@@ -233,8 +233,8 @@ export default function StudentsPage() {
             onClick={() => setFilter(f.key)}
             className={
               filter === f.key
-                ? "rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground"
-                : "rounded-full border border-border bg-white px-3.5 py-1.5 text-[13px] font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
+                ? "rounded-full bg-primary px-3.5 py-1.5 text-body-dense font-medium text-primary-foreground"
+                : "rounded-full border border-border bg-white px-3.5 py-1.5 text-body-dense font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
             }
           >
             {f.label}
@@ -295,21 +295,21 @@ export default function StudentsPage() {
                       </div>
                     </div>
 
-                    <dl className="mt-3 flex items-start justify-between gap-3 border-t border-[#F1F5F9] pt-3 text-[13px]">
+                    <dl className="mt-3 flex items-start justify-between gap-3 border-t border-[#F1F5F9] pt-3 text-body-dense">
                       <div className="min-w-0">
-                        <dt className="text-[11px] text-[#94A3B8]">Objetivo</dt>
+                        <dt className="text-caption text-[#94A3B8]">Objetivo</dt>
                         <dd className="truncate text-[#475569]">
                           {s.goal ?? "—"}
                         </dd>
                       </div>
                       <div className="shrink-0 text-right">
-                        <dt className="text-[11px] text-[#94A3B8]">Acesso</dt>
+                        <dt className="text-caption text-[#94A3B8]">Acesso</dt>
                         <dd className="text-[#475569]">
                           {ACCESS_LABELS[deriveAccess(s)]}
                         </dd>
                       </div>
                       <div className="shrink-0 text-right">
-                        <dt className="text-[11px] text-[#94A3B8]">Atividade</dt>
+                        <dt className="text-caption text-[#94A3B8]">Atividade</dt>
                         <dd className="text-[#94A3B8]">
                           {dateFmt.format(new Date(s.updatedAt))}
                         </dd>

@@ -56,7 +56,7 @@ export function ResendOtp({
 
   if (error) {
     return (
-      <p className="text-center text-[13px] text-destructive">
+      <p className="text-center text-body-dense text-destructive">
         {error}{" "}
         <button
           type="button"
@@ -71,7 +71,7 @@ export function ResendOtp({
 
   if (remaining > 0) {
     return (
-      <p className="text-center text-[13px] text-[#94A3B8]">
+      <p className="text-center text-body-dense text-[#94A3B8]">
         {resent && (
           <span className="font-medium text-primary">Novo código enviado · </span>
         )}
@@ -85,7 +85,7 @@ export function ResendOtp({
       type="button"
       onClick={handleResend}
       disabled={pending}
-      className="w-full text-center text-[13px] font-medium text-primary hover:underline disabled:opacity-50"
+      className="w-full text-center text-body-dense font-medium text-primary hover:underline disabled:opacity-50"
     >
       {pending ? "Enviando…" : "Reenviar código"}
     </button>

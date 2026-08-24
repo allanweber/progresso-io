@@ -41,19 +41,19 @@ export function LoginForm({
       </div>
 
       {justVerified && (
-        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-[13px] font-medium text-primary">
+        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-body-dense font-medium text-primary">
           Conta confirmada! Entre para continuar.
         </div>
       )}
 
       {justActivated && (
-        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-[13px] font-medium text-primary">
+        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-body-dense font-medium text-primary">
           Acesso ativado! Entre para continuar.
         </div>
       )}
 
       {justReset && (
-        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-[13px] font-medium text-primary">
+        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-body-dense font-medium text-primary">
           Senha redefinida! Entre com a nova senha.
         </div>
       )}
@@ -94,7 +94,7 @@ export function LoginForm({
           <div className="text-right">
             <Link
               href="/forgot-password"
-              className="text-[13px] text-primary hover:underline"
+              className="text-body-dense text-primary hover:underline"
             >
               Esqueci a senha
             </Link>

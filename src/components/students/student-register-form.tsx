@@ -148,7 +148,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
       className="space-y-5"
     >
       {banner && (
-        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       )}
@@ -254,7 +254,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
               </SelectContent>
             </Select>
             {fieldError(field, serverErrors?.anamnesisId) && (
-              <p className="text-[13px] text-destructive">
+              <p className="text-body-dense text-destructive">
                 {fieldError(field, serverErrors?.anamnesisId)}
               </p>
             )}
@@ -317,7 +317,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
                     >
                       {opt.title}
                     </div>
-                    <div className="mt-0.5 text-[13px] text-muted-foreground">
+                    <div className="mt-0.5 text-body-dense text-muted-foreground">
                       {opt.hint}
                     </div>
                   </button>
@@ -330,7 +330,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
 
       <form.Subscribe selector={(s) => s.values.modality}>
         {(modality) => (
-          <div className="rounded-[10px] bg-[#EFF6FF] px-4 py-3 text-[13px] text-[#1D4ED8]">
+          <div className="rounded-[10px] bg-[#EFF6FF] px-4 py-3 text-body-dense text-[#1D4ED8]">
             {modality !== "online"
               ? "O aluno não recebe acesso ao portal. Após registrar, você preenche a anamnese dele."
               : hasWhatsapp

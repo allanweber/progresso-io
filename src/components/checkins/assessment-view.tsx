@@ -35,7 +35,7 @@ export function AssessmentView({
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-foreground">Avaliação</span>
         {assessment.bodyFatPct !== null ? (
-          <span className="rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="rounded-full bg-primary-light px-2 py-0.5 text-caption font-semibold text-primary">
             {formatCheckinWeight(assessment.bodyFatPct)}% de gordura
           </span>
         ) : null}
@@ -43,7 +43,7 @@ export function AssessmentView({
 
       {circ.length > 0 ? (
         <div className="mb-2.5">
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="mb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground">
             Circunferências (cm)
           </div>
           <MeasureList items={circ} />
@@ -52,7 +52,7 @@ export function AssessmentView({
 
       {skin.length > 0 ? (
         <div>
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="mb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground">
             Dobras (mm)
           </div>
           <MeasureList items={skin} />
@@ -68,7 +68,7 @@ function MeasureList({ items }: { items: { label: string; value: number }[] }) {
       {items.map((it) => (
         <div
           key={it.label}
-          className="flex items-baseline justify-between gap-2 text-[12.5px]"
+          className="flex items-baseline justify-between gap-2 text-body-dense"
         >
           <span className="text-muted-foreground">{it.label}</span>
           <span className="font-semibold tabular-nums text-foreground">

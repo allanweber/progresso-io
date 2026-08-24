@@ -19,7 +19,7 @@ export function SiteFooter() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-[13px] text-muted-foreground transition-colors hover:text-white"
+              className="text-body-dense text-muted-foreground transition-colors hover:text-white"
             >
               {link.label}
             </Link>

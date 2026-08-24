@@ -425,12 +425,12 @@ export function AnamnesisBuilder({
       </div>
 
       {recovered && (
-        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
+        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-body-dense font-medium text-amber-700">
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
       {serverBanner && (
-        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {serverBanner}
         </div>
       )}
@@ -524,7 +524,7 @@ export function AnamnesisBuilder({
                 }}
               />
               {fieldError(field) && (
-                <p className="text-[13px] text-destructive">{fieldError(field)}</p>
+                <p className="text-body-dense text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -658,7 +658,7 @@ function SortableSection({
               <Trash2 className="size-4" />
             </button>
           </div>
-          {error && <p className="text-[13px] text-destructive">{error}</p>}
+          {error && <p className="text-body-dense text-destructive">{error}</p>}
         </div>
       </div>
 
@@ -894,7 +894,7 @@ function SortableQuestion({
         </div>
       )}
 
-      {error && <p className="mt-1 pl-6 text-[13px] text-destructive">{error}</p>}
+      {error && <p className="mt-1 pl-6 text-body-dense text-destructive">{error}</p>}
     </div>
   );
 }

@@ -120,7 +120,7 @@ export default function StudentFeedbackPage() {
     <div className="mx-auto max-w-3xl">
       <Link
         href="/coach/students"
-        className="text-[13px] text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
       >
         ← Alunos
       </Link>
@@ -137,7 +137,7 @@ export default function StudentFeedbackPage() {
             Timeline de feedback
           </h2>
           {pendingCount > 0 ? (
-            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11.5px] font-semibold text-destructive">
+            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-caption font-semibold text-destructive">
               {pendingCount} aguardando
             </span>
           ) : null}
@@ -218,32 +218,32 @@ function TimelineCard({
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold">{style.title}</span>
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${style.className}`}
+            className={`rounded-full px-2 py-0.5 text-caption font-semibold ${style.className}`}
           >
             {style.tag}
           </span>
           {pending ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-caption font-semibold text-destructive">
               <Clock className="size-3" /> aguarda resposta
             </span>
           ) : null}
-          <span className="ml-auto text-[12px] text-muted-foreground">
+          <span className="ml-auto text-label text-muted-foreground">
             {formatCheckinDate(checkin.date)}
           </span>
         </div>
 
         {checkin.weightKg !== null ? (
-          <div className="mt-1.5 text-[12.5px] font-semibold text-primary">
+          <div className="mt-1.5 text-body-dense font-semibold text-primary">
             Peso: {formatCheckinWeight(checkin.weightKg)} kg
           </div>
         ) : null}
         {checkin.note ? (
-          <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">
+          <p className="mt-1 line-clamp-2 text-body-dense text-muted-foreground">
             {checkin.note}
           </p>
         ) : null}
 
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-label text-muted-foreground">
           {checkin.photoCount > 0 ? (
             <span className="inline-flex items-center gap-1">
               <Camera className="size-3.5" />
@@ -263,7 +263,7 @@ function TimelineCard({
         </div>
 
         {answered && checkin.feedback ? (
-          <div className="mt-2.5 rounded-xl border border-primary/20 bg-primary-light/40 px-3 py-2 text-[12.5px] text-foreground">
+          <div className="mt-2.5 rounded-xl border border-primary/20 bg-primary-light/40 px-3 py-2 text-body-dense text-foreground">
             <span className="font-semibold text-primary">Você: </span>
             <span className="line-clamp-2">{checkin.feedback}</span>
           </div>
@@ -311,7 +311,7 @@ function ReviewDialog({
                   : "Anotação do coach"}
           </DialogTitle>
           {d ? (
-            <p className="text-[12.5px] text-muted-foreground">
+            <p className="text-body-dense text-muted-foreground">
               {formatCheckinDate(d.date)}
               {d.weightKg !== null
                 ? ` · ${formatCheckinWeight(d.weightKg)} kg`
@@ -329,7 +329,7 @@ function ReviewDialog({
         ) : d ? (
           <div className="flex flex-col gap-4">
             {d.note ? (
-              <div className="rounded-xl bg-muted/40 px-3.5 py-3 text-[13px] text-foreground">
+              <div className="rounded-xl bg-muted/40 px-3.5 py-3 text-body-dense text-foreground">
                 {d.note}
               </div>
             ) : null}
@@ -455,7 +455,7 @@ function ReviewForm({
       )}
 
       {banner ? (
-        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {banner}
         </div>
       ) : null}
@@ -552,7 +552,7 @@ function ManualCheckinDialog({
             <ClipboardList className="size-5 text-primary" />
             Novo check-in presencial
           </DialogTitle>
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-body-dense text-muted-foreground">
             Registrado na data de hoje. O feedback é enviado ao aluno no WhatsApp.
           </p>
         </DialogHeader>
@@ -635,7 +635,7 @@ function ManualCheckinDialog({
           )}
 
           {banner ? (
-            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
               {banner}
             </div>
           ) : null}
@@ -649,7 +649,7 @@ function ManualCheckinDialog({
               aria-valuenow={progress}
               aria-label="Salvando check-in"
             >
-              <div className="flex items-center justify-between text-[13px] font-medium text-foreground">
+              <div className="flex items-center justify-between text-body-dense font-medium text-foreground">
                 <span>{progress < 100 ? "Salvando…" : "Finalizando…"}</span>
                 <span className="tabular-nums text-muted-foreground">
                   {progress}%

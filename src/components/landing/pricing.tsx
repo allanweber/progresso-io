@@ -37,7 +37,7 @@ function PlanCard({ plan }: { plan: Plan }) {
       )}
     >
       {plan.popular && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-3.5 py-1 text-[11px] font-bold text-white">
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-3.5 py-1 text-caption font-bold text-white">
           Mais popular
         </span>
       )}
@@ -51,7 +51,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         >
           {plan.name}
         </div>
-        <div className="text-[13px] text-muted-foreground">{plan.tagline}</div>
+        <div className="text-body-dense text-muted-foreground">{plan.tagline}</div>
       </div>
 
       <div>

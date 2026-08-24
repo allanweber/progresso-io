@@ -121,7 +121,7 @@ export function FoodMeasures({
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
           Medida
         </span>
         {canManage && !adding && (
@@ -162,7 +162,7 @@ export function FoodMeasures({
               >
                 1 {m.label} · {m.grams} g
                 {m.isDefault && (
-                  <span className="text-[10px] uppercase tracking-wide opacity-70">
+                  <span className="text-eyebrow uppercase tracking-wide opacity-70">
                     padrão
                   </span>
                 )}
@@ -201,7 +201,7 @@ export function FoodMeasures({
             <div className="space-y-1.5">
               <label
                 htmlFor="measure-label"
-                className="block text-[13px] font-medium text-foreground"
+                className="block text-body-dense font-medium text-foreground"
               >
                 Medida
               </label>
@@ -217,7 +217,7 @@ export function FoodMeasures({
             <div className="space-y-1.5">
               <label
                 htmlFor="measure-grams"
-                className="block text-[13px] font-medium text-foreground"
+                className="block text-body-dense font-medium text-foreground"
               >
                 Gramas
               </label>
@@ -230,7 +230,7 @@ export function FoodMeasures({
                 className="w-28"
               />
             </div>
-            <label className="flex items-center gap-1.5 pb-2 text-[13px] text-[#475569]">
+            <label className="flex items-center gap-1.5 pb-2 text-body-dense text-[#475569]">
               <input
                 type="checkbox"
                 checked={isDefault}
@@ -248,7 +248,7 @@ export function FoodMeasures({
               {addMutation.isPending ? "Adicionando…" : "Adicionar medida"}
             </Button>
           </div>
-          {addError && <p className="mt-3 text-[13px] text-destructive">{addError}</p>}
+          {addError && <p className="mt-3 text-body-dense text-destructive">{addError}</p>}
         </div>
       )}
 

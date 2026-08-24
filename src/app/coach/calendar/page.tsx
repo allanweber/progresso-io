@@ -244,7 +244,7 @@ export default function CoachCalendarPage() {
                 type="button"
                 onClick={() => setView(v)}
                 className={cn(
-                  "px-3 py-1.5 text-[13px] font-medium transition-colors",
+                  "px-3 py-1.5 text-body-dense font-medium transition-colors",
                   view === v
                     ? "bg-primary text-white"
                     : "bg-white text-muted-foreground hover:bg-surface-light",
@@ -414,7 +414,7 @@ function MonthGrid({
         {WEEKDAY_SHORT_LABELS.map((label) => (
           <div
             key={label}
-            className="py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]"
+            className="py-2.5 text-center text-caption font-semibold uppercase tracking-wide text-[#94A3B8]"
           >
             {label}
           </div>
@@ -439,7 +439,7 @@ function MonthGrid({
               <div className="mb-1 flex items-center justify-between">
                 <span
                   className={cn(
-                    "flex size-6 items-center justify-center rounded-full text-[12px]",
+                    "flex size-6 items-center justify-center rounded-full text-label",
                     isToday
                       ? "bg-primary font-bold text-white"
                       : inMonth
@@ -474,7 +474,7 @@ function ChipBody({ item }: { item: CalendarItemDto }) {
   const { accent, soft } = itemColors(item);
   return (
     <span
-      className="block truncate rounded border-l-[3px] px-1.5 py-0.5 text-left text-[11px] font-semibold leading-tight shadow-sm"
+      className="block truncate rounded border-l-[3px] px-1.5 py-0.5 text-left text-caption font-semibold leading-tight shadow-sm"
       style={{ background: soft, color: accent, borderColor: accent }}
     >
       {timePrefix(item)}
@@ -573,7 +573,7 @@ function TimeGrid({
               onClick={() => onSelectDay(day)}
               className="border-l border-border py-2 text-center hover:bg-surface-light"
             >
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">
+              <div className="text-caption font-semibold uppercase tracking-wide text-[#94A3B8]">
                 {WEEKDAY_SHORT_LABELS[weekdayOf(day)]}
               </div>
               <div
@@ -594,7 +594,7 @@ function TimeGrid({
         className="grid border-b border-border bg-[#FAFBFC]"
         style={{ gridTemplateColumns: `56px repeat(${cols}, 1fr)` }}
       >
-        <div className="py-2 pl-2 text-[10px] font-medium uppercase text-[#94A3B8]">
+        <div className="py-2 pl-2 text-eyebrow font-medium uppercase text-[#94A3B8]">
           Dia todo
         </div>
         {days.map((day) => {
@@ -625,7 +625,7 @@ function TimeGrid({
             className="grid border-b border-[#F1F5F9]"
             style={{ gridTemplateColumns: `56px repeat(${cols}, 1fr)` }}
           >
-            <div className="py-2 pr-2 text-right text-[11px] text-[#94A3B8]">
+            <div className="py-2 pr-2 text-right text-caption text-[#94A3B8]">
               {String(hour).padStart(2, "0")}:00
             </div>
             {days.map((day) => {
@@ -676,7 +676,7 @@ function UpcomingPanel({
   return (
     <div className="h-fit overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
       <div className="border-b border-border px-4 py-3.5">
-        <h2 className="font-heading text-[15px] font-semibold text-foreground">
+        <h2 className="font-heading text-subtitle font-semibold text-foreground">
           Próximos 14 dias
         </h2>
       </div>
@@ -700,15 +700,15 @@ function UpcomingPanel({
                     style={{ background: accent }}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold text-foreground">
+                    <div className="truncate text-body-dense font-semibold text-foreground">
                       {item.title}
                     </div>
-                    <div className="text-[11.5px] text-muted-foreground">
+                    <div className="text-caption text-muted-foreground">
                       {formatFullDay(item.date)}
                       {item.startTime ? ` · ${item.startTime}` : ""}
                     </div>
                     <span
-                      className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
+                      className="mt-1 inline-block rounded-full px-2 py-0.5 text-caption font-semibold"
                       style={{ background: soft, color: accent }}
                     >
                       {item.overdue ? "Atrasado" : CALENDAR_TYPE_META[item.type].label}
@@ -866,7 +866,7 @@ function EventDialog({
           className="space-y-4"
         >
           {banner && (
-            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+            <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
               {banner}
             </div>
           )}
@@ -956,7 +956,7 @@ function EventDialog({
                   </SelectContent>
                 </Select>
                 {serverErrors?.studentId && (
-                  <p className="text-[13px] text-destructive">
+                  <p className="text-body-dense text-destructive">
                     {serverErrors.studentId}
                   </p>
                 )}

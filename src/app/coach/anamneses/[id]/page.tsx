@@ -185,7 +185,7 @@ export default function AnamnesisDetailPage() {
                 </DialogDescription>
               </DialogHeader>
               {deleteMutation.isError && (
-                <p className="text-[13px] font-medium text-destructive">
+                <p className="text-body-dense font-medium text-destructive">
                   {(deleteMutation.error as Error).message}
                 </p>
               )}

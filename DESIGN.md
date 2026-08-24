@@ -18,10 +18,20 @@ colors:
   border: "#e2e8f0"
   border-light: "#f1f5f9"
   destructive: "#ef4444"
+  danger-bg: "#fee2e2"
+  danger-fg: "#b91c1c"
   warn-bg: "#fef3c7"
   warn-fg: "#92400e"
   base-bg: "#eef2ff"
   base-fg: "#4338ca"
+  # Categorical sets (see § Categorical Sets). Hue is the identifier here, not
+  # brand voice — each lives in one module and never spreads.
+  state-invited: "#1d4ed8"
+  technique-giant: "#0d9488"
+  technique-gvt: "#1d4ed8"
+  technique-fs7: "#c026d3"
+  technique-restpause: "#ea580c"
+  technique-cluster: "#7c3aed"
 typography:
   display:
     fontFamily: "Space Grotesk, system-ui, sans-serif"
@@ -64,6 +74,12 @@ typography:
     fontSize: "12px"
     fontWeight: 600
     lineHeight: 1.4
+    letterSpacing: "normal"
+  caption:
+    fontFamily: "DM Sans, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 400
+    lineHeight: 1.45
     letterSpacing: "normal"
   eyebrow:
     fontFamily: "DM Sans, system-ui, sans-serif"
@@ -211,8 +227,29 @@ Status pigments, used only inside chips and banners — never as a surface.
 
 - **Warn** (`#fef3c7` on `#92400e`): a fatura approaching due, a check-in overdue.
 - **Danger** (`#ef4444`): a vencida fatura, a destructive action, a field in error.
+- **Danger chip** (`#fee2e2` on `#b91c1c`): the red *wash* pair, for a chip
+  reporting a bad state — `atrasado`, `sem treino`. The foreground is the
+  darkened rung, not `#ef4444`: chip text ships at 11–12px, where the pure
+  pigment on this wash lands at 3.3:1 and fails the small-text floor. This pair
+  reads 5.9:1. Both are tokens (`--danger-bg` / `--danger-fg`); never hand-write
+  the hexes.
 - **Base Indigo** (`#eef2ff` on `#4338ca`): the catalog chip that marks a row as
   platform **base** data rather than the clinic's own.
+
+### Categorical Sets
+
+Two places encode *which category a thing is* rather than *how it is doing*.
+These are the only sanctioned multi-hue palettes in the product, they live in
+one module each, and neither may spread beyond it.
+
+- **Student state** (`STUDENT_STATE_STYLES`, `src/lib/students.ts`) — four
+  pairs: `ativo` (`#dcfce7` on `#047857`), `inativo` (`#fef3c7` on `#92400e`),
+  `convidado` (`#dbeafe` on `#1d4ed8`), `arquivado` (`#f1f5f9` on `#64748b`).
+- **Workout techniques** (`WORKOUT_TECHNIQUES`, `src/lib/workout-techniques.ts`)
+  — eight hues identifying a prescription technique (bi-set, giant set, GVT,
+  FS7, rest-pause, cluster…). The hue *is* the identifier a coach learns, the
+  same way a map legend works; collapsing them to emerald would delete the
+  information. Always paired with a label or icon, never colour alone.
 
 ### Named Rules
 
@@ -220,6 +257,12 @@ Status pigments, used only inside chips and banners — never as a surface.
 Every other color in a coach or aluno screen is slate, or a status pigment
 confined to a chip. If a screen needs a second accent to work, the screen is
 wrong, not the palette.
+
+The exception is **categorical encoding**, above: where hue carries information
+the reader must distinguish — which state an aluno is in, which technique a set
+uses — a multi-hue set is doing a job emerald cannot do, and it is confined to
+its own module. Brand accent and data encoding are different jobs; this rule
+governs the first.
 
 **The Alive Rule.** Emerald describes the *state of a real thing*, not the
 importance of a UI element. An active aluno, a published version, the tab you are
@@ -263,6 +306,11 @@ product actually lives. The pairing lets a screen be dense without feeling harsh
   inside a card. The single most-used size in the app after `body` — this is what
   makes a fifty-row roster fit without a scrollbar marathon.
 - **Label** (600, 12px): field labels, column headers, chip text.
+- **Caption** (400, 11px): the annotation layer — a definition-list key, a unit
+  suffix ("kcal", "/mês"), status-pill text, a calendar day header, a compressing
+  progress note. It is the smallest size that is still meant to be *read*, and it
+  usually arrives in Meta Grey. Distinct from Label, which names a field the
+  reader is about to act on; Caption annotates a value already on screen.
 - **Eyebrow** (700, 10px, `0.08em`, uppercase): the small tag above a feature
   title, and the "Diferencial" / "Mais usado" markers. Uppercase is reserved for
   this one role.
@@ -278,8 +326,9 @@ read as language. There is no third font, and no role that uses both.
 in Portuguese, always.
 
 **The Named Rung Rule.** Every size in the app comes from a named `text-*`
-utility — `text-eyebrow · text-label · text-body-dense · text-body ·
-text-subtitle · text-title · text-headline`, registered in `globals.css`
+utility — `text-eyebrow · text-caption · text-label · text-body-dense ·
+text-body · text-subtitle · text-title · text-headline`, registered in
+`globals.css`
 under `@theme inline`. There is no `text-[13px]`, and no half-step: a value
 that needs a bracket is a role the system has not named yet. Verify with:
 
@@ -291,7 +340,8 @@ grep -rn "text-\[[0-9.]*px\]" src --include=*.tsx
 coach's is the default — desk density, a fifty-row roster. The aluno's is
 `.posture-reading`, which redefines `--fs-body-dense`, `--fs-body` and
 `--fs-subtitle` one rung up (14 / 15 / 16) for a phone held at arm's length in
-a gym. The structural rungs — eyebrow, label, title, headline — hold in both,
+a gym. The structural rungs — eyebrow, caption, label, title, headline — hold in
+both,
 so hierarchy is identical and only what you *read* grows. This is why the
 utilities are declared `@theme inline`: the value resolves at the element, not
 at `:root`, so a subtree can shift the whole ramp with three custom properties

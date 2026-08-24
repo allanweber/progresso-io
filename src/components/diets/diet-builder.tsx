@@ -640,12 +640,12 @@ export function DietBuilder({
       </div>
 
       {recovered && (
-        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
+        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-body-dense font-medium text-amber-700">
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
       {(serverBanner || actionError) && (
-        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
           {serverBanner ?? actionError}
         </div>
       )}
@@ -653,7 +653,7 @@ export function DietBuilder({
       {/* Student diet (adapter) is always an unpublished draft in the builder —
           warn that saving/editing alone doesn't reach the aluno, only Publicar. */}
       {adapter && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-body-dense text-amber-800">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
           <p>
             <span className="font-semibold">Só editar não basta.</span> Salvar
@@ -698,7 +698,7 @@ export function DietBuilder({
                 }}
               />
               {fieldError(field) && (
-                <p className="text-[13px] text-destructive">{fieldError(field)}</p>
+                <p className="text-body-dense text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -884,7 +884,7 @@ function SortableMeal({
               <Trash2 className="size-4" />
             </button>
           </div>
-          {error && <p className="text-[13px] text-destructive">{error}</p>}
+          {error && <p className="text-body-dense text-destructive">{error}</p>}
           {/* Suggestion chips */}
           <div className="flex flex-wrap gap-1.5">
             {MEAL_SUGGESTIONS.map((s) => (
@@ -1237,7 +1237,7 @@ function SortableItem({
                 to add as an equivalence. */}
             {catalogSuggestions.length > 0 && (
               <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   Substitutos:
                 </span>
                 {catalogSuggestions.map((s) => (
@@ -1247,7 +1247,7 @@ function SortableItem({
                     onClick={() => quickAddSuggestion(s.foodId, s.grams)}
                     disabled={addingSuggestion !== null}
                     title="Adicionar como equivalência"
-                    className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 transition-colors hover:border-amber-400 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-caption font-medium text-amber-700 transition-colors hover:border-amber-400 disabled:opacity-50"
                   >
                     {addingSuggestion === s.foodId ? (
                       <Loader2 className="size-3 animate-spin" />

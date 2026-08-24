@@ -62,7 +62,7 @@ const columns = [
     id: "modality",
     header: "Modalidade",
     cell: (ctx) => (
-      <span className="text-[13px] text-[#475569]">
+      <span className="text-body-dense text-[#475569]">
         {ANAMNESIS_MODALITY_LABELS[ctx.getValue()]}
       </span>
     ),
@@ -71,7 +71,7 @@ const columns = [
     id: "questionCount",
     header: "Perguntas",
     cell: (ctx) => (
-      <span className="text-[13px] text-[#475569]">
+      <span className="text-body-dense text-[#475569]">
         {ctx.getValue()} em {ctx.row.original.sectionCount} seção(ões)
       </span>
     ),
@@ -80,7 +80,7 @@ const columns = [
     id: "updatedAt",
     header: "Atualizada",
     cell: (ctx) => (
-      <span className="text-[13px] text-[#94A3B8]">
+      <span className="text-body-dense text-[#94A3B8]">
         {dateFmt.format(new Date(ctx.getValue()))}
       </span>
     ),

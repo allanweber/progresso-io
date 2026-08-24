@@ -37,7 +37,7 @@ export function VerifyAccountForm({ email }: { email: string }) {
         <FormError message={state?.formError} />
         <OtpInput value={otp} onChange={setOtp} autoFocus />
         {state?.fieldErrors?.otp && (
-          <p className="text-[13px] text-destructive">{state.fieldErrors.otp}</p>
+          <p className="text-body-dense text-destructive">{state.fieldErrors.otp}</p>
         )}
       </div>
 

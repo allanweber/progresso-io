@@ -99,7 +99,7 @@ export function QuantityEditor({
         <button
           type="button"
           onClick={onBack}
-          className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+          className="mb-2 inline-flex items-center gap-1 text-body-dense font-medium text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="size-3.5" />
           {backLabel}
@@ -113,7 +113,7 @@ export function QuantityEditor({
 
       {measures.length > 0 && (
         <div className="mb-3">
-          <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+          <div className="mb-1 text-caption font-medium text-muted-foreground">
             Unidade
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -206,7 +206,7 @@ export function QuantityEditor({
             className="rounded-lg border border-[#EEF2F6] bg-surface-light p-2 text-center"
           >
             <div className={`text-base font-bold ${m.className}`}>{m.value}</div>
-            <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="mt-0.5 text-eyebrow font-semibold uppercase tracking-wide text-muted-foreground">
               {m.label}
             </div>
           </div>

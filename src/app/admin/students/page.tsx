@@ -105,7 +105,7 @@ export default function AdminStudentsPage() {
           return (
             <div className="flex items-center gap-3">
               <div
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold text-white"
                 style={{ background: avatarColor(s.id) }}
               >
                 {studentInitials(s.firstName, s.lastName)}
@@ -124,14 +124,14 @@ export default function AdminStudentsPage() {
         id: "clinic",
         header: "Clínica",
         cell: (ctx) => (
-          <span className="text-[13px] text-[#475569]">{ctx.getValue()}</span>
+          <span className="text-body-dense text-[#475569]">{ctx.getValue()}</span>
         ),
       }),
       columnHelper.display({
         id: "access",
         header: "Acesso",
         cell: (ctx) => (
-          <span className="text-[13px] text-[#475569]">
+          <span className="text-body-dense text-[#475569]">
             {ctx.row.original.hasAccount ? "Portal" : "Offline"}
           </span>
         ),
@@ -140,7 +140,7 @@ export default function AdminStudentsPage() {
         id: "createdAt",
         header: "Criado em",
         cell: (ctx) => (
-          <span className="text-[13px] text-[#94A3B8]">
+          <span className="text-body-dense text-[#94A3B8]">
             {dateFmt.format(new Date(ctx.getValue()))}
           </span>
         ),
@@ -154,7 +154,7 @@ export default function AdminStudentsPage() {
               type="button"
               onClick={() => setPendingDelete(ctx.row.original)}
               aria-label={`Excluir ${ctx.row.original.firstName} ${ctx.row.original.lastName}`}
-              className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-[13px] font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/5"
+              className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-body-dense font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/5"
             >
               <Trash2 className="size-4" />
               Excluir
@@ -290,7 +290,7 @@ export default function AdminStudentsPage() {
               </DialogDescription>
 
               {remove.error instanceof ApiError && (
-                <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+                <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
                   {remove.error.message}
                 </div>
               )}

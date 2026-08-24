@@ -85,7 +85,7 @@ export function NotificationBell() {
       >
         <Bell className="size-4" />
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+          <span className="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-eyebrow font-semibold text-primary-foreground">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -102,7 +102,7 @@ export function NotificationBell() {
             </span>
           </div>
           {items.length === 0 ? (
-            <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">
+            <p className="px-4 py-6 text-center text-body-dense text-muted-foreground">
               Nenhuma notificação por aqui.
             </p>
           ) : (
@@ -116,7 +116,7 @@ export function NotificationBell() {
                       n.read ? "" : "bg-primary-light/40"
                     }`}
                   >
-                    <span className="text-[13px] font-medium text-foreground">
+                    <span className="text-body-dense font-medium text-foreground">
                       {notificationTitle(n)}
                     </span>
                     <span className="text-xs text-muted-foreground">

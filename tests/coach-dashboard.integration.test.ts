@@ -6,6 +6,8 @@ import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import type { TenantContext } from "@/server/tenant";
+import { EMPTY_STRUCTURE as EMPTY_DIET } from "@/lib/student-diets";
+import { EMPTY_STRUCTURE as EMPTY_WORKOUT } from "@/lib/student-workouts";
 import { students as studentsDal } from "@/server/dal";
 
 import { createTestDb, type TestDb } from "./pglite";
@@ -49,6 +51,51 @@ async function giveActiveWorkout(c: TenantContext, studentId: string) {
     name: "Treino",
     status: "active",
   });
+}
+
+/**
+ * Gives a student a diet carrying one version in `status`. Returns the version
+ * id so a test can assert on exactly that row.
+ */
+async function giveDietVersion(
+  c: TenantContext,
+  studentId: string,
+  status: "draft" | "published",
+  updatedAt?: Date,
+) {
+  const [d] = await db
+    .insert(schema.studentDiet)
+    .values({
+      clinicId: c.clinicId,
+      studentId,
+      name: "Dieta",
+      status: status === "draft" ? "draft" : "active",
+    })
+    .returning();
+  const [v] = await db
+    .insert(schema.studentDietVersion)
+    .values({
+      studentDietId: d.id,
+      status,
+      version: status === "published" ? 1 : null,
+      tree: EMPTY_DIET,
+      ...(updatedAt ? { updatedAt } : {}),
+    })
+    .returning();
+  return v.id;
+}
+
+/** Same, for a workout draft. */
+async function giveWorkoutDraft(c: TenantContext, studentId: string) {
+  const [w] = await db
+    .insert(schema.studentWorkout)
+    .values({ clinicId: c.clinicId, studentId, name: "Treino", status: "draft" })
+    .returning();
+  const [v] = await db
+    .insert(schema.studentWorkoutVersion)
+    .values({ studentWorkoutId: w.id, status: "draft", tree: EMPTY_WORKOUT })
+    .returning();
+  return v.id;
 }
 
 async function addStudent(c: TenantContext, firstName: string) {
@@ -120,5 +167,53 @@ describe("getCoachDashboard", () => {
     const dashA = await studentsDal.getCoachDashboard(ctx);
     expect(dashA.activeCount).toBe(3);
     expect(dashA.missingPlans.every((p) => p.id !== undefined)).toBe(true);
+  });
+});
+
+describe("getCoachDashboard — pendingDrafts", () => {
+  it("lists never-published drafts, oldest edit first, and ignores published versions", async () => {
+    const ctxC = await coachContext("coach-c@example.com", "Coach C");
+    const s1 = await addStudent(ctxC, "ComRascunho");
+    const s2 = await addStudent(ctxC, "Publicado");
+    const s3 = await addStudent(ctxC, "TreinoRascunho");
+
+    // Two drafts with a deliberate age gap, plus one published version that
+    // must never appear — publishing is exactly what takes it off the queue.
+    const older = await giveDietVersion(
+      ctxC,
+      s1.id,
+      "draft",
+      new Date(Date.UTC(2026, 0, 1)),
+    );
+    await giveDietVersion(ctxC, s2.id, "published");
+    const newer = await giveWorkoutDraft(ctxC, s3.id);
+
+    const dash = await studentsDal.getCoachDashboard(ctxC);
+    const ids = dash.pendingDrafts.map((d) => d.id);
+
+    expect(ids).toContain(older);
+    expect(ids).toContain(newer);
+    expect(dash.pendingDrafts).toHaveLength(2);
+
+    // Oldest edit first — the draft the coach has most forgotten.
+    expect(ids[0]).toBe(older);
+
+    const draft = dash.pendingDrafts.find((d) => d.id === older)!;
+    expect(draft.kind).toBe("diet");
+    expect(draft.studentId).toBe(s1.id);
+    expect(draft.firstName).toBe("ComRascunho");
+
+    expect(dash.pendingDrafts.find((d) => d.id === newer)!.kind).toBe("workout");
+  });
+
+  it("is tenant-scoped: never surfaces another clinic's drafts", async () => {
+    const ctxD = await coachContext("coach-d@example.com", "Coach D");
+    const outsider = await addStudent(ctxD, "DeOutraClinica");
+    await giveDietVersion(ctxD, outsider.id, "draft");
+
+    // Clinic D sees its own draft...
+    expect((await studentsDal.getCoachDashboard(ctxD)).pendingDrafts).toHaveLength(1);
+    // ...and clinic A, which has none of its own, sees nothing.
+    expect((await studentsDal.getCoachDashboard(ctx)).pendingDrafts).toEqual([]);
   });
 });

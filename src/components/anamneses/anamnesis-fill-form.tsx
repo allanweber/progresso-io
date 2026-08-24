@@ -45,7 +45,7 @@ export function AnamnesisFillForm({
               const value = answers[q.key];
               const err = errors?.[q.key];
               const errorSlot = err ? (
-                <p className="text-[13px] text-destructive">{err}</p>
+                <p className="text-body-dense text-destructive">{err}</p>
               ) : null;
 
               if (q.type === "boolean") {

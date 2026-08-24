@@ -172,7 +172,7 @@ export default function AdminAdminsPage() {
         id: "createdAt",
         header: "Desde",
         cell: (ctx) => (
-          <span className="text-[13px] text-[#94A3B8]">
+          <span className="text-body-dense text-[#94A3B8]">
             {dateFmt.format(new Date(ctx.row.original.createdAt))}
           </span>
         ),
@@ -192,7 +192,7 @@ export default function AdminAdminsPage() {
                   disabled={blocked !== null}
                   title={blocked ?? undefined}
                   aria-label={`Excluir ${r.email}`}
-                  className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-[13px] font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/5 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:border-input disabled:hover:bg-transparent"
+                  className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-body-dense font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/5 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:border-input disabled:hover:bg-transparent"
                 >
                   <Trash2 className="size-4" />
                   Excluir
@@ -206,7 +206,7 @@ export default function AdminAdminsPage() {
                 type="button"
                 onClick={() => resend.mutate(r.id)}
                 disabled={busyRow}
-                className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-[13px] font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-body-dense font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
               >
                 <Send className="size-4" />
                 Reenviar
@@ -216,7 +216,7 @@ export default function AdminAdminsPage() {
                 onClick={() => revoke.mutate(r.id)}
                 disabled={busyRow}
                 aria-label={`Revogar convite de ${r.email}`}
-                className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-[13px] font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/5 disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-body-dense font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/5 disabled:opacity-60"
               >
                 <X className="size-4" />
                 Revogar
@@ -312,7 +312,7 @@ export default function AdminAdminsPage() {
       </div>
 
       {(resend.isError || revoke.isError) && (
-        <p className="mt-3 text-[13px] font-medium text-destructive">
+        <p className="mt-3 text-body-dense font-medium text-destructive">
           {((resend.error ?? revoke.error) as ApiError).message}
         </p>
       )}
@@ -341,7 +341,7 @@ export default function AdminAdminsPage() {
             className="space-y-4"
           >
             {inviteBanner && (
-              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
                 {inviteBanner}
               </div>
             )}
@@ -416,7 +416,7 @@ export default function AdminAdminsPage() {
               </DialogDescription>
 
               {remove.error instanceof ApiError && (
-                <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+                <div className="mt-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
                   {remove.error.message}
                 </div>
               )}

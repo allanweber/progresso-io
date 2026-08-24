@@ -172,7 +172,7 @@ export function InviteAcceptForm({
             className="mt-6 space-y-4"
           >
             {accept.error instanceof ApiError && (
-              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-[13px] font-medium text-destructive">
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
                 {accept.error.message}
               </div>
             )}

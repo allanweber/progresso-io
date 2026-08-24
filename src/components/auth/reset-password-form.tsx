@@ -41,12 +41,12 @@ export function ResetPasswordForm({ email }: { email: string }) {
       </div>
 
       <div className="mb-2 space-y-1.5">
-        <span className="block text-[13px] font-semibold text-[#334155]">
+        <span className="block text-body-dense font-semibold text-[#334155]">
           Código de verificação
         </span>
         <OtpInput value={otp} onChange={setOtp} autoFocus />
         {state?.fieldErrors?.otp && (
-          <p className="text-[13px] text-destructive">{state.fieldErrors.otp}</p>
+          <p className="text-body-dense text-destructive">{state.fieldErrors.otp}</p>
         )}
       </div>
       <div className="mb-5">
@@ -78,7 +78,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
             onChange={(e) => setConfirm(e.target.value)}
           />
           {mismatch && (
-            <p className="text-[13px] text-destructive">
+            <p className="text-body-dense text-destructive">
               As senhas não coincidem.
             </p>
           )}

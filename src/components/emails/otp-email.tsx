@@ -119,7 +119,7 @@ const paragraph: React.CSSProperties = {
 const codeBox: React.CSSProperties = {
   backgroundColor: "#F0FDF4",
   border: "1px solid #BBF7D0",
-  borderRadius: "12px",
+  borderRadius: "16px",
   padding: "20px",
   textAlign: "center",
 };
