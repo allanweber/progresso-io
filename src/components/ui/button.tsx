@@ -9,8 +9,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Rests at Deep Emerald, not Vital Emerald: white on #059669 is 3.77:1,
+        // which fails AA at the 14px this label ships at. #047857 reads 5.48:1
+        // and hovers one rung further down. See DESIGN.md § The 18px Rule.
         default:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
+          "bg-primary-deep text-primary-foreground shadow-sm hover:bg-primary-press",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:

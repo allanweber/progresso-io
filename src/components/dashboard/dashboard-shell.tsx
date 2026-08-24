@@ -28,7 +28,7 @@ import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { apiFetch } from "@/lib/api-client";
 // Deliberately from @/lib/format, NOT @/lib/billing: this shell renders on every
 // coach + admin page, and billing pulls in zod, which would land in all of them.
-import { formatBRL, formatDateBR } from "@/lib/format";
+import { countPt, formatBRL, formatDateBR } from "@/lib/format";
 import { formatTrialDaysLeft, PLAN_META, type PlanUsageDto } from "@/lib/plans";
 import {
   Dialog,
@@ -118,10 +118,18 @@ function navItems(
 export function DashboardShell({
   user,
   capabilities = {},
+  initialPlanUsage,
   children,
 }: {
   user: ShellUser;
   capabilities?: ShellCapabilities;
+  /**
+   * Plan usage already read on the server by the coach layout. Seeds the query
+   * below so the billing banner is present in the first paint instead of
+   * inserting itself a round-trip later and pushing the page down. Absent for
+   * admin, whose shell has no banner and whose query never runs.
+   */
+  initialPlanUsage?: PlanUsageDto;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -158,6 +166,9 @@ export function DashboardShell({
     queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
     enabled: user.role === "coach",
     refetchOnWindowFocus: true,
+    // Server-rendered seed (see the prop). The dashboard page reads this same
+    // key, so its capacity footnote is seeded too and neither surface reflows.
+    initialData: initialPlanUsage,
   });
 
   // One banner at a time, worst news first: an overdue fatura outranks a
@@ -271,19 +282,30 @@ export function DashboardShell({
           aria-current={isActive(href) ? "page" : undefined}
           className={
             isActive(href)
-              ? "flex items-center gap-2.5 rounded-[10px] bg-primary-light px-3 py-2 font-medium text-primary"
-              : "flex items-center gap-2.5 rounded-[10px] px-3 py-2 font-medium text-[#334155] transition-colors hover:bg-secondary"
+              ? "flex items-center gap-2.5 rounded-md bg-primary-light px-3 py-2 font-medium text-primary-deep"
+              : "flex items-center gap-2.5 rounded-md px-3 py-2 font-medium text-text-secondary transition-colors hover:bg-secondary"
           }
         >
           <Icon className="size-4" />
           {label}
           {badge ? (
-            <span
-              className="ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold text-primary-foreground"
-              aria-label={`${waWaitingCount} conversas aguardando resposta`}
-            >
-              {badge}
-            </span>
+            <>
+              {/* Two fixes in one bubble. `aria-label` on a bare span maps to
+                  role=generic, which does not support an accessible name — screen
+                  readers dropped it and announced a naked "9+"; the phrasing is
+                  real off-screen text now. And the fill is Deep Emerald: white on
+                  Vital Emerald reads 3.77:1, which fails AA at this 11px. */}
+              <span className="ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary-deep px-1 text-caption font-semibold text-primary-foreground">
+                <span aria-hidden>{badge}</span>
+                <span className="sr-only">
+                  {countPt(
+                    waWaitingCount,
+                    "conversa aguardando resposta",
+                    "conversas aguardando resposta",
+                  )}
+                </span>
+              </span>
+            </>
           ) : null}
         </Link>
       );
@@ -293,12 +315,24 @@ export function DashboardShell({
   return (
     <Sheet open={navOpen} onOpenChange={setNavOpen}>
       <div className="flex min-h-screen bg-surface-light print:block print:min-h-0 print:bg-white">
+        {/* Ten rail links stood between a keyboard user and the content on every
+            page. Landmarks technically satisfy 2.4.1; this is the affordance
+            people actually reach for. */}
+        <a
+          href="#conteudo"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2.5 focus:text-body focus:font-medium focus:text-primary-deep focus:shadow-[0_8px_40px_rgba(15,23,42,0.15)] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          Pular para o conteúdo
+        </a>
+
         {/* Desktop rail */}
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white px-5 py-6 md:flex print:!hidden">
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card px-5 py-6 md:flex print:!hidden">
           <Link href={home} className="mb-8">
             <Logo />
           </Link>
-          <nav className="flex flex-col gap-1 text-sm">{navLinks()}</nav>
+          <nav aria-label="Navegação principal" className="flex flex-col gap-1 text-body">
+            {navLinks()}
+          </nav>
         </aside>
 
         {/* Mobile drawer */}
@@ -310,12 +344,12 @@ export function DashboardShell({
             </Link>
             <SheetClose
               aria-label="Fechar menu"
-              className="flex size-9 items-center justify-center rounded-[10px] text-[#334155] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+              className="flex size-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <X className="size-5" />
             </SheetClose>
           </div>
-          <nav className="flex flex-col gap-1 text-sm">
+          <nav aria-label="Navegação principal" className="flex flex-col gap-1 text-body">
             {navLinks(() => setNavOpen(false))}
           </nav>
         </SheetContent>
@@ -324,11 +358,17 @@ export function DashboardShell({
           so a wide child (e.g. the food table) scrolls inside its own
           container instead of forcing horizontal page overflow on mobile. */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3.5 print:hidden">
+        {/* Height comes from `--header-h` rather than from padding, because the
+            notification dropdown pins itself to that same token on mobile. One
+            number, one place. */}
+        <header className="flex h-[var(--header-h)] items-center justify-between border-b border-border bg-card px-4 sm:px-6 print:hidden">
           <div className="flex items-center gap-2.5 md:hidden">
+            {/* 44px on the phone: PRODUCT.md calls thumb-sized targets a
+                correctness requirement, and this is the only route to every
+                other screen when the rail is a drawer. */}
             <SheetTrigger
               aria-label="Abrir menu"
-              className="flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+              className="flex size-11 items-center justify-center rounded-md border-[1.5px] border-input text-text-secondary transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <Menu className="size-5" />
             </SheetTrigger>
@@ -336,11 +376,14 @@ export function DashboardShell({
           </div>
           <div className="ml-auto flex items-center gap-4">
             {user.role === "coach" && <NotificationBell />}
-            <div className="text-right">
-              <div className="text-sm font-semibold text-foreground">
+            {/* The name stays on the phone — "am I in the right account?" is
+                the question this block exists to answer. Only the e-mail line
+                drops, which is what buys the 44px targets their room. */}
+            <div className="min-w-0 text-right">
+              <div className="truncate text-body font-semibold text-foreground">
                 {user.name}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="hidden text-caption text-muted-foreground sm:block">
                 {roleLabel} · {user.email}
               </div>
             </div>
@@ -348,7 +391,7 @@ export function DashboardShell({
               type="button"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-3 py-2 text-body-dense font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
+              className="flex size-11 items-center justify-center gap-1.5 rounded-md border-[1.5px] border-input text-body-dense font-medium text-text-secondary transition-colors hover:bg-secondary disabled:opacity-60 sm:size-auto sm:px-3 sm:py-2"
             >
               <LogOut className="size-4" />
               <span className="hidden sm:inline">Sair</span>
@@ -361,7 +404,7 @@ export function DashboardShell({
             role="status"
             data-testid="billing-banner"
             data-tone={billingNotice.tone}
-            className={`flex flex-col gap-2.5 border-b px-6 py-3 text-body-dense sm:flex-row sm:items-center sm:justify-between print:hidden ${
+            className={`flex flex-col gap-2.5 border-b px-4 py-3 text-body-dense sm:flex-row sm:items-center sm:justify-between sm:px-6 print:hidden ${
               billingNotice.tone === "danger"
                 ? "border-red-200 bg-red-50 text-red-800"
                 : billingNotice.tone === "warning"
@@ -389,7 +432,7 @@ export function DashboardShell({
             <button
               type="button"
               onClick={() => setSubscribeOpen(true)}
-              className="shrink-0 self-start rounded-[10px] border-[1.5px] border-current px-3 py-1.5 font-medium transition-colors hover:bg-white/60 sm:self-auto"
+              className="min-h-11 shrink-0 self-start rounded-md border-[1.5px] border-current px-3 py-1.5 font-medium transition-colors hover:bg-white/60 sm:min-h-0 sm:self-auto"
             >
               Assinar
             </button>
@@ -421,12 +464,12 @@ export function DashboardShell({
                     type="button"
                     disabled={subscribe.isPending}
                     onClick={() => subscribe.mutate(plan)}
-                    className="rounded-[10px] border-[1.5px] border-input p-4 text-left transition-colors hover:border-primary hover:bg-secondary disabled:opacity-60"
+                    className="rounded-md border-[1.5px] border-input p-4 text-left transition-colors hover:border-primary hover:bg-secondary disabled:opacity-60"
                   >
                     <p className="font-semibold text-foreground">
                       {PLAN_META[plan].name}
                     </p>
-                    <p className="text-[20px] font-semibold text-foreground">
+                    <p className="text-title font-semibold text-foreground">
                       {PLAN_META[plan].price}
                       <span className="text-body-dense font-normal text-muted-foreground">
                         /mês
@@ -445,7 +488,7 @@ export function DashboardShell({
                     Plano {subscribe.data.planName} · fatura #
                     {subscribe.data.invoice.number}
                   </span>
-                  <span className="text-[17px] font-semibold text-foreground">
+                  <span className="text-title font-semibold text-foreground">
                     {formatBRL(subscribe.data.invoice.totalCents)}
                   </span>
                 </div>
@@ -460,12 +503,12 @@ export function DashboardShell({
                       rows={3}
                       value={subscribe.data.pixPayload}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="w-full resize-none rounded-[10px] border-[1.5px] border-input bg-secondary p-2.5 font-mono text-caption leading-snug text-foreground"
+                      className="w-full resize-none rounded-md border-[1.5px] border-input bg-secondary p-2.5 font-mono text-caption leading-snug text-foreground"
                     />
                     <button
                       type="button"
                       onClick={copyPix}
-                      className="w-full rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+                      className="min-h-11 w-full rounded-md bg-primary-deep px-4 py-2.5 text-body font-medium text-primary-foreground transition-colors hover:bg-primary-press"
                     >
                       {pixCopied ? "Código copiado ✓" : "Copiar código Pix"}
                     </button>
@@ -493,7 +536,13 @@ export function DashboardShell({
           </DialogContent>
         </Dialog>
 
-        <main className="flex-1 px-6 py-8 print:p-0">{children}</main>
+        <main
+          id="conteudo"
+          tabIndex={-1}
+          className="flex-1 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 print:p-0"
+        >
+          {children}
+        </main>
         </div>
       </div>
     </Sheet>

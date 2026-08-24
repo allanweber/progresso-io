@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
+import { countPt } from "@/lib/format";
 import {
   CALENDAR_TYPE_META,
   WEEKDAY_SHORT_LABELS,
@@ -22,28 +23,44 @@ import {
 } from "@/lib/calendar";
 import type { CoachDashboardDto, PendingDraftDto } from "@/lib/coach-dashboard";
 import { isAtLimit, type PlanUsageDto } from "@/lib/plans";
-import { avatarColor, studentInitials } from "@/lib/students";
+import { avatarPalette, studentInitials } from "@/lib/students";
 import { cn } from "@/lib/utils";
 
-/** Today's date as an "Sábado · 2 de agosto" eyebrow (capitalised weekday). */
-function useTodayLabel(): string | null {
-  // Compute only after mount so the server's timezone never disagrees with the
-  // browser's (which would flash a hydration warning on the weekday/day).
-  const [mounted, setMounted] = useState(false);
+/**
+ * Built once at module scope. `Intl.DateTimeFormat` is one of the pricier
+ * constructors on the platform and this page re-renders on every query settle;
+ * there is no reason to pay for two of them each time.
+ */
+const WEEKDAY_FMT = new Intl.DateTimeFormat("pt-BR", { weekday: "long" });
+const DAY_MONTH_FMT = new Intl.DateTimeFormat("pt-BR", {
+  day: "numeric",
+  month: "long",
+});
+
+/**
+ * Wall-clock, but only after mount, so nothing derived from it can disagree
+ * with what the server rendered. `null` until then — every caller below shows
+ * nothing rather than a time that might be wrong.
+ *
+ * Both time-dependent labels on this screen go through here. The drafts card
+ * used to call `Date.now()` straight from render, which was safe only by
+ * accident: its list is empty during SSR because the query has no data yet.
+ * Prefetch that query and it would have become a hydration mismatch.
+ */
+function useMountedNow(): number | null {
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
+    setNow(Date.now());
   }, []);
-  if (!mounted) return null;
-  const now = new Date();
-  const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(
-    now,
-  );
-  const dayMonth = new Intl.DateTimeFormat("pt-BR", {
-    day: "numeric",
-    month: "long",
-  }).format(now);
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} · ${dayMonth}`;
+  return now;
+}
+
+/** Today's date as a "Sábado · 2 de agosto" eyebrow (capitalised weekday). */
+function todayLabel(now: number): string {
+  const d = new Date(now);
+  const weekday = WEEKDAY_FMT.format(d);
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} · ${DAY_MONTH_FMT.format(d)}`;
 }
 
 /**
@@ -51,8 +68,8 @@ function useTodayLabel(): string | null {
  * drafts card, whose `updatedAt` is a true timestamp — so a draft touched this
  * morning says so instead of rounding up to a day it has not waited.
  */
-function waitLabel(iso: string): string {
-  const ms = Math.max(0, Date.now() - new Date(iso).getTime());
+function waitLabel(iso: string, now: number): string {
+  const ms = Math.max(0, now - new Date(iso).getTime());
   if (ms < 86_400_000) {
     const minutes = Math.floor(ms / 60_000);
     if (minutes < 1) return "agora";
@@ -82,7 +99,7 @@ function SectionCard({
   return (
     <section
       aria-labelledby={headingId}
-      className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
     >
       {/*
         At 390px the title and its aside fought over one line and both wrapped
@@ -125,28 +142,43 @@ function CardMessage({
   );
 }
 
-/** A count beside a card title. Danger by default; `tone` softens it. */
+/**
+ * A count beside a card title. Danger by default; `tone` softens it.
+ *
+ * The phrasing is real text held off-screen rather than an `aria-label`: a bare
+ * span maps to `role="generic"`, which does not support an accessible name, so
+ * the label was being dropped and the count announced as a naked "3".
+ *
+ * Brand tone inks in Deep Emerald, not Vital Emerald — at `text-label` (12px)
+ * `#059669` on the Emerald Wash reads 3.60:1 and fails AA. `#047857` reads
+ * 5.24:1. Same rule the danger chip already follows.
+ *
+ * The noun comes in both forms because the count is almost always 1 on a queue
+ * screen, and "1 rascunhos não publicados" is not Portuguese.
+ */
 function CountBadge({
   count,
-  label,
+  one,
+  other,
   tone = "danger",
 }: {
   count: number;
-  label: string;
+  one: string;
+  other: string;
   tone?: "danger" | "brand";
 }) {
   if (count === 0) return null;
   return (
     <span
-      aria-label={`${count} ${label}`}
       className={cn(
         "rounded-full px-2.5 py-0.5 text-label font-semibold",
         tone === "danger"
           ? "bg-danger-bg text-danger-fg"
-          : "bg-primary-light text-primary",
+          : "bg-primary-light text-primary-deep",
       )}
     >
-      {count}
+      <span aria-hidden>{count}</span>
+      <span className="sr-only">{countPt(count, one, other)}</span>
     </span>
   );
 }
@@ -158,6 +190,11 @@ function CountBadge({
  * Marked up as the term/value pair it actually is, so a screen reader announces
  * "Sem treino/dieta, 3" rather than two unrelated strings, and so the figure has
  * a stable handle instead of a position in the box tree.
+ *
+ * Each tile is its own `aria-live` region and is `aria-atomic`, so when the
+ * figure swaps from "…" to a real count the label is re-read with it. A single
+ * region around the whole row announced only the changed number — "3", with
+ * nothing to attach it to.
  */
 function KpiTile({
   label,
@@ -172,7 +209,11 @@ function KpiTile({
 }) {
   const slug = label.replace(/\W+/g, "-").toLowerCase();
   return (
-    <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div
+      aria-live="polite"
+      aria-atomic="true"
+      className="rounded-2xl border border-border bg-card p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+    >
       <dt className="text-body-dense text-muted-foreground">{label}</dt>
       <dd
         id={`kpi-${slug}`}
@@ -218,8 +259,11 @@ function PersonRow({
         className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light focus-visible:bg-surface-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold uppercase text-white"
-          style={{ background: avatarColor(seed) }}
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold uppercase"
+          style={{
+            background: avatarPalette(seed).bg,
+            color: avatarPalette(seed).fg,
+          }}
           aria-hidden
         >
           {initials}
@@ -305,7 +349,7 @@ function draftHref(d: PendingDraftDto): string {
 }
 
 export default function CoachDashboardPage() {
-  const today = useTodayLabel();
+  const now = useMountedNow();
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["coach-dashboard"],
     queryFn: () => apiFetch<CoachDashboardDto>("/api/coach/dashboard"),
@@ -324,15 +368,35 @@ export default function CoachDashboardPage() {
   const todayEvents = data?.todayEvents ?? [];
   const weekEvents = data?.weekEvents ?? [];
 
+  /*
+    Capacity rides under the roster figure, and it names its own denominator.
+    The cap counts every non-archived aluno — convidados and inativos included —
+    while the figure above it counts only the active ones, so the old "de 50"
+    under a 45 read as five free slots on a clinic that had none. "vagas" is the
+    word that makes two different numbers legible as two different things.
+
+    `usage` is seeded from the server by the coach layout, so this line is in the
+    first paint. The nbsp fallback only matters if that seed is ever absent: it
+    holds the tile's height so the row cannot grow under the cards below it.
+  */
+  const atStudentLimit = usage
+    ? isAtLimit(usage.students.used, usage.students.limit)
+    : false;
+  const capacityNote = usage
+    ? usage.students.limit === null
+      ? `Plano ${usage.planName} · sem limite`
+      : `Plano ${usage.planName} · ${usage.students.used}/${usage.students.limit} vagas`
+    : "\u00A0";
+
   // Shared by all three returns below, so a failed load keeps the page title and
   // the two escape hatches (roster, invite) instead of stranding the coach.
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <div className="text-eyebrow uppercase text-text-secondary">
-          {today ?? " "}
+        <div className="text-eyebrow font-bold uppercase text-text-secondary">
+          {now ? todayLabel(now) : "\u00A0"}
         </div>
-        <h1 className="mt-1 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+        <h1 className="mt-1 font-heading text-headline font-bold text-foreground">
           Sua fila de hoje
         </h1>
       </div>
@@ -340,17 +404,23 @@ export default function CoachDashboardPage() {
         <Button asChild variant="outline" className="hidden sm:inline-flex">
           <Link href="/coach/students">Ver todos os alunos</Link>
         </Button>
-        {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
+        {usage && atStudentLimit ? (
           <Button asChild>
             <Link href="/coach/settings">
               <Sparkles className="size-4" aria-hidden />
-              Limite de {usage.students.limit} alunos · ver planos
+              {/* The full sentence is `whitespace-nowrap` and ~295px wide — it
+                  overflowed the content column at 320px. The short form carries
+                  the same destination; the tile beside it carries the number. */}
+              <span className="sm:hidden">Ver planos</span>
+              <span className="hidden sm:inline">
+                Limite de {usage.students.limit} alunos · ver planos
+              </span>
             </Link>
           </Button>
         ) : (
           <Button asChild>
             <Link href="/coach/students/new">
-              <Plus className="size-4" />
+              <Plus className="size-4" aria-hidden />
               Convidar aluno
             </Link>
           </Button>
@@ -367,7 +437,7 @@ export default function CoachDashboardPage() {
         {header}
         <div
           role="alert"
-          className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+          className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
         >
           <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-8 text-center">
             <AlertCircle className="size-8 text-destructive" aria-hidden />
@@ -395,11 +465,18 @@ export default function CoachDashboardPage() {
   // A brand-new clinic has nothing in any pile. Six "nothing here" messages
   // teach a coach nothing on the highest-stakes screen of their trial, so the
   // first run names the ritual the whole product is built on instead.
-  if (data?.activeCount === 0) {
+  //
+  // Gated on the roster count, not just the active one: a coach whose three
+  // convidados have not accepted yet has an `activeCount` of 0, and telling them
+  // to "comece convidando seu primeiro aluno" is telling them to redo the thing
+  // they already did. Both numbers come from the same response, so this decision
+  // never depends on two queries agreeing — and it cannot silently fall through
+  // to six empty cards because the second one failed.
+  if (data?.activeCount === 0 && data.rosterCount === 0) {
     return (
       <div className="mx-auto max-w-6xl">
         {header}
-        <div className="mt-6 rounded-2xl border border-border bg-white px-6 py-14 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl border border-border bg-card px-6 py-14 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary-light">
             <UserPlus className="size-7 text-primary" aria-hidden />
           </div>
@@ -428,7 +505,7 @@ export default function CoachDashboardPage() {
               <li key={step.title} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light font-heading text-label font-bold text-primary"
+                  className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light font-heading text-label font-bold text-primary-deep"
                 >
                   {i + 1}
                 </span>
@@ -460,26 +537,26 @@ export default function CoachDashboardPage() {
     <div className="mx-auto min-w-0 max-w-6xl">
       {header}
 
-      {/* The sizes of the four piles, read in one glance. */}
+      {/* The sizes of the four piles, read in one glance. Each tile is its own
+          live region (see KpiTile) rather than one region around the row: with
+          the region on the <dl>, only the changed <dd> was announced and a
+          screen reader read out a bare "3" with no idea which pile it counted. */}
       <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <KpiTile
           label="Alunos ativos"
           value={isLoading ? null : (data?.activeCount ?? 0)}
           footnote={
-            usage ? (
-              <div
-                className={cn(
-                  "text-caption font-medium",
-                  isAtLimit(usage.students.used, usage.students.limit)
-                    ? "text-destructive"
-                    : "text-muted-foreground",
-                )}
-              >
-                {usage.students.limit === null
-                  ? `Plano ${usage.planName} · sem limite`
-                  : `de ${usage.students.limit} · plano ${usage.planName}`}
-              </div>
-            ) : undefined
+            <span
+              className={cn(
+                "text-caption font-medium",
+                // danger-fg, not destructive: this line ships at 11px, where
+                // #ef4444 on Paper is 3.76:1. #b91c1c reads 6.47:1. It is the
+                // rule the danger chip already follows.
+                atStudentLimit ? "text-danger-fg" : "text-muted-foreground",
+              )}
+            >
+              {capacityNote}
+            </span>
           }
         />
         <KpiTile
@@ -511,7 +588,8 @@ export default function CoachDashboardPage() {
             badge={
               <CountBadge
                 count={pendingCheckins.length}
-                label="aguardando resposta"
+                one="check-in aguardando resposta"
+                other="check-ins aguardando resposta"
               />
             }
           >
@@ -544,7 +622,8 @@ export default function CoachDashboardPage() {
             badge={
               <CountBadge
                 count={missingPlans.length}
-                label="alunos sem treino ou dieta"
+                one="aluno sem treino ou dieta"
+                other="alunos sem treino ou dieta"
               />
             }
           >
@@ -589,7 +668,8 @@ export default function CoachDashboardPage() {
             badge={
               <CountBadge
                 count={pendingDrafts.length}
-                label="rascunhos não publicados"
+                one="rascunho não publicado"
+                other="rascunhos não publicados"
                 tone="brand"
               />
             }
@@ -607,7 +687,13 @@ export default function CoachDashboardPage() {
                     seed={d.studentId}
                     initials={studentInitials(d.firstName, d.lastName)}
                     name={`${d.firstName} ${d.lastName}`}
-                    detail={`${d.kind === "diet" ? "dieta" : "treino"} · editado ${waitLabel(d.updatedAt)}`}
+                    detail={
+                      now
+                        ? `${d.kind === "diet" ? "dieta" : "treino"} · editado ${waitLabel(d.updatedAt, now)}`
+                        : d.kind === "diet"
+                          ? "dieta"
+                          : "treino"
+                    }
                   >
                     <ActionChip>publicar</ActionChip>
                   </PersonRow>
@@ -623,7 +709,7 @@ export default function CoachDashboardPage() {
             aside={
               <Link
                 href="/coach/calendar"
-                className="text-primary hover:underline"
+                className="text-primary-deep hover:underline"
               >
                 Ver agenda
               </Link>
@@ -663,7 +749,8 @@ export default function CoachDashboardPage() {
             badge={
               <CountBadge
                 count={waWaiting.length}
-                label="conversas aguardando resposta"
+                one="conversa aguardando resposta"
+                other="conversas aguardando resposta"
                 tone="brand"
               />
             }

@@ -29,8 +29,9 @@ export const GET = withRoute("coach.dashboard", async () => {
   if (!ctx) return unauthorized();
   if (ctx.role !== "coach") return forbidden();
 
-  const [base, canWhatsapp, canCalendar] = await Promise.all([
+  const [base, rosterCount, canWhatsapp, canCalendar] = await Promise.all([
     students.getCoachDashboard(ctx),
+    students.countStudents(ctx),
     plans.canUseWhatsapp(ctx),
     plans.canUseCalendar(ctx),
   ]);
@@ -74,6 +75,7 @@ export const GET = withRoute("coach.dashboard", async () => {
 
   const dashboard: CoachDashboardDto = {
     activeCount: base.activeCount,
+    rosterCount,
     // `createdAt` is a DAL-only sort key; the card does not render a join date.
     missingPlans: base.missingPlans.map((s) => ({
       id: s.id,

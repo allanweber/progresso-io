@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -65,8 +66,17 @@ const trialLimit = alias(schema.planLimit, "trial_limit");
  * missing `plan_limit` row must never block — caps fall back to unlimited and
  * WhatsApp stays enabled (paid default). Left join, so an override still resolves
  * even if the plan row is absent.
+ *
+ * Memoized per request with React's `cache`. Several callers want these limits
+ * in the same render — the coach layout alone resolves `canUseCalendar`,
+ * `canUseWhatsapp` and `getPlanUsage`, each of which lands here — and they all
+ * pass the one `TenantContext` built for that request, which is the identity
+ * `cache` keys on. Three identical joins collapse to one. Reads only, so a
+ * request-lifetime cache cannot serve anything stale.
  */
-export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
+export const getPlanLimits = cache(async function getPlanLimits(
+  ctx: TenantContext,
+): Promise<PlanLimits> {
   const [row] = await ctx.db
     .select({
       plan: schema.clinic.plan,
@@ -155,7 +165,7 @@ export async function getPlanLimits(ctx: TenantContext): Promise<PlanLimits> {
     trialActive,
     trialEndsAt,
   };
-}
+});
 
 /**
  * The student cap for the current clinic's plan. `null` means unlimited — both

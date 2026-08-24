@@ -51,7 +51,27 @@
   --ring: #059669;
 
   /* Extra brand tokens used by the marketing surfaces */
-  --primary-hover: #047857; /* emerald-700 */
+  /*
+   * Deep Emerald. One value, two named roles (DESIGN.md § Colors): the pressed
+   * and hovered primary fill, and — the reason it is a token and not a literal —
+   * the *ink* for emerald text on a pale emerald or white surface. Vital Emerald
+   * reads 3.60:1 on the Emerald Wash and 3.77:1 on Paper, so it fails AA at the
+   * 11-14px this app writes emerald at; Deep Emerald reads 5.24:1 and 5.48:1.
+   * Use `text-primary` only at >=18px, `text-primary-deep` below it.
+   */
+  --primary-deep: #047857; /* emerald-700 */
+  /*
+   * The pressed/hover rung *under a Deep Emerald fill*. Once a filled control
+   * rests at #047857 for contrast, #047857 can no longer be its hover — this is
+   * the next step down. White on it reads 7.68:1.
+   */
+  --primary-press: #065f46; /* emerald-800 */
+  /*
+   * Legacy alias, still correct for the handful of controls that rest at Vital
+   * Emerald and darken on hover (marketing CTAs, where the type is >=18px).
+   * A control resting at --primary-deep hovers to --primary-press instead.
+   */
+  --primary-hover: var(--primary-deep);
   --primary-light: #f0fdf4; /* emerald-50 */
   --primary-light-border: #bbf7d0; /* emerald-200 */
   --text-secondary: #475569; /* slate-600 */
@@ -59,6 +79,14 @@
   --surface-dark: #0f172a; /* slate-900 */
   --surface-dark-mid: #1e293b; /* slate-800 */
   --border-light: #f1f5f9; /* slate-100 */
+
+  /*
+   * Coach/admin header height. The notification dropdown pins itself directly
+   * below the header on mobile, so the two numbers have to agree; this is the
+   * one place they are written. 14px padding + a 44px touch target + 14px + the
+   * 1px rule below sm; the target relaxes to 36px from sm up.
+   */
+  --header-h: 73px;
 
   /*
    * Type ramp (DESIGN.md § Typography). Seven rungs, each with a job:
@@ -97,6 +125,12 @@
   --fs-body-dense: 14px;
   --fs-body: 15px;
   --fs-subtitle: 16px;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --header-h: 65px;
+  }
 }
 
 .dark {
@@ -142,6 +176,23 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /*
+   * The Stillness Rule (DESIGN.md § Elevation & Depth) says colour transitions
+   * and a spinner are the whole motion vocabulary. `scroll-smooth` on <html>
+   * was the one thing contradicting it, app-wide and unguarded — animated
+   * scrolling is a vestibular trigger. Honour the OS preference.
+   *
+   * Deliberately narrow: no blanket `* { transition-duration: 0 }`. The only
+   * transition in this system is `transition-colors`, which does not move
+   * anything, and the only animation is the spinner — killing indeterminate
+   * progress would read as frozen, not as calm.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
 }
 
 @theme inline {
@@ -176,6 +227,8 @@
   --color-ring: var(--ring);
 
   --color-primary-hover: var(--primary-hover);
+  --color-primary-deep: var(--primary-deep);
+  --color-primary-press: var(--primary-press);
   --color-primary-light: var(--primary-light);
   --color-primary-light-border: var(--primary-light-border);
   --color-text-secondary: var(--text-secondary);

@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { AdminStudentDto, ClinicOption } from "@/lib/admin";
-import { avatarColor, studentInitials } from "@/lib/students";
+import { avatarPalette, studentInitials } from "@/lib/students";
 
 const dateFmt = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -105,8 +105,11 @@ export default function AdminStudentsPage() {
           return (
             <div className="flex items-center gap-3">
               <div
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold text-white"
-                style={{ background: avatarColor(s.id) }}
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold"
+                style={{
+                  background: avatarPalette(s.id).bg,
+                  color: avatarPalette(s.id).fg,
+                }}
               >
                 {studentInitials(s.firstName, s.lastName)}
               </div>

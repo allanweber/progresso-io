@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   acceptInviteSchema,
-  avatarColor,
+  avatarPalette,
   deriveAccess,
   deriveStudentState,
   isAtStudentLimit,
@@ -195,6 +195,35 @@ describe("access + avatar helpers", () => {
   });
 
   it("is deterministic for the same seed", () => {
-    expect(avatarColor("abc")).toBe(avatarColor("abc"));
+    expect(avatarPalette("abc")).toEqual(avatarPalette("abc"));
+  });
+
+  // The palette is wash + darkened ink, like every other chip in the system.
+  // White-on-saturated failed AA on all eight of the old hues, and two of them
+  // were the brand's emerald and the danger red — pigments that mean something.
+  it("keeps every avatar pair readable and free of semantic pigments", () => {
+    const lin = (c: number) => {
+      const v = c / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    };
+    const ratio = (a: string, b: string) => {
+      const [x, y] = [lum(a), lum(b)];
+      return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+    };
+
+    const seen = new Set<string>();
+    for (let i = 0; i < 400; i++) {
+      const { bg, fg } = avatarPalette(`seed-${i}`);
+      seen.add(`${bg}/${fg}`);
+      expect(ratio(fg, bg)).toBeGreaterThanOrEqual(4.5);
+      // Vital Emerald and the destructive red belong to state, never to identity.
+      expect([bg.toUpperCase(), fg.toUpperCase()]).not.toContain("#059669");
+      expect([bg.toUpperCase(), fg.toUpperCase()]).not.toContain("#EF4444");
+    }
+    expect(seen.size).toBe(8);
   });
 });

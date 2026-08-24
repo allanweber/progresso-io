@@ -25,3 +25,18 @@ export function formatDateBR(iso: string | null): string {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
+
+/**
+ * A count with a noun that agrees with it in PT-BR: `countPt(1, "conversa",
+ * "conversas")` → "1 conversa", `countPt(0, …)` → "0 conversas".
+ *
+ * Written for the screen-reader text behind the dashboard's count badges. Those
+ * strings were fixed plurals interpolated after a number, so at exactly one item
+ * — the most common non-zero state on a queue screen — they read "1 conversas
+ * aguardando resposta". Portuguese agrees on 1 and pluralises everything else,
+ * including 0, which is why this is a two-form helper and not `Intl.PluralRules`
+ * (whose pt-BR `one` category also covers 0 and would give "0 conversa").
+ */
+export function countPt(count: number, one: string, other: string): string {
+  return `${count} ${count === 1 ? one : other}`;
+}

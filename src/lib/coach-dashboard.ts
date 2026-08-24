@@ -56,6 +56,16 @@ export type PendingDraftDto = {
 
 export type CoachDashboardDto = {
   activeCount: number;
+  /**
+   * Every non-archived aluno — convidados and inativos included. This is the
+   * population the plan cap counts, and it is what decides whether the screen
+   * shows its first-run state: a coach whose three invites are still pending has
+   * an `activeCount` of 0 but has plainly already started.
+   *
+   * It rides on this payload rather than being read from `/plan-usage` so the
+   * decision needs one response, not two agreeing with each other.
+   */
+  rosterCount: number;
   missingPlans: MissingPlanStudentDto[];
   pendingCheckins: PendingCheckinDto[];
   waWaiting: WaWaitingDto[];

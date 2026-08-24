@@ -51,7 +51,7 @@ const METRIC_KEY_SET = new Set<string>(PROFILE_METRIC_KEYS);
 import type { PlanUsageDto } from "@/lib/plans";
 import {
   ACCESS_LABELS,
-  avatarColor,
+  avatarPalette,
   deriveAccess,
   deriveStudentState,
   MODALITY_LABELS,
@@ -199,8 +199,11 @@ export default function StudentProfilePage() {
 
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <div
-          className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold text-white"
-          style={{ background: avatarColor(student.id) }}
+          className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold"
+          style={{
+            background: avatarPalette(student.id).bg,
+            color: avatarPalette(student.id).fg,
+          }}
         >
           {studentInitials(student.firstName, student.lastName)}
         </div>

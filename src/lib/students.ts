@@ -85,24 +85,38 @@ export function studentInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
-/** Deterministic avatar background so a student keeps the same colour. */
-const AVATAR_COLORS = [
-  "#059669",
-  "#0EA5E9",
-  "#8B5CF6",
-  "#EC4899",
-  "#F59E0B",
-  "#14B8A6",
-  "#6366F1",
-  "#EF4444",
+/**
+ * Deterministic avatar colours, so a student keeps the same one everywhere.
+ *
+ * Wash + darkened ink, the same shape as {@link STUDENT_STATE_STYLES} and every
+ * chip in the system — not a saturated fill with white initials. Two reasons:
+ * white on the old solids landed between 2.1:1 and 4.5:1 (not one of the eight
+ * reached AA), and the old set included `#059669` and `#EF4444`, so one aluno in
+ * eight wore the brand's "alive" emerald and one in eight wore the danger red on
+ * a row that was perfectly healthy. Hue here identifies a person and nothing
+ * else; it must not borrow a pigment that means something.
+ *
+ * Every pair below clears 4.5:1 ink-on-wash and reads as its own token against
+ * Paper. Emerald, red and amber stay out: they belong to state.
+ */
+const AVATAR_PALETTE: { bg: string; fg: string }[] = [
+  { bg: "#BAE6FD", fg: "#075985" },
+  { bg: "#A5F3FC", fg: "#155E75" },
+  { bg: "#99F6E4", fg: "#115E59" },
+  { bg: "#C7D2FE", fg: "#3730A3" },
+  { bg: "#DDD6FE", fg: "#5B21B6" },
+  { bg: "#F5D0FE", fg: "#86198F" },
+  { bg: "#FBCFE8", fg: "#9D174D" },
+  { bg: "#FED7AA", fg: "#9A3412" },
 ];
 
-export function avatarColor(seed: string): string {
+/** The wash/ink pair for a student's avatar. Stable for a given seed. */
+export function avatarPalette(seed: string): { bg: string; fg: string } {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = (hash * 31 + seed.charCodeAt(i)) | 0;
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 }
 
 /**

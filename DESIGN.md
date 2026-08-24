@@ -3,6 +3,8 @@ name: Progresso IO
 description: A clinical record made legible — paper-white panels on a cool ground, emerald reserved for what is alive.
 colors:
   primary: "#059669"
+  primary-deep: "#047857"
+  primary-press: "#065f46"
   primary-hover: "#047857"
   primary-light: "#f0fdf4"
   primary-light-border: "#bbf7d0"
@@ -196,9 +198,14 @@ low-chroma everywhere except the one place that signals life.
   screen, the current nav item, and every interactive edge on hover and focus.
   It appears as ink (176 usages), as edge (97), and as fill only on small shapes
   — buttons, avatars, nav pills (65).
-- **Deep Emerald** (`#047857`): the pressed and hovered state of the primary
-  fill, and the text color on pale emerald surfaces where `#059669` would be too
-  light to read.
+- **Deep Emerald** (`#047857`): the resting fill of any filled control whose
+  label is white and under 18px, **and** the ink for emerald text on a pale
+  surface. Token: `--primary-deep` (`text-primary-deep` / `bg-primary-deep`).
+  `--primary-hover` remains an alias of this value for the few controls that
+  still rest at Vital Emerald and darken on hover.
+- **Pressed Emerald** (`#065f46`): the hover and pressed rung *under* a Deep
+  Emerald fill — once a button rests at `#047857`, that value can no longer be
+  its own hover. Token: `--primary-press`. White on it reads 7.68:1.
 - **Emerald Wash** (`#f0fdf4`): the pale tint behind an active nav item, a
   default badge, or a success panel. Never a page background.
 - **Emerald Hairline** (`#bbf7d0`): the border on a default badge, the only
@@ -244,13 +251,20 @@ Status pigments, used only inside chips and banners — never as a surface.
 
 ### Categorical Sets
 
-Two places encode *which category a thing is* rather than *how it is doing*.
-These are the only sanctioned multi-hue palettes in the product, they live in
-one module each, and neither may spread beyond it.
+Three places encode *which thing this is* rather than *how it is doing*. These
+are the only sanctioned multi-hue palettes in the product, they live in one
+module each, and none may spread beyond it.
 
 - **Student state** (`STUDENT_STATE_STYLES`, `src/lib/students.ts`) — four
   pairs: `ativo` (`#dcfce7` on `#047857`), `inativo` (`#fef3c7` on `#92400e`),
   `convidado` (`#dbeafe` on `#1d4ed8`), `arquivado` (`#f1f5f9` on `#64748b`).
+- **Aluno avatars** (`AVATAR_PALETTE`, `src/lib/students.ts`) — eight wash/ink
+  pairs hashed from the student id, so a person keeps one colour everywhere.
+  This set encodes *identity*, not state, which is why it is built from the
+  chip vocabulary (pale wash, darkened ink, ≥4.5:1) rather than from saturated
+  fills, and why **emerald, red and amber are excluded**: an avatar must never
+  borrow a pigment that means "alive", "wrong" or "overdue". Guarded by a unit
+  test in `tests/students.test.ts`.
 - **Workout techniques** (`WORKOUT_TECHNIQUES`, `src/lib/workout-techniques.ts`)
   — eight hues identifying a prescription technique (bi-set, giant set, GVT,
   FS7, rest-pause, cluster…). The hue *is* the identifier a coach learns, the
@@ -274,6 +288,29 @@ governs the first.
 importance of a UI element. An active aluno, a published version, the tab you are
 on, the input you are in. It never tints a section header, an icon that is merely
 decorative, or a background that means nothing.
+
+**The 18px Rule.** Vital Emerald is a *large-text and non-text* pigment. It
+reads **3.77:1 on Paper** and **3.60:1 on the Emerald Wash** — fine for a 30px
+figure, an icon or a border (all judged at 3:1), and a WCAG AA failure for
+anything smaller that is meant to be read. White on a Vital Emerald fill is the
+same failure inverted, at **3.77:1**.
+
+So: at 18px and above, or for a shape rather than a word, use `#059669`. Below
+it, in either direction, use Deep Emerald — `text-primary-deep` on a pale
+surface (**5.24:1** on the Wash, **5.48:1** on Paper) or `bg-primary-deep` under
+white (**5.48:1**). This is the same correction the danger chip already carries,
+generalised: the pure pigment is for shapes, the darkened rung is for text.
+
+This is now enforced through the shared primitives: `Button`'s default variant
+and `Badge`'s default variant both rest at `bg-primary-deep` and hover to
+`bg-primary-press` (`#065f46`, white at 7.68:1). Vital Emerald survives where it
+is correct — the 30px KPI figure, icons, borders, the focus ring — and nowhere
+that a word under 18px sits on it.
+
+Still outstanding: roughly twenty hand-rolled `bg-primary` + white-text spots
+outside this route (the calendar's "today" cell, the roster filter pill, the
+WhatsApp avatars, the register wizard's step markers, the aluno portal header).
+They are the same 3.77:1 pair and want the same substitution, screen by screen.
 
 **The Two Grounds Rule.** `#f8fafc` is the coach's ground; `#eef1f5` is the
 aluno's. A surface never sits on the wrong one. That half-step of temperature is
@@ -390,6 +427,22 @@ internal spacing, which is what makes a landing page breathe next to a dashboard
 panel, related controls sit 10px apart, groups 20px. Page title to first panel is
 24px. Table cells are `px-4 py-3`.
 
+**Page gutters** are 16px below `sm` and 24px from `sm` up (`px-4 py-6
+sm:px-6 sm:py-8` on the coach shell's `<main>`, its header and its billing
+banner). 24px each side costs 12% of a 390px phone on screens whose whole job is
+fitting a queue above the fold.
+
+**Touch targets** in the coach header — menu, notification bell, sign out — are
+44px below `sm` and may relax to 36px above it, where a pointer is doing the
+aiming. PRODUCT.md makes thumb-sized targets a correctness requirement, not a
+polish item.
+
+**The header's height is a token**, `--header-h` (73px, 65px from `sm`). The
+notification dropdown pins itself directly below the header on mobile, so the
+two have to agree; the header sizes itself with `h-[var(--header-h)]` and the
+dropdown offsets by the same variable rather than by a literal that has to be
+recomputed whenever the header's contents change.
+
 **Breakpoints** are Tailwind defaults: `sm` 640px, `md` 768px, `lg` 1024px.
 `sm` is the busiest (128 usages) — most adaptation happens between phone and
 large phone, not between laptop and desktop.
@@ -447,6 +500,11 @@ top of the page.
 uses (138 usages against 2 `transition-all`). Movement is reserved for genuine
 indeterminate progress — a spinner. The interface does not slide, scale, or bounce.
 
+The one piece of real motion is `scroll-smooth` on `<html>`, and it is now
+guarded by `prefers-reduced-motion` in `globals.css`. Deliberately *only* that:
+no blanket `* { transition-duration: 0 }`. Colour transitions do not move
+anything, and killing the spinner would read as frozen rather than as calm.
+
 ## Shapes
 
 Three radii and nothing else:
@@ -478,8 +536,10 @@ target reads as a target. Decorative and structural lines stay at 1px.
 
 - **Shape:** gently rounded (10px), 40px tall by default (`h-10 px-5`), 48px at
   `lg` (`h-12 px-7`, 15px text), 36px at `sm`.
-- **Primary:** emerald fill, white text, `shadow-sm`. Hovers to Deep Emerald
-  (`#047857`). Exactly one per screen — the action the page exists for.
+- **Primary:** Deep Emerald fill (`#047857`), white text, `shadow-sm`. Hovers to
+  Pressed Emerald (`#065f46`). Exactly one per screen — the action the page
+  exists for. The fill is the darkened rung, not Vital Emerald, because the
+  label ships at 14px — see **The 18px Rule**.
 - **Outline:** white fill, 1px `#e2e8f0` border, Reading Grey text. On hover the
   border *and* text both go emerald. This is the workhorse secondary.
 - **Ghost:** no fill at rest; hovers to the Emerald Wash with Deep Emerald text.
@@ -515,7 +575,8 @@ target reads as a target. Decorative and structural lines stay at 1px.
 
 - **Default:** Emerald Wash fill, Emerald Hairline border, Vital Emerald text,
   `px-3.5 py-1`, 13px, semibold, fully rounded.
-- **Solid:** emerald fill, white text, 12px — for counts and emphatic states.
+- **Solid:** Deep Emerald fill, white text, 12px — for counts and emphatic
+  states. Same reason as the primary button.
 - **Soft:** `#dcfce7` fill, 10px uppercase with `0.08em` tracking — the eyebrow
   marker.
 - **Catalog set:** `base` (indigo — platform data), `clinic` (emerald — the
@@ -527,11 +588,14 @@ target reads as a target. Decorative and structural lines stay at 1px.
 - **Desktop rail:** 240px, white, 1px right border, logo at top with 32px of air
   beneath it. Items are 10px-radius rows, `px-3 py-2`, 14px medium in Reading
   Grey; hover fills with `#f8fafc`. The active item fills with Emerald Wash and
-  its label and icon go Vital Emerald. `aria-current="page"` is set.
+  its label and icon go **Deep Emerald** — at 14px, Vital Emerald on the Wash is
+  3.60:1 (see **The 18px Rule**). `aria-current="page"` is set.
 - **Active matching:** most-specific-wins — a nested route lights its own item,
   not its parent.
-- **Badges:** a count bubble (emerald fill, white, 11px semibold) sits at the row
-  end, capped at "9+", with an `aria-label` spelling out the real count.
+- **Badges:** a count bubble (**Deep Emerald** fill, white, 11px semibold) sits
+  at the row end, capped at "9+". The real count ships as `sr-only` text beside
+  an `aria-hidden` numeral — never as an `aria-label` on the span, which maps to
+  `role="generic"` and cannot carry a name.
 - **Mobile (coach):** a 36px bordered menu button in the header opens a left
   `Sheet` carrying the same rail, plus a mark-only logo.
 - **Mobile (aluno):** a fixed bottom bar; the active tab is marked by a 2.5px

@@ -29,7 +29,7 @@ import {
 } from "@/lib/plans";
 import {
   ACCESS_LABELS,
-  avatarColor,
+  avatarPalette,
   deriveAccess,
   deriveStudentState,
   studentInitials,
@@ -64,8 +64,11 @@ const columns = [
       return (
         <div className="flex items-center gap-3">
           <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold text-white"
-            style={{ background: avatarColor(s.id) }}
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold"
+            style={{
+              background: avatarPalette(s.id).bg,
+              color: avatarPalette(s.id).fg,
+            }}
           >
             {studentInitials(s.firstName, s.lastName)}
           </div>
@@ -272,8 +275,11 @@ export default function StudentsPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
-                        style={{ background: avatarColor(s.id) }}
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full text-body font-semibold"
+                        style={{
+                          background: avatarPalette(s.id).bg,
+                          color: avatarPalette(s.id).fg,
+                        }}
                       >
                         {studentInitials(s.firstName, s.lastName)}
                       </div>

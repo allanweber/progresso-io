@@ -33,6 +33,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const { data } = useQuery({
     queryKey: ["notifications"],
@@ -50,14 +51,31 @@ export function NotificationBell() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  // Close on outside click.
+  /*
+    Close on outside click or Escape.
+
+    Escape matters because this is the one overlay in the shell that is not a
+    Radix primitive — the drawer, the subscribe dialog and every select get
+    dismiss-and-restore for free, and this hand-rolled panel did not. Without it
+    a keyboard user could open the dropdown and had no way to close it, and focus
+    was left wherever it happened to be rather than back on the bell.
+  */
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
     document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const items = data?.items ?? [];
@@ -76,28 +94,31 @@ export function NotificationBell() {
   return (
     <div className="relative" ref={ref}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={toggle}
         aria-label={`Notificações${unread > 0 ? ` (${unread} não lidas)` : ""}`}
         aria-haspopup="true"
         aria-expanded={open}
-        className="relative flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+        className="relative flex size-11 items-center justify-center rounded-md border-[1.5px] border-input text-text-secondary transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:size-9"
       >
         <Bell className="size-4" />
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-eyebrow font-semibold text-primary-foreground">
+          <span className="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-primary-deep px-1 text-eyebrow font-semibold text-primary-foreground">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="fixed inset-x-3 top-[66px] z-50 overflow-hidden rounded-[12px] border border-border bg-white shadow-[0_8px_40px_rgba(15,23,42,0.15)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
+        <div className="fixed inset-x-3 top-[var(--header-h)] z-50 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_8px_40px_rgba(15,23,42,0.15)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
           {/* Mobile: a viewport-width sheet pinned below the header (the 320px
               dropdown would overflow the left edge, since the bell sits mid-header).
+              The offset reads `--header-h`, the same token the header sizes
+              itself from, so the two cannot drift apart the way a literal did.
               sm+: the anchored dropdown below the bell. */}
           <div className="border-b border-border px-4 py-3">
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-body font-semibold text-foreground">
               Notificações
             </span>
           </div>
@@ -112,14 +133,14 @@ export function NotificationBell() {
                   <Link
                     href={notificationHref(n)}
                     onClick={() => setOpen(false)}
-                    className={`flex flex-col gap-0.5 px-4 py-3 transition-colors hover:bg-secondary ${
+                    className={`flex min-h-11 flex-col justify-center gap-0.5 px-4 py-3 transition-colors hover:bg-secondary ${
                       n.read ? "" : "bg-primary-light/40"
                     }`}
                   >
                     <span className="text-body-dense font-medium text-foreground">
                       {notificationTitle(n)}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                       {now ? relativeTime(n.createdAt, now) : ""}
                     </span>
                   </Link>
