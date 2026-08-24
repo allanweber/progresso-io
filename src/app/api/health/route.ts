@@ -31,4 +31,4 @@ export const GET = withRoute("health", async (request) => {
       { status: 503 },
     );
   }
-}, { quiet: true });
+});

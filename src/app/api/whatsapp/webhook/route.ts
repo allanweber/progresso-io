@@ -31,7 +31,6 @@ export const POST = withRoute(
     }
     return NextResponse.json({ received: true });
   },
-  { quiet: true },
 );
 
 /** Meta's webhook verification handshake (GET echo of hub.challenge). */
@@ -50,5 +49,4 @@ export const GET = withRoute(
     }
     return new NextResponse("forbidden", { status: 403 });
   },
-  { quiet: true },
 );

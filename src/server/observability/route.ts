@@ -27,27 +27,18 @@ type RouteHandler<Ctx> = (
   ctx: Ctx,
 ) => Promise<Response> | Response;
 
-type RouteOptions = {
-  /**
-   * Retained for call-site compatibility (e.g. the healthcheck passes it). With
-   * the structured start/finish logging removed it no longer changes behaviour.
-   */
-  quiet?: boolean;
-};
-
 /**
  * Wraps a route handler: opens a request context (request id from the incoming
  * `x-request-id` or a fresh one), echoes the id back on `x-request-id`, and
  * converts an uncaught throw into a 500 (reported to Sentry + console) so a
- * handler bug can't leak a stack to the client.
+ * handler bug can't leak a stack to the client. Next's redirect()/notFound()
+ * control-flow throws are re-thrown untouched.
  *
  *   export const GET = withRoute("students.list", async (request) => { … });
  */
 export function withRoute<Ctx = unknown>(
   name: string,
   handler: RouteHandler<Ctx>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: RouteOptions = {},
 ): RouteHandler<Ctx> {
   return async (request, ctx) => {
     const requestId = request.headers.get("x-request-id") ?? newRequestId();
@@ -61,6 +52,11 @@ export function withRoute<Ctx = unknown>(
           res.headers.set("x-request-id", requestId);
           return res;
         } catch (error) {
+          // Next's redirect()/notFound() are control flow, not failures — they
+          // must propagate so the framework can act on them. Swallowing them
+          // here would answer a redirect with a 500 and file a phantom Sentry
+          // event (withAction has always done this; withRoute had not).
+          if (isControlFlow(error)) throw error;
           console.error("request.error", { route: name, path, err: error });
           Sentry.captureException(error);
           const res = apiError("Erro interno no servidor.", 500);
