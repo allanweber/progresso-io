@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { bootstrapAdminEmail, isAdminEmail } from "@/lib/roles";
 import { admin } from "@/server/dal";
-import { apiError, notFound } from "@/server/api";
+import { apiError, isAuthId, notFound } from "@/server/api";
 import { logger } from "@/server/observability";
 import { withAdmin } from "@/server/guard";
 
@@ -21,6 +21,7 @@ export const DELETE = withAdmin<Params>(
   "admin.admins.delete",
   async (_request, session, { params }) => {
     const { id } = await params;
+    if (!isAuthId(id)) return notFound("Administrador não encontrado.");
 
     const target = await admin.getUserById(db, id);
     if (!target || target.role !== "admin") {

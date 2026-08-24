@@ -74,11 +74,13 @@ export const RESERVED_SLUGS = new Set<string>([
 /**
  * Portal slug: lowercase letters/digits in hyphen-separated groups (no
  * leading/trailing/double hyphen), 3–30 chars, and not a reserved word.
- * Validated only when set — see {@link clinicSettingsSchema}.
+ * Validated only when set — see {@link clinicSettingsSchema}. Also guards the
+ * public portal-logo route param — a slug this rejects can never belong to a
+ * clinic.
  */
 const SUBDOMAIN_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-const subdomainSlug = z
+export const subdomainSlug = z
   .string()
   .min(3, "O endereço deve ter ao menos 3 caracteres.")
   .max(30, "O endereço deve ter no máximo 30 caracteres.")

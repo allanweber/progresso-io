@@ -71,3 +71,18 @@ const uuidSchema = z.string().uuid();
 export function isUuid(value: string): boolean {
   return uuidSchema.safeParse(value).success;
 }
+
+// Better Auth generates opaque text ids for `user.id` (not UUIDs), so `isUuid`
+// cannot guard them. Bound the shape instead: a plausible id is a non-empty run
+// of URL-safe id characters. This is a cheap shape check, NOT authorization —
+// every caller still gates on the session and scopes by tenant.
+const authIdSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[A-Za-z0-9_-]+$/);
+
+/** Whether a route param is a well-formed Better Auth user id. */
+export function isAuthId(value: string): boolean {
+  return authIdSchema.safeParse(value).success;
+}

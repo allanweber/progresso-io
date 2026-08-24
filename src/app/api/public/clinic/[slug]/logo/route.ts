@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { subdomainSlug } from "@/lib/clinic-settings";
 import { clinics } from "@/server/dal";
 import { notFound } from "@/server/api";
 import { readClinicLogo } from "@/server/r2";
@@ -16,7 +17,12 @@ export const GET = withRoute<Params>(
   "public.clinic.logo",
   async (_request, { params }) => {
     const { slug } = await params;
-    const key = await clinics.getPublicLogoKeyBySlug(db, slug);
+    // A slug the settings form would reject can never belong to a clinic, so
+    // reuse that exact schema and answer 404 without touching the database.
+    const parsed = subdomainSlug.safeParse(slug);
+    if (!parsed.success) return notFound();
+
+    const key = await clinics.getPublicLogoKeyBySlug(db, parsed.data);
     if (!key) return notFound();
 
     const file = await readClinicLogo(key);

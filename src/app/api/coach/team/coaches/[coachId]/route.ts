@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { coaches } from "@/server/dal";
-import { apiError, forbidden, notFound } from "@/server/api";
+import { apiError, forbidden, isAuthId, notFound } from "@/server/api";
 import { logger } from "@/server/observability";
 import { withCoach } from "@/server/guard";
 
@@ -20,6 +20,8 @@ export const DELETE = withCoach<Params>(
     }
 
     const { coachId } = await params;
+    if (!isAuthId(coachId)) return notFound("Coach não encontrado.");
+
     const result = await coaches.removeCoach(ctx, coachId);
     if (!result.ok) {
       if (result.reason === "not_found") return notFound("Coach não encontrado.");
