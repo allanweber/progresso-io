@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Observability toolkit. Server-only (imports node:async_hooks) — never import
  * from a client component.

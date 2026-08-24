@@ -1,3 +1,5 @@
+import "server-only";
+
 import { logger } from "@/server/observability";
 
 /**

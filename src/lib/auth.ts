@@ -1,3 +1,5 @@
+import "server-only";
+
 import { AsyncLocalStorage } from "node:async_hooks";
 
 import { betterAuth, type BetterAuthOptions } from "better-auth";
