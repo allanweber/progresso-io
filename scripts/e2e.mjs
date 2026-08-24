@@ -24,7 +24,7 @@ import { cpSync } from "node:fs";
 
 const PG_IMAGE = "postgres:16-alpine";
 const PG_CONTAINER = "progresso-e2e-pg";
-const PG_PORT = 5433;
+const PG_PORT = 5439;
 const PG_DB = "progresso_e2e";
 
 const usingExternalDb = Boolean(process.env.DATABASE_URL);

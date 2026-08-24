@@ -42,6 +42,7 @@ test.describe("coach dashboard", () => {
     // --- Desktop ---
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/coach");
+    await page.waitForLoadState("networkidle");
 
     await expect(
       page.getByRole("heading", { name: "Sua fila de hoje" }),
@@ -92,11 +93,23 @@ test.describe("coach dashboard", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/coach");
 
+    // Settle first. The heading renders during the skeleton and the billing
+    // banner arrives on a separate query, so measuring too early would test the
+    // most favourable layout instead of the real one. (Safe here: the suite runs
+    // against a production build, so there is no HMR socket to keep the network
+    // busy.)
+    await page.waitForLoadState("networkidle");
+
     const queueHeading = page.getByRole("heading", { name: "Precisa de você" });
     await expect(queueHeading).toBeVisible();
+    // Real rows, not skeletons.
+    await expect(
+      page.getByRole("region", { name: "Precisa de você" }).getByRole("listitem").first(),
+    ).toBeVisible();
 
     // The screen is called "sua fila de hoje"; on a phone the fila must be on
-    // screen without scrolling. The old tile row pushed it ~420px down.
+    // screen without scrolling — banner, title and actions included. The old
+    // tile row pushed it ~420px down.
     const box = await queueHeading.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.y).toBeLessThan(844);
@@ -154,6 +167,8 @@ test.describe("coach dashboard", () => {
     await expect(
       page.getByRole("heading", { name: "Sua fila de hoje" }),
     ).toBeVisible();
+    // Desktop viewport, so the secondary action is visible; on a phone the
+    // drawer carries it instead.
     await expect(
       page.getByRole("link", { name: "Ver todos os alunos" }),
     ).toBeVisible();

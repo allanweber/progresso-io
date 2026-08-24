@@ -133,7 +133,7 @@ export default function CoachDashboardPage() {
         </h1>
       </div>
       <div className="flex flex-wrap gap-2.5">
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="hidden sm:inline-flex">
           <Link href="/coach/students">Ver todos os alunos</Link>
         </Button>
         {usage && isAtLimit(usage.students.used, usage.students.limit) ? (
@@ -253,9 +253,10 @@ export default function CoachDashboardPage() {
   }
 
   return (
-    <div className="mx-auto flex min-w-0 max-w-6xl flex-col gap-4">
+    <div className="mx-auto min-w-0 max-w-6xl">
       {header}
 
+      <div className="mt-4 grid min-w-0 items-start gap-4 lg:grid-cols-[1.6fr_1fr]">
       {/* The queue — everything the coach owes someone, longest wait first. */}
       <SectionCard
         title="Precisa de você"
@@ -344,6 +345,7 @@ export default function CoachDashboardPage() {
           </ul>
         )}
       </SectionCard>
+      </div>
     </div>
   );
 }
@@ -383,7 +385,7 @@ function QueueRow({ item }: { item: QueueItemDto }) {
           dateTime={item.waitingSince}
           className={cn(
             "shrink-0 text-body-dense font-medium tabular-nums",
-            urgent ? "text-danger-fg" : "text-meta",
+            urgent ? "text-danger-fg" : "text-text-secondary",
           )}
         >
           {waitLabel(days)}
