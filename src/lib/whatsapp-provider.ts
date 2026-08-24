@@ -65,6 +65,20 @@ export type WhatsAppProvider = {
   ): Promise<ProviderSendResult>;
   /** Parse a raw webhook payload into normalized events (never throws). */
   parseInboundWebhook(payload: unknown): InboundEvent[];
+  /**
+   * Whether a raw webhook request genuinely came from this vendor.
+   *
+   * REQUIRED, not optional, and deliberately so: the port is designed for a
+   * vendor to be added as one new file with zero caller changes, which is
+   * exactly how an unauthenticated public endpoint ends up trusting forged
+   * payloads. Making this a mandatory member means TypeScript refuses a vendor
+   * implementation that has not answered the question.
+   *
+   * Receives the body as raw text — every vendor's HMAC is computed over the
+   * exact bytes sent, so it must be verified BEFORE any JSON parse/re-serialize.
+   * Must never throw: return false for a malformed or absent signature.
+   */
+  verifyWebhook(rawBody: string, headers: Headers): boolean;
 };
 
 /**
@@ -92,6 +106,13 @@ const devProvider: WhatsAppProvider = {
   parseInboundWebhook() {
     logger.warn("whatsapp.webhook.no_provider");
     return [];
+  },
+  verifyWebhook() {
+    // The dev provider parses no webhooks (`parseInboundWebhook` always returns
+    // []), so an unverified payload can produce no events and there is nothing
+    // to protect. Accepting keeps local dev and the route's own tests working;
+    // the moment a real vendor lands it must implement this for real.
+    return true;
   },
 };
 
