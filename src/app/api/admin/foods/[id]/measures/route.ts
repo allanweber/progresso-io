@@ -5,14 +5,13 @@ import { measureFormSchema } from "@/lib/foods";
 import { admin } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Adds a shared **base** household measure to a food (`clinic_id NULL`).
@@ -20,12 +19,9 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withAdmin<Params>(
   "admin.foods.measure.add",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Alimento não encontrado.");
 

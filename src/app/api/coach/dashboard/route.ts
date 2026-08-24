@@ -8,9 +8,7 @@ import type {
   WaWaitingDto,
 } from "@/lib/coach-dashboard";
 import { calendarEvents, plans, students, whatsapp } from "@/server/dal";
-import { forbidden, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { withCoach } from "@/server/guard";
 
 /**
  * Coach dashboard data. Read by the /coach page via TanStack Query. There is no
@@ -24,11 +22,7 @@ import { getTenantContext } from "@/server/tenant";
  * WhatsApp (empty otherwise, so a Free clinic's card just shows nothing to
  * answer); the agenda cards likewise depend on the calendar capability.
  */
-export const GET = withRoute("coach.dashboard", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("coach.dashboard", async (_request, ctx) => {
   const [base, rosterCount, canWhatsapp, canCalendar] = await Promise.all([
     students.getCoachDashboard(ctx),
     students.countStudents(ctx),

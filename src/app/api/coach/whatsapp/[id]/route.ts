@@ -5,15 +5,13 @@ import { plans, whatsapp } from "@/server/dal";
 import { WhatsAppSendError } from "@/server/dal/whatsapp";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 import { whatsappLocked } from "../route";
 
 type Params = { params: Promise<{ id: string }> };
@@ -23,12 +21,9 @@ type Params = { params: Promise<{ id: string }> };
  * only, plan-gated, tenant-scoped (the conversation must belong to this clinic —
  * the DAL enforces it, returning null → 404).
  */
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "coach.whatsapp.thread",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (_request, ctx, { params }) => {
     if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();
 
     const { id } = await params;
@@ -47,12 +42,9 @@ export const GET = withRoute<Params>(
  * open) or an approved template. The DAL enforces the window and template
  * approval; a violation surfaces as a friendly 422 so the UI can explain it.
  */
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "coach.whatsapp.send",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (request, ctx, { params }) => {
     if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();
 
     const { id } = await params;

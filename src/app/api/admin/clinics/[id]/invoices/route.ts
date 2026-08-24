@@ -4,24 +4,20 @@ import { db } from "@/db";
 import { invoiceWriteSchema } from "@/lib/billing";
 import { billing } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
 /** A clinic's invoices (admin), newest number first. See {@link billing.listInvoicesForClinic}. */
-export const GET = withRoute<Params>(
+export const GET = withAdmin<Params>(
   "admin.clinics.invoices.list",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Clínica não encontrada.");
 
@@ -36,12 +32,9 @@ export const GET = withRoute<Params>(
  * never trusted from the client. This is a pure ledger entry — it does NOT change
  * the clinic's plan. See {@link billing.createInvoice}.
  */
-export const POST = withRoute<Params>(
+export const POST = withAdmin<Params>(
   "admin.clinics.invoices.create",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Clínica não encontrada.");
 

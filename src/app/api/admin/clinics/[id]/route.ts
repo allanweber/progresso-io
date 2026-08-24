@@ -10,9 +10,9 @@ import {
   PLAN_META,
 } from "@/lib/plans";
 import { admin, billing } from "@/server/dal";
-import { forbidden, isUuid, notFound } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /** Maps the DAL limits row into the client DTO (adds the plan display name). */
 function toLimitsDto(
@@ -45,12 +45,9 @@ type Params = { params: Promise<{ id: string }> };
  * current plan), its plan-change history (audit trail), and its invoices (the
  * manual billing ledger, with derived totals). Admin-only, cross-tenant.
  */
-export const GET = withRoute<Params>(
+export const GET = withAdmin<Params>(
   "admin.clinics.detail",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Clínica não encontrada.");
 
@@ -75,12 +72,9 @@ export const GET = withRoute<Params>(
  * cross-tenant, so it's admin-only. See {@link admin.hardDeleteClinic}.
  */
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withAdmin<Params>(
   "admin.clinics.hardDelete",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

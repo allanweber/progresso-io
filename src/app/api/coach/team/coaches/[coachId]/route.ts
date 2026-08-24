@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { coaches } from "@/server/dal";
-import { apiError, forbidden, notFound, unauthorized } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { apiError, forbidden, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 type Params = { params: Promise<{ coachId: string }> };
 
@@ -12,12 +12,9 @@ type Params = { params: Promise<{ coachId: string }> };
  * the owner and hard-deletes the account (see {@link coaches.removeCoach}). The
  * owner and the acting user can't be removed.
  */
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "coach.team.remove",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (_request, ctx, { params }) => {
     if (!(await coaches.isClinicOwner(ctx))) {
       return forbidden("Apenas o responsável pela clínica pode remover coaches.");
     }

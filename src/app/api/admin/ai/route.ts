@@ -4,9 +4,7 @@ import { db } from "@/db";
 import type { AdminAiOverviewDto } from "@/lib/ai-programs";
 import { isLlmConfigured } from "@/lib/llm-provider";
 import { ai, aiSettings } from "@/server/dal";
-import { forbidden } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Platform-admin AI overview: per-tenant generations vs. allowance, token mix,
@@ -23,10 +21,7 @@ import { getAdminSession } from "@/server/admin";
  * Neither carries a secret: `LLM_API_KEY` is never part of the response, only
  * whether one is set.
  */
-export const GET = withRoute("admin.ai.overview", async () => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.ai.overview", async () => {
   const [overview, settings] = await Promise.all([
     ai.getAdminAiOverview(db),
     aiSettings.getAiSettings(db),

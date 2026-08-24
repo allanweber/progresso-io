@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { exercises } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Removes one of this clinic's own substitution rules from an exercise. Coach-
@@ -12,13 +12,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string; subId: string }> };
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "exercises.substitution.remove",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id, subId } = await params;
     if (!isUuid(id) || !isUuid(subId)) {
       return notFound("Substituição não encontrada.");

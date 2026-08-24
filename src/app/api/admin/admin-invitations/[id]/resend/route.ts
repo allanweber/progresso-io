@@ -4,9 +4,9 @@ import { db } from "@/db";
 import { sendAdminInviteEmail } from "@/lib/email";
 import { adminInvitations } from "@/server/dal";
 import { ADMIN_INVITE_TTL_DAYS } from "@/server/dal/admin-invitations";
-import { forbidden, isUuid, notFound } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Resend a pending admin invite: issues a FRESH token (superseding the old one)
@@ -14,12 +14,9 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withAdmin<Params>(
   "admin.adminInvitations.resend",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

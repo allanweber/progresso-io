@@ -4,15 +4,13 @@ import { dietFormSchema } from "@/lib/diets";
 import { diets } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * A single diet: read its full tree, replace it, archive or unarchive it.
@@ -22,68 +20,64 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>("diets.detail", async (_request, { params }) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const GET = withCoach<Params>(
+  "diets.detail",
+  async (_request, ctx, { params }) => {
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Dieta não encontrada.");
 
-  const { id } = await params;
-  if (!isUuid(id)) return notFound("Dieta não encontrada.");
+    const diet = await diets.getDiet(ctx, id);
+    if (!diet) return notFound("Dieta não encontrada.");
+    return NextResponse.json(diet);
+  },
+);
 
-  const diet = await diets.getDiet(ctx, id);
-  if (!diet) return notFound("Dieta não encontrada.");
-  return NextResponse.json(diet);
-});
+export const PUT = withCoach<Params>(
+  "diets.update",
+  async (request, ctx, { params }) => {
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Dieta não encontrada.");
 
-export const PUT = withRoute<Params>("diets.update", async (request, { params }) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+    const body = await readJson(request);
+    if (!body.ok) return body.response;
 
-  const { id } = await params;
-  if (!isUuid(id)) return notFound("Dieta não encontrada.");
+    const parsed = dietFormSchema.safeParse(body.data);
+    if (!parsed.success) return validationError(parsed.error);
 
-  const body = await readJson(request);
-  if (!body.ok) return body.response;
-
-  const parsed = dietFormSchema.safeParse(body.data);
-  if (!parsed.success) return validationError(parsed.error);
-
-  const result = await diets.updateDiet(ctx, id, parsed.data);
-  if (!result.ok) {
-    if (result.reason === "invalid_food") {
-      return apiError("Um dos alimentos selecionados é inválido.", 422);
+    const result = await diets.updateDiet(ctx, id, parsed.data);
+    if (!result.ok) {
+      if (result.reason === "invalid_food") {
+        return apiError("Um dos alimentos selecionados é inválido.", 422);
+      }
+      return notFound("Dieta não encontrada ou não editável.");
     }
-    return notFound("Dieta não encontrada ou não editável.");
-  }
-  logger.info("diet.updated", { dietId: id });
-  return NextResponse.json({ diet: { id } });
-});
+    logger.info("diet.updated", { dietId: id });
+    return NextResponse.json({ diet: { id } });
+  },
+);
 
-export const DELETE = withRoute<Params>("diets.archive", async (_request, { params }) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const DELETE = withCoach<Params>(
+  "diets.archive",
+  async (_request, ctx, { params }) => {
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Dieta não encontrada.");
 
-  const { id } = await params;
-  if (!isUuid(id)) return notFound("Dieta não encontrada.");
+    const ok = await diets.archiveDiet(ctx, id);
+    if (!ok) return notFound("Dieta não encontrada ou não editável.");
+    logger.info("diet.archived", { dietId: id });
+    return NextResponse.json({ diet: { id } });
+  },
+);
 
-  const ok = await diets.archiveDiet(ctx, id);
-  if (!ok) return notFound("Dieta não encontrada ou não editável.");
-  logger.info("diet.archived", { dietId: id });
-  return NextResponse.json({ diet: { id } });
-});
+export const PATCH = withCoach<Params>(
+  "diets.unarchive",
+  async (_request, ctx, { params }) => {
+    const { id } = await params;
+    if (!isUuid(id)) return notFound("Dieta não encontrada.");
 
-export const PATCH = withRoute<Params>("diets.unarchive", async (_request, { params }) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
-  const { id } = await params;
-  if (!isUuid(id)) return notFound("Dieta não encontrada.");
-
-  const ok = await diets.unarchiveDiet(ctx, id);
-  if (!ok) return notFound("Dieta não encontrada ou não editável.");
-  logger.info("diet.unarchived", { dietId: id });
-  return NextResponse.json({ diet: { id } });
-});
+    const ok = await diets.unarchiveDiet(ctx, id);
+    if (!ok) return notFound("Dieta não encontrada ou não editável.");
+    logger.info("diet.unarchived", { dietId: id });
+    return NextResponse.json({ diet: { id } });
+  },
+);

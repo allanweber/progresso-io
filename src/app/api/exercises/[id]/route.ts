@@ -3,15 +3,13 @@ import { NextResponse } from "next/server";
 import { exerciseFormSchema, type ExerciseDetailDto } from "@/lib/exercises";
 import { exercises } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * A single exercise the clinic can see (an open base exercise or one of its own).
@@ -20,13 +18,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "exercises.detail",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 
@@ -71,13 +65,9 @@ export const GET = withRoute<Params>(
  * the write by `clinicId`, so a base or other-clinic id yields a 404. Input
  * validated with zod.
  */
-export const PUT = withRoute<Params>(
+export const PUT = withCoach<Params>(
   "exercises.update",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 
@@ -97,13 +87,9 @@ export const PUT = withRoute<Params>(
 );
 
 /** Archives one of this clinic's own custom exercises. Coach-only. */
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "exercises.archive",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 

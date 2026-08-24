@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { adminInvitations } from "@/server/dal";
-import { forbidden, isUuid, notFound } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Revoke a pending admin invite — deletes the invitation row so the e-mailed
@@ -13,12 +13,9 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withAdmin<Params>(
   "admin.adminInvitations.revoke",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

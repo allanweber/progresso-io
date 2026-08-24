@@ -9,11 +9,10 @@ import {
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 function calendarLocked() {
   return forbidden(
@@ -29,12 +28,9 @@ type Params = { params: Promise<{ id: string }> };
  * DAL's WHERE includes `clinicId`). Derived check-in markers have no id and
  * never reach this route.
  */
-export const PATCH = withRoute<Params>(
+export const PATCH = withCoach<Params>(
   "coach.calendar.update",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (request, ctx, { params }) => {
     if (!(await plans.canUseCalendar(ctx))) return calendarLocked();
 
     const { id } = await params;
@@ -62,12 +58,9 @@ export const PATCH = withRoute<Params>(
   },
 );
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "coach.calendar.delete",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (_request, ctx, { params }) => {
     if (!(await plans.canUseCalendar(ctx))) return calendarLocked();
 
     const { id } = await params;

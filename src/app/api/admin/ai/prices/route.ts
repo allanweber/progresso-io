@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { providerPriceSchema } from "@/lib/provider-prices";
 import { providerPrices } from "@/server/dal";
-import { fieldConflict, forbidden, readJson, validationError } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { fieldConflict, readJson, validationError } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * The LLM price list. Platform reference data, so admin-only and cross-tenant
@@ -13,20 +13,14 @@ import { getAdminSession } from "@/server/admin";
  * routes.
  */
 
-export const GET = withRoute("admin.ai.prices.list", async () => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.ai.prices.list", async () => {
   const rows = await providerPrices.listProviderPrices(db);
   return NextResponse.json({
     prices: rows.map(providerPrices.toProviderPriceDto),
   });
 });
 
-export const POST = withRoute("admin.ai.prices.create", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const POST = withAdmin("admin.ai.prices.create", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
   const parsed = providerPriceSchema.safeParse(body.data);

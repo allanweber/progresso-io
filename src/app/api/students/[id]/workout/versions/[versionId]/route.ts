@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { studentWorkouts } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { isUuid, notFound } from "@/server/api";
+import { withCoach } from "@/server/guard";
 
 /**
  * A single published version of a student's workout, for the read-only history
@@ -11,13 +10,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string; versionId: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "student-workout.version",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id, versionId } = await params;
     if (!isUuid(id) || !isUuid(versionId)) {
       return notFound("Versão não encontrada.");

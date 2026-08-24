@@ -4,24 +4,18 @@ import { dietFormSchema, dietListQuerySchema } from "@/lib/diets";
 import { diets } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Dietas listing for the coach. Read via TanStack Query with server-side search
  * / archived-filter / pagination. Tenant-scoped through the DAL (base templates +
  * this clinic's own diets); coach-only. Query validated with zod.
  */
-export const GET = withRoute("diets.list", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("diets.list", async (request, ctx) => {
   const p = new URL(request.url).searchParams;
   const parsed = dietListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -46,11 +40,7 @@ export const GET = withRoute("diets.list", async (request) => {
  * Coach-only; the DAL stamps `clinicId` (and `coachId`) from the session, so the
  * diet is private to the clinic.
  */
-export const POST = withRoute("diets.create", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("diets.create", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

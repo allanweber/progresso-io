@@ -2,24 +2,18 @@ import { NextResponse } from "next/server";
 
 import { foods } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
-  unauthorized,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /** Removes one of this clinic's own measures from a food. Coach-only. */
 type Params = { params: Promise<{ id: string; measureId: string }> };
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "foods.measure.remove",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id, measureId } = await params;
     if (!isUuid(id) || !isUuid(measureId)) return notFound("Medida não encontrada.");
 

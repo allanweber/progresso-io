@@ -4,14 +4,13 @@ import { db } from "@/db";
 import { invoiceWriteSchema } from "@/lib/billing";
 import { admin, billing } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -19,12 +18,9 @@ type Params = { params: Promise<{ id: string }> };
  * One invoice (with line items + derived totals) plus its clinic — the payload
  * for the printable invoice view. Admin-only. See {@link billing.getInvoice}.
  */
-export const GET = withRoute<Params>(
+export const GET = withAdmin<Params>(
   "admin.invoices.detail",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Fatura não encontrada.");
 
@@ -41,12 +37,9 @@ export const GET = withRoute<Params>(
  * number and status are untouched; the total is recomputed from the new line
  * items minus the discount. See {@link billing.updateInvoice}.
  */
-export const PUT = withRoute<Params>(
+export const PUT = withAdmin<Params>(
   "admin.invoices.update",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Fatura não encontrada.");
 
@@ -65,12 +58,9 @@ export const PUT = withRoute<Params>(
 );
 
 /** Hard-deletes an invoice — line items cascade (admin). See {@link billing.deleteInvoice}. */
-export const DELETE = withRoute<Params>(
+export const DELETE = withAdmin<Params>(
   "admin.invoices.delete",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Fatura não encontrada.");
 

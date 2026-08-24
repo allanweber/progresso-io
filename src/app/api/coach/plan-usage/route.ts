@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { forbidden, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
+import { notFound } from "@/server/api";
+import { withCoach } from "@/server/guard";
 import { getPlanUsage } from "@/server/plan-usage";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * The clinic's plan usage vs. its caps — roster alunos, coaches, whether
@@ -15,11 +14,7 @@ import { getTenantContext } from "@/server/tenant";
  * The composition itself lives in `@/server/plan-usage` because the coach
  * layout calls it directly to seed this query's `initialData`.
  */
-export const GET = withRoute("coach.planUsage.read", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("coach.planUsage.read", async (_request, ctx) => {
   const usage = await getPlanUsage(ctx);
   if (!usage) return notFound("Clínica não encontrada.");
   return NextResponse.json(usage);

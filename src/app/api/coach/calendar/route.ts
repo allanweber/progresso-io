@@ -7,11 +7,10 @@ import {
   fieldConflict,
   forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /** 403 shown when the clinic's plan doesn't include the Calendar (Free). */
 function calendarLocked() {
@@ -26,10 +25,7 @@ function calendarLocked() {
  * through the DAL; every input validated with zod. The GET merges stored events
  * with the derived check-in markers.
  */
-export const GET = withRoute("coach.calendar.list", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const GET = withCoach("coach.calendar.list", async (request, ctx) => {
   if (!(await plans.canUseCalendar(ctx))) return calendarLocked();
 
   const p = new URL(request.url).searchParams;
@@ -43,10 +39,7 @@ export const GET = withRoute("coach.calendar.list", async (request) => {
   return NextResponse.json(calendar);
 });
 
-export const POST = withRoute("coach.calendar.create", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const POST = withCoach("coach.calendar.create", async (request, ctx) => {
   if (!(await plans.canUseCalendar(ctx))) return calendarLocked();
 
   const body = await readJson(request);

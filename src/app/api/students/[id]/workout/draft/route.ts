@@ -4,15 +4,13 @@ import { workoutFormSchema } from "@/lib/workouts";
 import { studentWorkouts } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * The in-flight draft of a student's workout: save it (whole tree) or discard
@@ -21,13 +19,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const PUT = withRoute<Params>(
+export const PUT = withCoach<Params>(
   "student-workout.draft.save",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Aluno não encontrado.");
 
@@ -54,13 +48,9 @@ export const PUT = withRoute<Params>(
   },
 );
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "student-workout.draft.discard",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Aluno não encontrado.");
 

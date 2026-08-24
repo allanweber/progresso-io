@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { studentPortal } from "@/server/dal";
-import { forbidden, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { notFound } from "@/server/api";
+import { withStudent } from "@/server/guard";
 
 /**
  * The aluno's own workout state: the active published version + read-only
@@ -11,12 +10,11 @@ import { getTenantContext } from "@/server/tenant";
  * client-supplied id) and returns only published versions — a draft is never
  * exposed. A user with no linked student row yields a 404.
  */
-export const GET = withRoute("student-portal.workout.state", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "aluno") return forbidden();
-
-  const state = await studentPortal.getMyWorkoutState(ctx);
-  if (!state) return notFound("Aluno não encontrado.");
-  return NextResponse.json(state);
-});
+export const GET = withStudent(
+  "student-portal.workout.state",
+  async (_request, ctx) => {
+    const state = await studentPortal.getMyWorkoutState(ctx);
+    if (!state) return notFound("Aluno não encontrado.");
+    return NextResponse.json(state);
+  },
+);

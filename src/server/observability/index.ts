@@ -7,7 +7,7 @@ import "server-only";
  *   import { logger, withRoute, withAction } from "@/server/observability";
  */
 export { logger, type LogLevel, type LogFields, type Logger } from "./logger";
-export { withRoute, withAction } from "./route";
+export { withRoute, withAction, type RouteHandler } from "./route";
 export {
   type RequestContext,
   newRequestId,

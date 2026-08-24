@@ -6,19 +6,15 @@ import {
   type AdminTemplateListResponse,
 } from "@/lib/admin";
 import { admin } from "@/server/dal";
-import { forbidden, validationError } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { validationError } from "@/server/api";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Cross-clinic diets listing for the admin "Manutenção → Dietas" tab. Every
  * clinic's diets, tagged Sistema (source_key set) / Clínica, with how many
  * student diets were created from each. Admin-only; filters validated with zod.
  */
-export const GET = withRoute("admin.diets.list", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.diets.list", async (request) => {
   const p = new URL(request.url).searchParams;
   const parsed = adminTemplateListQuerySchema.safeParse({
     clinic: p.get("clinic") || undefined,

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { forbidden, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
 import { receiveExerciseImage } from "@/server/r2";
-import { getTenantContext } from "@/server/tenant";
+import { withCoach } from "@/server/guard";
 
 /**
  * Uploads one image for a coach's custom exercise to R2, returning its stored
@@ -11,11 +9,7 @@ import { getTenantContext } from "@/server/tenant";
  * bucket), so the key is returned to the form and only persisted when the
  * exercise is saved via the DAL, which stamps the clinic.
  */
-export const POST = withRoute("exercises.image.upload", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("exercises.image.upload", async (request) => {
   const result = await receiveExerciseImage(request);
   if (!result.ok) return result.response;
   return NextResponse.json({ key: result.key }, { status: 201 });

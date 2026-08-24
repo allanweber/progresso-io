@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { studentPortal } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { isUuid, notFound } from "@/server/api";
+import { withStudent } from "@/server/guard";
 
 /**
  * A single published version's tree, for the aluno's read-only history view.
@@ -12,13 +11,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ versionId: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withStudent<Params>(
   "student-portal.diet.version",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "aluno") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { versionId } = await params;
     if (!isUuid(versionId)) return notFound("Versão não encontrada.");
 

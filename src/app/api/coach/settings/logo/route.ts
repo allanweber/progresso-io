@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 
 import { canUseBrandedPortal } from "@/lib/clinic-settings";
 import { clinics } from "@/server/dal";
-import { apiError, forbidden, unauthorized } from "@/server/api";
+import { apiError, forbidden } from "@/server/api";
+import { withCoach } from "@/server/guard";
 import { receiveClinicLogo } from "@/server/r2";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * Uploads the clinic's portal logo (multipart `file`, JPG/PNG/WEBP ≤ 5 MB).
@@ -13,11 +12,7 @@ import { getTenantContext } from "@/server/tenant";
  * the file (R2 or local fallback) and persists its key; the key never leaves the
  * server (the client just learns `hasLogo`).
  */
-export const POST = withRoute("coach.settings.logo", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("coach.settings.logo", async (request, ctx) => {
   const clinic = await clinics.getClinic(ctx);
   if (!clinic) return forbidden();
   if (!canUseBrandedPortal(clinic.plan)) {

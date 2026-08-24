@@ -4,14 +4,13 @@ import { db } from "@/db";
 import { markPaidSchema } from "@/lib/billing";
 import { billing } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -23,12 +22,9 @@ type Params = { params: Promise<{ id: string }> };
  * They were separate actions until a paying coach sat on Free because only the
  * first one happened. Admin-only. See {@link billing.markInvoicePaid}.
  */
-export const POST = withRoute<Params>(
+export const POST = withAdmin<Params>(
   "admin.invoices.pay",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Fatura não encontrada.");
 

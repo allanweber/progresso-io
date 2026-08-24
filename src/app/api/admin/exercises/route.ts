@@ -4,9 +4,9 @@ import { db } from "@/db";
 import { adminExerciseListQuerySchema } from "@/lib/admin";
 import { exerciseFormSchema } from "@/lib/exercises";
 import { admin } from "@/server/dal";
-import { forbidden, readJson, validationError } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { readJson, validationError } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Platform-wide exercise catalog for the super admin. Lists EVERY exercise
@@ -15,10 +15,7 @@ import { getAdminSession } from "@/server/admin";
  * {@link getAdminSession}); the DAL is cross-tenant and read-only here. Input
  * validated with zod.
  */
-export const GET = withRoute("admin.exercises.list", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.exercises.list", async (request) => {
   const p = new URL(request.url).searchParams;
   const parsed = adminExerciseListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -55,10 +52,7 @@ export const GET = withRoute("admin.exercises.list", async (request) => {
  * clinic. Admin-only (gated by {@link getAdminSession}); the DAL writes the base
  * row. Same zod validation as the coach create route.
  */
-export const POST = withRoute("admin.exercises.create", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const POST = withAdmin("admin.exercises.create", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

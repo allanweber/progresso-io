@@ -9,14 +9,12 @@ import { plans, students, studentAnamneses } from "@/server/dal";
 import {
   apiError,
   fieldConflict,
-  forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 import { sendAnamnesisInvite } from "@/server/onboarding";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * Students collection. The roster reads this via TanStack Query; the merged
@@ -30,19 +28,12 @@ import { getTenantContext } from "@/server/tenant";
  * per-clinic phone/e-mail uniqueness enforced here.
  */
 
-export const GET = withRoute("students.list", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const GET = withCoach("students.list", async (_request, ctx) => {
   const roster = await students.listStudents(ctx);
   return NextResponse.json({ students: roster.map(toStudentDto) });
 });
 
-export const POST = withRoute("students.register", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("students.register", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

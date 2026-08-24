@@ -5,14 +5,13 @@ import type { AdminExerciseDetailDto } from "@/lib/admin";
 import { exerciseFormSchema } from "@/lib/exercises";
 import { admin } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Any single exercise (base or any clinic's), for the super admin. Admin-only;
@@ -20,12 +19,9 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withAdmin<Params>(
   "admin.exercises.detail",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 
@@ -69,12 +65,9 @@ export const GET = withRoute<Params>(
  * Edits a shared **base** exercise. Admin-only; the DAL scopes the write to
  * `clinic_id IS NULL`, so a clinic's own exercise is read-only here (a 404).
  */
-export const PUT = withRoute<Params>(
+export const PUT = withAdmin<Params>(
   "admin.exercises.update",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 
@@ -97,12 +90,9 @@ export const PUT = withRoute<Params>(
  * Archives any exercise — base or a clinic's own. Admin-only; as a moderation
  * action the admin may retire any exercise (unlike edit, which stays base-only).
  */
-export const DELETE = withRoute<Params>(
+export const DELETE = withAdmin<Params>(
   "admin.exercises.archive",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 
@@ -117,12 +107,9 @@ export const DELETE = withRoute<Params>(
  * Restores (unarchives) any exercise — base or a clinic's own. Admin-only; the
  * moderation counterpart of the archive above.
  */
-export const PATCH = withRoute<Params>(
+export const PATCH = withAdmin<Params>(
   "admin.exercises.unarchive",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Exercício não encontrado.");
 

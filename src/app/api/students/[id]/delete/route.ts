@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { plans, students } from "@/server/dal";
-import { apiError, forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { apiError, isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,12 +13,9 @@ type Params = { params: Promise<{ id: string }> };
  * aluno's login. Tenant-scoped and coach-only. Plans that CAN archive
  * (Clínica/Enterprise) must archive instead, so this is refused for them.
  */
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "students.hardDelete",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

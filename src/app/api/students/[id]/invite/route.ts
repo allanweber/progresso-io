@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { apiError, forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
+import { apiError, isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 import { sendPortalInvite } from "@/server/onboarding";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * (Re)sends a student their portal access link (also e-mailed) over WhatsApp so
@@ -16,28 +16,28 @@ import { getTenantContext } from "@/server/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>("invite.send", async (request, { params }) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-  const { id } = await params;
-  if (!isUuid(id)) return notFound();
+export const POST = withCoach<Params>(
+  "invite.send",
+  async (request, ctx, { params }) => {
+    const { id } = await params;
+    if (!isUuid(id)) return notFound();
 
-  const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
-  const result = await sendPortalInvite(ctx, id, base);
-  if (!result.ok) {
-    if (result.reason === "no_phone") {
-      return apiError("Adicione um WhatsApp ao aluno para enviar o acesso.", 422);
+    const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
+    const result = await sendPortalInvite(ctx, id, base);
+    if (!result.ok) {
+      if (result.reason === "no_phone") {
+        return apiError("Adicione um WhatsApp ao aluno para enviar o acesso.", 422);
+      }
+      if (result.reason === "already_active") {
+        return apiError("Este aluno já ativou o acesso.", 409);
+      }
+      if (result.reason === "archived") {
+        return apiError("Reative o aluno antes de convidá-lo.", 409);
+      }
+      return apiError("Não foi possível enviar o convite.", 400);
     }
-    if (result.reason === "already_active") {
-      return apiError("Este aluno já ativou o acesso.", 409);
-    }
-    if (result.reason === "archived") {
-      return apiError("Reative o aluno antes de convidá-lo.", 409);
-    }
-    return apiError("Não foi possível enviar o convite.", 400);
-  }
 
-  logger.info("invite.sent", { studentId: id });
-  return NextResponse.json({ ok: true });
-});
+    logger.info("invite.sent", { studentId: id });
+    return NextResponse.json({ ok: true });
+  },
+);

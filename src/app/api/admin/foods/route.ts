@@ -4,9 +4,9 @@ import { db } from "@/db";
 import { adminFoodListQuerySchema } from "@/lib/admin";
 import { foodFormSchema } from "@/lib/foods";
 import { admin } from "@/server/dal";
-import { apiError, forbidden, readJson, validationError } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { apiError, readJson, validationError } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Platform-wide food catalog for the super admin. GET lists EVERY food (shared
@@ -15,10 +15,7 @@ import { getAdminSession } from "@/server/admin";
  * {@link getAdminSession}); the DAL is cross-tenant but only ever writes base
  * rows. Input validated with zod.
  */
-export const GET = withRoute("admin.foods.list", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.foods.list", async (request) => {
   const p = new URL(request.url).searchParams;
   const parsed = adminFoodListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -50,10 +47,7 @@ export const GET = withRoute("admin.foods.list", async (request) => {
   return NextResponse.json(result);
 });
 
-export const POST = withRoute("admin.foods.createBase", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const POST = withAdmin("admin.foods.createBase", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

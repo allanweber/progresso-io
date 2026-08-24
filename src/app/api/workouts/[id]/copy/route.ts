@@ -3,13 +3,11 @@ import { NextResponse } from "next/server";
 import { workouts } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
-  unauthorized,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Creates an exact copy of a workout (a base template or the clinic's own) as a
@@ -18,13 +16,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "workouts.copy",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Treino não encontrado.");
 

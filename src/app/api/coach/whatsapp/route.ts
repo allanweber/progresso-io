@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 
 import { getWhatsAppProvider } from "@/lib/whatsapp-provider";
 import { plans, whatsapp } from "@/server/dal";
-import { forbidden, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { forbidden } from "@/server/api";
+import { withCoach } from "@/server/guard";
 
 /** 403 shown when the clinic's plan doesn't include WhatsApp (Free). */
 export function whatsappLocked() {
@@ -18,10 +17,7 @@ export function whatsappLocked() {
  * connection. Coach-only, gated on the plan's `whatsapp` capability (Free
  * excluded), tenant-scoped through the DAL. No external input to validate.
  */
-export const GET = withRoute("coach.whatsapp.inbox", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const GET = withCoach("coach.whatsapp.inbox", async (_request, ctx) => {
   if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();
 
   const inbox = await whatsapp.getInbox(ctx);

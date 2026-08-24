@@ -7,17 +7,14 @@ import {
 } from "@/lib/clinic-settings";
 import type { Clinic } from "@/db/schema";
 import { clinics } from "@/server/dal";
+import { withCoach } from "@/server/guard";
 import {
   apiError,
   fieldConflict,
-  forbidden,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * Clinic settings, read + written by the /coach/settings page via TanStack
@@ -26,21 +23,13 @@ import { getTenantContext } from "@/server/tenant";
  * validated with zod and goes through the DAL, scoped to this clinic.
  */
 
-export const GET = withRoute("coach.settings.read", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("coach.settings.read", async (_request, ctx) => {
   const settings = await clinics.getClinicSettings(ctx);
   if (!settings) return notFound("Clínica não encontrada.");
   return NextResponse.json(settings satisfies ClinicSettingsDto);
 });
 
-export const PUT = withRoute("coach.settings.update", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const PUT = withCoach("coach.settings.update", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

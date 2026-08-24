@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { bootstrapAdminEmail, isAdminEmail } from "@/lib/roles";
 import { admin } from "@/server/dal";
-import { apiError, forbidden, notFound } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { apiError, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Hard-delete a platform admin. Permanent: removes the admin's user row, which
@@ -17,12 +17,9 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withAdmin<Params>(
   "admin.admins.delete",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, session, { params }) => {
     const { id } = await params;
 
     const target = await admin.getUserById(db, id);

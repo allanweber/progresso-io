@@ -22,7 +22,7 @@ function isControlFlow(error: unknown): boolean {
   );
 }
 
-type RouteHandler<Ctx> = (
+export type RouteHandler<Ctx> = (
   request: Request,
   ctx: Ctx,
 ) => Promise<Response> | Response;

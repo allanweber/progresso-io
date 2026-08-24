@@ -6,9 +6,9 @@ import { sendAdminInviteEmail } from "@/lib/email";
 import { bootstrapAdminEmail, isAdminEmail } from "@/lib/roles";
 import { admin, adminInvitations } from "@/server/dal";
 import { ADMIN_INVITE_TTL_DAYS } from "@/server/dal/admin-invitations";
-import { fieldConflict, forbidden, readJson, validationError } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { fieldConflict, readJson, validationError } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Platform admins collection. Admin-only (gated by getAdminSession), cross-tenant.
@@ -21,10 +21,7 @@ import { getAdminSession } from "@/server/admin";
  *        until they accept.
  */
 
-export const GET = withRoute("admin.admins.list", async () => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.admins.list", async (_request, session) => {
   const bootstrap = bootstrapAdminEmail(process.env.ADMIN_EMAIL);
   const [admins, invites] = await Promise.all([
     admin.listAdmins(db),
@@ -51,40 +48,40 @@ export const GET = withRoute("admin.admins.list", async () => {
   });
 });
 
-export const POST = withRoute("admin.admins.invite", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
+export const POST = withAdmin(
+  "admin.admins.invite",
+  async (request, session) => {
+    const body = await readJson(request);
+    if (!body.ok) return body.response;
+    const parsed = adminInviteSchema.safeParse(body.data);
+    if (!parsed.success) return validationError(parsed.error);
+    const { name, email } = parsed.data;
 
-  const body = await readJson(request);
-  if (!body.ok) return body.response;
-  const parsed = adminInviteSchema.safeParse(body.data);
-  if (!parsed.success) return validationError(parsed.error);
-  const { name, email } = parsed.data;
+    // Admin creation is for brand-new accounts only — no promoting existing users.
+    if (await admin.getUserByEmail(db, email)) {
+      const m = "Já existe uma conta com este e-mail.";
+      return fieldConflict(m, { email: m });
+    }
+    if (await adminInvitations.hasPendingInvite(db, email)) {
+      const m = "Já existe um convite pendente para este e-mail.";
+      return fieldConflict(m, { email: m });
+    }
 
-  // Admin creation is for brand-new accounts only — no promoting existing users.
-  if (await admin.getUserByEmail(db, email)) {
-    const m = "Já existe uma conta com este e-mail.";
-    return fieldConflict(m, { email: m });
-  }
-  if (await adminInvitations.hasPendingInvite(db, email)) {
-    const m = "Já existe um convite pendente para este e-mail.";
-    return fieldConflict(m, { email: m });
-  }
+    const { rawToken } = await adminInvitations.createAdminInvitation(db, {
+      email,
+      name,
+      invitedByUserId: session.user.id,
+    });
 
-  const { rawToken } = await adminInvitations.createAdminInvitation(db, {
-    email,
-    name,
-    invitedByUserId: session.user.id,
-  });
+    const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
+    await sendAdminInviteEmail({
+      email,
+      firstName: name.split(" ")[0] || name,
+      acceptUrl: `${base}/admin-invite/accept?token=${rawToken}`,
+      expiresInDays: ADMIN_INVITE_TTL_DAYS,
+    });
 
-  const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
-  await sendAdminInviteEmail({
-    email,
-    firstName: name.split(" ")[0] || name,
-    acceptUrl: `${base}/admin-invite/accept?token=${rawToken}`,
-    expiresInDays: ADMIN_INVITE_TTL_DAYS,
-  });
-
-  logger.info("admin.invited", { email, invitedBy: session.user.id });
-  return NextResponse.json({ ok: true }, { status: 201 });
-});
+    logger.info("admin.invited", { email, invitedBy: session.user.id });
+    return NextResponse.json({ ok: true }, { status: 201 });
+  },
+);

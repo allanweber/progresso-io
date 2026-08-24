@@ -3,24 +3,18 @@ import { NextResponse } from "next/server";
 import { anamnesisFormSchema, anamnesisListQuerySchema } from "@/lib/anamneses";
 import { anamneses } from "@/server/dal";
 import {
-  forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Anamneses (intake questionnaires) listing + create for the coach. Read via
  * TanStack Query with server-side search / pagination. Tenant-scoped through the
  * DAL (this clinic's own only); coach-only. Query + body validated with zod.
  */
-export const GET = withRoute("anamneses.list", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("anamneses.list", async (request, ctx) => {
   const p = new URL(request.url).searchParams;
   const parsed = anamnesisListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -42,11 +36,7 @@ export const GET = withRoute("anamneses.list", async (request) => {
  * Creates a clinic-owned anamnese with its whole questionnaire. The DAL stamps
  * `clinicId`/`coachId` from the session. Coach-only.
  */
-export const POST = withRoute("anamneses.create", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("anamneses.create", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

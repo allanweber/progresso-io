@@ -3,15 +3,13 @@ import { NextResponse } from "next/server";
 import { anamnesisFormSchema } from "@/lib/anamneses";
 import { anamneses } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * A single anamnese: read it, replace it, or delete it. Every operation is
@@ -19,13 +17,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "anamneses.detail",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Anamnese não encontrada.");
 
@@ -35,13 +29,9 @@ export const GET = withRoute<Params>(
   },
 );
 
-export const PUT = withRoute<Params>(
+export const PUT = withCoach<Params>(
   "anamneses.update",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Anamnese não encontrada.");
 
@@ -58,13 +48,9 @@ export const PUT = withRoute<Params>(
   },
 );
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "anamneses.delete",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Anamnese não encontrada.");
 

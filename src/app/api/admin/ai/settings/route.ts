@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { aiSettingsSchema } from "@/lib/ai-settings";
 import { aiSettings } from "@/server/dal";
-import { forbidden, readJson, validationError } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { readJson, validationError } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Which model drafts programs. Platform reference data, so admin-only and
@@ -19,10 +19,7 @@ import { getAdminSession } from "@/server/admin";
  * The change takes effect on the **next generation**, with no restart: the
  * provider reads these on every call. That is the whole reason they are a row.
  */
-export const PUT = withRoute("admin.ai.settings.update", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const PUT = withAdmin("admin.ai.settings.update", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
   const parsed = aiSettingsSchema.safeParse(body.data);

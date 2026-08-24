@@ -4,15 +4,13 @@ import { saveAsTemplateSchema } from "@/lib/student-diets";
 import { studentDiets } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Exports a student's diet version to the clinic's template catalog (a new
@@ -21,13 +19,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "student-diet.save-as-template",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Aluno não encontrado.");
 

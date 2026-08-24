@@ -13,14 +13,13 @@ import {
 } from "@/lib/plans";
 import { admin } from "@/server/dal";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -30,12 +29,9 @@ type Params = { params: Promise<{ id: string }> };
  * value wins for this clinic only. Admin-only; every field zod-validated. Does
  * NOT change the clinic's plan (that's the separate plan route).
  */
-export const PUT = withRoute<Params>(
+export const PUT = withAdmin<Params>(
   "admin.clinics.limits",
-  async (request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Clínica não encontrada.");
 

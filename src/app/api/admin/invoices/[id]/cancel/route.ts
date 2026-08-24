@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { billing } from "@/server/dal";
-import { forbidden, isUuid, notFound } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -12,12 +12,9 @@ type Params = { params: Promise<{ id: string }> };
  * Cancels an invoice (keeps it in the ledger with `canceled` status). Admin-only;
  * does not touch the clinic's plan. See {@link billing.cancelInvoice}.
  */
-export const POST = withRoute<Params>(
+export const POST = withAdmin<Params>(
   "admin.invoices.cancel",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Fatura não encontrada.");
 

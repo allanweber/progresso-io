@@ -1,7 +1,7 @@
 import { aiWorkoutGenerateSchema } from "@/lib/ai-programs";
 import { generateWorkout } from "@/server/ai/generate";
 import { handleGenerate } from "@/server/ai/route-handler";
-import { withRoute } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * "Gerar treino com IA" — drafts a workout for the student from the platform
@@ -13,7 +13,8 @@ import { withRoute } from "@/server/observability";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "student-workout.generate",
-  (request, { params }) => handleGenerate(request, params, aiWorkoutGenerateSchema, generateWorkout),
+  (request, ctx, { params }) =>
+    handleGenerate(request, ctx, params, aiWorkoutGenerateSchema, generateWorkout),
 );

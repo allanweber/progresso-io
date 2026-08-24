@@ -9,15 +9,12 @@ import { coachCheckins } from "@/server/dal";
 import { notifyCheckinFeedback } from "@/server/whatsapp-automations";
 import type { AssessmentWriteInput } from "@/server/dal/coach-checkins";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { withCoach } from "@/server/guard";
 
 /**
  * The coach's feedback on a check-in: sets the response text (clearing the
@@ -27,13 +24,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string; checkinId: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "coach.checkin.feedback",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id, checkinId } = await params;
     if (!isUuid(id) || !isUuid(checkinId)) {
       return notFound("Check-in não encontrado.");

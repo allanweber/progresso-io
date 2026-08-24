@@ -8,15 +8,13 @@ import {
 import type { z } from "@/lib/validation";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
 import { logger } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import type { TenantContext } from "@/server/tenant";
 import type { GenerateResult } from "./generate";
 
 /**
@@ -39,18 +37,15 @@ const REFUSAL_STATUS: Record<AiRefusalCode, number> = {
 
 export async function handleGenerate<Schema extends z.ZodType>(
   request: Request,
+  ctx: TenantContext,
   params: Promise<{ id: string }>,
   schema: Schema,
   generate: (
-    ctx: NonNullable<Awaited<ReturnType<typeof getTenantContext>>>,
+    ctx: TenantContext,
     studentId: string,
     input: z.infer<Schema>,
   ) => Promise<GenerateResult>,
 ): Promise<Response> {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
   const { id } = await params;
   if (!isUuid(id)) return notFound("Aluno não encontrado.");
 

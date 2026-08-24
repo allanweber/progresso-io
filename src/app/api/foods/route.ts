@@ -4,13 +4,11 @@ import { foodFormSchema, foodListQuerySchema } from "@/lib/foods";
 import { foods } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Alimentos listing for the Bibliotecas page. Read via TanStack Query with
@@ -18,11 +16,7 @@ import { getTenantContext } from "@/server/tenant";
  * catalog + this clinic's own foods); coach-only (alunos have no access, super
  * admin lands in phase 3). Query validated with zod.
  */
-export const GET = withRoute("foods.list", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("foods.list", async (request, ctx) => {
   const p = new URL(request.url).searchParams;
   const parsed = foodListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -55,11 +49,7 @@ export const GET = withRoute("foods.list", async (request) => {
  * Creates a custom food for this clinic (the "enxuto" form). Coach-only; the
  * DAL stamps `clinicId` from the session, so the food is private to the clinic.
  */
-export const POST = withRoute("foods.create", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("foods.create", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

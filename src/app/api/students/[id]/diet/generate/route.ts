@@ -1,7 +1,7 @@
 import { aiDietGenerateSchema } from "@/lib/ai-programs";
 import { generateDiet } from "@/server/ai/generate";
 import { handleGenerate } from "@/server/ai/route-handler";
-import { withRoute } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * "Gerar dieta com IA" — drafts a diet for the student from the platform TACO
@@ -12,7 +12,8 @@ import { withRoute } from "@/server/observability";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "student-diet.generate",
-  (request, { params }) => handleGenerate(request, params, aiDietGenerateSchema, generateDiet),
+  (request, ctx, { params }) =>
+    handleGenerate(request, ctx, params, aiDietGenerateSchema, generateDiet),
 );

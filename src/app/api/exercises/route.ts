@@ -3,13 +3,11 @@ import { NextResponse } from "next/server";
 import { exerciseFormSchema, exerciseListQuerySchema } from "@/lib/exercises";
 import { exercises } from "@/server/dal";
 import {
-  forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Exercise catalog listing for the coach's library. Read via TanStack Query with
@@ -17,11 +15,7 @@ import { getTenantContext } from "@/server/tenant";
  * base catalog + this clinic's own exercises); coach-only. Query validated with
  * zod.
  */
-export const GET = withRoute("exercises.list", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("exercises.list", async (request, ctx) => {
   const p = new URL(request.url).searchParams;
   const parsed = exerciseListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -53,11 +47,7 @@ export const GET = withRoute("exercises.list", async (request) => {
  * base row). Every field is validated with zod; images are R2 keys uploaded
  * beforehand via `POST /api/exercises/images`.
  */
-export const POST = withRoute("exercises.create", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("exercises.create", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

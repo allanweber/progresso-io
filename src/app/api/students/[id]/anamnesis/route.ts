@@ -5,15 +5,13 @@ import { editAnswersSchema } from "@/lib/student-anamneses";
 import { students, studentAnamneses } from "@/server/dal";
 import { toStudentAnamnesisDto } from "@/server/dal/student-anamneses";
 import {
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * A student's anamnese (the filled questionnaire on their profile). Coach-only,
@@ -26,12 +24,9 @@ import { getTenantContext } from "@/server/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "studentAnamnesis.get",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 
@@ -45,12 +40,9 @@ export const GET = withRoute<Params>(
   },
 );
 
-export const PUT = withRoute<Params>(
+export const PUT = withCoach<Params>(
   "studentAnamnesis.saveAnswers",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

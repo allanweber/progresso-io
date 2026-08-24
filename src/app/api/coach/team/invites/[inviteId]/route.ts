@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { coachInvitations, coaches } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { forbidden, isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 type Params = { params: Promise<{ inviteId: string }> };
 
@@ -11,12 +11,9 @@ type Params = { params: Promise<{ inviteId: string }> };
  * Cancels a pending coach invite (owner-only), freeing the seat it reserved.
  * Scoped to the clinic in the DAL, so one clinic can't cancel another's invite.
  */
-export const DELETE = withRoute<Params>(
+export const DELETE = withCoach<Params>(
   "coach.team.cancelInvite",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (_request, ctx, { params }) => {
     if (!(await coaches.isClinicOwner(ctx))) {
       return forbidden("Apenas o responsável pela clínica pode cancelar convites.");
     }

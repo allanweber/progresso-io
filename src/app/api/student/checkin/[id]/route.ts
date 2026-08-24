@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 
 import type { CheckinDetailDto } from "@/lib/student-checkins";
 import { studentCheckins } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { isUuid, notFound } from "@/server/api";
+import { withStudent } from "@/server/guard";
 
 /**
  * One check-in's detail (with its photos), for the history modal in Evolução.
@@ -14,13 +13,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withStudent<Params>(
   "student.checkin.detail",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "aluno") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Check-in não encontrado.");
 

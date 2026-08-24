@@ -4,24 +4,18 @@ import { workoutFormSchema, workoutListQuerySchema } from "@/lib/workouts";
 import { workouts } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Treinos (programas) listing for the coach. Read via TanStack Query with
  * server-side search / archived-filter / pagination. Tenant-scoped through the
  * DAL (base templates + this clinic's own); coach-only. Query validated with zod.
  */
-export const GET = withRoute("workouts.list", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("workouts.list", async (request, ctx) => {
   const p = new URL(request.url).searchParams;
   const parsed = workoutListQuerySchema.safeParse({
     search: p.get("search") || undefined,
@@ -45,11 +39,7 @@ export const GET = withRoute("workouts.list", async (request) => {
  * Creates a clinic-owned workout with its whole tree of sessions/exercises. The
  * DAL stamps `clinicId`/`coachId` from the session. Coach-only.
  */
-export const POST = withRoute("workouts.create", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const POST = withCoach("workouts.create", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;
 

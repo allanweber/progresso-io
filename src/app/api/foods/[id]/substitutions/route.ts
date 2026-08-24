@@ -4,15 +4,13 @@ import { substitutionFormSchema } from "@/lib/foods";
 import { foods } from "@/server/dal";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
   readJson,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Adds a clinic-owned substitution rule to a food: `grams` of the chosen
@@ -29,13 +27,9 @@ const REASONS: Record<string, { message: string; status: number }> = {
   duplicate: { message: "Este substituto já está cadastrado.", status: 409 },
 };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "foods.substitution.add",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Alimento não encontrado.");
 

@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 
 import { billing, clinics } from "@/server/dal";
 import { renderInvoicePdf } from "@/server/invoice-pdf";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { isUuid, notFound } from "@/server/api";
+import { withCoach } from "@/server/guard";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,13 +13,9 @@ type Params = { params: Promise<{ id: string }> };
  * (`getInvoice` isn't clinic-scoped, so we check `clinicId` here) — never
  * trusting the id from the URL alone. Coach-only.
  */
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "coach.invoices.pdf",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Fatura não encontrada.");
 

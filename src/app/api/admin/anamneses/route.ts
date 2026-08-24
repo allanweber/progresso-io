@@ -6,19 +6,15 @@ import {
   type AdminAnamnesisListResponse,
 } from "@/lib/admin";
 import { admin } from "@/server/dal";
-import { forbidden, validationError } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { validationError } from "@/server/api";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Cross-clinic anamneses listing for the admin "Manutenção → Anamneses" tab.
  * Every clinic's anamneses, tagged Sistema (source_key set) / Clínica, with the
  * student-usage count. Admin-only; filters validated with zod.
  */
-export const GET = withRoute("admin.anamneses.list", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.anamneses.list", async (request) => {
   const p = new URL(request.url).searchParams;
   const parsed = adminAnamnesisListQuerySchema.safeParse({
     clinic: p.get("clinic") || undefined,

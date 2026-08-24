@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { plans, whatsapp } from "@/server/dal";
-import { forbidden, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { withCoach } from "@/server/guard";
 
 /**
  * How many WhatsApp conversations are awaiting a coach reply — polled by the
@@ -12,13 +10,12 @@ import { getTenantContext } from "@/server/tenant";
  * capability simply gets `0` (rather than a 403), so the shared shell can call
  * this unconditionally without surfacing an error.
  */
-export const GET = withRoute("coach.whatsapp.waitingCount", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
-  const count = (await plans.canUseWhatsapp(ctx))
-    ? await whatsapp.countWaiting(ctx)
-    : 0;
-  return NextResponse.json({ count });
-});
+export const GET = withCoach(
+  "coach.whatsapp.waitingCount",
+  async (_request, ctx) => {
+    const count = (await plans.canUseWhatsapp(ctx))
+      ? await whatsapp.countWaiting(ctx)
+      : 0;
+    return NextResponse.json({ count });
+  },
+);

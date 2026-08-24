@@ -10,6 +10,7 @@ import {
   type CheckinListDto,
 } from "@/lib/student-checkins";
 import { coachCheckins } from "@/server/dal";
+import { withCoach } from "@/server/guard";
 import { notifyCheckinFeedback } from "@/server/whatsapp-automations";
 import type {
   AssessmentWriteInput,
@@ -18,15 +19,11 @@ import type {
 import type { CheckinPhotoInput } from "@/server/dal/student-checkins";
 import {
   apiError,
-  forbidden,
   isUuid,
   notFound,
-  unauthorized,
   validationError,
 } from "@/server/api";
-import { withRoute } from "@/server/observability";
 import { putCheckinPhoto, validateCheckinPhoto } from "@/server/r2";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * A student's check-ins, coach-side. Coach-only; the DAL scopes every query by
@@ -41,13 +38,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "coach.checkin.list",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Aluno não encontrado.");
 
@@ -57,13 +50,9 @@ export const GET = withRoute<Params>(
   },
 );
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "coach.checkin.create",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Aluno não encontrado.");
 

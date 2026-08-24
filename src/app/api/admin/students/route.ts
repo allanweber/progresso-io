@@ -3,19 +3,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { adminStudentFilterSchema } from "@/lib/admin";
 import { admin } from "@/server/dal";
-import { forbidden, validationError } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { validationError } from "@/server/api";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Platform-wide student list for the super admin, filterable by clinic and
  * e-mail. Admin-only (gated by {@link getAdminSession}); filters validated with
  * zod; the query is cross-tenant by design and runs through the admin DAL.
  */
-export const GET = withRoute("admin.students.list", async (request) => {
-  const session = await getAdminSession();
-  if (!session) return forbidden();
-
+export const GET = withAdmin("admin.students.list", async (request) => {
   const params = new URL(request.url).searchParams;
   const parsed = adminStudentFilterSchema.safeParse({
     clinicId: params.get("clinicId") || undefined,

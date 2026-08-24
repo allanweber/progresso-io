@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { admin } from "@/server/dal";
-import { forbidden, isUuid, notFound } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /**
  * Hard-delete a student. Unlike the coach's DELETE (which soft-archives), this
@@ -14,12 +14,9 @@ import { getAdminSession } from "@/server/admin";
  */
 type Params = { params: Promise<{ id: string }> };
 
-export const DELETE = withRoute<Params>(
+export const DELETE = withAdmin<Params>(
   "admin.students.hardDelete",
-  async (_request, { params }) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

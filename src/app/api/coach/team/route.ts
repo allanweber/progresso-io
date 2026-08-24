@@ -18,8 +18,8 @@ import {
   unauthorized,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 
 /**
  * Coach team ("Equipe de coaches"). Read + written by the owner from
@@ -30,11 +30,7 @@ import { getTenantContext } from "@/server/tenant";
  * plan's `maxCoaches` cap can't be over-committed.
  */
 
-export const GET = withRoute("coach.team.read", async () => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
-
+export const GET = withCoach("coach.team.read", async (_request, ctx) => {
   const [owner, limits] = await Promise.all([
     coaches.isClinicOwner(ctx),
     plans.getPlanLimits(ctx),
@@ -64,10 +60,7 @@ export const GET = withRoute("coach.team.read", async () => {
   return NextResponse.json({ enabled: true, team } satisfies CoachTeamResponse);
 });
 
-export const POST = withRoute("coach.team.invite", async (request) => {
-  const ctx = await getTenantContext();
-  if (!ctx) return unauthorized();
-  if (ctx.role !== "coach") return forbidden();
+export const POST = withCoach("coach.team.invite", async (request, ctx) => {
   if (!(await coaches.isClinicOwner(ctx))) {
     return forbidden("Apenas o responsável pela clínica pode convidar coaches.");
   }

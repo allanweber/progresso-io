@@ -1,9 +1,8 @@
 import { CHECKIN_POSE_LABELS } from "@/lib/student-checkins";
 import { coachCheckins } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
+import { isUuid, notFound } from "@/server/api";
+import { withCoach } from "@/server/guard";
 import { checkinPhotoPlaceholder, readCheckinPhoto } from "@/server/r2";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * Streams one check-in photo's bytes, coach-side. The DAL join proves the photo
@@ -14,13 +13,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string; checkinId: string; photoId: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "coach.checkin.photo",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id, checkinId, photoId } = await params;
     if (!isUuid(id) || !isUuid(checkinId) || !isUuid(photoId)) {
       return notFound("Foto não encontrada.");

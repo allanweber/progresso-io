@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { apiError, forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
+import { apiError, isUuid, notFound } from "@/server/api";
+import { logger } from "@/server/observability";
+import { withCoach } from "@/server/guard";
 import { sendAnamnesisInvite } from "@/server/onboarding";
-import { getTenantContext } from "@/server/tenant";
 
 /**
  * (Re)sends the WhatsApp anamnese fill link for a student — the same message
@@ -15,12 +15,9 @@ import { getTenantContext } from "@/server/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
-export const POST = withRoute<Params>(
+export const POST = withCoach<Params>(
   "anamnesis.invite",
-  async (request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
+  async (request, ctx, { params }) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound();
 

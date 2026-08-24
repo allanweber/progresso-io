@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 
 import type { CheckinDetailDto } from "@/lib/student-checkins";
 import { coachCheckins } from "@/server/dal";
-import { forbidden, isUuid, notFound, unauthorized } from "@/server/api";
-import { withRoute } from "@/server/observability";
-import { getTenantContext } from "@/server/tenant";
+import { isUuid, notFound } from "@/server/api";
+import { withCoach } from "@/server/guard";
 
 /**
  * One check-in's detail (photos + assessment), coach-side. Coach-only; scoped by
@@ -12,13 +11,9 @@ import { getTenantContext } from "@/server/tenant";
  */
 type Params = { params: Promise<{ id: string; checkinId: string }> };
 
-export const GET = withRoute<Params>(
+export const GET = withCoach<Params>(
   "coach.checkin.detail",
-  async (_request, { params }) => {
-    const ctx = await getTenantContext();
-    if (!ctx) return unauthorized();
-    if (ctx.role !== "coach") return forbidden();
-
+  async (_request, ctx, { params }) => {
     const { id, checkinId } = await params;
     if (!isUuid(id) || !isUuid(checkinId)) return notFound("Check-in não encontrado.");
 

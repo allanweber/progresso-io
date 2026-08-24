@@ -5,25 +5,21 @@ import { providerPriceSchema } from "@/lib/provider-prices";
 import { providerPrices } from "@/server/dal";
 import {
   fieldConflict,
-  forbidden,
   isUuid,
   notFound,
   readJson,
   validationError,
 } from "@/server/api";
-import { logger, withRoute } from "@/server/observability";
-import { getAdminSession } from "@/server/admin";
+import { logger } from "@/server/observability";
+import { withAdmin } from "@/server/guard";
 
 /** Edit or remove one price row. Admin-only; see the collection route. */
 
 type Params = { params: Promise<{ id: string }> };
 
-export const PATCH = withRoute(
+export const PATCH = withAdmin(
   "admin.ai.prices.update",
-  async (request, { params }: Params) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (request, _session, { params }: Params) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Preço não encontrado.");
 
@@ -45,12 +41,9 @@ export const PATCH = withRoute(
   },
 );
 
-export const DELETE = withRoute(
+export const DELETE = withAdmin(
   "admin.ai.prices.delete",
-  async (_request, { params }: Params) => {
-    const session = await getAdminSession();
-    if (!session) return forbidden();
-
+  async (_request, _session, { params }: Params) => {
     const { id } = await params;
     if (!isUuid(id)) return notFound("Preço não encontrado.");
 
