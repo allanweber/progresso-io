@@ -224,26 +224,35 @@ export type Muscle = (typeof MUSCLES)[number];
 /*  configured with `casing: "snake_case"`, so columns are snake_case in PG.  */
 /* -------------------------------------------------------------------------- */
 
-export const user = pgTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
-  image: text("image"),
-  // Better Auth admin plugin fields.
-  role: text("role").$type<Role>().default("coach").notNull(),
-  banned: boolean("banned").default(false),
-  banReason: text("ban_reason"),
-  banExpires: timestamp("ban_expires"),
-  // Tenant the user belongs to. Null only for platform admins (no clinic).
-  // Set right after sign-up (see the clinic bootstrap in lib/auth).
-  // `AnyPgColumn` breaks the user<->clinic circular-reference type inference.
-  clinicId: uuid("clinic_id").references((): AnyPgColumn => clinic.id, {
-    onDelete: "set null",
-  }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: text("image"),
+    // Better Auth admin plugin fields.
+    role: text("role").$type<Role>().default("coach").notNull(),
+    banned: boolean("banned").default(false),
+    banReason: text("ban_reason"),
+    banExpires: timestamp("ban_expires"),
+    // Tenant the user belongs to. Null only for platform admins (no clinic).
+    // Set right after sign-up (see the clinic bootstrap in lib/auth).
+    // `AnyPgColumn` breaks the user<->clinic circular-reference type inference.
+    clinicId: uuid("clinic_id").references((): AnyPgColumn => clinic.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // Tenant lookup: the coach-team roster and the admin's per-clinic user list
+    // both filter on this. Without it every one of those is a full scan of a
+    // table that grows with every coach AND every aluno across the platform.
+    index("user_clinic_idx").on(t.clinicId),
+  ],
+);
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -558,20 +567,28 @@ export const clinicPlanChange = pgTable(
  * lives only in the e-mailed link; we store its SHA-256 hash. Single active
  * invite per student is enforced in the DAL (previous ones are superseded).
  */
-export const invitation = pgTable("invitation", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  clinicId: uuid("clinic_id")
-    .notNull()
-    .references(() => clinic.id, { onDelete: "cascade" }),
-  studentId: uuid("student_id")
-    .notNull()
-    .references(() => students.id, { onDelete: "cascade" }),
-  // SHA-256 of the raw token. The raw token is never persisted.
-  tokenHash: text("token_hash").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  acceptedAt: timestamp("accepted_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const invitation = pgTable(
+  "invitation",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    // SHA-256 of the raw token. The raw token is never persisted.
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The only two lookups on this table filter by clinic + student (then by a
+    // null acceptedAt). The table had no index at all.
+    index("invitation_clinic_student_idx").on(t.clinicId, t.studentId),
+  ],
+);
 
 /**
  * A pending invite for a NEW platform admin to activate their account. Unlike
