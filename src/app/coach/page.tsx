@@ -81,25 +81,39 @@ function waitLabel(iso: string, now: number): string {
   return `há ${days} dias`;
 }
 
+/**
+ * One id shape for a pile, derived from its own name, so the KPI tile that links
+ * to a section and the section itself cannot drift apart.
+ */
+function pileId(name: string): string {
+  return name.replace(/\W+/g, "-").toLowerCase();
+}
+
 /** A dashboard section: card chrome with a titled header. */
 function SectionCard({
   title,
   badge,
   aside,
+  footer,
   children,
 }: {
   title: string;
   badge?: React.ReactNode;
   aside?: React.ReactNode;
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
   // Names the landmark so screen-reader users can jump between the dashboard's
   // sections instead of hearing anonymous regions.
-  const headingId = `section-${title.replace(/\W+/g, "-").toLowerCase()}`;
+  const headingId = `section-${pileId(title)}`;
   return (
     <section
+      id={`pile-${pileId(title)}`}
       aria-labelledby={headingId}
-      className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      // The tiles above link here, and on a phone the piles sit thousands of
+      // pixels apart. `scroll-mt` keeps the sticky header off the card title
+      // when a tile lands the coach on it.
+      className="scroll-mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
     >
       {/*
         At 390px the title and its aside fought over one line and both wrapped
@@ -120,7 +134,41 @@ function SectionCard({
         ) : null}
       </div>
       {children}
+      {footer}
     </section>
+  );
+}
+
+/**
+ * Says out loud that the card is showing part of a pile.
+ *
+ * Every list here is capped server-side, and a cap the screen does not mention
+ * is a cap that reads as the whole truth: a coach with 63 pending check-ins was
+ * being shown 50 rows under a badge saying "50". The badge now carries the real
+ * number, and this line accounts for the difference.
+ */
+function TruncationNote({
+  shown,
+  total,
+  href,
+  action,
+}: {
+  shown: number;
+  total: number;
+  /** Only where the rest of the pile genuinely has somewhere to be seen. */
+  href?: string;
+  action?: string;
+}) {
+  if (total <= shown) return null;
+  return (
+    <p className="border-t border-border-light px-4 py-2.5 text-caption text-muted-foreground">
+      Mostrando {shown} de {total}.{" "}
+      {href && action ? (
+        <Link href={href} className="text-primary-deep hover:underline">
+          {action}
+        </Link>
+      ) : null}
+    </p>
   );
 }
 
@@ -199,22 +247,32 @@ function CountBadge({
 function KpiTile({
   label,
   value,
+  href,
   tone = "neutral",
   footnote,
 }: {
   label: string;
   value: number | null;
+  /** Where the tile takes the coach: a pile on this page, or the roster. */
+  href: string;
   tone?: "neutral" | "danger" | "brand";
   footnote?: React.ReactNode;
 }) {
-  const slug = label.replace(/\W+/g, "-").toLowerCase();
+  const slug = pileId(label);
   return (
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="rounded-2xl border border-border bg-card p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      // `relative` for the overlay link below. Hover answers on the border, per
+      // the No-Lift Rule — the tile never rises.
+      className="relative rounded-2xl border border-border bg-card p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
     >
-      <dt className="text-body-dense text-muted-foreground">{label}</dt>
+      <dt
+        id={`kpi-label-${slug}`}
+        className="text-body-dense text-muted-foreground"
+      >
+        {label}
+      </dt>
       <dd
         id={`kpi-${slug}`}
         className={cn(
@@ -226,6 +284,25 @@ function KpiTile({
         {value === null ? "…" : value}
       </dd>
       {footnote ? <dd>{footnote}</dd> : null}
+      {/*
+        A stretched overlay rather than a wrapping anchor: `<dl>` admits only
+        `<dt>`, `<dd>` and `<div>`, so an `<a>` around the pair would be invalid
+        and the definition-list semantics the tile depends on would be lost.
+        This keeps the whole tile clickable — it is the largest target on the
+        screen, and it used to do nothing.
+
+        Named by reference to its own `<dt>` rather than by an `sr-only` child:
+        the tile is an `aria-atomic` live region, so any text inside the link
+        would be re-announced with the figure on every refetch. Borrowing the
+        visible label adds nothing to the region and makes the accessible name
+        the words already on screen.
+      */}
+      <Link
+        href={href}
+        className="absolute inset-0 rounded-2xl"
+        aria-labelledby={`kpi-label-${slug}`}
+        aria-describedby={`kpi-${slug}`}
+      />
     </div>
   );
 }
@@ -367,6 +444,15 @@ export default function CoachDashboardPage() {
   const pendingDrafts = data?.pendingDrafts ?? [];
   const todayEvents = data?.todayEvents ?? [];
   const weekEvents = data?.weekEvents ?? [];
+
+  /*
+    How big each pile really is. The lists above are capped server-side, so their
+    `.length` measures the page and not the backlog — reading a count off one is
+    how the WhatsApp tile came to say 5 while the sidebar said 9+ about the same
+    inbox. Tiles and badges read these; the lists render only what arrived, and
+    `TruncationNote` accounts for the gap.
+  */
+  const totals = data?.totals;
 
   /*
     Capacity rides under the roster figure, and it names its own denominator.
@@ -545,6 +631,7 @@ export default function CoachDashboardPage() {
         <KpiTile
           label="Alunos ativos"
           value={isLoading ? null : (data?.activeCount ?? 0)}
+          href="/coach/students"
           footnote={
             <span
               className={cn(
@@ -561,17 +648,20 @@ export default function CoachDashboardPage() {
         />
         <KpiTile
           label="Sem treino/dieta"
-          value={isLoading ? null : missingPlans.length}
+          value={isLoading ? null : (totals?.missingPlans ?? 0)}
+          href="#pile-sem-treino-ou-dieta"
           tone="danger"
         />
         <KpiTile
           label="Check-ins pendentes"
-          value={isLoading ? null : pendingCheckins.length}
+          value={isLoading ? null : (totals?.pendingCheckins ?? 0)}
+          href="#pile-check-ins-aguardando-resposta"
           tone="danger"
         />
         <KpiTile
           label="WhatsApp aguardando"
-          value={isLoading ? null : waWaiting.length}
+          value={isLoading ? null : (totals?.waWaiting ?? 0)}
+          href="#pile-whatsapp-aguardando"
           tone="brand"
         />
       </dl>
@@ -587,9 +677,15 @@ export default function CoachDashboardPage() {
             title="Check-ins aguardando resposta"
             badge={
               <CountBadge
-                count={pendingCheckins.length}
+                count={totals?.pendingCheckins ?? 0}
                 one="check-in aguardando resposta"
                 other="check-ins aguardando resposta"
+              />
+            }
+            footer={
+              <TruncationNote
+                shown={pendingCheckins.length}
+                total={totals?.pendingCheckins ?? 0}
               />
             }
           >
@@ -621,9 +717,17 @@ export default function CoachDashboardPage() {
             title="Sem treino ou dieta"
             badge={
               <CountBadge
-                count={missingPlans.length}
+                count={totals?.missingPlans ?? 0}
                 one="aluno sem treino ou dieta"
                 other="alunos sem treino ou dieta"
+              />
+            }
+            footer={
+              <TruncationNote
+                shown={missingPlans.length}
+                total={totals?.missingPlans ?? 0}
+                href="/coach/students"
+                action="Ver todos os alunos"
               />
             }
           >
@@ -667,10 +771,16 @@ export default function CoachDashboardPage() {
             title="Rascunhos não publicados"
             badge={
               <CountBadge
-                count={pendingDrafts.length}
+                count={totals?.pendingDrafts ?? 0}
                 one="rascunho não publicado"
                 other="rascunhos não publicados"
                 tone="brand"
+              />
+            }
+            footer={
+              <TruncationNote
+                shown={pendingDrafts.length}
+                total={totals?.pendingDrafts ?? 0}
               />
             }
           >
@@ -748,10 +858,18 @@ export default function CoachDashboardPage() {
             title="WhatsApp aguardando"
             badge={
               <CountBadge
-                count={waWaiting.length}
+                count={totals?.waWaiting ?? 0}
                 one="conversa aguardando resposta"
                 other="conversas aguardando resposta"
                 tone="brand"
+              />
+            }
+            footer={
+              <TruncationNote
+                shown={waWaiting.length}
+                total={totals?.waWaiting ?? 0}
+                href="/coach/whatsapp"
+                action="Abrir o WhatsApp"
               />
             }
           >

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, isNull, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, isNull, ne } from "drizzle-orm";
 
 import { type Database, schema } from "@/db";
 import type { Modality, Student, StudentStatus } from "@/db/schema";
@@ -198,6 +198,21 @@ export type PendingDraft = {
   updatedAt: Date;
 };
 
+/**
+ * How big each pile actually is, independent of how much of it was fetched.
+ *
+ * The lists below are capped at `DASHBOARD_LIST_LIMIT`, so `list.length` is the
+ * size of the *page*, not the size of the backlog. Reporting one as the other is
+ * how a clinic with 63 pending check-ins gets told it has 50 — so the counts
+ * travel separately and the screen never derives a total from an array it knows
+ * was truncated.
+ */
+export type CoachDashboardTotals = {
+  missingPlans: number;
+  pendingCheckins: number;
+  pendingDrafts: number;
+};
+
 /** The real (data-backed) part of the coach dashboard. */
 export type CoachDashboard = {
   activeCount: number;
@@ -206,6 +221,8 @@ export type CoachDashboard = {
   pendingCheckins: PendingCheckin[];
   /** Never-published diet/workout drafts, longest-untouched first. */
   pendingDrafts: PendingDraft[];
+  /** True sizes of the three capped lists above. */
+  totals: CoachDashboardTotals;
 };
 
 /**
@@ -227,8 +244,17 @@ const DASHBOARD_LIST_LIMIT = 50;
 export async function getCoachDashboard(
   ctx: TenantContext,
 ): Promise<CoachDashboard> {
-  const [active, dietRows, workoutRows, pendingRows, dietDrafts, workoutDrafts] =
-    await Promise.all([
+  const [
+    active,
+    dietRows,
+    workoutRows,
+    pendingRows,
+    dietDrafts,
+    workoutDrafts,
+    pendingCheckinCount,
+    dietDraftCount,
+    workoutDraftCount,
+  ] = await Promise.all([
     ctx.db
       .select({
         id: schema.students.id,
@@ -345,12 +371,65 @@ export async function getCoachDashboard(
       )
       .orderBy(asc(schema.studentWorkoutVersion.updatedAt))
       .limit(DASHBOARD_LIST_LIMIT),
+    // The true sizes of the three capped lists. These run beside the selects
+    // rather than after them, so the extra rows cost latency only, not a round
+    // trip — and `missingPlans` needs no query at all, since its source set is
+    // the uncapped active roster and the cap is applied in JS below.
+    ctx.db
+      .select({ n: count() })
+      .from(schema.studentCheckin)
+      .where(
+        and(
+          eq(schema.studentCheckin.clinicId, ctx.clinicId),
+          eq(schema.studentCheckin.author, "student"),
+          isNull(schema.studentCheckin.feedbackAt),
+        ),
+      ),
+    ctx.db
+      .select({ n: count() })
+      .from(schema.studentDietVersion)
+      .innerJoin(
+        schema.studentDiet,
+        eq(schema.studentDiet.id, schema.studentDietVersion.studentDietId),
+      )
+      .innerJoin(
+        schema.students,
+        eq(schema.students.id, schema.studentDiet.studentId),
+      )
+      .where(
+        and(
+          eq(schema.studentDiet.clinicId, ctx.clinicId),
+          eq(schema.studentDietVersion.status, "draft"),
+          eq(schema.students.status, "active"),
+        ),
+      ),
+    ctx.db
+      .select({ n: count() })
+      .from(schema.studentWorkoutVersion)
+      .innerJoin(
+        schema.studentWorkout,
+        eq(
+          schema.studentWorkout.id,
+          schema.studentWorkoutVersion.studentWorkoutId,
+        ),
+      )
+      .innerJoin(
+        schema.students,
+        eq(schema.students.id, schema.studentWorkout.studentId),
+      )
+      .where(
+        and(
+          eq(schema.studentWorkout.clinicId, ctx.clinicId),
+          eq(schema.studentWorkoutVersion.status, "draft"),
+          eq(schema.students.status, "active"),
+        ),
+      ),
   ]);
 
   const hasDiet = new Set(dietRows.map((r) => r.studentId));
   const hasWorkout = new Set(workoutRows.map((r) => r.studentId));
 
-  const missingPlans = active
+  const missingPlansAll = active
     .map((s) => ({
       id: s.id,
       firstName: s.firstName,
@@ -360,8 +439,8 @@ export async function getCoachDashboard(
       missingDiet: !hasDiet.has(s.id),
       missingWorkout: !hasWorkout.has(s.id),
     }))
-    .filter((s) => s.missingDiet || s.missingWorkout)
-    .slice(0, DASHBOARD_LIST_LIMIT);
+    .filter((s) => s.missingDiet || s.missingWorkout);
+  const missingPlans = missingPlansAll.slice(0, DASHBOARD_LIST_LIMIT);
 
   const pendingCheckins: PendingCheckin[] = pendingRows.map((r) => ({
     id: r.id,
@@ -384,6 +463,12 @@ export async function getCoachDashboard(
     missingPlans,
     pendingCheckins,
     pendingDrafts,
+    totals: {
+      missingPlans: missingPlansAll.length,
+      pendingCheckins: pendingCheckinCount[0]?.n ?? 0,
+      pendingDrafts:
+        (dietDraftCount[0]?.n ?? 0) + (workoutDraftCount[0]?.n ?? 0),
+    },
   };
 }
 

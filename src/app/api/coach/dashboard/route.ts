@@ -36,15 +36,20 @@ export const GET = withRoute("coach.dashboard", async () => {
     plans.canUseCalendar(ctx),
   ]);
 
-  const waWaiting: WaWaitingDto[] = canWhatsapp
-    ? (await whatsapp.listWaiting(ctx)).map((c) => ({
-        conversationId: c.id,
-        studentId: c.studentId,
-        name: c.name,
-        initials: c.initials,
-        preview: c.lastMessagePreview,
-      }))
-    : [];
+  // `listWaiting` caps at 5 — the card shows a preview of the inbox, not the
+  // inbox. The count therefore cannot come from that array: `countWaiting` is
+  // the uncapped total, and it is the same query the sidebar badge reads, so the
+  // two can no longer disagree on screen (the tile said 5 while the rail said 9+).
+  const [waWaitingRows, waWaitingTotal] = canWhatsapp
+    ? await Promise.all([whatsapp.listWaiting(ctx), whatsapp.countWaiting(ctx)])
+    : [[], 0];
+  const waWaiting: WaWaitingDto[] = waWaitingRows.map((c) => ({
+    conversationId: c.id,
+    studentId: c.studentId,
+    name: c.name,
+    initials: c.initials,
+    preview: c.lastMessagePreview,
+  }));
 
   // A `Date` does not survive JSON, so the wire carries an ISO instant and the
   // client formats it. The DAL already sorted these longest-untouched first.
@@ -90,6 +95,7 @@ export const GET = withRoute("coach.dashboard", async () => {
     pendingDrafts,
     todayEvents,
     weekEvents,
+    totals: { ...base.totals, waWaiting: waWaitingTotal },
   };
   return NextResponse.json(dashboard);
 });

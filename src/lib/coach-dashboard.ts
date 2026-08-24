@@ -8,6 +8,10 @@ import type { CalendarItemDto } from "@/lib/calendar";
  * drops into whichever one they mean to work. Each list is capped server-side —
  * the dashboard shows a queue, never an archive — and each arrives already
  * ordered, so the client renders rather than re-derives.
+ *
+ * Because the lists are capped, the counts ride separately in `totals`. The
+ * tiles and badges are the coach's read on how much work is waiting; sizing them
+ * from a truncated array is how the screen ends up disagreeing with the sidebar.
  */
 
 export type MissingPlanStudentDto = {
@@ -54,6 +58,23 @@ export type PendingDraftDto = {
   updatedAt: string;
 };
 
+/**
+ * The true size of each pile, independent of how many rows travelled.
+ *
+ * Every list on this payload is capped server-side, so `list.length` measures
+ * the page, not the backlog — and a screen that reads one as the other reports a
+ * number the server knows is wrong. The tiles and the card badges read these;
+ * the lists render only what arrived. When a total exceeds the rows on hand, the
+ * card says so out loud rather than letting the difference vanish.
+ */
+export type CoachDashboardTotalsDto = {
+  missingPlans: number;
+  pendingCheckins: number;
+  pendingDrafts: number;
+  /** Uncapped, and the same source the sidebar badge counts. */
+  waWaiting: number;
+};
+
 export type CoachDashboardDto = {
   activeCount: number;
   /**
@@ -74,4 +95,6 @@ export type CoachDashboardDto = {
   todayEvents: CalendarItemDto[];
   /** Calendar items from tomorrow through the end of this week (Sat). */
   weekEvents: CalendarItemDto[];
+  /** True sizes of the capped lists above. Never derive a count from `.length`. */
+  totals: CoachDashboardTotalsDto;
 };
