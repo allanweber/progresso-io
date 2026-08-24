@@ -101,31 +101,30 @@ frontend rules. The server schema (`calendarEventInputSchema`) coerces empty
 strings to `null`; a separate string-only `calendarEventFormSchema` drives the
 form's on-change validation.
 
-## Dashboard triage cards
+## Dashboard triage
 
-`GET /api/coach/dashboard` (all plans) now also returns **`pendingCheckins`** —
-aluno-submitted check-ins with no coach feedback yet (`author = student`,
-`feedbackAt IS NULL`), newest first. The coach dashboard renders two real cards:
+The separate triage cards are gone. `GET /api/coach/dashboard` now merges every
+backlog a coach owes someone — pending check-ins, unanswered WhatsApp, alunos
+with no published plan, and never-published drafts — into **one `queue`**, sorted
+by how long each has waited. See `docs/coach-dashboard.md` for the ranking rule
+and row anatomy.
 
-- **Check-ins aguardando resposta** — the pending list (→ each student's Feedback
-  tab) + a KPI count.
-- **Sem treino ou dieta** — active students with no published workout **or** diet
-  (already existed).
+Check-in triage still feeds it: aluno-submitted check-ins with no coach feedback
+(`author = student`, `feedbackAt IS NULL`) become `kind: "checkin"` rows linking
+straight to that student's Feedback tab. Not plan-gated — generic triage is
+available to Free too; only the Calendar itself is paid.
 
-These are **not** plan-gated (generic triage, available to Free too); only the
-Calendar itself is paid.
+### Agenda card (today only)
 
-### Agenda cards (Hoje / Esta semana)
+When the clinic's plan includes the Calendar, the route also returns
+**`todayEvents`** — the merged `getCalendar` items (manual events + derived
+check-in and invoice-due markers) for today. It renders as the **Agenda de hoje**
+card beside the queue (each row: category dot with an `sr-only` category label,
+title, time, plus an "atrasado" tag on overdue markers), with a "ver agenda"
+shortcut to `/coach/calendar`.
 
-When the clinic's plan includes the Calendar, `GET /api/coach/dashboard` also
-returns **`todayEvents`** and **`weekEvents`** — the merged `getCalendar` items
-(manual events + derived check-in + invoice-due markers) for `[today, Saturday]`,
-split into today vs. the rest of the week. Both are empty for a plan without the
-Calendar, so the cards render a friendly empty state instead of the old "em
-breve" placeholder. The dashboard's right column renders them as the **Hoje** and
-**Esta semana** cards (each row: category dot, title, time — the week card also
-prefixes the weekday/day — plus an "atrasado" tag on overdue markers), with a
-"Ver agenda" shortcut to `/coach/calendar`.
+`weekEvents` no longer exists. The rest of the week left the dashboard and lives
+on `/coach/calendar`, which is the page built to show it.
 
 ## Files
 

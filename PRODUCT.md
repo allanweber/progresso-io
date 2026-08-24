@@ -68,10 +68,14 @@ without building them:
   only a **published version**. Publishing is the moment that produces a WhatsApp
   notice and the student's new reality. Draft/published is a visible, meaningful
   state everywhere, not an implementation detail.
-- **The weekly check-in loop.** A student is due on the clinic's preferred
-  weekday; punctual students get feedback only, slipping ones get a reminder
-  first. This cadence is the product's heartbeat and the main recurring cost
-  driver.
+- **The weekly check-in loop.** A student is due on **their own** weekday — the
+  day they joined, or the day they last checked in — advanced by the clinic's
+  cadence interval (`semanal` 7 / `quinzenal` 14 / `mensal` 28). The clinic
+  chooses the *interval*, never the weekday, so a roster's check-ins are spread
+  across the week rather than landing together (`computeCheckinDue`,
+  `src/lib/calendar.ts`). Punctual students get feedback only, slipping ones get
+  a reminder first. This cadence is the product's heartbeat and the main
+  recurring cost driver.
 - **Branded clinic portal.** A paid clinic publishes a public microsite and
   branded sign-in at `app.progresso.io/<slug>`, themed with its own logo and
   accent color. Clinic branding sits on top of Progresso's, and both must survive.

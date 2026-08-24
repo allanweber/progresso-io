@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
-  ChevronRight,
   Plus,
   RefreshCw,
   Sparkles,
@@ -14,21 +13,17 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
-import { CALENDAR_TYPE_META, type CalendarItemDto } from "@/lib/calendar";
 import {
-  QUEUE_KIND_LABELS,
-  type CoachDashboardDto,
-  type QueueItemDto,
-} from "@/lib/coach-dashboard";
+  CALENDAR_TYPE_META,
+  WEEKDAY_SHORT_LABELS,
+  dayNumber,
+  weekdayOf,
+  type CalendarItemDto,
+} from "@/lib/calendar";
+import type { CoachDashboardDto, PendingDraftDto } from "@/lib/coach-dashboard";
 import { isAtLimit, type PlanUsageDto } from "@/lib/plans";
-import { avatarColor } from "@/lib/students";
+import { avatarColor, studentInitials } from "@/lib/students";
 import { cn } from "@/lib/utils";
-
-/** How many queue rows show before the coach asks for the rest. */
-const VISIBLE_ROWS = 6;
-
-/** A wait this long or longer reads as urgent rather than merely pending. */
-const URGENT_DAYS = 7;
 
 /** Today's date as an "Sábado · 2 de agosto" eyebrow (capitalised weekday). */
 function useTodayLabel(): string | null {
@@ -51,16 +46,22 @@ function useTodayLabel(): string | null {
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} · ${dayMonth}`;
 }
 
-/** Whole days between an ISO instant and now, floored at 0. */
-function daysWaiting(iso: string): number {
-  const ms = Date.now() - new Date(iso).getTime();
-  return Math.max(0, Math.floor(ms / 86_400_000));
-}
-
-/** "hoje" · "há 1 dia" · "há 12 dias" — the queue's only ranking signal. */
-function waitLabel(days: number): string {
-  if (days === 0) return "hoje";
-  return days === 1 ? "há 1 dia" : `há ${days} dias`;
+/**
+ * How long an ISO instant has been sitting, in the product's voice. Used by the
+ * drafts card, whose `updatedAt` is a true timestamp — so a draft touched this
+ * morning says so instead of rounding up to a day it has not waited.
+ */
+function waitLabel(iso: string): string {
+  const ms = Math.max(0, Date.now() - new Date(iso).getTime());
+  if (ms < 86_400_000) {
+    const minutes = Math.floor(ms / 60_000);
+    if (minutes < 1) return "agora";
+    if (minutes < 60) return `há ${minutes} min`;
+    return `há ${Math.floor(minutes / 60)} h`;
+  }
+  const days = Math.floor(ms / 86_400_000);
+  if (days === 1) return "ontem";
+  return `há ${days} dias`;
 }
 
 /** A dashboard section: card chrome with a titled header. */
@@ -83,7 +84,11 @@ function SectionCard({
       aria-labelledby={headingId}
       className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
     >
-      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3.5">
+      {/*
+        At 390px the title and its aside fought over one line and both wrapped
+        mid-phrase. The aside drops to its own line instead of being hidden.
+      */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-border px-4 py-3.5">
         <h2
           id={headingId}
           className="font-heading text-subtitle font-semibold text-foreground"
@@ -92,7 +97,9 @@ function SectionCard({
         </h2>
         {badge}
         {aside ? (
-          <span className="ml-auto text-label text-muted-foreground">{aside}</span>
+          <span className="w-full text-label text-muted-foreground sm:ml-auto sm:w-auto">
+            {aside}
+          </span>
         ) : null}
       </div>
       {children}
@@ -100,32 +107,229 @@ function SectionCard({
   );
 }
 
+/** The one line a card shows instead of rows: loading, or nothing to do. */
+function CardMessage({
+  children,
+  busy,
+}: {
+  children: React.ReactNode;
+  busy?: boolean;
+}) {
+  return (
+    <p
+      aria-busy={busy || undefined}
+      className="px-4 py-9 text-center text-body text-muted-foreground"
+    >
+      {children}
+    </p>
+  );
+}
+
+/** A count beside a card title. Danger by default; `tone` softens it. */
+function CountBadge({
+  count,
+  label,
+  tone = "danger",
+}: {
+  count: number;
+  label: string;
+  tone?: "danger" | "brand";
+}) {
+  if (count === 0) return null;
+  return (
+    <span
+      aria-label={`${count} ${label}`}
+      className={cn(
+        "rounded-full px-2.5 py-0.5 text-label font-semibold",
+        tone === "danger"
+          ? "bg-danger-bg text-danger-fg"
+          : "bg-primary-light text-primary",
+      )}
+    >
+      {count}
+    </span>
+  );
+}
+
+/**
+ * One KPI tile. Always rendered — a bold 0 is itself the good news, and a row
+ * that reflows between loads is worse than one that shows a zero.
+ *
+ * Marked up as the term/value pair it actually is, so a screen reader announces
+ * "Sem treino/dieta, 3" rather than two unrelated strings, and so the figure has
+ * a stable handle instead of a position in the box tree.
+ */
+function KpiTile({
+  label,
+  value,
+  tone = "neutral",
+  footnote,
+}: {
+  label: string;
+  value: number | null;
+  tone?: "neutral" | "danger" | "brand";
+  footnote?: React.ReactNode;
+}) {
+  const slug = label.replace(/\W+/g, "-").toLowerCase();
+  return (
+    <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <dt className="text-body-dense text-muted-foreground">{label}</dt>
+      <dd
+        id={`kpi-${slug}`}
+        className={cn(
+          "mt-1.5 font-heading text-figure font-bold tabular-nums",
+          // A count of zero is never alarming, whatever the tile is about.
+          value ? toneClass(tone) : "text-foreground",
+        )}
+      >
+        {value === null ? "…" : value}
+      </dd>
+      {footnote ? <dd>{footnote}</dd> : null}
+    </div>
+  );
+}
+
+function toneClass(tone: "neutral" | "danger" | "brand"): string {
+  if (tone === "danger") return "text-destructive";
+  if (tone === "brand") return "text-primary";
+  return "text-foreground";
+}
+
+/** Avatar + name + one secondary fact: the shape every list row here shares. */
+function PersonRow({
+  href,
+  seed,
+  initials,
+  name,
+  detail,
+  children,
+}: {
+  href: string;
+  seed: string;
+  initials: string;
+  name: string;
+  detail?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="border-b border-border-light last:border-0">
+      <Link
+        href={href}
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light focus-visible:bg-surface-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold uppercase text-white"
+          style={{ background: avatarColor(seed) }}
+          aria-hidden
+        >
+          {initials}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-body font-semibold text-foreground">
+            {name}
+          </span>
+          {detail ? (
+            <span className="block truncate text-body-dense text-muted-foreground">
+              {detail}
+            </span>
+          ) : null}
+        </span>
+        {children}
+      </Link>
+    </li>
+  );
+}
+
+/** The action a row is waiting for, as a word — never colour alone. */
+function ActionChip({
+  children,
+  tone = "warn",
+}: {
+  children: React.ReactNode;
+  tone?: "warn" | "danger";
+}) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2.5 py-0.5 text-caption font-semibold",
+        tone === "warn"
+          ? "bg-warn-bg text-warn-fg"
+          : "bg-danger-bg text-danger-fg",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** One calendar item in the "Hoje" / "Esta semana" agenda cards. */
+function AgendaRow({
+  item,
+  showDate,
+}: {
+  item: CalendarItemDto;
+  showDate?: boolean;
+}) {
+  const meta = CALENDAR_TYPE_META[item.type];
+  const dateLabel = showDate
+    ? `${WEEKDAY_SHORT_LABELS[weekdayOf(item.date)]} ${dayNumber(item.date)}`
+    : null;
+  const time = item.startTime ?? "dia todo";
+  const student = item.source === "manual" ? item.studentName : null;
+  return (
+    <li className="border-b border-border-light last:border-0">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span
+          className="size-2.5 shrink-0 rounded-full"
+          style={{ background: meta.accent }}
+          aria-hidden
+        />
+        <span className="sr-only">{meta.label}:</span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-body font-semibold text-foreground">
+            {item.title}
+          </div>
+          <div className="truncate text-body-dense text-muted-foreground">
+            {[dateLabel, time, student].filter(Boolean).join(" · ")}
+          </div>
+        </div>
+        {item.overdue ? <ActionChip tone="danger">atrasado</ActionChip> : null}
+      </div>
+    </li>
+  );
+}
+
+/** Where a draft is edited — the builder for its kind, not the aluno's record. */
+function draftHref(d: PendingDraftDto): string {
+  return `/coach/students/${d.studentId}/${d.kind === "diet" ? "diet" : "workout"}`;
+}
+
 export default function CoachDashboardPage() {
   const today = useTodayLabel();
-  const [expanded, setExpanded] = useState(false);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["coach-dashboard"],
     queryFn: () => apiFetch<CoachDashboardDto>("/api/coach/dashboard"),
   });
 
-  // Plan capacity for the invite control (shared cache with settings + roster).
+  // Plan capacity for the "Alunos ativos" tile (shared cache with settings + roster).
   const { data: usage } = useQuery({
     queryKey: ["coach-plan-usage"],
     queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
   });
 
-  const queue = data?.queue ?? [];
-  const queueTotal = data?.queueTotal ?? 0;
+  const pendingCheckins = data?.pendingCheckins ?? [];
+  const missingPlans = data?.missingPlans ?? [];
+  const waWaiting = data?.waWaiting ?? [];
+  const pendingDrafts = data?.pendingDrafts ?? [];
   const todayEvents = data?.todayEvents ?? [];
-  const shown = expanded ? queue : queue.slice(0, VISIBLE_ROWS);
-  const hidden = queueTotal - shown.length;
+  const weekEvents = data?.weekEvents ?? [];
 
-  // Shared by both returns below, so a failed load keeps the page title and
+  // Shared by all three returns below, so a failed load keeps the page title and
   // the two escape hatches (roster, invite) instead of stranding the coach.
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <div className="text-eyebrow uppercase text-meta">
+        <div className="text-eyebrow uppercase text-text-secondary">
           {today ?? " "}
         </div>
         <h1 className="mt-1 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
@@ -188,9 +392,9 @@ export default function CoachDashboardPage() {
     );
   }
 
-  // A brand-new clinic has nothing to queue. Six "nothing here" messages teach
-  // a coach nothing on the highest-stakes screen of their trial, so the first
-  // run names the ritual the whole product is built on instead.
+  // A brand-new clinic has nothing in any pile. Six "nothing here" messages
+  // teach a coach nothing on the highest-stakes screen of their trial, so the
+  // first run names the ritual the whole product is built on instead.
   if (data?.activeCount === 0) {
     return (
       <div className="mx-auto max-w-6xl">
@@ -203,8 +407,8 @@ export default function CoachDashboardPage() {
             Comece convidando seu primeiro aluno
           </h2>
           <p className="mx-auto mt-2 max-w-md text-body text-muted-foreground">
-            Sua fila reúne tudo que espera por você — check-ins, mensagens e
-            planos a publicar. Ela começa aqui.
+            Seu painel reúne tudo que espera por você — check-ins, mensagens e
+            planos a publicar. Ele começa aqui.
           </p>
           <ol className="mx-auto mt-8 flex max-w-lg flex-col gap-4 text-left">
             {[
@@ -256,174 +460,235 @@ export default function CoachDashboardPage() {
     <div className="mx-auto min-w-0 max-w-6xl">
       {header}
 
-      <div className="mt-4 grid min-w-0 items-start gap-4 lg:grid-cols-[1.6fr_1fr]">
-      {/* The queue — everything the coach owes someone, longest wait first. */}
-      <SectionCard
-        title="Precisa de você"
-        badge={
-          queueTotal > 0 ? (
-            <span
-              aria-label={`${queueTotal} itens aguardando`}
-              className="rounded-full bg-danger-bg px-2.5 py-0.5 text-label font-semibold text-danger-fg"
-            >
-              {queueTotal}
-            </span>
-          ) : undefined
-        }
-      >
-        {isLoading ? (
-          <ul>
-            {Array.from({ length: 4 }, (_, i) => (
-              <li key={i} className="border-b border-border-light last:border-0">
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="size-9 shrink-0 rounded-full bg-muted" />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="h-3 w-40 rounded-full bg-muted" />
-                    <div className="h-2.5 w-24 rounded-full bg-border-light" />
-                  </div>
-                </div>
-              </li>
-            ))}
-            <li className="sr-only">Carregando sua fila…</li>
-          </ul>
-        ) : queue.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <p className="font-heading text-subtitle font-semibold text-foreground">
-              Tudo em dia
-            </p>
-            <p className="mt-1 text-body text-muted-foreground">
-              Nada aguardando resposta agora.
-            </p>
-          </div>
-        ) : (
-          <>
-            <ul>
-              {shown.map((item) => (
-                <QueueRow key={item.key} item={item} />
-              ))}
-            </ul>
-            {hidden > 0 ? (
-              <div className="border-t border-border-light px-4 py-2.5 text-center">
-                <button
-                  type="button"
-                  onClick={() => setExpanded(true)}
-                  className="rounded-[10px] px-3 py-1.5 text-body-dense font-semibold text-text-secondary transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                >
-                  Ver todos ({queueTotal})
-                </button>
+      {/* The sizes of the four piles, read in one glance. */}
+      <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <KpiTile
+          label="Alunos ativos"
+          value={isLoading ? null : (data?.activeCount ?? 0)}
+          footnote={
+            usage ? (
+              <div
+                className={cn(
+                  "text-caption font-medium",
+                  isAtLimit(usage.students.used, usage.students.limit)
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {usage.students.limit === null
+                  ? `Plano ${usage.planName} · sem limite`
+                  : `de ${usage.students.limit} · plano ${usage.planName}`}
               </div>
-            ) : null}
-          </>
-        )}
-      </SectionCard>
+            ) : undefined
+          }
+        />
+        <KpiTile
+          label="Sem treino/dieta"
+          value={isLoading ? null : missingPlans.length}
+          tone="danger"
+        />
+        <KpiTile
+          label="Check-ins pendentes"
+          value={isLoading ? null : pendingCheckins.length}
+          tone="danger"
+        />
+        <KpiTile
+          label="WhatsApp aguardando"
+          value={isLoading ? null : waWaiting.length}
+          tone="brand"
+        />
+      </dl>
 
-      {/* Today's agenda. The week lives on the calendar page. */}
-      <SectionCard
-        title="Agenda de hoje"
-        aside={
-          <Link
-            href="/coach/calendar"
-            className="transition-colors hover:text-primary"
+      {/*
+        Left column is the work you owe an aluno — three lists whose rows carry
+        an avatar, a name and a chip, and want the width. Right column is time
+        and talk: the agenda and the inbox, which read fine narrow.
+      */}
+      <div className="mt-4 grid min-w-0 items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <SectionCard
+            title="Check-ins aguardando resposta"
+            badge={
+              <CountBadge
+                count={pendingCheckins.length}
+                label="aguardando resposta"
+              />
+            }
           >
-            ver agenda
-          </Link>
-        }
-      >
-        {isLoading ? (
-          <div className="px-4 py-9 text-center text-body text-muted-foreground">
-            Carregando…
-          </div>
-        ) : todayEvents.length === 0 ? (
-          <div className="px-4 py-9 text-center text-body text-muted-foreground">
-            Nada agendado para hoje.
-          </div>
-        ) : (
-          <ul>
-            {todayEvents.map((item) => (
-              <AgendaRow key={item.key} item={item} />
-            ))}
-          </ul>
-        )}
-      </SectionCard>
+            {isLoading ? (
+              <CardMessage busy>Carregando…</CardMessage>
+            ) : pendingCheckins.length === 0 ? (
+              <CardMessage>Nenhum check-in aguardando resposta.</CardMessage>
+            ) : (
+              <ul>
+                {pendingCheckins.map((c) => (
+                  <PersonRow
+                    key={c.id}
+                    href={`/coach/students/${c.studentId}/feedback`}
+                    seed={c.studentId}
+                    initials={studentInitials(c.firstName, c.lastName)}
+                    name={`${c.firstName} ${c.lastName}`}
+                    detail={`${c.date.slice(8, 10)}/${c.date.slice(5, 7)}${
+                      c.weightKg != null ? ` · ${c.weightKg} kg` : ""
+                    }`}
+                  >
+                    <ActionChip>responder</ActionChip>
+                  </PersonRow>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title="Sem treino ou dieta"
+            badge={
+              <CountBadge
+                count={missingPlans.length}
+                label="alunos sem treino ou dieta"
+              />
+            }
+          >
+            {isLoading ? (
+              <CardMessage busy>Carregando…</CardMessage>
+            ) : missingPlans.length === 0 ? (
+              <CardMessage>
+                Todos os alunos ativos têm treino e dieta.
+              </CardMessage>
+            ) : (
+              <ul>
+                {missingPlans.map((s) => (
+                  <PersonRow
+                    key={s.id}
+                    href={`/coach/students/${s.id}`}
+                    seed={s.id}
+                    initials={studentInitials(s.firstName, s.lastName)}
+                    name={`${s.firstName} ${s.lastName}`}
+                    detail={s.goal}
+                  >
+                    <span className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {s.missingWorkout ? (
+                        <ActionChip tone="danger">sem treino</ActionChip>
+                      ) : null}
+                      {s.missingDiet ? (
+                        <ActionChip tone="danger">sem dieta</ActionChip>
+                      ) : null}
+                    </span>
+                  </PersonRow>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
+          {/*
+            Drafts are invisible everywhere else: the aluno cannot see them, so
+            nothing nags. A plan written and never published is the one kind of
+            work that silently expires.
+          */}
+          <SectionCard
+            title="Rascunhos não publicados"
+            badge={
+              <CountBadge
+                count={pendingDrafts.length}
+                label="rascunhos não publicados"
+                tone="brand"
+              />
+            }
+          >
+            {isLoading ? (
+              <CardMessage busy>Carregando…</CardMessage>
+            ) : pendingDrafts.length === 0 ? (
+              <CardMessage>Nenhum rascunho esperando publicação.</CardMessage>
+            ) : (
+              <ul>
+                {pendingDrafts.map((d) => (
+                  <PersonRow
+                    key={`${d.kind}:${d.id}`}
+                    href={draftHref(d)}
+                    seed={d.studentId}
+                    initials={studentInitials(d.firstName, d.lastName)}
+                    name={`${d.firstName} ${d.lastName}`}
+                    detail={`${d.kind === "diet" ? "dieta" : "treino"} · editado ${waitLabel(d.updatedAt)}`}
+                  >
+                    <ActionChip>publicar</ActionChip>
+                  </PersonRow>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <SectionCard
+            title="Hoje"
+            aside={
+              <Link
+                href="/coach/calendar"
+                className="text-primary hover:underline"
+              >
+                Ver agenda
+              </Link>
+            }
+          >
+            {isLoading ? (
+              <CardMessage busy>Carregando…</CardMessage>
+            ) : todayEvents.length === 0 ? (
+              <CardMessage>Nada agendado para hoje.</CardMessage>
+            ) : (
+              <ul>
+                {todayEvents.map((item) => (
+                  <AgendaRow key={item.key} item={item} />
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Esta semana">
+            {isLoading ? (
+              <CardMessage busy>Carregando…</CardMessage>
+            ) : weekEvents.length === 0 ? (
+              <CardMessage>
+                Nada agendado para o restante da semana.
+              </CardMessage>
+            ) : (
+              <ul>
+                {weekEvents.map((item) => (
+                  <AgendaRow key={item.key} item={item} showDate />
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title="WhatsApp aguardando"
+            badge={
+              <CountBadge
+                count={waWaiting.length}
+                label="conversas aguardando resposta"
+                tone="brand"
+              />
+            }
+          >
+            {isLoading ? (
+              <CardMessage busy>Carregando…</CardMessage>
+            ) : waWaiting.length === 0 ? (
+              <CardMessage>Nenhuma conversa aguardando resposta.</CardMessage>
+            ) : (
+              <ul>
+                {waWaiting.map((c) => (
+                  <PersonRow
+                    key={c.conversationId}
+                    href={`/coach/whatsapp?c=${c.conversationId}`}
+                    seed={c.studentId ?? c.conversationId}
+                    initials={c.initials}
+                    name={c.name}
+                    detail={c.preview ?? "—"}
+                  />
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
       </div>
     </div>
-  );
-}
-
-/**
- * One row of the merged queue. The kind is a text chip, never a colour alone;
- * the wait is the only thing that turns red, and only past {@link URGENT_DAYS}.
- */
-function QueueRow({ item }: { item: QueueItemDto }) {
-  const days = daysWaiting(item.waitingSince);
-  const urgent = days >= URGENT_DAYS;
-  return (
-    <li className="border-b border-border-light last:border-0">
-      <Link
-        href={item.href}
-        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light"
-      >
-        <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold text-white"
-          style={{ background: avatarColor(item.avatarSeed) }}
-          aria-hidden
-        >
-          {item.initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-body font-semibold text-foreground">
-            {item.name}
-          </div>
-          <div className="truncate text-body-dense text-muted-foreground">
-            {item.detail ?? QUEUE_KIND_LABELS[item.kind]}
-          </div>
-        </div>
-        <span className="hidden shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-label font-semibold text-text-secondary sm:inline">
-          {QUEUE_KIND_LABELS[item.kind]}
-        </span>
-        <time
-          dateTime={item.waitingSince}
-          className={cn(
-            "shrink-0 text-body-dense font-medium tabular-nums",
-            urgent ? "text-danger-fg" : "text-text-secondary",
-          )}
-        >
-          {waitLabel(days)}
-        </time>
-        <ChevronRight className="size-4 shrink-0 text-meta" aria-hidden />
-      </Link>
-    </li>
-  );
-}
-
-/** One calendar item in the "Agenda de hoje" card. */
-function AgendaRow({ item }: { item: CalendarItemDto }) {
-  const meta = CALENDAR_TYPE_META[item.type];
-  const time = item.startTime ?? "dia todo";
-  const student = item.source === "manual" ? item.studentName : null;
-  return (
-    <li className="border-b border-border-light last:border-0">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <span
-          className="size-2.5 shrink-0 rounded-full"
-          style={{ background: meta.accent }}
-          aria-hidden
-        />
-        <span className="sr-only">{meta.label}:</span>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-body font-semibold text-foreground">
-            {item.title}
-          </div>
-          <div className="truncate text-body-dense text-muted-foreground">
-            {[time, student].filter(Boolean).join(" · ")}
-          </div>
-        </div>
-        {item.overdue ? (
-          <span className="shrink-0 rounded-full bg-danger-bg px-2.5 py-0.5 text-label font-semibold text-danger-fg">
-            atrasado
-          </span>
-        ) : null}
-      </div>
-    </li>
   );
 }

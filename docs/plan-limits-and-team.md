@@ -63,8 +63,11 @@ one `coach-plan-usage` query (TanStack dedupes the cache):
 - **"Plano atual" card** (settings) — a full list: `Alunos 34/50`,
   `Coaches 2/3`, `WhatsApp Incluído`, with an "at limit" accent.
 - **Students roster** — a `34 / 50 alunos` chip next to "Adicionar aluno".
-- **Dashboard** — the "Alunos ativos" KPI gains a `de 50 · plano Clínica`
-  subtitle (`sem limite` when uncapped).
+- **Dashboard** — no longer shows usage. The KPI tiles were removed when the
+  dashboard became a work queue, so `coach-plan-usage` is read there only to
+  swap the "Convidar aluno" button for a "Limite de N alunos · ver planos" link
+  once `isAtLimit` is true. Surfacing the count again is an open design question
+  (see the critique snapshots in `.impeccable/critique/`).
 
 `formatUsage(used, limit)` renders `34 / 50` (or just `34` when unlimited);
 `isAtLimit` drives the accent.

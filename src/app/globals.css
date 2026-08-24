@@ -78,6 +78,12 @@
   --fs-subtitle: 15px;
   --fs-title: 18px;
   --fs-headline: 24px;
+  /*
+   * A counted quantity read as a shape rather than as prose — the dashboard's
+   * KPI numerals. Structural, so it holds across postures: a figure is glanced
+   * at, not read, and growing it on the aluno's phone would buy nothing.
+   */
+  --fs-figure: 30px;
 }
 
 /*
@@ -120,6 +126,22 @@
   --border: #334155;
   --input: #334155;
   --ring: #059669;
+}
+
+/*
+ * Focus safety net. DESIGN.md calls the focus ring "unmissable" and says it is
+ * never removed, but that only held where a component remembered to paint one:
+ * a handful of controls shipped `focus:outline-none` with no replacement, and
+ * the browser default was the only thing they had.
+ *
+ * Safe as a fallback because every ring-bearing element in this codebase pairs
+ * its ring with `outline-none`, so this paints only where nothing else does.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 @theme inline {
@@ -195,6 +217,10 @@
 
   --text-headline: var(--fs-headline);
   --text-headline--line-height: 1.15;
+
+  --text-figure: var(--fs-figure);
+  --text-figure--line-height: 1.1;
+  --text-figure--letter-spacing: -0.02em;
 }
 
 @layer base {

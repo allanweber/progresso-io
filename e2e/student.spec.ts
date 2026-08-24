@@ -6,6 +6,22 @@ import { expect, test } from "@playwright/test";
  * seed publishes an active "Cutting" diet + an archived "Adaptação" one.
  */
 
+/**
+ * Pre-accept the cookie banner (the pattern admin-admins/admin-maintenance
+ * already use). It carries `role="dialog"`, so a bare `getByRole("dialog")`
+ * matches it as well as a Radix dialog — and because consent is read from
+ * localStorage in an effect, the banner mounts *after* first paint. That race
+ * made "open the dialog, Escape, expect it hidden" fail: by the time the
+ * assertion ran, the locator had resolved to the still-visible banner. It also
+ * keeps the portal screenshots free of a strip that covers the bottom of the
+ * mobile viewport.
+ */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("progresso-cookie-consent", "accepted"),
+  );
+});
+
 test.describe("aluno portal", () => {
   test("opens on the active diet with its meals", async ({ page }) => {
     await page.goto("/student");
@@ -66,10 +82,6 @@ test.describe("aluno portal", () => {
 
     // --- Desktop ---
     await page.goto("/student");
-    // Accept the app-wide cookie banner up front (unobstructed on desktop), so
-    // both the desktop and mobile shots are clean and the mobile bottom bar is
-    // never covered by it.
-    await page.getByRole("button", { name: "Aceitar" }).click();
     // The portal opens on Dieta — switch to Treino.
     await page.getByRole("button", { name: "Treino" }).first().click();
 
@@ -150,7 +162,9 @@ test.describe("aluno portal", () => {
       // Portalled: the food dialog renders under <body>, and still reads at
       // the aluno's posture rather than falling back to the coach's density.
       await food.click();
-      const dialog = page.getByRole("dialog");
+      const dialog = page
+        .getByRole("dialog")
+        .filter({ hasNot: page.getByRole("button", { name: "Aceitar" }) });
       await expect(dialog).toBeVisible();
       expect(await px(dialog.getByText(/Batata/).first())).toBe("14px");
       await dialog.screenshot({
@@ -164,10 +178,6 @@ test.describe("aluno portal", () => {
   test("renders the mobile chrome (bottom tab bar)", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/student");
-
-    // Dismiss the app-wide cookie banner — it's a fixed bottom bar that would
-    // otherwise cover the mobile tab bar.
-    await page.getByRole("button", { name: "Aceitar" }).click();
 
     // Greeting in the mobile header + the active diet still shows.
     await expect(page.getByText("Oi, Ana!")).toBeVisible();
@@ -198,7 +208,6 @@ test.describe("aluno portal", () => {
 
     // --- Desktop ---
     await page.goto("/student");
-    await page.getByRole("button", { name: "Aceitar" }).click();
     await page.getByRole("button", { name: "Check-in" }).first().click();
 
     // The header reflects the clinic's check-in cadence (Configurações). The

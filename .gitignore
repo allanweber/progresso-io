@@ -63,6 +63,5 @@ next-env.d.ts
 /drizzle/data/exercises-images/
 
 plans/
-# This project installs with pnpm; a package-lock.json here means someone ran
-# npm by mistake and would reintroduce a second, divergent dependency graph.
 package-lock.json
+.impeccable/critique/

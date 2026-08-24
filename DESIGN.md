@@ -45,6 +45,12 @@ typography:
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.02em"
+  figure:
+    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontSize: "30px"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "-0.02em"
   title:
     fontFamily: "Space Grotesk, system-ui, sans-serif"
     fontSize: "18px"
@@ -294,6 +300,11 @@ product actually lives. The pairing lets a screen be dense without feeling harsh
   headline. One per marketing page, never inside the app.
 - **Headline** (700, 24px, `tracking-tight`): the page title on every coach,
   admin and aluno screen. This is the app's true top level.
+- **Figure** (700, 30px, `tabular-nums`): a counted quantity read as a shape
+  rather than as prose — the coach dashboard's KPI numerals. It outranks the
+  Headline on purpose: the number *is* the content of its tile, and the label
+  above it is the caption. Always paired with `tabular-nums` so a row of tiles
+  does not jitter when the counts refetch. Never used for a word.
 - **Title** (600, 18px): panel and card titles, dialog titles.
 - **Subtitle** (600, 15px, Space Grotesk): the name of a section *inside* a
   panel or dialog — "Como executar", "Substituições", a meal's name, "Dietas
@@ -327,7 +338,8 @@ in Portuguese, always.
 
 **The Named Rung Rule.** Every size in the app comes from a named `text-*`
 utility — `text-eyebrow · text-caption · text-label · text-body-dense ·
-text-body · text-subtitle · text-title · text-headline`, registered in
+text-body · text-subtitle · text-title · text-headline · text-figure`,
+registered in
 `globals.css`
 under `@theme inline`. There is no `text-[13px]`, and no half-step: a value
 that needs a bracket is a role the system has not named yet. Verify with:
@@ -340,9 +352,8 @@ grep -rn "text-\[[0-9.]*px\]" src --include=*.tsx
 coach's is the default — desk density, a fifty-row roster. The aluno's is
 `.posture-reading`, which redefines `--fs-body-dense`, `--fs-body` and
 `--fs-subtitle` one rung up (14 / 15 / 16) for a phone held at arm's length in
-a gym. The structural rungs — eyebrow, caption, label, title, headline — hold in
-both,
-so hierarchy is identical and only what you *read* grows. This is why the
+a gym. The structural rungs — eyebrow, caption, label, title, headline, figure
+— hold in both, so hierarchy is identical and only what you *read* grows. This is why the
 utilities are declared `@theme inline`: the value resolves at the element, not
 at `:root`, so a subtree can shift the whole ramp with three custom properties
 and no prop threading. A dialog portals to `<body>` and leaves that subtree, so

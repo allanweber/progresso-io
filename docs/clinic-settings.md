@@ -30,9 +30,11 @@ rest are placeholders for features not built yet.
 
 ### Preferências de feedback
 
-The clinic's default check-in cadence for its students. **Persisted now, but not
-yet consumed** — the check-in engine that would use them is one of the
-coming-soon features (see the dashboard's "Check-ins aguardando resposta").
+The clinic's default check-in cadence for its students. The **frequency** is
+consumed by `computeCheckinDue` (`src/lib/calendar.ts`), which advances a
+student's own weekday — their join day, or the day they last checked in — by this
+interval. The clinic chooses the interval, never the weekday, so a roster's
+check-ins spread across the week rather than landing together.
 
 - **Frequência** → `feedback_frequency`: `semanal | quinzenal | mensal`
   (default `semanal`).

@@ -81,7 +81,7 @@ export function NotificationBell() {
         aria-label={`Notificações${unread > 0 ? ` (${unread} não lidas)` : ""}`}
         aria-haspopup="true"
         aria-expanded={open}
-        className="relative flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus:outline-none"
+        className="relative flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-input text-[#334155] transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         <Bell className="size-4" />
         {unread > 0 && (
