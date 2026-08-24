@@ -665,12 +665,6 @@ export default function CoachDashboardPage() {
           tone="brand"
         />
       </dl>
-
-      {/*
-        Left column is the work you owe an aluno — three lists whose rows carry
-        an avatar, a name and a chip, and want the width. Right column is time
-        and talk: the agenda and the inbox, which read fine narrow.
-      */}
       <div className="mt-4 grid min-w-0 items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="flex min-w-0 flex-col gap-4">
           <SectionCard
@@ -813,6 +807,7 @@ export default function CoachDashboardPage() {
           </SectionCard>
         </div>
 
+        {/* Right column — `min-w-0` for the same reason as the left. */}
         <div className="flex min-w-0 flex-col gap-4">
           <SectionCard
             title="Hoje"
