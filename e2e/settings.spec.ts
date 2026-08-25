@@ -8,6 +8,14 @@ import { expect, test } from "@playwright/test";
  * (see the screenshots rule in AGENTS.md).
  */
 
+// Pre-accept the cookie banner: below lg it sits on top of the sticky save bar,
+// both in the way of a click and in the mobile screenshot.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("progresso-cookie-consent", "accepted"),
+  );
+});
+
 // Serial: both tests share the seeded coach's clinic + DB, and the team test
 // mutates coach invites — running them in order on one worker avoids races.
 test.describe.configure({ mode: "serial" });
@@ -76,19 +84,30 @@ test.describe("clinic settings", () => {
     await page.getByLabel("Endereço do portal").fill(subdomain);
 
     // Pick the "Mensal" check-in frequency and confirm it becomes selected.
-    const mensal = page.getByRole("button", { name: /Mensal/ });
+    const mensal = page.getByRole("radio", { name: /Mensal/ });
     await mensal.click();
-    await expect(mensal).toHaveAttribute("aria-pressed", "true");
+    await expect(mensal).toHaveAttribute("aria-checked", "true");
 
-    // Toggle the WhatsApp reminder off.
+    // Flip the WhatsApp reminder. The assertion is relative to what is in the
+    // DB, not to the seeded "true": this test saves the flipped value, so a
+    // retry — or a second run against the same database — starts from the
+    // opposite state and a hard-coded "true" would fail.
     const reminder = page.getByRole("switch");
-    await expect(reminder).toHaveAttribute("aria-checked", "true");
+    const wasOn = (await reminder.getAttribute("aria-checked")) === "true";
     await reminder.click();
-    await expect(reminder).toHaveAttribute("aria-checked", "false");
+    await expect(reminder).toHaveAttribute(
+      "aria-checked",
+      wasOn ? "false" : "true",
+    );
 
     // Save the whole form.
     await page.getByRole("button", { name: "Salvar alterações" }).click();
-    await expect(page.getByText("Salvo")).toBeVisible();
+    // "Salvo" is rendered twice — the lg header and the sticky bar below lg —
+    // and only one of the two is displayed at a viewport. `exact` also keeps
+    // the bar's "Não salvo" out of the match.
+    await expect(
+      page.getByText("Salvo", { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
 
     await page.screenshot({
       path: "test-results/screens/clinic-settings-desktop.png",
@@ -98,8 +117,8 @@ test.describe("clinic settings", () => {
     // The change persisted: a reload shows the saved subdomain + selection.
     await page.reload();
     await expect(page.getByLabel("Endereço do portal")).toHaveValue(subdomain);
-    await expect(page.getByRole("button", { name: /Mensal/ })).toHaveAttribute(
-      "aria-pressed",
+    await expect(page.getByRole("radio", { name: /Mensal/ })).toHaveAttribute(
+      "aria-checked",
       "true",
     );
 

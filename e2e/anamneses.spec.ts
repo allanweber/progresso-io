@@ -7,6 +7,14 @@ import { expect, test } from "@playwright/test";
  * seed, so the listing is populated.
  */
 
+// Pre-accept the cookie banner: it is pinned to the bottom of the viewport with
+// role="dialog" and intercepted the click on "Montar uma anamnese do zero".
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("progresso-cookie-consent", "accepted"),
+  );
+});
+
 test.describe("anamneses", () => {
   test("the clinic starts with its seeded anamneses", async ({ page }) => {
     const res = await page.request.get("/api/anamneses?pageSize=100");
