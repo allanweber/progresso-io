@@ -192,7 +192,7 @@ export function FoodMeasures({
               type="button"
               onClick={reset}
               aria-label="Cancelar"
-              className="rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-secondary hover:text-foreground"
+              className="rounded-full p-1 text-meta transition-colors hover:bg-secondary hover:text-foreground"
             >
               <X className="size-4" />
             </button>

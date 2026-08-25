@@ -414,7 +414,7 @@ function MonthGrid({
         {WEEKDAY_SHORT_LABELS.map((label) => (
           <div
             key={label}
-            className="py-2.5 text-center text-caption font-semibold uppercase tracking-wide text-[#94A3B8]"
+            className="py-2.5 text-center text-caption font-semibold uppercase tracking-wide text-meta"
           >
             {label}
           </div>
@@ -573,7 +573,7 @@ function TimeGrid({
               onClick={() => onSelectDay(day)}
               className="border-l border-border py-2 text-center hover:bg-surface-light"
             >
-              <div className="text-caption font-semibold uppercase tracking-wide text-[#94A3B8]">
+              <div className="text-caption font-semibold uppercase tracking-wide text-meta">
                 {WEEKDAY_SHORT_LABELS[weekdayOf(day)]}
               </div>
               <div
@@ -594,7 +594,7 @@ function TimeGrid({
         className="grid border-b border-border bg-[#FAFBFC]"
         style={{ gridTemplateColumns: `56px repeat(${cols}, 1fr)` }}
       >
-        <div className="py-2 pl-2 text-eyebrow font-medium uppercase text-[#94A3B8]">
+        <div className="py-2 pl-2 text-eyebrow font-medium uppercase text-meta">
           Dia todo
         </div>
         {days.map((day) => {
@@ -625,7 +625,7 @@ function TimeGrid({
             className="grid border-b border-[#F1F5F9]"
             style={{ gridTemplateColumns: `56px repeat(${cols}, 1fr)` }}
           >
-            <div className="py-2 pr-2 text-right text-caption text-[#94A3B8]">
+            <div className="py-2 pr-2 text-right text-caption text-meta">
               {String(hour).padStart(2, "0")}:00
             </div>
             {days.map((day) => {

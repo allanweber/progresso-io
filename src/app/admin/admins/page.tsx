@@ -153,7 +153,7 @@ export default function AdminAdminsPage() {
                   </span>
                 )}
               </div>
-              <div className="truncate text-xs text-[#94A3B8]">{r.email}</div>
+              <div className="truncate text-xs text-meta">{r.email}</div>
             </div>
           );
         },
@@ -172,7 +172,7 @@ export default function AdminAdminsPage() {
         id: "createdAt",
         header: "Desde",
         cell: (ctx) => (
-          <span className="text-body-dense text-[#94A3B8]">
+          <span className="text-body-dense text-meta">
             {dateFmt.format(new Date(ctx.row.original.createdAt))}
           </span>
         ),

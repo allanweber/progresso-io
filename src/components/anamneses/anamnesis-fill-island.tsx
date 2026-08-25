@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { AnamnesisFillForm } from "@/components/anamneses/anamnesis-fill-form";
 import { Logo } from "@/components/brand/logo";
@@ -23,7 +23,17 @@ import type {
  * file); only then is the questionnaire revealed and submitted. On success shows
  * a thank-you. All traffic goes through the public `/api/anamnesis/fill*`
  * endpoints — no session.
+ *
+ * Answers are held in `localStorage` between renders. This form is thirty-odd
+ * questions long and its audience is an aluno on a cheap phone and weak mobile
+ * data (PRODUCT.md principle 6): one interrupting call used to cost them every
+ * answer. The draft is keyed by the fill token, so two alunos sharing a device
+ * never see each other's answers, and it is cleared the moment the submit
+ * succeeds. Only the answers are stored — never the WhatsApp number, which is
+ * the credential.
  */
+const draftKey = (token: string) => `anamnesis-fill:${token}`;
+
 export function AnamnesisFillIsland({ token }: { token: string }) {
   const [answers, setAnswers] = useState<AnamnesisAnswers>({});
   const [phone, setPhone] = useState("");
@@ -31,6 +41,37 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
   // is confirmed. Null until then — its presence IS the "confirmed" state.
   const [reveal, setReveal] = useState<FillRevealDto | null>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+  const [restored, setRestored] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Recover a local draft on mount (client only).
+  useEffect(() => {
+    if (!token) return;
+    try {
+      const raw = localStorage.getItem(draftKey(token));
+      if (!raw) return;
+      const saved = JSON.parse(raw) as AnamnesisAnswers;
+      if (saved && typeof saved === "object" && Object.keys(saved).length > 0) {
+        /* eslint-disable react-hooks/set-state-in-effect */
+        setAnswers(saved);
+        setRestored(true);
+        /* eslint-enable react-hooks/set-state-in-effect */
+      }
+    } catch {
+      /* corrupt or unavailable storage — start clean */
+    }
+  }, [token]);
+
+  const remember = useCallback(
+    (next: AnamnesisAnswers) => {
+      try {
+        localStorage.setItem(draftKey(token), JSON.stringify(next));
+      } catch {
+        /* quota / private mode — the form still works, just without recovery */
+      }
+    },
+    [token],
+  );
 
   const state = useQuery({
     queryKey: ["anamnesis-fill", token],
@@ -60,6 +101,13 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
         method: "POST",
         body: JSON.stringify({ token, phone, answers }),
       }),
+    onSuccess: () => {
+      try {
+        localStorage.removeItem(draftKey(token));
+      } catch {
+        /* ignore storage errors */
+      }
+    },
   });
 
   // Short states (loading / invalid / success / confirm) sit in a compact,
@@ -74,7 +122,7 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
     return (
       <div className={centered}>
         <div className={shortCard}>
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <p className="text-body text-muted-foreground">Carregando…</p>
         </div>
       </div>
     );
@@ -85,10 +133,10 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
       <div className={centered}>
         <div className={shortCard}>
           <Logo />
-          <h1 className="mt-6 font-heading text-xl font-bold text-foreground">
+          <h1 className="mt-6 font-heading text-headline font-bold text-foreground">
             Link inválido ou expirado
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-body text-muted-foreground">
             Este link de anamnese não é mais válido. Peça um novo ao seu coach.
           </p>
         </div>
@@ -104,10 +152,10 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
           <div className="mt-6 flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-primary" />
             <div>
-              <h1 className="font-heading text-xl font-bold text-foreground">
+              <h1 className="font-heading text-headline font-bold text-foreground">
                 Anamnese enviada!
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-body text-muted-foreground">
                 Obrigado{reveal?.studentFirstName ? `, ${reveal.studentFirstName}` : ""}.
                 Suas respostas foram enviadas para {state.data.clinicName}.
               </p>
@@ -136,10 +184,10 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
           className={shortCard}
         >
           <Logo />
-          <h1 className="mt-6 font-heading text-xl font-bold text-foreground">
+          <h1 className="mt-6 font-heading text-headline font-bold text-foreground">
             {s.name}
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
+          <p className="mt-1.5 text-body text-muted-foreground">
             {s.clinicName} pediu que você preencha esta anamnese. Confirme seu
             WhatsApp para começar.
           </p>
@@ -172,31 +220,91 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
   // anchored so a long form scrolls naturally.
   const banner = submit.error instanceof ApiError ? submit.error.message : undefined;
 
+  // How far along they are. A thirty-question form with no sense of an end is
+  // where an aluno on bad signal gives up.
+  const allQuestions = reveal.sections.flatMap((sec) => sec.questions);
+  const answeredCount = allQuestions.filter((q) => {
+    const v = answers[q.key];
+    return v !== undefined && v !== null && v !== "";
+  }).length;
+  const totalQuestions = allQuestions.length;
+  const progressPct =
+    totalQuestions === 0
+      ? 0
+      : Math.round((answeredCount / totalQuestions) * 100);
+
   return (
     <form
+      ref={formRef}
       onSubmit={(e) => {
         e.preventDefault();
         const errs = validateAnswers(reveal.sections, answers);
         setClientErrors(errs);
-        if (Object.keys(errs).length === 0) submit.mutate();
+        if (Object.keys(errs).length === 0) {
+          submit.mutate();
+          return;
+        }
+        // Errors land wherever the offending question is — which on a form this
+        // long is thousands of pixels from the button that was just pressed.
+        const first = Object.keys(errs)[0];
+        const el = formRef.current?.querySelector<HTMLElement>(
+          `#q-${CSS.escape(first)}`,
+        );
+        if (el) {
+          el.scrollIntoView({ block: "center" });
+          el.focus({ preventScroll: true });
+        }
       }}
       className="mx-auto my-10 w-full max-w-2xl rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-8"
     >
       <Logo />
-      <h1 className="mt-6 font-heading text-2xl font-bold text-foreground">
+      <h1 className="mt-6 font-heading text-headline font-bold text-foreground">
         {s.name}
       </h1>
-      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+      <p className="mt-1 flex items-center gap-1.5 text-body text-muted-foreground">
         <CheckCircle2 className="size-4 shrink-0 text-primary" />
         WhatsApp confirmado. Preencha os campos abaixo, {reveal.studentFirstName}.
       </p>
+      <p className="mt-1 text-body-dense text-muted-foreground">
+        Enviada por {s.clinicName}.
+      </p>
+
+      {restored && (
+        <p className="mt-4 rounded-[10px] bg-warn-bg px-4 py-2.5 text-body-dense font-medium text-warn-fg">
+          Recuperamos as respostas que você já tinha começado neste aparelho.
+        </p>
+      )}
+
+      {/* Progress. `aria-hidden` on the bar because the sentence beside it is
+          the accessible version of the same fact. */}
+      <div className="mt-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-body-dense font-medium text-foreground">
+            {answeredCount} de {totalQuestions} respondidas
+          </span>
+          <span className="text-label text-meta">{progressPct}%</span>
+        </div>
+        <div
+          aria-hidden
+          className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border-light"
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-[width]"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
 
       <div className="mt-6 space-y-6">
         <AnamnesisFillForm
           sections={reveal.sections}
           answers={answers}
           onAnswer={(key: string, value: AnamnesisAnswerValue) => {
-            setAnswers((prev) => ({ ...prev, [key]: value }));
+            setAnswers((prev) => {
+              const next = { ...prev, [key]: value };
+              remember(next);
+              return next;
+            });
             setClientErrors((prev) => {
               if (!(key in prev)) return prev;
               const next = { ...prev };
@@ -218,6 +326,17 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
             {banner}
           </div>
         )}
+
+        {/* What happens to health data, said before it is sent rather than
+            buried in a policy nobody opens. */}
+        <p className="flex items-start gap-2 border-t border-border pt-5 text-body-dense text-muted-foreground">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-meta" />
+          <span>
+            Suas respostas são dados de saúde e ficam visíveis apenas para{" "}
+            {s.clinicName}. Elas são usadas para montar o seu acompanhamento e
+            não são compartilhadas com mais ninguém.
+          </span>
+        </p>
 
         <Button type="submit" disabled={submit.isPending} className="w-full sm:w-auto">
           {submit.isPending ? "Enviando…" : "Enviar anamnese"}

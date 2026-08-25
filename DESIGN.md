@@ -11,7 +11,7 @@ colors:
   foreground: "#0f172a"
   text-secondary: "#475569"
   muted-foreground: "#64748b"
-  meta: "#94a3b8"
+  meta: "#64748b"
   background: "#ffffff"
   surface-light: "#f8fafc"
   ground-aluno: "#eef1f5"
@@ -219,8 +219,17 @@ low-chroma everywhere except the one place that signals life.
   color of outline buttons and nav labels. The workhorse of dense screens.
 - **Context Grey** (`#64748b`): captions, helper text, descriptions under a
   title. Present but not competing.
-- **Meta Grey** (`#94a3b8`): column headers, timestamps, "last activity" — the
-  labels on the chart rather than the readings. Deliberately quiet.
+- **Meta Grey** (`#64748b`): column headers, timestamps, "last activity" — the
+  labels on the chart rather than the readings. It ships at 11–12px, and the
+  slate-400 it used to be (`#94a3b8`) read **2.56:1 on Paper** — a WCAG AA
+  failure on every table header in the app, prescribed by this document. There
+  is no room for a second passing rung: the AA floor on white is reached at
+  slate-500, which is Context Grey. So **Meta and Context share a pigment in
+  light mode** and are told apart by size, weight and role — Meta annotates a
+  value already on screen, Context describes a field the reader is about to act
+  on. In dark mode they diverge again: Meta stays `#94a3b8`, which reads 7.10:1
+  on Night Slate. Keep the token — the role is real even where the value
+  coincides.
 - **Paper** (`#ffffff`): every panel, card, table, input and the coach's rail.
   The surface the work sits on.
 - **Cool Ground** (`#f8fafc`): the coach app's page background — the desk the

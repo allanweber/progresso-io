@@ -16,7 +16,7 @@ export default function RegistroPage() {
       <div className="flex flex-1 flex-col items-center justify-center bg-surface-light px-6 py-10">
         <RegisterWizard />
 
-        <p className="mt-5 text-body-dense text-[#94A3B8]">
+        <p className="mt-5 text-body-dense text-meta">
           Já tem conta?{" "}
           <Link href="/login" className="text-primary hover:underline">
             Entrar

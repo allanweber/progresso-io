@@ -60,7 +60,7 @@ export function CookieConsent() {
               Usamos cookies essenciais para manter você conectado e, com sua
               permissão, cookies de análise (Google Analytics) para melhorar o
               produto. Saiba mais na{" "}
-              <Link href="/privacy" className="font-medium text-primary hover:underline">
+              <Link href="/privacy" className="font-medium text-primary-deep hover:underline">
                 Política de Privacidade
               </Link>
               .

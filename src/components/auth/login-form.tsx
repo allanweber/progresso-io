@@ -106,7 +106,7 @@ export function LoginForm({
         </SubmitButton>
       </form>
 
-      <p className="mt-8 text-center text-xs text-[#94A3B8]">
+      <p className="mt-8 text-center text-xs text-meta">
         Ao entrar você concorda com os{" "}
         <Link href="/terms" className="text-primary hover:underline">
           Termos de Uso

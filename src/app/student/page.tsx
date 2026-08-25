@@ -198,7 +198,7 @@ export default function StudentPortalPage() {
   const p = profile.data;
 
   return (
-    <div className="posture-reading min-h-screen bg-[#EEF1F5] text-foreground dark:bg-background">
+    <div className="posture-reading min-h-screen bg-ground-aluno text-foreground dark:bg-background">
       {/* Desktop top bar */}
       <header className="hidden h-[60px] items-center gap-3.5 border-b border-border bg-white px-8 lg:flex dark:bg-card">
         <Logo size={30} />

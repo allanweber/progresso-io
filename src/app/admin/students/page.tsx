@@ -117,7 +117,7 @@ export default function AdminStudentsPage() {
                 <div className="truncate font-semibold text-foreground">
                   {s.firstName} {s.lastName}
                 </div>
-                <div className="truncate text-xs text-[#94A3B8]">{s.email}</div>
+                <div className="truncate text-xs text-meta">{s.email}</div>
               </div>
             </div>
           );
@@ -143,7 +143,7 @@ export default function AdminStudentsPage() {
         id: "createdAt",
         header: "Criado em",
         cell: (ctx) => (
-          <span className="text-body-dense text-[#94A3B8]">
+          <span className="text-body-dense text-meta">
             {dateFmt.format(new Date(ctx.getValue()))}
           </span>
         ),

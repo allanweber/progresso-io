@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
+  ClipboardList,
   MessageCircle,
   Pencil,
   RefreshCw,
@@ -163,7 +164,7 @@ export default function StudentProfilePage() {
       <div className="mx-auto max-w-3xl">
         <Link
           href="/coach/students"
-          className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
+          className="text-body-dense text-meta transition-colors hover:text-primary"
         >
           ← Alunos
         </Link>
@@ -192,7 +193,7 @@ export default function StudentProfilePage() {
     <div className="mx-auto max-w-3xl">
       <Link
         href="/coach/students"
-        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-meta transition-colors hover:text-primary"
       >
         ← Alunos
       </Link>
@@ -356,7 +357,7 @@ export default function StudentProfilePage() {
               { label: "WhatsApp", value: formatPhone(student.phone) || "—" },
             ].map((d) => (
               <div key={d.label} className="contents">
-                <dt className="text-[#94A3B8]">{d.label}</dt>
+                <dt className="text-meta">{d.label}</dt>
                 <dd className="font-medium text-foreground">{d.value}</dd>
               </div>
             ))}
@@ -377,9 +378,23 @@ export default function StudentProfilePage() {
           {anamnesis.isLoading ? (
             <p className="mt-4 text-sm text-muted-foreground">Carregando…</p>
           ) : !am ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Nenhuma anamnese atribuída.
-            </p>
+            <>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Este aluno ainda não tem uma anamnese. Escolha um dos templates
+                da sua clínica para começar.
+              </p>
+              <div className="mt-5 border-t border-border pt-4">
+                <Button
+                  onClick={() => {
+                    setTemplateId("");
+                    setTemplateOpen(true);
+                  }}
+                >
+                  <ClipboardList className="size-4" />
+                  Atribuir anamnese
+                </Button>
+              </div>
+            </>
           ) : (
             <>
               <p className="mt-2 text-body-dense text-muted-foreground">{am.name}</p>
@@ -394,7 +409,7 @@ export default function StudentProfilePage() {
                       )
                       .map((q) => (
                         <div key={q.key}>
-                          <dt className="text-[#94A3B8]">{q.label}</dt>
+                          <dt className="text-meta">{q.label}</dt>
                           <dd className="font-medium text-foreground">
                             {answerText(am.answers[q.key])}
                           </dd>
@@ -458,15 +473,20 @@ export default function StudentProfilePage() {
         </div>
       </div>
 
-      {/* Trocar template */}
+      {/* Atribuir / trocar template — the same picker, two situations: the aluno
+          has no anamnese yet (nothing to lose), or already has one (the current
+          answers are discarded). The copy has to say which. */}
       <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Trocar template da anamnese</DialogTitle>
+            <DialogTitle>
+              {am ? "Trocar template da anamnese" : "Atribuir anamnese"}
+            </DialogTitle>
           </DialogHeader>
           <p className="text-body-dense text-muted-foreground">
-            Escolha outro template. As respostas atuais serão descartadas e a
-            anamnese voltará a ficar pendente.
+            {am
+              ? "Escolha outro template. As respostas atuais serão descartadas e a anamnese voltará a ficar pendente."
+              : "Escolha um dos templates da sua clínica. Ele é copiado para este aluno e fica pendente até ser preenchido."}
           </p>
           <Select value={templateId} onValueChange={setTemplateId}>
             <SelectTrigger>
@@ -498,7 +518,13 @@ export default function StudentProfilePage() {
               onClick={() => replaceTemplate.mutate()}
               disabled={!templateId || replaceTemplate.isPending}
             >
-              {replaceTemplate.isPending ? "Trocando…" : "Trocar template"}
+              {replaceTemplate.isPending
+                ? am
+                  ? "Trocando…"
+                  : "Atribuindo…"
+                : am
+                  ? "Trocar template"
+                  : "Atribuir anamnese"}
             </Button>
           </DialogFooter>
         </DialogContent>

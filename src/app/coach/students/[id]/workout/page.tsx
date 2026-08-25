@@ -206,7 +206,7 @@ export default function StudentWorkoutPage() {
     <div className="mx-auto max-w-3xl">
       <Link
         href="/coach/students"
-        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-meta transition-colors hover:text-primary"
       >
         ← Alunos
       </Link>

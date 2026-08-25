@@ -88,9 +88,9 @@ export default function FoodDetailPage() {
               <Badge variant="neutral" className="font-medium">
                 {FOOD_TYPE_LABELS[data.type]}
               </Badge>
-              <span className="text-xs text-[#94A3B8]">{data.groupName}</span>
+              <span className="text-xs text-meta">{data.groupName}</span>
               {data.code && (
-                <span className="text-xs text-[#94A3B8]">· {data.code}</span>
+                <span className="text-xs text-meta">· {data.code}</span>
               )}
               {data.archived && (
                 <Badge variant="neutral" className="font-medium">
@@ -296,7 +296,7 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
               type="button"
               onClick={resetPicker}
               aria-label="Cancelar"
-              className="rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-secondary hover:text-foreground"
+              className="rounded-full p-1 text-meta transition-colors hover:bg-secondary hover:text-foreground"
             >
               <X className="size-4" />
             </button>
@@ -345,7 +345,7 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
           ) : (
             <div className="mt-3">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-meta" />
                 <Input
                   type="search"
                   autoFocus
@@ -378,7 +378,7 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
                           <span className="min-w-0 break-words text-foreground">
                             {f.description}
                           </span>
-                          <span className="shrink-0 text-xs text-[#94A3B8]">
+                          <span className="shrink-0 text-xs text-meta">
                             {ORIGIN_LABELS[f.origin]}
                           </span>
                         </button>
@@ -427,7 +427,7 @@ function Substitutes({ food }: { food: FoodDetailDto }) {
                     disabled={removeMutation.isPending}
                     aria-label="Remover substituto"
                     title="Remover substituto"
-                    className="rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    className="rounded-full p-1 text-meta transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                   >
                     <Trash2 className="size-4" />
                   </button>

@@ -472,7 +472,7 @@ export function ExerciseForm({
                       type="button"
                       onClick={() => field.removeValue(i)}
                       aria-label={`Remover passo ${i + 1}`}
-                      className="mt-2 shrink-0 rounded-full p-1.5 text-[#94A3B8] transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      className="mt-2 shrink-0 rounded-full p-1.5 text-meta transition-colors hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="size-4" />
                     </button>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 
 import { AnamnesisFillForm } from "@/components/anamneses/anamnesis-fill-form";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function CoachFillAnamnesisPage() {
   // render the fetched answers until the coach touches a field (no effect needed).
   const [edited, setEdited] = useState<AnamnesisAnswers | null>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["student-anamnesis", id],
@@ -66,7 +68,7 @@ export default function CoachFillAnamnesisPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-muted-foreground">Carregando anamnese…</p>
+        <p className="text-body text-muted-foreground">Carregando anamnese…</p>
       </div>
     );
   }
@@ -75,15 +77,26 @@ export default function CoachFillAnamnesisPage() {
       <div className="mx-auto max-w-2xl">
         <Link
           href={`/coach/students/${id}`}
-          className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
+          className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-2 text-body text-muted-foreground transition-colors hover:text-foreground sm:min-h-0"
         >
-          ← Voltar ao aluno
+          <ArrowLeft className="size-4" />
+          Voltar ao aluno
         </Link>
-        <p className="mt-4 text-sm text-destructive">
-          {isError
-            ? (error as Error).message
-            : "Este aluno ainda não tem uma anamnese."}
-        </p>
+        {isError ? (
+          <p className="mt-4 text-body text-destructive">
+            {(error as Error).message}
+          </p>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+            <p className="text-body text-muted-foreground">
+              Este aluno ainda não tem uma anamnese. Atribua um dos templates da
+              sua clínica no perfil dele para começar.
+            </p>
+            <Button asChild className="mt-4">
+              <Link href={`/coach/students/${id}`}>Ir para o perfil do aluno</Link>
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -94,14 +107,15 @@ export default function CoachFillAnamnesisPage() {
     <div className="mx-auto max-w-2xl">
       <Link
         href={`/coach/students/${id}`}
-        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
+        className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-2 text-body text-muted-foreground transition-colors hover:text-foreground sm:min-h-0"
       >
-        ← Voltar ao aluno
+        <ArrowLeft className="size-4" />
+        Voltar ao aluno
       </Link>
-      <h1 className="mt-3 font-heading text-2xl font-bold text-foreground">
+      <h1 className="mt-3 font-heading text-headline font-bold text-foreground">
         {data.name}
       </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1 text-body text-muted-foreground">
         Preencha ou ajuste as respostas da anamnese do aluno.
       </p>
 
@@ -112,11 +126,25 @@ export default function CoachFillAnamnesisPage() {
       )}
 
       <form
+        ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
           const errs = validateAnswers(data.sections, answers);
           setClientErrors(errs);
-          if (Object.keys(errs).length === 0) save.mutate();
+          if (Object.keys(errs).length === 0) {
+            save.mutate();
+            return;
+          }
+          // Same reason as the aluno's form: the offending field can be far
+          // above the button that was just pressed.
+          const first = Object.keys(errs)[0];
+          const el = formRef.current?.querySelector<HTMLElement>(
+            `#q-${CSS.escape(first)}`,
+          );
+          if (el) {
+            el.scrollIntoView({ block: "center" });
+            el.focus({ preventScroll: true });
+          }
         }}
         className="mt-6 space-y-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
       >

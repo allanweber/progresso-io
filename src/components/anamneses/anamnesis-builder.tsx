@@ -21,7 +21,16 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, GripVertical, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -397,7 +406,7 @@ export function AnamnesisBuilder({
         <button
           type="button"
           onClick={cancel}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="-ml-2 inline-flex h-11 items-center gap-1 rounded-[10px] px-2 text-body text-muted-foreground transition-colors hover:text-foreground sm:h-9"
         >
           <ArrowLeft className="size-4" />
           Cancelar
@@ -425,7 +434,7 @@ export function AnamnesisBuilder({
       </div>
 
       {recovered && (
-        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-body-dense font-medium text-amber-700">
+        <div className="mb-4 rounded-[10px] bg-warn-bg px-4 py-2.5 text-body-dense font-medium text-warn-fg">
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
@@ -561,7 +570,7 @@ export function AnamnesisBuilder({
       <button
         type="button"
         onClick={addSection}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-white py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-border bg-white py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
       >
         <Plus className="size-4" />
         Adicionar seção
@@ -591,6 +600,7 @@ function SortableSection({
   onRemove: () => void;
   onQuestions: (updater: (questions: QuestionDraft[]) => QuestionDraft[]) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const {
     attributes,
     listeners,
@@ -623,6 +633,15 @@ function SortableSection({
     });
   }
 
+  const titleId = `section-title-${section.key}`;
+  const errorId = `${titleId}-error`;
+  const bodyId = `section-body-${section.key}`;
+  // A collapsed section that holds a validation error would hide the field the
+  // coach is being asked to fix, so an error always wins over the toggle.
+  const hasError =
+    Boolean(error) || section.questions.some((q) => questionErrors[q.key]);
+  const isCollapsed = collapsed && !hasError;
+
   return (
     <div
       ref={setNodeRef}
@@ -635,35 +654,73 @@ function SortableSection({
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          aria-label="Reordenar seção"
-          className="mt-2 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label={`Reordenar a seção ${section.title || "sem título"}`}
+          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing sm:size-9"
         >
           <GripVertical className="size-5" />
         </button>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex gap-2">
+            {/* The input carries the section's name for a screen reader; the
+                visible text is the value itself, so the label is sr-only
+                rather than absent. */}
+            <Label htmlFor={titleId} className="sr-only">
+              Título da seção
+            </Label>
             <Input
+              id={titleId}
               value={section.title}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="Título da seção (ex.: Identificação)"
               aria-invalid={error ? true : undefined}
-              className={`flex-1 ${error ? "border-destructive" : ""}`}
+              aria-describedby={error ? errorId : undefined}
+              className={`min-w-0 flex-1 ${error ? "border-destructive" : ""}`}
             />
             <button
               type="button"
+              onClick={() => setCollapsed((c) => !c)}
+              aria-expanded={!isCollapsed}
+              aria-controls={bodyId}
+              aria-label={
+                isCollapsed
+                  ? `Expandir a seção ${section.title || "sem título"}`
+                  : `Recolher a seção ${section.title || "sem título"}`
+              }
+              className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:size-11"
+            >
+              {isCollapsed ? (
+                <ChevronRight className="size-4" />
+              ) : (
+                <ChevronDown className="size-4" />
+              )}
+            </button>
+            <button
+              type="button"
               onClick={onRemove}
-              aria-label="Remover seção"
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
+              aria-label={`Remover a seção ${section.title || "sem título"}`}
+              className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-border text-muted-foreground transition-colors hover:border-destructive hover:text-destructive sm:size-11"
             >
               <Trash2 className="size-4" />
             </button>
           </div>
-          {error && <p className="text-body-dense text-destructive">{error}</p>}
+          {error && (
+            <p id={errorId} className="text-body-dense text-destructive">
+              {error}
+            </p>
+          )}
+          {isCollapsed && (
+            <p className="text-label text-meta">
+              {section.questions.length === 1
+                ? "1 pergunta"
+                : `${section.questions.length} perguntas`}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Questions */}
-      <div className="space-y-2 p-4">
+      {/* Questions. Collapsing is what makes a seven-section anamnese navigable
+          on a phone — expanded, this tree is thousands of pixels of scroll. */}
+      <div id={bodyId} hidden={isCollapsed} className="space-y-2 p-4">
         {section.questions.length > 0 && (
           <DndContext
             sensors={sensors}
@@ -675,10 +732,11 @@ function SortableSection({
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-2">
-                {section.questions.map((question) => (
+                {section.questions.map((question, index) => (
                   <SortableQuestion
                     key={question.key}
                     question={question}
+                    index={index}
                     error={questionErrors[question.key]}
                     onLabelChange={(label) =>
                       onQuestions((qs) =>
@@ -742,7 +800,7 @@ function SortableSection({
         <button
           type="button"
           onClick={addQuestion}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-border text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:h-10"
         >
           <Plus className="size-4" />
           Adicionar pergunta
@@ -758,6 +816,7 @@ function SortableSection({
 
 function SortableQuestion({
   question,
+  index,
   error,
   onLabelChange,
   onTypeChange,
@@ -767,6 +826,7 @@ function SortableQuestion({
   onRemove,
 }: {
   question: QuestionDraft;
+  index: number;
   error?: string;
   onLabelChange: (label: string) => void;
   onTypeChange: (type: AnamnesisQuestionType) => void;
@@ -775,6 +835,11 @@ function SortableQuestion({
   onMaxChange: (max: number | undefined) => void;
   onRemove: () => void;
 }) {
+  // The format controls apply to short text only, and most short-text questions
+  // never use one. Rendering the row unconditionally doubled the page and put a
+  // 32px select on every question; it now opens on request and stays open for a
+  // question that already carries a mask.
+  const [formatOpen, setFormatOpen] = useState(Boolean(question.mask));
   const {
     attributes,
     listeners,
@@ -791,110 +856,167 @@ function SortableQuestion({
     zIndex: isDragging ? 10 : undefined,
   };
 
+  const labelId = `question-${question.key}`;
+  const errorId = `${labelId}-error`;
+  // What to call this question when it has no text yet.
+  const named = question.label.trim() || `pergunta ${index + 1}`;
+  const showFormat = question.type === "short_text" && formatOpen;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-xl border border-border bg-surface-light/40 p-2.5"
+      className="rounded-[10px] border border-border bg-surface-light/40 p-2.5"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <button
           type="button"
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          aria-label="Reordenar pergunta"
-          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label={`Reordenar ${named}`}
+          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing sm:size-9"
         >
           <GripVertical className="size-4" />
         </button>
-        <Input
-          value={question.label}
-          onChange={(e) => onLabelChange(e.target.value)}
-          placeholder="Texto da pergunta"
-          aria-invalid={error ? true : undefined}
-          className={`min-w-0 flex-1 ${error ? "border-destructive" : ""}`}
-        />
-        <Select
-          value={question.type}
-          onValueChange={(v) => onTypeChange(v as AnamnesisQuestionType)}
-        >
-          <SelectTrigger
-            aria-label="Tipo da pergunta"
-            className="h-9 w-32 shrink-0"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ANAMNESIS_QUESTION_TYPE_VALUES.map((v) => (
-              <SelectItem key={v} value={v}>
-                {ANAMNESIS_QUESTION_TYPE_LABELS[v]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remover pergunta"
-          className="shrink-0 text-muted-foreground hover:text-destructive"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
 
-      {/* Mask + range (short-text questions only). */}
-      {question.type === "short_text" && (
-        <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
-          <span className="text-xs text-muted-foreground">Máscara</span>
-          <Select
-            value={question.mask ?? "none"}
-            onValueChange={(v) =>
-              onMaskChange(v === "none" ? undefined : (v as AnamnesisMask))
-            }
-          >
-            <SelectTrigger aria-label="Máscara da resposta" className="h-8 w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {ANAMNESIS_MASK_VALUES.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {ANAMNESIS_MASK_LABELS[m]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {(question.mask === "integer" || question.mask === "decimal") && (
-            <>
-              <Input
-                type="number"
-                inputMode="decimal"
-                placeholder="mín"
-                aria-label="Valor mínimo"
-                value={question.min ?? ""}
-                onChange={(e) =>
-                  onMinChange(e.target.value === "" ? undefined : Number(e.target.value))
+        <div className="min-w-0 flex-1 space-y-2">
+          {/* Below sm the question text gets the full width on its own line —
+              sharing it with a fixed-width select left ~110px, so a coach could
+              not read the words they were typing. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Label htmlFor={labelId} className="sr-only">
+              Texto da pergunta {index + 1}
+            </Label>
+            {/* `w-full` below sm, `flex-1` only from sm up: the wrapper is
+                `flex-col` on a phone, where `flex-1` would grow along the
+                vertical main axis and silently override the input's 44px
+                height. */}
+            <Input
+              id={labelId}
+              value={question.label}
+              onChange={(e) => onLabelChange(e.target.value)}
+              placeholder="Texto da pergunta"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
+              className={`w-full min-w-0 sm:w-auto sm:flex-1 ${error ? "border-destructive" : ""}`}
+            />
+            <div className="flex items-center gap-2">
+              <Select
+                value={question.type}
+                onValueChange={(v) => onTypeChange(v as AnamnesisQuestionType)}
+              >
+                <SelectTrigger
+                  aria-label={`Tipo de resposta de ${named}`}
+                  className="h-11 min-w-0 flex-1 sm:h-9 sm:w-32 sm:flex-none"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ANAMNESIS_QUESTION_TYPE_VALUES.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {ANAMNESIS_QUESTION_TYPE_LABELS[v]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {question.type === "short_text" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (formatOpen) onMaskChange(undefined);
+                    setFormatOpen((open) => !open);
+                  }}
+                  aria-expanded={formatOpen}
+                  aria-label={`Formato da resposta de ${named}`}
+                  className={`flex h-11 shrink-0 items-center rounded-[10px] border px-3 text-label font-medium transition-colors sm:h-9 ${
+                    question.mask
+                      ? "border-primary text-primary-deep"
+                      : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  {question.mask
+                    ? ANAMNESIS_MASK_LABELS[question.mask]
+                    : "Formato"}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={onRemove}
+                aria-label={`Remover ${named}`}
+                className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:size-9"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Mask + range, on request. */}
+          {showFormat && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              <Select
+                value={question.mask ?? "none"}
+                onValueChange={(v) =>
+                  onMaskChange(v === "none" ? undefined : (v as AnamnesisMask))
                 }
-                className="h-8 w-20"
-              />
-              <Input
-                type="number"
-                inputMode="decimal"
-                placeholder="máx"
-                aria-label="Valor máximo"
-                value={question.max ?? ""}
-                onChange={(e) =>
-                  onMaxChange(e.target.value === "" ? undefined : Number(e.target.value))
-                }
-                className="h-8 w-20"
-              />
-            </>
+              >
+                <SelectTrigger
+                  aria-label={`Máscara da resposta de ${named}`}
+                  className="h-11 w-full sm:h-9 sm:w-44"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {ANAMNESIS_MASK_VALUES.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {ANAMNESIS_MASK_LABELS[m]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(question.mask === "integer" || question.mask === "decimal") && (
+                <>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="mín"
+                    aria-label={`Valor mínimo de ${named}`}
+                    value={question.min ?? ""}
+                    onChange={(e) =>
+                      onMinChange(
+                        e.target.value === "" ? undefined : Number(e.target.value),
+                      )
+                    }
+                    className="h-11 w-24 sm:h-9 sm:w-20"
+                  />
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="máx"
+                    aria-label={`Valor máximo de ${named}`}
+                    value={question.max ?? ""}
+                    onChange={(e) =>
+                      onMaxChange(
+                        e.target.value === "" ? undefined : Number(e.target.value),
+                      )
+                    }
+                    className="h-11 w-24 sm:h-9 sm:w-20"
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <p id={errorId} className="text-body-dense text-destructive">
+              {error}
+            </p>
           )}
         </div>
-      )}
-
-      {error && <p className="mt-1 pl-6 text-body-dense text-destructive">{error}</p>}
+      </div>
     </div>
   );
 }

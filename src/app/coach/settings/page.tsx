@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "@tanstack/react-form";
+import { useEffect, useState } from "react";
+import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Trash2, UserPlus, X } from "lucide-react";
+import { Check, FileText, Trash2, UserPlus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/ui/color-picker";
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
   coachInviteSchema,
@@ -50,6 +51,7 @@ import {
   type InvoiceDto,
 } from "@/lib/billing";
 import { fieldError } from "@/lib/form";
+import { avatarPalette } from "@/lib/students";
 import {
   formatUsage,
   isAtLimit,
@@ -63,8 +65,10 @@ import { cn } from "@/lib/utils";
  * /api/coach/settings via TanStack Query, per the frontend rules. Clínica,
  * Portal do aluno and Preferências de feedback are editable; Equipe de coaches
  * is the owner's team management on team-capable plans (hidden otherwise); Plano
- * atual + Faturas read the clinic's real plan/invoices. Only WhatsApp Business
- * still renders a permanent "Em breve".
+ * atual + Faturas read the clinic's real plan/invoices. Nothing here renders a
+ * placeholder: a card whose whole content was "Em breve" told the coach less
+ * than its absence does, and one of them contradicted the Pix flow the billing
+ * banner already offers.
  */
 
 /**
@@ -127,17 +131,17 @@ function CoachInvoicesCard() {
   return (
     <SettingsCard title="Faturas">
       {isLoading && (
-        <p className="py-4 text-center text-sm text-muted-foreground">
+        <p className="py-4 text-center text-body text-muted-foreground">
           Carregando…
         </p>
       )}
       {isError && (
-        <p className="py-4 text-center text-sm text-destructive">
+        <p className="py-4 text-center text-body text-destructive">
           Não foi possível carregar as faturas.
         </p>
       )}
       {data && data.length === 0 && (
-        <p className="py-4 text-center text-sm text-muted-foreground">
+        <p className="py-4 text-center text-body text-muted-foreground">
           Nenhuma fatura por aqui ainda.
         </p>
       )}
@@ -145,39 +149,45 @@ function CoachInvoicesCard() {
         <ul className="divide-y divide-border">
           {data.map((inv) => (
             <li key={inv.id}>
+              {/* A row that opens a PDF has to look like one: the old version
+                  announced itself only through a `title` attribute, which a
+                  pointer never sees and a phone cannot hover. */}
               <a
                 href={`/api/coach/invoices/${inv.id}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Abrir fatura em PDF"
-                className="flex items-center justify-between gap-3 rounded-lg py-2.5 transition-colors hover:bg-surface-light"
+                className="flex min-h-11 items-center justify-between gap-3 rounded-[10px] px-1 py-2.5 transition-colors hover:bg-surface-light"
               >
-                <div className="min-w-0 pl-1">
-                  <div className="text-sm font-medium text-foreground">
+                <div className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-body font-medium text-foreground">
                     #{inv.number} · {formatCompetencia(inv.competencia)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
+                    <FileText className="size-3.5 shrink-0 text-meta" />
+                    <span className="sr-only">(abre o PDF em outra aba)</span>
+                  </span>
+                  <div className="text-label text-muted-foreground">
                     Vence {formatDateBR(inv.dueDate)}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-0.5 pr-1">
-                <span className="text-sm font-semibold text-foreground">
-                  {formatBRL(inv.totalCents)}
-                </span>
-                <span
-                  className={cn(
-                    "text-xs font-medium",
-                    inv.status === "paid"
-                      ? "text-[#047857]"
-                      : inv.overdue
-                        ? "text-destructive"
-                        : "text-muted-foreground",
-                  )}
-                >
-                  {inv.status === "pending" && inv.overdue
-                    ? "Vencida"
-                    : INVOICE_STATUS_LABELS[inv.status]}
-                </span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-body font-semibold text-foreground">
+                    {formatBRL(inv.totalCents)}
+                  </span>
+                  {/* `--danger-fg`, not `--destructive`: this ships at 12px,
+                      where the pure pigment reads 3.76:1 on Paper. */}
+                  <span
+                    className={cn(
+                      "text-label font-medium",
+                      inv.status === "paid"
+                        ? "text-primary-deep"
+                        : inv.overdue
+                          ? "text-danger-fg"
+                          : "text-muted-foreground",
+                    )}
+                  >
+                    {inv.status === "pending" && inv.overdue
+                      ? "Vencida"
+                      : INVOICE_STATUS_LABELS[inv.status]}
+                  </span>
                 </div>
               </a>
             </li>
@@ -188,37 +198,23 @@ function CoachInvoicesCard() {
   );
 }
 
-/** A deterministic avatar tint per coach, so rows read as distinct people. */
-const AVATAR_TINTS = [
-  "bg-[#14532d]", // owner-ish deep green
-  "bg-[#c2410c]", // orange
-  "bg-[#1d4ed8]", // blue
-  "bg-[#7c3aed]", // violet
-  "bg-[#0f766e]", // teal
-  "bg-[#be123c]", // rose
-] as const;
-
-function avatarTint(id: string, isOwner: boolean): string {
-  if (isOwner) return AVATAR_TINTS[0];
-  let sum = 0;
-  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
-  return AVATAR_TINTS[1 + (sum % (AVATAR_TINTS.length - 1))];
-}
-
-/** Circular initials avatar shared by coach + pending rows. */
-function Avatar({
-  initials,
-  className,
-}: {
-  initials: string;
-  className: string;
-}) {
+/**
+ * Circular initials avatar shared by coach + pending rows.
+ *
+ * The tint comes from `AVATAR_PALETTE` — the same wash/ink set the roster hashes
+ * an aluno's id into, guarded by a unit test and deliberately free of emerald,
+ * red and amber so an avatar never borrows a pigment that means "alive",
+ * "wrong" or "overdue". This card used to declare a second, saturated palette
+ * of its own, which put a violet fill next to the coach's violet accent swatch
+ * next to emerald chrome — three chromatic voices where the system allows one.
+ * The wash/ink pairs also fix the pending-invite avatar, which read at 2.02:1.
+ */
+function Avatar({ id, initials }: { id: string; initials: string }) {
+  const tint = avatarPalette(id);
   return (
     <span
-      className={cn(
-        "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
-        className,
-      )}
+      className="flex size-11 shrink-0 items-center justify-center rounded-full text-body font-semibold"
+      style={{ backgroundColor: tint.bg, color: tint.fg }}
     >
       {initials}
     </span>
@@ -313,7 +309,7 @@ function InviteCoachDialog({
               />
             )}
           </form.Field>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             Enviaremos um convite por e-mail para o coach definir a senha e
             acessar a clínica.
           </p>
@@ -364,7 +360,7 @@ function RemoveCoachDialog({
         </DialogHeader>
         {coach ? (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Remover <span className="font-medium text-foreground">{coach.name}</span> da
               equipe? Os {coach.studentCount} alunos deste coach passam para o
               responsável pela clínica, e o acesso dele é encerrado.
@@ -441,7 +437,7 @@ function CoachTeamCard() {
           type="button"
           size="sm"
           variant="ghost"
-          className="ml-auto h-8 gap-1.5 px-2.5 text-primary"
+          className="ml-auto h-11 gap-1.5 px-2.5 text-primary-deep sm:h-9"
           disabled={!team.canInvite}
           onClick={() => setInviteOpen(true)}
         >
@@ -473,10 +469,10 @@ function CoachTeamCard() {
             key={`vaga-${i}`}
             className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2.5"
           >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-muted-foreground">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-body font-semibold text-muted-foreground">
               ?
             </span>
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-body font-medium text-muted-foreground">
               — vaga livre
             </span>
           </div>
@@ -520,16 +516,16 @@ function CoachRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-secondary px-3 py-2.5">
-      <Avatar initials={coach.initials} className={avatarTint(coach.id, coach.isOwner)} />
+      <Avatar id={coach.id} initials={coach.initials} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-foreground">
+        <div className="truncate text-body font-semibold text-foreground">
           {coach.name}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-label text-muted-foreground">
           {coach.isOwner ? "Admin · Coach" : "Coach"}
         </div>
       </div>
-      <span className="shrink-0 text-sm text-muted-foreground">
+      <span className="shrink-0 text-body text-muted-foreground">
         {coach.studentCount} {coach.studentCount === 1 ? "aluno" : "alunos"}
       </span>
       {onRemove ? (
@@ -537,7 +533,7 @@ function CoachRow({
           type="button"
           aria-label={`Remover ${coach.name}`}
           onClick={onRemove}
-          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:size-9"
         >
           <Trash2 className="size-4" />
         </button>
@@ -558,12 +554,12 @@ function PendingRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-secondary/60 px-3 py-2.5">
-      <Avatar initials={invite.initials} className="bg-muted-foreground/60" />
+      <Avatar id={invite.id} initials={invite.initials} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-foreground">
+        <div className="truncate text-body font-semibold text-foreground">
           {invite.name}
         </div>
-        <div className="truncate text-xs text-muted-foreground">
+        <div className="truncate text-label text-muted-foreground">
           convite pendente · {invite.email}
         </div>
       </div>
@@ -572,7 +568,7 @@ function PendingRow({
         aria-label={`Cancelar convite de ${invite.name}`}
         onClick={onCancel}
         disabled={canceling}
-        className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+        className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 sm:size-9"
       >
         <X className="size-4" />
       </button>
@@ -625,17 +621,6 @@ function PlanUsageRows() {
           {data.whatsapp ? "Incluído" : "Não incluído"}
         </span>
       </div>
-    </div>
-  );
-}
-
-/** Body for a section whose feature isn't built yet. */
-function ComingSoon() {
-  return (
-    <div className="py-6 text-center">
-      <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
-        Em breve
-      </span>
     </div>
   );
 }
@@ -732,6 +717,21 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
       ? mutation.error.message
       : undefined;
 
+  const isDirty = useStore(form.store, (state) => state.isDirty);
+
+  // These controls set the check-in cadence for every aluno in the clinic, and
+  // used to vanish without a word on a reload or an accidental back. The
+  // anamnese builder has guarded its draft for a while; this is the same guard.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
   const plan = PLAN_META[initial.plan];
   const branded = canUseBrandedPortal(initial.plan);
   const logoUploadError =
@@ -747,17 +747,21 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
     >
       {/* Header */}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+        <h1 className="font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="flex items-center gap-3">
-          {mutation.isSuccess && !form.state.isDirty ? (
-            <span className="flex items-center gap-1 text-body-dense font-medium text-primary">
+        {/* From lg up the whole form is roughly one screen and the commit can
+            live here. Below that it is ~2900px of scroll, so the action moves
+            to the sticky bar at the foot of the page — a Salvar the coach has
+            to scroll 2700px to reach is a Salvar they do not press. */}
+        <div className="hidden items-center gap-3 lg:flex">
+          {mutation.isSuccess && !isDirty ? (
+            <span className="flex items-center gap-1 text-body-dense font-medium text-primary-deep">
               <Check className="size-4" />
               Salvo
             </span>
           ) : null}
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={mutation.isPending || !isDirty}>
             {mutation.isPending ? "Salvando…" : "Salvar alterações"}
           </Button>
         </div>
@@ -769,9 +773,13 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
         </div>
       ) : null}
 
+      {/* `min-w-0` on both columns is load-bearing, not decoration: a grid item
+          defaults to `min-width: auto`, so without it the widest content in
+          either column sets that column's floor and the whole page scrolls
+          sideways on a phone. See DESIGN.md, The min-w-0 Rule. */}
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         {/* Left column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {/* Clínica */}
           <SettingsCard title="Clínica">
             <form.Field name="name">
@@ -823,18 +831,23 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                         className="size-14 rounded-xl border border-border object-cover"
                       />
                     ) : (
-                      <div className="flex size-14 items-center justify-center rounded-xl border border-dashed border-border text-lg font-bold text-muted-foreground">
+                      <div className="flex size-14 items-center justify-center rounded-xl border border-dashed border-border font-heading text-title font-bold text-muted-foreground">
                         {initial.name.trim().charAt(0).toUpperCase()}
                       </div>
                     )}
+                    {/* `sr-only`, not `hidden`: `display:none` takes the input
+                        out of the tab order, and the <span> beside it is not
+                        focusable — which left the logo upload with no keyboard
+                        path at all. The span mirrors the input's focus with
+                        `focus-within`. */}
                     <label className="cursor-pointer">
-                      <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-text-secondary shadow-sm hover:border-primary hover:text-primary">
-                        {logoUpload.isPending ? "Enviando…" : "Enviar logo"}
-                      </span>
+                      {/* The input comes first so `peer-focus-visible` can
+                          reach the span — Tailwind's peer utilities use a
+                          following-sibling combinator. */}
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
+                        className="peer sr-only"
                         disabled={logoUpload.isPending}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -842,12 +855,15 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                           e.target.value = "";
                         }}
                       />
+                      <span className="inline-flex h-11 items-center rounded-[10px] border-[1.5px] border-input bg-background px-4 text-body font-medium text-text-secondary shadow-sm transition-colors hover:border-primary hover:text-primary peer-focus-visible:border-primary peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary/15 sm:h-10">
+                        {logoUpload.isPending ? "Enviando…" : "Enviar logo"}
+                      </span>
                     </label>
                   </div>
                   {logoUploadError ? (
                     <p className="text-body-dense text-destructive">{logoUploadError}</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-label text-muted-foreground">
                       JPG, PNG ou WEBP, até 5 MB. Salve um endereço para exibi-lo.
                     </p>
                   )}
@@ -860,10 +876,16 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                     return (
                       <div className="space-y-1.5">
                         <Label htmlFor="portalSubdomain">Endereço do portal</Label>
+                        {/* Kept hand-rolled only for the `app.progresso.io/`
+                            affix, which the shared Input cannot carry — but it
+                            now wears the system's interactive stroke (1.5px)
+                            and its two-signal focus (emerald border + a 3px
+                            halo) instead of a 1px box and a grey ring. */}
                         <div
                           className={cn(
-                            "flex items-center rounded-[10px] border border-input bg-transparent px-3 text-sm focus-within:ring-2 focus-within:ring-ring/50",
-                            err && "border-destructive",
+                            "flex h-11 min-w-0 items-center rounded-[10px] border-[1.5px] border-input bg-background px-3.5 text-body transition-colors focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15",
+                            err &&
+                              "border-destructive focus-within:border-destructive focus-within:ring-destructive/15",
                           )}
                         >
                           <span className="shrink-0 text-muted-foreground">
@@ -876,13 +898,21 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="studio-forja"
                             aria-invalid={err ? true : undefined}
-                            className="w-full bg-transparent py-2 outline-none placeholder:text-muted-foreground"
+                            aria-describedby={
+                              err ? "portalSubdomain-error" : undefined
+                            }
+                            className="h-full w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
                           />
                         </div>
                         {err ? (
-                          <p className="text-body-dense text-destructive">{err}</p>
+                          <p
+                            id="portalSubdomain-error"
+                            className="text-body-dense text-destructive"
+                          >
+                            {err}
+                          </p>
                         ) : (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-label text-muted-foreground">
                             Opcional. Letras minúsculas, números e hífens.
                           </p>
                         )}
@@ -913,7 +943,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                     return (
                       <div className="space-y-1.5">
                         <Label htmlFor="description">Descrição</Label>
-                        <textarea
+                        <Textarea
                           id="description"
                           rows={3}
                           value={field.state.value}
@@ -921,13 +951,15 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                           onChange={(e) => field.handleChange(e.target.value)}
                           placeholder="Uma breve apresentação da sua clínica."
                           aria-invalid={err ? true : undefined}
-                          className={cn(
-                            "w-full rounded-[10px] border border-input bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground",
-                            err && "border-destructive",
-                          )}
+                          aria-describedby={err ? "description-error" : undefined}
                         />
                         {err ? (
-                          <p className="text-body-dense text-destructive">{err}</p>
+                          <p
+                            id="description-error"
+                            className="text-body-dense text-destructive"
+                          >
+                            {err}
+                          </p>
                         ) : null}
                       </div>
                     );
@@ -995,7 +1027,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                             presets={ACCENT_PRESETS}
                           />
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-label text-muted-foreground">
                           Colore os botões e destaques do seu portal público
                           (app.progresso.io/{initial.portalSubdomain || "sua-clinica"}).
                           Sem cor escolhida, usamos o verde padrão.
@@ -1017,10 +1049,17 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
               <form.Field name="feedbackFrequency">
                 {(field) => (
                   <div>
-                    <div className="mb-2 text-xs text-muted-foreground">
+                    <div
+                      id="feedbackFrequency-label"
+                      className="mb-2 text-label text-muted-foreground"
+                    >
                       Frequência padrão de check-in dos alunos
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div
+                      role="radiogroup"
+                      aria-labelledby="feedbackFrequency-label"
+                      className="flex flex-col gap-2"
+                    >
                       {FEEDBACK_FREQUENCY_VALUES.map((value) => {
                         const active = field.state.value === value;
                         const meta = FEEDBACK_FREQUENCY_LABELS[value];
@@ -1028,7 +1067,8 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                           <button
                             key={value}
                             type="button"
-                            aria-pressed={active}
+                            role="radio"
+                            aria-checked={active}
                             onClick={() => field.handleChange(value)}
                             className={cn(
                               "rounded-[10px] border px-4 py-3 text-left transition-colors",
@@ -1037,10 +1077,10 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                                 : "border-border hover:bg-secondary",
                             )}
                           >
-                            <div className="text-sm font-semibold text-foreground">
+                            <div className="text-body font-semibold text-foreground">
                               {meta.label}
                             </div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
+                            <div className="mt-0.5 text-label text-muted-foreground">
                               {meta.desc}
                             </div>
                           </button>
@@ -1091,7 +1131,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                         role="switch"
                         aria-checked={on}
                         onClick={() => field.handleChange(!on)}
-                        className="flex w-full items-center gap-3 rounded-[10px] border border-input px-3 py-2.5 text-left"
+                        className="flex min-h-11 w-full items-center gap-3 rounded-[10px] border-[1.5px] border-input px-3 py-2.5 text-left transition-colors hover:border-primary"
                       >
                         <span
                           className={cn(
@@ -1099,14 +1139,20 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                             on ? "bg-primary" : "bg-input",
                           )}
                         >
+                          {/* The knob's position IS the state, which is the one
+                              kind of movement the Stillness Rule allows — the
+                              same licence the spinner has. Scoped to
+                              `transform`, though: `transition-all` animated
+                              every property at once and was one of the two
+                              places in the codebase still doing that. */}
                           <span
                             className={cn(
-                              "absolute top-0.5 size-4 rounded-full bg-white transition-all",
-                              on ? "right-0.5" : "left-0.5",
+                              "absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform motion-reduce:transition-none",
+                              on ? "translate-x-4" : "translate-x-0",
                             )}
                           />
                         </span>
-                        <span className="text-sm text-[#475569]">
+                        <span className="text-body text-text-secondary">
                           {on
                             ? "Ativo · envia 24h antes do check-in"
                             : "Inativo · sem lembrete automático"}
@@ -1118,31 +1164,19 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
               </form.Field>
             </div>
           </SettingsCard>
-
-          {/* WhatsApp Business — not built yet */}
-          <SettingsCard title="WhatsApp Business">
-            <ComingSoon />
-          </SettingsCard>
         </div>
 
         {/* Right column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {/* Equipe de coaches — owner-only, on team-capable plans (hides itself
               otherwise). Its own data island → GET/POST /api/coach/team. */}
           <CoachTeamCard />
 
           {/* Plano atual — real read from the clinic's plan */}
-          <SettingsCard
-            title="Plano atual"
-            badge={
-              <span className="rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-xs font-semibold text-[#047857]">
-                ativo
-              </span>
-            }
-          >
+          <SettingsCard title="Plano atual">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div>
-                <div className="font-heading text-2xl font-bold text-foreground">
+                <div className="font-heading text-headline font-bold text-foreground">
                   {plan.name}
                 </div>
                 <div className="mt-0.5 text-body-dense text-muted-foreground">
@@ -1154,18 +1188,57 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
               </div>
             </div>
             <PlanUsageRows />
-            <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-body-dense">
-              <span className="text-muted-foreground">Cobrança e renovação</span>
-              <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                Em breve
-              </span>
-            </div>
+            <p className="mt-4 border-t border-border pt-3 text-body-dense text-muted-foreground">
+              A cobrança é por Pix, contra a fatura do mês. As suas faturas
+              ficam logo abaixo.
+            </p>
           </SettingsCard>
 
           {/* Faturas — read-only ledger kept by the platform admin */}
           <CoachInvoicesCard />
         </div>
       </div>
+
+      {/* The commit, where the work is. Below lg this page is ~2900px of scroll
+          and the header's Salvar is off-screen for all but the first card, so
+          the bar rides the bottom of the viewport and appears only when there
+          is something to commit. It carries the confirmation too — a "Salvo"
+          2700px above where the coach is looking is a confirmation nobody
+          receives. `bottom-0` + the upward Overlay shadow, per DESIGN.md. */}
+      {(isDirty || mutation.isSuccess || mutation.isPending) && (
+        <div
+          role="status"
+          className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border bg-white px-4 py-3 shadow-[0_-8px_40px_rgba(15,23,42,0.15)] sm:-mx-6 sm:px-6 lg:hidden"
+        >
+          {/* Terse on purpose: at 390px the two buttons leave ~90px, and
+              "Alterações não salvas" wrapped to two lines and grew the bar. */}
+          {isDirty ? (
+            <span className="min-w-0 text-body-dense text-muted-foreground">
+              Não salvo
+            </span>
+          ) : (
+            <span className="flex min-w-0 items-center gap-1 text-body-dense font-medium text-primary-deep">
+              <Check className="size-4 shrink-0" />
+              Salvo
+            </span>
+          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {isDirty && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => form.reset()}
+                disabled={mutation.isPending}
+              >
+                Descartar
+              </Button>
+            )}
+            <Button type="submit" disabled={mutation.isPending || !isDirty}>
+              {mutation.isPending ? "Salvando…" : "Salvar alterações"}
+            </Button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
@@ -1179,10 +1252,10 @@ export default function ClinicSettingsPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-5xl">
-        <h1 className="mb-5 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+        <h1 className="mb-5 font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl border border-border bg-white p-6 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           Carregando…
         </div>
       </div>
@@ -1192,10 +1265,10 @@ export default function ClinicSettingsPage() {
   if (isError || !data) {
     return (
       <div className="mx-auto max-w-5xl">
-        <h1 className="mb-5 font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+        <h1 className="mb-5 font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl border border-border bg-white p-6 text-center text-body text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
           {error instanceof Error
             ? error.message
             : "Não foi possível carregar as configurações."}

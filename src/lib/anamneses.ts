@@ -112,6 +112,8 @@ export type AnamnesisListItemDto = {
   modality: AnamnesisModality;
   sectionCount: number;
   questionCount: number;
+  /** How many alunos are on this template. 0 means nobody uses it yet. */
+  usageCount: number;
   /** ISO timestamp (JSON-serialized Date). */
   updatedAt: string;
 };
@@ -130,6 +132,8 @@ export type AnamnesisDetailDto = {
   objective: AnamnesisObjective;
   modality: AnamnesisModality;
   sections: AnamnesisSection[];
+  /** How many alunos are on this template. 0 means nobody uses it yet. */
+  usageCount: number;
   createdAt: string;
   updatedAt: string;
 };

@@ -27,7 +27,17 @@
 
   --muted: #f1f5f9; /* slate-100 */
   --muted-foreground: #64748b; /* slate-500 */
-  --meta: #94a3b8; /* slate-400 — column headers, timestamps, "last activity" */
+  /*
+   * Meta Grey — column headers, timestamps, "last activity". It ships at
+   * 11-12px, where the old slate-400 (#94a3b8) read 2.56:1 on Paper and failed
+   * the AA floor on every table header in the app. There is no room between
+   * 4.5:1 and Context Grey for a second, lighter passing rung: anything that
+   * clears the floor on white lands at slate-500. So Meta and Context share a
+   * pigment in light mode and are told apart by size, weight and role — Meta
+   * annotates the chart, Context describes a field. They diverge again in dark
+   * mode, where the lighter value is legible on slate.
+   */
+  --meta: #64748b; /* slate-500 — 4.76:1 on Paper */
 
   --accent: #f0fdf4; /* emerald-50 */
   --accent-foreground: #047857; /* emerald-700 */
@@ -75,7 +85,14 @@
   --primary-light: #f0fdf4; /* emerald-50 */
   --primary-light-border: #bbf7d0; /* emerald-200 */
   --text-secondary: #475569; /* slate-600 */
-  --surface-light: #f8fafc; /* slate-50 */
+  --surface-light: #f8fafc; /* slate-50 — the coach's ground */
+  /*
+   * The aluno's ground: a half-step cooler and darker than the coach's. That
+   * temperature difference is the whole signal that says which app you are in
+   * (DESIGN.md, The Two Grounds Rule), so it is a token rather than a literal
+   * repeated per aluno surface.
+   */
+  --ground-aluno: #eef1f5;
   --surface-dark: #0f172a; /* slate-900 */
   --surface-dark-mid: #1e293b; /* slate-800 */
   --border-light: #f1f5f9; /* slate-100 */
@@ -160,6 +177,9 @@
   --border: #334155;
   --input: #334155;
   --ring: #059669;
+
+  /* On slate, both grounds collapse onto the page background. */
+  --ground-aluno: var(--background);
 }
 
 /*
@@ -236,6 +256,7 @@
   --color-primary-light-border: var(--primary-light-border);
   --color-text-secondary: var(--text-secondary);
   --color-surface-light: var(--surface-light);
+  --color-ground-aluno: var(--ground-aluno);
   --color-surface-dark: var(--surface-dark);
   --color-surface-dark-mid: var(--surface-dark-mid);
   --color-border-light: var(--border-light);

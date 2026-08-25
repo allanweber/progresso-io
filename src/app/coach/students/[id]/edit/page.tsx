@@ -23,7 +23,7 @@ export default function EditStudentPage() {
     <div className="mx-auto max-w-2xl">
       <Link
         href={`/coach/students/${id}`}
-        className="text-body-dense text-[#94A3B8] transition-colors hover:text-primary"
+        className="text-body-dense text-meta transition-colors hover:text-primary"
       >
         ← Perfil do aluno
       </Link>

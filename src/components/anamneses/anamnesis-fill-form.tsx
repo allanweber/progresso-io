@@ -19,6 +19,10 @@ import type { AnamnesisAnswers, AnamnesisAnswerValue } from "@/lib/student-anamn
  * Presentational and reused by both the coach fill page and the public (aluno)
  * fill page; each parent owns the `<form>`, the submit button and any extra
  * fields (e.g. the WhatsApp confirm). Answers are keyed by question key.
+ *
+ * Every question renders an element at `#q-<key>`, whatever its type — the
+ * parent's scroll-to-first-error relies on that being true for the Sim/Não
+ * group as much as for a text input.
  */
 export function AnamnesisFillForm({
   sections,
@@ -37,23 +41,44 @@ export function AnamnesisFillForm({
     <div className="space-y-6">
       {sections.map((section) => (
         <fieldset key={section.key} className="space-y-4" disabled={disabled}>
-          <legend className="font-heading text-base font-semibold text-foreground">
+          <legend className="font-heading text-subtitle font-semibold text-foreground">
             {section.title}
           </legend>
           <div className="space-y-4">
             {section.questions.map((q) => {
-              const value = answers[q.key];
               const err = errors?.[q.key];
+              const value = answers[q.key];
+              const fieldId = `q-${q.key}`;
+              const errorId = `${fieldId}-error`;
+              // Wired to the control via aria-describedby, so a screen reader
+              // reads the problem with the field rather than orphaning it.
               const errorSlot = err ? (
-                <p className="text-body-dense text-destructive">{err}</p>
+                <p id={errorId} className="text-body-dense text-destructive">
+                  {err}
+                </p>
               ) : null;
 
               if (q.type === "boolean") {
                 const bool = value === true ? true : value === false ? false : null;
+                const labelId = `${fieldId}-label`;
                 return (
                   <div key={q.key} className="space-y-1.5">
-                    <Label>{q.label}</Label>
-                    <div className="flex gap-2">
+                    {/* A choice of two, announced as one group with one name —
+                        not as two unrelated toggles beside orphaned text. */}
+                    <span id={labelId} className="block text-label font-semibold text-foreground">
+                      {q.label}
+                    </span>
+                    <div
+                      id={fieldId}
+                      role="radiogroup"
+                      // Focusable only programmatically, so the parent's
+                      // scroll-to-first-error can land on it.
+                      tabIndex={-1}
+                      aria-labelledby={labelId}
+                      aria-describedby={err ? errorId : undefined}
+                      aria-invalid={err ? true : undefined}
+                      className="flex gap-2"
+                    >
                       {(
                         [
                           { label: "Sim", v: true },
@@ -63,13 +88,14 @@ export function AnamnesisFillForm({
                         <button
                           key={opt.label}
                           type="button"
-                          aria-pressed={bool === opt.v}
+                          role="radio"
+                          aria-checked={bool === opt.v}
                           onClick={() => onAnswer(q.key, bool === opt.v ? null : opt.v)}
                           className={cn(
-                            "rounded-[10px] border-[1.5px] px-4 py-2 text-sm font-medium transition-colors",
+                            "h-11 rounded-[10px] border-[1.5px] px-5 text-body font-medium transition-colors",
                             bool === opt.v
-                              ? "border-primary bg-primary-light text-primary"
-                              : "border-input text-[#334155] hover:bg-secondary",
+                              ? "border-primary bg-primary-light text-primary-deep"
+                              : "border-input text-text-secondary hover:bg-secondary",
                           )}
                         >
                           {opt.label}
@@ -83,11 +109,13 @@ export function AnamnesisFillForm({
               if (q.type === "long_text") {
                 return (
                   <div key={q.key} className="space-y-1.5">
-                    <Label htmlFor={`q-${q.key}`}>{q.label}</Label>
+                    <Label htmlFor={fieldId}>{q.label}</Label>
                     <Textarea
-                      id={`q-${q.key}`}
+                      id={fieldId}
                       rows={3}
                       value={typeof value === "string" ? value : ""}
+                      aria-invalid={err ? true : undefined}
+                      aria-describedby={err ? errorId : undefined}
                       onChange={(e) => onAnswer(q.key, e.target.value)}
                     />
                     {errorSlot}
@@ -96,13 +124,14 @@ export function AnamnesisFillForm({
               }
               return (
                 <div key={q.key} className="space-y-1.5">
-                  <Label htmlFor={`q-${q.key}`}>{q.label}</Label>
+                  <Label htmlFor={fieldId}>{q.label}</Label>
                   <Input
-                    id={`q-${q.key}`}
+                    id={fieldId}
                     value={typeof value === "string" ? value : ""}
                     placeholder={maskPlaceholder(q)}
                     inputMode={maskInputMode(q)}
                     aria-invalid={err ? true : undefined}
+                    aria-describedby={err ? errorId : undefined}
                     onChange={(e) => onAnswer(q.key, e.target.value)}
                   />
                   {errorSlot}

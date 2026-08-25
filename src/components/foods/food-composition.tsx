@@ -121,7 +121,7 @@ export function FoodComposition({
             key={label}
             className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
           >
-            <div className="text-xs text-[#94A3B8]">{label}</div>
+            <div className="text-xs text-meta">{label}</div>
             <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
               {formatNutrient(value, unit)}
             </div>

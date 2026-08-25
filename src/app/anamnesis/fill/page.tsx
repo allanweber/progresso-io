@@ -11,6 +11,12 @@ export const metadata: Metadata = {
  * from the query and hands it to the client island, which loads the
  * questionnaire, gates it behind a WhatsApp-number confirm, and submits. No
  * session — the token + the number are the credential.
+ *
+ * This is an **aluno** surface, so it carries the aluno posture, not the
+ * coach's: the Aluno Ground (`#eef1f5`) rather than the coach's Cool Ground,
+ * and `.posture-reading`, which lifts the reading rungs one step for a phone
+ * held at arm's length. It was the one aluno-facing page still rendering at
+ * desk density on the coach's ground.
  */
 export default async function AnamnesisFillPage({
   searchParams,
@@ -19,7 +25,7 @@ export default async function AnamnesisFillPage({
 }) {
   const { token } = await searchParams;
   return (
-    <main className="min-h-screen bg-surface-light">
+    <main className="posture-reading min-h-screen bg-ground-aluno">
       <AnamnesisFillIsland token={token ?? ""} />
     </main>
   );

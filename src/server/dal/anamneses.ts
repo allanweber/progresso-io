@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Database } from "@/db";
 import { schema } from "@/db";
@@ -35,6 +35,8 @@ export type AnamnesisListItem = {
   modality: AnamnesisModality;
   sectionCount: number;
   questionCount: number;
+  /** How many alunos were assigned from this template (see `countUsage`). */
+  usageCount: number;
   updatedAt: Date;
 };
 
@@ -58,6 +60,8 @@ export type AnamnesisDetail = {
   objective: AnamnesisObjective;
   modality: AnamnesisModality;
   sections: AnamnesisSection[];
+  /** How many alunos were assigned from this template (see `countUsage`). */
+  usageCount: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -81,6 +85,43 @@ export type AnamnesisWriteResult =
 /* -------------------------------------------------------------------------- */
 /*  Reads                                                                      */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * How many of this clinic's alunos were assigned from each of `ids`.
+ *
+ * A student's anamnese is a **frozen snapshot** taken at assign time
+ * (`student_anamnesis.sections`), and `source_anamnesis_id` is a loose
+ * `ON DELETE SET NULL` back-reference — so this counts "who is on this
+ * template", never "whose answers depend on it". Deleting a template does not
+ * touch a single answer, which is exactly what the delete dialog tells the
+ * coach. Returns 0 for an id nobody uses.
+ */
+async function countUsage(
+  ctx: TenantContext,
+  ids: string[],
+): Promise<Map<string, number>> {
+  const usage = new Map<string, number>();
+  if (ids.length === 0) return usage;
+
+  const rows = await ctx.db
+    .select({
+      sourceId: schema.studentAnamnesis.sourceAnamnesisId,
+      used: count(),
+    })
+    .from(schema.studentAnamnesis)
+    .where(
+      and(
+        eq(schema.studentAnamnesis.clinicId, ctx.clinicId),
+        inArray(schema.studentAnamnesis.sourceAnamnesisId, ids),
+      ),
+    )
+    .groupBy(schema.studentAnamnesis.sourceAnamnesisId);
+
+  for (const r of rows) {
+    if (r.sourceId) usage.set(r.sourceId, r.used);
+  }
+  return usage;
+}
 
 function listWhere(ctx: TenantContext, params: AnamnesisListParams) {
   const conds = [eq(schema.anamnesis.clinicId, ctx.clinicId)];
@@ -130,6 +171,11 @@ export async function listAnamneses(
     .from(schema.anamnesis)
     .where(where);
 
+  const usage = await countUsage(
+    ctx,
+    rows.map((r) => r.id),
+  );
+
   const items: AnamnesisListItem[] = rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -137,6 +183,7 @@ export async function listAnamneses(
     modality: r.modality,
     sectionCount: r.sections.length,
     questionCount: countQuestions(r.sections),
+    usageCount: usage.get(r.id) ?? 0,
     updatedAt: r.updatedAt,
   }));
 
@@ -155,6 +202,7 @@ export async function getAnamnesis(
       and(eq(schema.anamnesis.id, id), eq(schema.anamnesis.clinicId, ctx.clinicId)),
     );
   if (!row) return null;
+  const usage = await countUsage(ctx, [row.id]);
   return {
     id: row.id,
     name: row.name,
@@ -162,6 +210,7 @@ export async function getAnamnesis(
     objective: row.objective,
     modality: row.modality,
     sections: row.sections,
+    usageCount: usage.get(row.id) ?? 0,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -254,7 +303,12 @@ export async function copyAnamnesis(
 /**
  * Permanently deletes one of this clinic's anamneses. Scoped to
  * `clinic_id = ctx.clinicId`; returns false when the row isn't this clinic's.
- * Nothing references an anamnese in this phase, so the delete is unconditional.
+ *
+ * The delete is unconditional even when alunos are on this template: their
+ * `student_anamnesis` row holds a frozen snapshot of the questionnaire and only
+ * a loose `ON DELETE SET NULL` back-reference, so no answer is ever lost. The
+ * template count surfaced by `countUsage` is what the UI shows the coach before
+ * they confirm.
  */
 export async function deleteAnamnesis(
   ctx: TenantContext,

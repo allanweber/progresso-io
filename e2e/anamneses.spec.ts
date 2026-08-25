@@ -63,6 +63,12 @@ test.describe("anamneses", () => {
   }) => {
     await page.goto("/coach/anamneses/new");
 
+    // The clinic is seeded with starter templates, so "Nova anamnese" opens on
+    // the copy-a-template chooser; the blank builder is behind its escape.
+    await page
+      .getByRole("button", { name: "Montar uma anamnese do zero" })
+      .click();
+
     await page
       .getByLabel("Nome da anamnese")
       .fill("Anamnese de teste e2e");

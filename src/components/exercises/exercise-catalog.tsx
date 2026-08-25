@@ -214,7 +214,7 @@ export function ExerciseCatalog({
 
       {/* Search — full width on its own row. */}
       <div className="relative mt-6 w-full">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-meta" />
         <Input
           type="search"
           value={searchInput}
@@ -395,7 +395,7 @@ export function ExerciseCatalog({
                     )}
                   </div>
                   {ex.clinicName && (
-                    <p className="mt-0.5 truncate text-xs text-[#94A3B8]">
+                    <p className="mt-0.5 truncate text-xs text-meta">
                       {ex.clinicName}
                     </p>
                   )}
@@ -417,7 +417,7 @@ export function ExerciseCatalog({
                       {LEVEL_LABELS[ex.level]}
                     </Badge>
                     {ex.equipment && (
-                      <span className="text-xs text-[#94A3B8]">
+                      <span className="text-xs text-meta">
                         {EQUIPMENT_LABELS[ex.equipment]}
                       </span>
                     )}

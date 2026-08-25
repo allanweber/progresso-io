@@ -71,7 +71,7 @@ export function ResendOtp({
 
   if (remaining > 0) {
     return (
-      <p className="text-center text-body-dense text-[#94A3B8]">
+      <p className="text-center text-body-dense text-meta">
         {resent && (
           <span className="font-medium text-primary">Novo código enviado · </span>
         )}

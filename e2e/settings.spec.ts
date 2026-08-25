@@ -33,11 +33,14 @@ test.describe("clinic settings", () => {
       page.getByRole("heading", { name: "Preferências de feedback" }),
     ).toBeVisible();
 
-    // WhatsApp Business is still coming-soon.
+    // Nothing on this page is a placeholder: the "WhatsApp Business" card and
+    // the "Cobrança e renovação · Em breve" row were removed — the first held
+    // no information, the second contradicted the Pix flow the billing banner
+    // already offers.
     await expect(
       page.getByRole("heading", { name: "WhatsApp Business" }),
-    ).toBeVisible();
-    await expect(page.getByText("Em breve").first()).toBeVisible();
+    ).toHaveCount(0);
+    await expect(page.getByText("Em breve")).toHaveCount(0);
 
     // Equipe de coaches is real for the seeded owner on the Clínica plan: the
     // owner ("Admin · Coach"), a second coach, one pending invite, and the seat

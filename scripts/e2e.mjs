@@ -125,8 +125,23 @@ try {
     ADMIN_EMAIL: process.env.ADMIN_EMAIL ?? "admin@progresso.io",
     // Capture invite e-mails so the accept flow is drivable end-to-end.
     ENABLE_TEST_OUTBOX: "true",
-    // No RESEND_API_KEY on purpose: e-mails log to the console + outbox.
+    // Resend is pinned OFF, and pinning is the whole point: this used to be a
+    // bare comment saying "no RESEND_API_KEY on purpose", which was true of the
+    // shell and false of the server. The standalone server loads `.env` at
+    // runtime, so the developer's real key reached it anyway and every suite run
+    // mailed the outside world for real — the contact spec delivered
+    // "Contato via site — Maria Teste" to CONTACT_EMAIL on each run, and every
+    // invite spec fired a live send at an `@example.com` fixture, which Resend
+    // can only hard-bounce. Bounces at that address are charged to the sending
+    // domain's reputation, so the cost was never just a noisy inbox.
     //
+    // One key covers every template: `email.tsx` builds its Resend client from
+    // this variable alone, and each sender falls back to a console log when it
+    // is missing. `captureOutbox` runs BEFORE that check, so the outbox the
+    // specs read is unaffected.
+    //
+    // Empty rather than deleted, for the same reason as the two below.
+    RESEND_API_KEY: "",
     // The AI generator is pinned OFF, and it has to be pinned rather than
     // merely left unset: the standalone server loads `.env` from the repo at
     // runtime, so a developer's real key reaches the suite even though the

@@ -167,7 +167,7 @@ export default function AdminFoodsPage() {
 
       {/* Search — full width */}
       <div className="relative mt-6 w-full">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-meta" />
         <Input
           type="search"
           value={searchInput}
@@ -314,7 +314,7 @@ export default function AdminFoodsPage() {
                     <Badge variant="neutral" className="font-medium">
                       {FOOD_TYPE_LABELS[f.type]}
                     </Badge>
-                    <span className="min-w-0 truncate text-xs text-[#94A3B8]">
+                    <span className="min-w-0 truncate text-xs text-meta">
                       {f.groupName}
                     </span>
                     <SubstituteBadge count={f.substituteCount} />
@@ -327,7 +327,7 @@ export default function AdminFoodsPage() {
                       ["Gord.", f.fat],
                     ].map(([label, value]) => (
                       <div key={label as string}>
-                        <dt className="text-caption text-[#94A3B8]">{label}</dt>
+                        <dt className="text-caption text-meta">{label}</dt>
                         <dd className="tabular-nums text-[#475569]">
                           {fmt(value as number | null)}
                         </dd>
@@ -377,7 +377,7 @@ export default function AdminFoodsPage() {
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2">
                         {f.code && (
-                          <span className="text-xs text-[#94A3B8]">{f.code}</span>
+                          <span className="text-xs text-meta">{f.code}</span>
                         )}
                         <SubstituteBadge count={f.substituteCount} />
                       </div>

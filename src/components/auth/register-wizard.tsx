@@ -72,7 +72,7 @@ function StepIndicator({ current }: { current: number }) {
                   "flex size-7 items-center justify-center rounded-full text-xs font-bold",
                   active
                     ? "bg-primary text-white"
-                    : "border-2 border-border bg-white text-[#94A3B8]",
+                    : "border-2 border-border bg-white text-meta",
                 )}
               >
                 {done ? <Check className="size-3.5" strokeWidth={3} /> : index}
@@ -80,7 +80,7 @@ function StepIndicator({ current }: { current: number }) {
               <span
                 className={cn(
                   "text-eyebrow font-semibold",
-                  active ? "text-primary" : "text-[#94A3B8]",
+                  active ? "text-primary" : "text-meta",
                 )}
               >
                 {label}
@@ -244,7 +244,7 @@ function PlanStep({
                   <div className="font-heading text-lg font-bold text-foreground">
                     {option.price}
                   </div>
-                  <div className="text-caption text-[#94A3B8]">/mês</div>
+                  <div className="text-caption text-meta">/mês</div>
                 </div>
               </div>
             </button>

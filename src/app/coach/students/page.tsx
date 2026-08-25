@@ -76,7 +76,7 @@ const columns = [
             <div className="truncate font-semibold text-foreground">
               {s.firstName} {s.lastName}
             </div>
-            <div className="truncate text-xs text-[#94A3B8]">{s.email}</div>
+            <div className="truncate text-xs text-meta">{s.email}</div>
           </div>
         </div>
       );
@@ -118,7 +118,7 @@ const columns = [
     id: "updatedAt",
     header: "Última atividade",
     cell: (ctx) => (
-      <span className="text-body-dense text-[#94A3B8]">
+      <span className="text-body-dense text-meta">
         {dateFmt.format(new Date(ctx.getValue()))}
       </span>
     ),
@@ -295,7 +295,7 @@ export default function StudentsPage() {
                             {state.label}
                           </span>
                         </div>
-                        <div className="truncate text-xs text-[#94A3B8]">
+                        <div className="truncate text-xs text-meta">
                           {s.email}
                         </div>
                       </div>
@@ -303,20 +303,20 @@ export default function StudentsPage() {
 
                     <dl className="mt-3 flex items-start justify-between gap-3 border-t border-[#F1F5F9] pt-3 text-body-dense">
                       <div className="min-w-0">
-                        <dt className="text-caption text-[#94A3B8]">Objetivo</dt>
+                        <dt className="text-caption text-meta">Objetivo</dt>
                         <dd className="truncate text-[#475569]">
                           {s.goal ?? "—"}
                         </dd>
                       </div>
                       <div className="shrink-0 text-right">
-                        <dt className="text-caption text-[#94A3B8]">Acesso</dt>
+                        <dt className="text-caption text-meta">Acesso</dt>
                         <dd className="text-[#475569]">
                           {ACCESS_LABELS[deriveAccess(s)]}
                         </dd>
                       </div>
                       <div className="shrink-0 text-right">
-                        <dt className="text-caption text-[#94A3B8]">Atividade</dt>
-                        <dd className="text-[#94A3B8]">
+                        <dt className="text-caption text-meta">Atividade</dt>
+                        <dd className="text-meta">
                           {dateFmt.format(new Date(s.updatedAt))}
                         </dd>
                       </div>

@@ -193,7 +193,7 @@ export function QuantityEditor({
       {activeMeasure && (
         <div className="mb-3 text-center text-xs text-muted-foreground">
           equivale a <span className="font-semibold text-foreground">{g} g</span>{" "}
-          <span className="text-[#94A3B8]">
+          <span className="text-meta">
             (1 {activeMeasure.label} = {activeMeasure.grams} g)
           </span>
         </div>

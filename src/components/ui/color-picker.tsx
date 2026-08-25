@@ -41,7 +41,7 @@ export function ColorPicker({
         <button
           id={id}
           type="button"
-          className="inline-flex items-center gap-2.5 rounded-[10px] border-[1.5px] border-input bg-white px-3 py-2 text-sm transition-colors hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+          className="inline-flex h-11 items-center gap-2.5 rounded-[10px] border-[1.5px] border-input bg-white px-3 text-body transition-colors sm:h-10 hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
         >
           <span
             className="size-5 rounded-full ring-1 ring-black/10"
