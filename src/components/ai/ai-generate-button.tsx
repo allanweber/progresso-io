@@ -125,10 +125,13 @@ export function AiGenerateButton({
   const [targetCarbsG, setTargetCarbsG] = useState("");
   const [targetFatG, setTargetFatG] = useState("");
 
-  // Both reads are already cached by other panels on these pages, so opening
-  // the dialog costs nothing in practice.
+  // Both reads share the cache with the panels already on these pages: the
+  // usage entry is keyed exactly as the shell's, which the coach layout seeds
+  // server-side, so opening the dialog costs no round-trip. Keep this key in
+  // step with the other "coach-plan-usage" consumers — a private key here is
+  // what made the credit count go stale after a generation.
   const usage = useQuery({
-    queryKey: ["plan-usage"],
+    queryKey: ["coach-plan-usage"],
     queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
   });
   const anamnesis = useQuery({
@@ -162,7 +165,7 @@ export function AiGenerateButton({
         },
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["plan-usage"] });
+      queryClient.invalidateQueries({ queryKey: ["coach-plan-usage"] });
       setOpen(false);
       setConfirmed(false);
       onGenerated();
