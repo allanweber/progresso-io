@@ -277,7 +277,7 @@ export default async function AdminWhatsappSimulatorPage({
                   rows={1}
                   maxLength={4096}
                   placeholder="Escreva como o aluno…"
-                  className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                  className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-white px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                 />
                 <button
                   type="submit"
