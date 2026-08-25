@@ -32,8 +32,26 @@ Open [http://localhost:3000](http://localhost:3000).
 | `pnpm lint`        | Run ESLint                           |
 | `pnpm db:generate` | Generate Drizzle migrations          |
 | `pnpm db:migrate`  | Apply migrations                     |
-| `pnpm db:push`     | Push schema to the database directly |
+| `pnpm db:bootstrap` | Apply migrations **and** seed the base food/exercise catalog |
+| `pnpm db:seed`     | Seed the demo clinic (coach/aluno/admin accounts + data) |
+| `pnpm db:push`     | Push schema directly — skips the catalog, see below |
 | `pnpm db:studio`   | Open Drizzle Studio                  |
+
+### First-time database setup
+
+```bash
+pnpm db:bootstrap   # migrations + base catalog (597 foods, 873 exercises)
+pnpm db:seed        # demo clinic and accounts
+```
+
+`db:bootstrap` runs the same `scripts/migrate.mjs` the Docker `migrator` service
+runs in production, so local matches deploy.
+
+Prefer it over `pnpm db:push` for a fresh database. `push` diffs `schema.ts` and
+emits its own DDL, so it silently skips everything that lives only in the
+migration SQL — the `pg_trgm`/`unaccent` extensions and the `food_search_trgm` /
+`exercise_search_trgm` GIN indexes. A pushed database looks complete but fails
+every catalog search with `function unaccent(text) does not exist`.
 
 ## Project structure
 
