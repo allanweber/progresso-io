@@ -89,6 +89,12 @@ function pileId(name: string): string {
   return name.replace(/\W+/g, "-").toLowerCase();
 }
 
+const PILE_TITLES = {
+  missingPlans: "Sem treino ou dieta",
+  pendingCheckins: "Check-ins aguardando resposta",
+  waWaiting: "WhatsApp aguardando",
+} as const;
+
 /** A dashboard section: card chrome with a titled header. */
 function SectionCard({
   title,
@@ -649,26 +655,26 @@ export default function CoachDashboardPage() {
         <KpiTile
           label="Sem treino/dieta"
           value={isLoading ? null : (totals?.missingPlans ?? 0)}
-          href="#pile-sem-treino-ou-dieta"
+          href={`#pile-${pileId(PILE_TITLES.missingPlans)}`}
           tone="danger"
         />
         <KpiTile
           label="Check-ins pendentes"
           value={isLoading ? null : (totals?.pendingCheckins ?? 0)}
-          href="#pile-check-ins-aguardando-resposta"
+          href={`#pile-${pileId(PILE_TITLES.pendingCheckins)}`}
           tone="danger"
         />
         <KpiTile
           label="WhatsApp aguardando"
           value={isLoading ? null : (totals?.waWaiting ?? 0)}
-          href="#pile-whatsapp-aguardando"
+          href={`#pile-${pileId(PILE_TITLES.waWaiting)}`}
           tone="brand"
         />
       </dl>
       <div className="mt-4 grid min-w-0 items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="flex min-w-0 flex-col gap-4">
           <SectionCard
-            title="Check-ins aguardando resposta"
+            title={PILE_TITLES.pendingCheckins}
             badge={
               <CountBadge
                 count={totals?.pendingCheckins ?? 0}
@@ -708,7 +714,7 @@ export default function CoachDashboardPage() {
           </SectionCard>
 
           <SectionCard
-            title="Sem treino ou dieta"
+            title={PILE_TITLES.missingPlans}
             badge={
               <CountBadge
                 count={totals?.missingPlans ?? 0}
@@ -850,7 +856,7 @@ export default function CoachDashboardPage() {
           </SectionCard>
 
           <SectionCard
-            title="WhatsApp aguardando"
+            title={PILE_TITLES.waWaiting}
             badge={
               <CountBadge
                 count={totals?.waWaiting ?? 0}
