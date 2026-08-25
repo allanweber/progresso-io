@@ -64,7 +64,7 @@ export function ColorPicker({
           <HexColorInput
             color={current}
             onChange={onChange}
-            className="h-9 w-full bg-transparent font-mono text-sm uppercase outline-none"
+            className="h-9 w-full bg-transparent font-mono text-sm uppercase transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             aria-label="Código hexadecimal da cor"
           />
         </div>
@@ -80,7 +80,7 @@ export function ColorPicker({
                 onClick={() => onChange(color)}
                 style={{ backgroundColor: color }}
                 className={cn(
-                  "size-6 rounded-full transition-transform hover:scale-110 focus:outline-none",
+                  "size-6 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   selected === color
                     ? "ring-2 ring-offset-1 ring-foreground ring-offset-background"
                     : "ring-1 ring-black/10",

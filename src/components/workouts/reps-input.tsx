@@ -33,7 +33,7 @@ function SequenceEditor({
               min={1}
               max={1000}
               ariaLabel={`Posição ${i + 1}`}
-              inputClassName="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-body font-semibold tabular-nums text-foreground outline-none focus:border-primary"
+              inputClassName="w-14 rounded-lg border border-border bg-white px-2 py-2 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             />
           </div>
         ))}
@@ -128,7 +128,7 @@ export function RepsInput({
           max={1000}
           stepper
           ariaLabel="Repetições"
-          inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-body font-semibold tabular-nums text-foreground outline-none focus:border-primary"
+          inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
         />
       )}
 

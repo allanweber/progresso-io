@@ -167,7 +167,7 @@ export function ExercisePrescriptionFields({
                 : null,
             })
           }
-          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-body text-foreground outline-none focus:border-primary"
+          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-body text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
         >
           <option value="">Nenhuma técnica</option>
           {WORKOUT_TECHNIQUE_OPTIONS.map((o) => (

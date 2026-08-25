@@ -174,7 +174,7 @@ export function QuantityEditor({
                 confirm();
               }
             }}
-            className="w-full bg-transparent px-3 py-2 text-center text-lg font-bold text-foreground outline-none"
+            className="w-full bg-transparent px-3 py-2 text-center text-lg font-bold text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
           />
           <span className="absolute right-3 text-xs font-semibold text-muted-foreground">
             {activeMeasure ? activeMeasure.label : "g"}

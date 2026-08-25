@@ -163,13 +163,16 @@
 }
 
 /*
- * Focus safety net. DESIGN.md calls the focus ring "unmissable" and says it is
- * never removed, but that only held where a component remembered to paint one:
- * a handful of controls shipped `focus:outline-none` with no replacement, and
- * the browser default was the only thing they had.
+ * Focus safety net for anything that paints no focus style of its own — the
+ * browser default is easy to lose against Paper.
  *
- * Safe as a fallback because every ring-bearing element in this codebase pairs
- * its ring with `outline-none`, so this paints only where nothing else does.
+ * NOTE what this does NOT do: it cannot rescue an element carrying Tailwind's
+ * `outline-none`. That utility lives in `@layer utilities`, which is declared
+ * after `base`, and layer order beats specificity — so on those elements the
+ * utility still wins. Controls that suppress their outline must paint a real
+ * ring themselves; see the pattern in components/ui/input.tsx and button.tsx.
+ * Do not try to win this with `!important` — that would override the correct
+ * rings too.
  */
 @layer base {
   :focus-visible {

@@ -41,7 +41,7 @@ function DialogContent({
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-4 top-4 rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-secondary hover:text-foreground focus:outline-none"
+          className="absolute right-4 top-4 rounded-full p-1 text-[#94A3B8] transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Fechar"
         >
           <X className="size-4" />
