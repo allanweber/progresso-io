@@ -297,18 +297,26 @@ function KpiTile({
         This keeps the whole tile clickable — it is the largest target on the
         screen, and it used to do nothing.
 
+        The overlay sits inside its own `<dd>` for the same reason: a wrapper
+        `<div>` in a `<dl>` must contain `<dt>`s followed by `<dd>`s and nothing
+        else, so a bare `<a>` trailing the pair was invalid too. The `<dd>` is a
+        semantic wrapper only — the link is absolutely positioned against the
+        tile, so nothing moves.
+
         Named by reference to its own `<dt>` rather than by an `sr-only` child:
         the tile is an `aria-atomic` live region, so any text inside the link
         would be re-announced with the figure on every refetch. Borrowing the
         visible label adds nothing to the region and makes the accessible name
         the words already on screen.
       */}
-      <Link
-        href={href}
-        className="absolute inset-0 rounded-2xl"
-        aria-labelledby={`kpi-label-${slug}`}
-        aria-describedby={`kpi-${slug}`}
-      />
+      <dd>
+        <Link
+          href={href}
+          className="absolute inset-0 rounded-2xl"
+          aria-labelledby={`kpi-label-${slug}`}
+          aria-describedby={`kpi-${slug}`}
+        />
+      </dd>
     </div>
   );
 }
