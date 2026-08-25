@@ -296,6 +296,84 @@ describe("manual billing — coach read is tenant-scoped", () => {
   });
 });
 
+describe("findOpenInvoice", () => {
+  /**
+   * `getPlanUsage` runs on every coach page render, so this is a narrow indexed
+   * query rather than a filter over `listMyInvoices`. The two ways that rewrite
+   * can silently go wrong are dropping the `status = 'pending'` filter and
+   * sorting the wrong way, so both are pinned here.
+   */
+  it("picks the oldest pending fatura, ignoring paid ones", async () => {
+    const c = await coachClinic("open-inv@example.com", "Open Inv");
+
+    // Paid, and due earliest of the three — must NOT win.
+    const paid = await billing.createInvoice(
+      h,
+      c.clinicId,
+      invoiceInput({ dueDate: "2030-01-01" }),
+      c.userId,
+    );
+    await billing.markInvoicePaid(h, paid!.id, {
+      paidAt: "2030-01-02",
+      paymentMethod: "pix",
+    });
+    // Pending, due last.
+    await billing.createInvoice(
+      h,
+      c.clinicId,
+      invoiceInput({ dueDate: "2030-03-01" }),
+      c.userId,
+    );
+    // Pending, due in the middle — the expected winner.
+    const middle = await billing.createInvoice(
+      h,
+      c.clinicId,
+      invoiceInput({
+        dueDate: "2030-02-01",
+        discountCents: 900,
+        lineItems: [
+          { description: "Mensalidade", amountCents: 19900 },
+          { description: "Taxa", amountCents: 5000 },
+        ],
+      }),
+      c.userId,
+    );
+
+    const ctx: TenantContext = {
+      db: h,
+      clinicId: c.clinicId,
+      userId: c.userId,
+      role: "coach",
+    };
+    const open = await billing.findOpenInvoice(ctx);
+
+    expect(open?.id).toBe(middle!.id);
+    // A complete DTO, not a partial: `requestSubscription` returns this to the
+    // caller, so the line items and derived totals must be populated.
+    expect(open?.lineItems).toHaveLength(2);
+    expect(open?.subtotalCents).toBe(24900);
+    expect(open?.totalCents).toBe(24000); // subtotal minus the 900 discount
+    expect(open?.overdue).toBe(false); // due in 2030
+  });
+
+  it("returns null when every fatura is settled", async () => {
+    const c = await coachClinic("open-inv-none@example.com", "Open Inv None");
+    const only = await billing.createInvoice(h, c.clinicId, invoiceInput(), c.userId);
+    await billing.markInvoicePaid(h, only!.id, {
+      paidAt: "2026-03-10",
+      paymentMethod: "pix",
+    });
+
+    const ctx: TenantContext = {
+      db: h,
+      clinicId: c.clinicId,
+      userId: c.userId,
+      role: "coach",
+    };
+    expect(await billing.findOpenInvoice(ctx)).toBeNull();
+  });
+});
+
 /**
  * Coach-initiated subscription ("Assinar", roadmap item 0 Phase 1). The safety
  * properties matter more than the happy path: a coach can trigger this, so the

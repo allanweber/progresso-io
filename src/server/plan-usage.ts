@@ -25,13 +25,13 @@ import type { TenantContext } from "@/server/tenant";
 export async function getPlanUsage(
   ctx: TenantContext,
 ): Promise<PlanUsageDto | null> {
-  const [clinic, limits, studentCount, coachCount, invoices, aiUsed] =
+  const [clinic, limits, studentCount, coachCount, openRow, aiUsed] =
     await Promise.all([
       clinics.getClinic(ctx),
       plans.getPlanLimits(ctx),
       students.countStudents(ctx),
       coaches.countActiveCoaches(ctx),
-      billing.listMyInvoices(ctx),
+      billing.findOpenInvoice(ctx),
       ai.countGenerationsThisMonth(ctx),
     ]);
   if (!clinic) return null;
@@ -50,18 +50,15 @@ export async function getPlanUsage(
       limits.trialEndsAt !== null && !limits.trialActive && limits.plan === "free",
   };
 
-  // Oldest unpaid first, so the banner nags about the longest-overdue invoice
-  // rather than whichever happens to sort first.
-  const unpaid = invoices
-    .filter((inv) => inv.status === "pending")
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  const openInvoice: OpenInvoiceDto | null = unpaid[0]
+  // The DAL already returns the oldest unpaid fatura (or null), so the banner
+  // nags about the longest-overdue one without this layer re-sorting anything.
+  const openInvoice: OpenInvoiceDto | null = openRow
     ? {
-        id: unpaid[0].id,
-        number: unpaid[0].number,
-        dueDate: unpaid[0].dueDate,
-        totalCents: unpaid[0].totalCents,
-        overdue: unpaid[0].overdue,
+        id: openRow.id,
+        number: openRow.number,
+        dueDate: openRow.dueDate,
+        totalCents: openRow.totalCents,
+        overdue: openRow.overdue,
       }
     : null;
 

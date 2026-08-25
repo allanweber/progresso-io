@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { type DB, schema } from "@/db";
 import type { Invoice, InvoiceLineItem, Plan } from "@/db/schema";
@@ -359,15 +359,51 @@ export async function listMyInvoices(ctx: TenantContext): Promise<InvoiceDto[]> 
  * The clinic's oldest still-unpaid invoice, or null. Drives the coach's billing
  * banner and the "Assinar" panel, which reuses an open fatura rather than
  * stacking a second one on top of it.
+ *
+ * Deliberately NOT `listMyInvoices(...).filter(...)`: this runs in
+ * `getPlanUsage`, which the coach layout awaits on every server render of every
+ * /coach page. Loading every invoice the clinic ever had — plus every line item
+ * of every one — to pick a single row put two unbounded queries on that hot
+ * path. `invoice_clinic_idx` serves the lookup; only the winner's line items are
+ * fetched.
  */
 export async function findOpenInvoice(
   ctx: TenantContext,
 ): Promise<InvoiceDto | null> {
-  const invoices = await listMyInvoices(ctx);
-  const pending = invoices
-    .filter((inv) => inv.status === "pending")
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  return pending[0] ?? null;
+  const [row] = await ctx.db
+    .select()
+    .from(schema.invoice)
+    .where(
+      and(
+        eq(schema.invoice.clinicId, ctx.clinicId),
+        eq(schema.invoice.status, "pending"),
+      ),
+    )
+    // Oldest due first, so the banner nags about the longest-overdue fatura.
+    // `number` breaks a same-day tie deterministically — the old JS sort left
+    // that to `Array.prototype.sort` over an unrelated ordering.
+    .orderBy(asc(schema.invoice.dueDate), asc(schema.invoice.number))
+    .limit(1);
+  if (!row) return null;
+
+  const items = await ctx.db
+    .select()
+    .from(schema.invoiceLineItem)
+    .where(eq(schema.invoiceLineItem.invoiceId, row.id))
+    .orderBy(
+      asc(schema.invoiceLineItem.position),
+      asc(schema.invoiceLineItem.id),
+    );
+
+  return toDto(
+    row,
+    (items as InvoiceLineItem[]).map((it) => ({
+      id: it.id,
+      description: it.description,
+      amountCents: it.amountCents,
+    })),
+    todayIso(),
+  );
 }
 
 /**
