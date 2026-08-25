@@ -155,7 +155,11 @@ try {
   run("node", ["scripts/migrate.mjs"], { env });
 
   console.info("→ Seeding a verified coach…");
-  run("pnpm", ["exec", "tsx", "src/db/seed.ts"], { env });
+  // Through the package script, not `tsx src/db/seed.ts` directly: the seed
+  // reaches `@/server/observability`, which imports `server-only`. That package
+  // throws unless the `react-server` export condition is set, so `db:seed`
+  // carries `--conditions=react-server` and this must not bypass it.
+  run("pnpm", ["run", "db:seed"], { env });
 
   // Playwright serves a PRODUCTION build, not `next dev` — a dev server
   // compiles each route on its first request, which cost the suite more wall
