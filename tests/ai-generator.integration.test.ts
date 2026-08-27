@@ -1190,18 +1190,18 @@ describe("generateWorkout end to end", () => {
 
   /** A chat completion carrying `plan` as its content, shaped like OpenRouter's. */
   function completion(plan: unknown) {
-    return {
-      ok: true,
-      json: async () => ({
-        id: "gen-test-1",
-        model: DEFAULT_AI_MODEL.replace(":floor", ""),
-        provider: "Alibaba",
-        choices: [
-          { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
-        ],
-        usage: { prompt_tokens: 1200, completion_tokens: 300, cost: 0.0004 },
-      }),
-    } as unknown as Response;
+    // A real Response, not a hand-rolled fake: the provider reads the body as
+    // text before parsing it (so the raw debug dump is the provider's own
+    // bytes), and a stub with only `json()` would pass a test the app fails.
+    return Response.json({
+      id: "gen-test-1",
+      model: DEFAULT_AI_MODEL.replace(":floor", ""),
+      provider: "Alibaba",
+      choices: [
+        { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
+      ],
+      usage: { prompt_tokens: 1200, completion_tokens: 300, cost: 0.0004 },
+    });
   }
 
   beforeAll(async () => {
@@ -1447,18 +1447,15 @@ describe("generateDiet — continuity with the current diet", () => {
   let lastUserPrompt: string;
 
   function dietCompletion(plan: unknown) {
-    return {
-      ok: true,
-      json: async () => ({
-        id: "gen-diet-1",
-        model: DEFAULT_AI_MODEL.replace(":floor", ""),
-        provider: "Alibaba",
-        choices: [
-          { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
-        ],
-        usage: { prompt_tokens: 1200, completion_tokens: 300, cost: 0.0004 },
-      }),
-    } as unknown as Response;
+    return Response.json({
+      id: "gen-diet-1",
+      model: DEFAULT_AI_MODEL.replace(":floor", ""),
+      provider: "Alibaba",
+      choices: [
+        { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
+      ],
+      usage: { prompt_tokens: 1200, completion_tokens: 300, cost: 0.0004 },
+    });
   }
 
   /** Stubs the provider and records the user message it was sent. */
@@ -1635,13 +1632,15 @@ describe("generateDiet — continuity with the current diet", () => {
 });
 
 /**
- * The checks the server runs on the model's answer, and the free repair turn
- * they feed.
+ * **One model call per generation, whatever the answer looks like.**
  *
- * Both rules come from a real generation that shipped wrong — a 2600 kcal
+ * Both rules here come from a real generation that shipped wrong — a 2600 kcal
  * request that came back at 2827, and a plan told to avoid feijão that served
- * feijão. The prompt already said both things, which is why the fix is
- * arithmetic the server does itself.
+ * feijão. The first fix was a second "repair" call restating the rule, and it
+ * was the wrong fix twice over: the arithmetic is something the server does for
+ * certain (`rebalance`), and the aversion is something it can forbid *before*
+ * asking (`forbiddenIndices`). So what these tests pin down is that the extra
+ * round-trip is gone and the requirements are met anyway.
  */
 describe("generateDiet — the server checks the answer", () => {
   let ctx: TenantContext;
@@ -1659,17 +1658,14 @@ describe("generateDiet — the server checks the answer", () => {
         prompts.push(body.messages.find((m) => m.role === "user")?.content ?? "");
         const plan = plans[Math.min(call, plans.length - 1)];
         call += 1;
-        return {
-          ok: true,
-          json: async () => ({
-            id: "gen-check",
-            model: DEFAULT_AI_MODEL.replace(":floor", ""),
-            choices: [
-              { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
-            ],
-            usage: { prompt_tokens: 900, completion_tokens: 200 },
-          }),
-        } as unknown as Response;
+        return Response.json({
+          id: "gen-check",
+          model: DEFAULT_AI_MODEL.replace(":floor", ""),
+          choices: [
+            { message: { content: JSON.stringify(plan) }, finish_reason: "stop" },
+          ],
+          usage: { prompt_tokens: 900, completion_tokens: 200 },
+        });
       },
     );
   }
@@ -1730,50 +1726,107 @@ describe("generateDiet — the server checks the answer", () => {
     if (result.ok) expect(result.repaired).toBe(false);
   });
 
-  it("sends the real total back when the day misses the target", async () => {
-    // The generation that prompted this: asked for one number, delivered
-    // another, and nothing in the system noticed.
-    stubSequence([rice(100), rice(1600)]);
+  it("closes the gap by arithmetic instead of asking again", async () => {
+    // 1000 g of rice is 1240 kcal against a 2000 kcal target — the miss that
+    // used to cost a second call. It now costs a multiplication.
+    stubSequence([rice(1000)]);
     const result = await generateDiet(ctx, studentId, {
       ...base,
       targetKcal: 2000,
     });
     expect(result.ok).toBe(true);
-    expect(prompts).toHaveLength(2);
-    // The repair names the figure the model actually produced, not "bata a
-    // meta" — which is what the first prompt already said.
-    expect(prompts[1]).toContain("conferida pelo sistema");
-    expect(prompts[1]).toContain("124");
-    expect(prompts[1]).toContain("2000");
-    // The repair is free: it is flagged, not charged.
-    if (result.ok) expect(result.repaired).toBe(true);
+    expect(prompts).toHaveLength(1);
+
+    const state = await studentDiets.getStudentDietState(ctx, studentId);
+    const grams = state?.draft?.tree.meals[0].items[0].grams ?? 0;
+    // 2000 kcal ÷ 1.24 kcal/g ≈ 1613 g. Inside the same ±5% the coach asked for.
+    expect((grams * 1.24) / 2000).toBeGreaterThan(0.95);
+    expect((grams * 1.24) / 2000).toBeLessThan(1.05);
   });
 
-  it("delivers the draft anyway when the second answer still misses", async () => {
-    // The credit is already spent. A plan 8% over is fixable in thirty seconds;
-    // handing back nothing is not.
+  it("still makes only one call when the miss is too big to fit", async () => {
+    // 100 g of rice against 2000 kcal cannot be reached inside the portion
+    // bounds — doubling it is still 248 kcal. The draft is delivered anyway
+    // (the credit is spent, and a coach fixes a draft in thirty seconds) and
+    // the model is NOT asked to try again.
     stubSequence([rice(100)]);
     const result = await generateDiet(ctx, studentId, {
       ...base,
       targetKcal: 2000,
     });
     expect(result.ok).toBe(true);
-    expect(prompts).toHaveLength(2);
+    expect(prompts).toHaveLength(1);
+    const state = await studentDiets.getStudentDietState(ctx, studentId);
+    expect(state?.draft?.tree.meals[0].items[0].grams).toBeGreaterThan(0);
   });
 
-  it("catches an avoided food and names it", async () => {
-    stubSequence([rice(200), rice(200)]);
+  it("forbids an avoided food up front, by catalog number", async () => {
+    stubSequence([rice(200)]);
     await generateDiet(ctx, studentId, { ...base, avoid: "arroz" });
-    expect(prompts).toHaveLength(2);
-    expect(prompts[1]).toContain("Arroz integral cozido");
-    expect(prompts[1]).toContain("não é negociável");
+    // One call, and the constraint is in it — not a complaint in a second one.
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("PROIBIDOS");
+    // Arroz integral cozido is index 1, so the list has to name it.
+    expect(prompts[0]).toMatch(/PROIBIDOS[\s\S]*\b1\b/);
   });
 
-  it("does not check what the coach did not ask for", async () => {
-    // No target and no aversion → nothing to prove wrong, one call.
+  it("drops an invented catalog number instead of asking again", async () => {
+    // A number that is not in the catalog is the one failure the prompt cannot
+    // fully prevent. It used to buy a second call; now it costs that item.
+    stubSequence([
+      {
+        name: "Dieta",
+        notes: null,
+        meals: [
+          {
+            name: "Café da manhã",
+            time: "07:00",
+            items: [
+              { food: 1, grams: 100 },
+              { food: 99999, grams: 50 },
+            ],
+          },
+          { name: "Almoço", time: "12:30", items: [{ food: 1, grams: 200 }] },
+        ],
+      },
+    ]);
+    const result = await generateDiet(ctx, studentId, { ...base });
+    expect(result.ok).toBe(true);
+    expect(prompts).toHaveLength(1);
+    // `repaired` now means the SERVER fixed the model's answer, never that a
+    // second call was made.
+    if (result.ok) expect(result.repaired).toBe(true);
+
+    const state = await studentDiets.getStudentDietState(ctx, studentId);
+    const items = state?.draft?.tree.meals.flatMap((m) => m.items) ?? [];
+    expect(items).toHaveLength(2);
+    expect(state?.draft?.tree.meals).toHaveLength(2);
+  });
+
+  it("fails honestly when the invented numbers leave no plan behind", async () => {
+    stubSequence([
+      {
+        name: "Dieta",
+        notes: null,
+        meals: [
+          { name: "Café da manhã", time: "07:00", items: [{ food: 99998, grams: 50 }] },
+          { name: "Almoço", time: "12:30", items: [{ food: 99999, grams: 50 }] },
+        ],
+      },
+    ]);
+    const result = await generateDiet(ctx, studentId, { ...base });
+    // One meal of nothing is not a draft worth handing over — and the credit
+    // goes back, which is the point of failing rather than delivering junk.
+    expect(result.ok).toBe(false);
+    expect(prompts).toHaveLength(1);
+  });
+
+  it("says nothing about forbidden foods when the coach named none", async () => {
     stubSequence([rice(100)]);
     await generateDiet(ctx, studentId, { ...base });
     expect(prompts).toHaveLength(1);
+    // An empty section is an invitation to invent one.
+    expect(prompts[0]).not.toContain("PROIBIDOS");
   });
 
   describe("medidas caseiras", () => {

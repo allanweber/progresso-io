@@ -14,8 +14,10 @@ live in `docs/ai-provider-costs.md`.
 | Provider port (OpenRouter) + dev impl | `src/lib/llm-provider.ts` |
 | Model settings: defaults, zod contract | `src/lib/ai-settings.ts`, `src/server/dal/ai-settings.ts`, `PUT /api/admin/ai/settings` |
 | Client-safe form contract + labels | `src/lib/ai-programs.ts` |
+| Remembered answers (per aluno, `localStorage`) | `src/lib/ai-generate-memory.ts` |
 | Catalog block (the cacheable prefix) | `src/server/ai/catalog.ts` |
-| PT-BR prompts + repair turn | `src/server/ai/prompts.ts` |
+| PT-BR prompts (incl. forbidden rows) | `src/server/ai/prompts.ts` |
+| Salvage: drop invented catalog rows | `src/server/ai/salvage.ts` |
 | JSON Schema + zod contracts | `src/server/ai/schemas.ts` |
 | Orchestration (quota → model → validate → draft) | `src/server/ai/generate.ts` |
 | Shared route body (gates, statuses, copy) | `src/server/ai/route-handler.ts` |
@@ -24,7 +26,7 @@ live in `docs/ai-provider-costs.md`.
 | UI | `src/components/ai/ai-generate-button.tsx` |
 | Admin overview (cross-tenant) | `ai.getAdminAiOverview`, `GET /api/admin/ai`, `src/app/admin/ai/page.tsx` |
 | LLM price list | `src/lib/provider-prices.ts`, `src/server/dal/provider-prices.ts`, `/api/admin/ai/prices` |
-| Tests | `tests/ai-generator{,.integration}.test.ts`, `tests/llm-provider.test.ts`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
+| Tests | `tests/ai-generator{,.integration}.test.ts`, `tests/llm-provider.test.ts`, `tests/ai-generate-memory.test.ts`, `tests/ai-generate-dialog.test.tsx`, `e2e/ai-generator.spec.ts`, `e2e/admin-ai.spec.ts` |
 
 Two traps worth knowing about, both found by tests during the build:
 
@@ -194,9 +196,9 @@ with 61% of the calories from carbohydrate. Restating the target moves the
 number without controlling it, because summing twenty foods and solving for
 portions is arithmetic.
 
-So `src/server/ai/rebalance.ts` does it. After the model has had its say —
-including its free repair turn — the server fits the **quantities** to the
-coach's numbers and stores the fitted plan. What the coach opens adds up.
+So `src/server/ai/rebalance.ts` does it. After the model has had its **one**
+say, the server fits the **quantities** to the coach's numbers and stores the
+fitted plan. What the coach opens adds up.
 
 - **Only quantities move.** Which foods, in which meal, in what order is the
   model's work and is left alone; composing a plan is the part it is good at.
@@ -223,17 +225,19 @@ coach's numbers and stores the fitted plan. What the coach opens adds up.
   numbers, so a coach comparing them to what the model wrote is not left
   guessing which is authoritative.
 
-Findings go back through the **repair turn that already exists** for
-hallucinated catalog indices: one extra round-trip, costing tokens and not a
-credit, naming the real figures ("a dieta soma 2827 kcal e a meta é 2600").
-That specificity is the point — "bata a meta" is what the first prompt already
-said.
+**Nothing here re-asks the model.** These findings used to be sent back as a
+repair turn, and that was the wrong instinct twice over: the targets are settled
+by the arithmetic above, and the aversions are settled *before* the call —
+`forbiddenIndices` runs the same word search over the catalog and hands the model
+the offending row numbers as a prohibition it can follow, instead of a complaint
+about an answer it has already given. Same predicate, one call earlier, so a plan
+that obeys cannot fail the audit afterwards.
 
-**The checks are soft.** Unlike an invalid catalog index, which cannot be
-persisted at all, a plan 8% over on calories is a real plan a coach fixes in
-thirty seconds. So a violation that survives the repair is **delivered as a
-draft anyway**: the credit is already spent, and handing back nothing is the
-worse of the two outcomes.
+So what the checks produce now is the **audit of the final plan**, in the log:
+proof of what the coach is being handed. A residue — two staples in one meal, a
+fit that could not close inside its portion bounds — is **delivered as a draft
+anyway**: the credit is already spent, a plan 8% over is one a coach fixes in
+thirty seconds, and handing back nothing is the worse of the two outcomes.
 
 - **One main carbohydrate per meal.** Pão com aveia, arroz com aveia, arroz com
   batata — a plate the macros will never reveal. The naive "two
@@ -316,6 +320,50 @@ would make the prefix differ per tenant and cost every clinic its cache hit.
      rather than a similar-looking food; a food no longer in the catalog is
      listed, marked, and declared unusable rather than dropped silently.
 
+### The dialog remembers, per aluno
+
+Every answer the coach gives is kept in `localStorage`, keyed by aluno **and**
+kind (`ai-generate:v1:{workout,diet}:<studentId>`, in
+`src/lib/ai-generate-memory.ts`). Opening the dialog restores the last set, and
+every edit is written back **as it is made**. So the second cycle is *adjust one
+thing and press Gerar*, not eleven questions answered identically to last month.
+
+**As edited, not on submit.** Saving only what was generated loses the more
+common interruption by far: the coach who ticks six restrictions, gets a call,
+and closes the dialog. Nothing was generated, so nothing would have been saved,
+and the next open is the blank form again — the exact complaint this feature
+exists to answer. The write is gated on the dialog being open, so the defaults
+the component mounts with can never overwrite a real saved record before anyone
+has opened anything.
+
+That matters more than it sounds. These answers barely change between
+generations — the restrictions, the six meals, "não come peixe" are facts about
+the aluno, not about this month — so a blank form was charging a minute of
+retyping per regeneration and, worse, quietly dropping whatever the coach forgot
+to re-tick. A forgotten restriction is not a blank field; it is a diet generated
+against it.
+
+Three decisions inside:
+
+- **`localStorage`, not a column.** These are the *inputs* to a generation; the
+  plan they produced is already in the database. Nothing here is authoritative
+  and none of it is trusted — the route revalidates the whole payload with zod
+  exactly as if it had been typed. A coach on a second machine gets today's blank
+  dialog rather than something broken.
+- **`fromScratch` is never remembered**, and is reset on every open. Every other
+  field describes the aluno; "Recomeçar do zero" is a one-time instruction to
+  throw away the diet they are actually following. Carried forward, one reset in
+  March silently resets every regeneration after it — precisely what that
+  checkbox's own warning copy exists to prevent.
+- **A stale record degrades field by field.** An option this build no longer
+  offers is dropped from its list and the other answers stand; a broken value
+  falls back to that field's default. Discarding the whole record over one
+  retired checkbox would reinstate the retyping this exists to end.
+
+Sign-out wipes it, for the same reason `queryClient.clear()` is called there:
+these records are keyed by aluno and hold their objective, food preferences and
+aversions, and none of that may survive into the next account to use the browser.
+
 ### Describing the day
 
 The meals are a **named list**, not a count — `MEAL_SLOT_VALUES` in
@@ -357,10 +405,15 @@ picking from real slots instead of inventing a split.
 6. **Call the model**, synchronously. The coach is watching a progress state.
    The audit row makes promotion to a polled job additive, not a rewrite, if a
    platform request timeout ever forces it.
-7. **Validate every returned index against the catalog.** On any invalid id:
-   **one repair retry, free** — the retry does not cost a second credit. Fuzzy
-   name-matching is not an option: "arroz integral cozido" vs "cru" differ by ~3×
-   in kcal, and a fuzzy match that picks wrong is worse than an error.
+7. **Validate every returned index against the catalog.** An index that is not
+   in it is **dropped, and the plan stands** (`src/server/ai/salvage.ts`) — for a
+   dieta the hole then closes by itself, since `rebalance` re-fits the remaining
+   portions to the targets. No second call: one invented line out of forty must
+   not cost every coach it happens to a doubled wait. Salvaged below a usable
+   plan (a dieta under two meals, a treino with no session left), it fails and
+   the credit goes back. Fuzzy name-matching is not an option either: "arroz
+   integral cozido" vs "cru" differ by ~3× in kcal, and a fuzzy match that picks
+   wrong is worse than an error.
 8. **`saveDraft`** through the existing `student-workouts` / `student-diets` DAL.
    Never `publishDraft` — nothing reaches the aluno unreviewed.
 9. **Settle the audit row** `succeeded` (or `failed`, releasing the credit).
@@ -416,6 +469,42 @@ WhatsApp).
 | --- | --- | --- |
 | `LLM_API_KEY` | — | Set it or the feature is off. The only switch. |
 | `LLM_BASE_URL` | `https://openrouter.ai/api/v1` | Optional. The endpoint, minus `/chat/completions`. |
+| `LLM_DEBUG_PROMPTS` | off | Optional, local only. Dumps the whole prompt to a file per call. |
+| `LLM_DEBUG_PROMPTS_DIR` | `.llm-debug/` | Optional. Where those dumps land. |
+
+`LLM_DEBUG_PROMPTS=1` writes the **raw wire bytes** of every call to
+`.llm-debug/` (gitignored) — two files per call:
+
+| File | Contents |
+| --- | --- |
+| `<stamp>-<seq>-<dieta\|treino>.request.json` | Exactly the body POSTed: model, fallbacks, `response_format`, and both messages. |
+| `<stamp>-<seq>-<dieta\|treino>.response.json` | Exactly the bytes the provider answered with — or its untruncated error body, or the abort reason. |
+
+Nothing is reformatted, annotated or re-serialized. The body is stringified once
+and that same string is both sent and written, so the file is the call: it
+replays with `curl -d @<file>`, and it cannot drift from what actually went out.
+Anything prettier would be a second rendering of the truth — close enough to
+trust and different enough to mislead about the one thing you opened it to check.
+Reading a prompt out of it is one command:
+
+```sh
+jq -r '.messages[0].content' .llm-debug/<stamp>-000-dieta.request.json   # system + catalog
+jq -r '.messages[1].content' .llm-debug/<stamp>-000-dieta.request.json   # anamnese + form
+jq -r '.choices[0].message.content' .llm-debug/<stamp>-000-dieta.response.json
+```
+
+**Files rather than the console, deliberately.** A generation's prompt runs to
+tens of thousands of characters; every terminal and dev-server log pane truncates
+somewhere, and what gets cut is the middle of the catalog — the part you opened
+it for. On disk it is greppable, diffable between two generations, and still
+there tomorrow. The console gets one line: the path.
+
+The audit row already records everything about a call except the bytes we sent,
+which is precisely what the interesting failures are about: a model ignoring the
+catalog, an answer truncated at `max_tokens`, a prompt that grew until the
+per-aluno part slid into the cacheable prefix. It is read per call, so it takes
+effect on the next generation without a restart. **Never enable it in
+production** — the prompt is the aluno's anamnese in full.
 
 **The model lives in `ai_settings`, edited at `/admin/ai → Modelos`** — a single
 row holding the primary slug and an ordered fallback list. That is the one
@@ -453,8 +542,9 @@ omission:
   strict `json_schema`. As of 2026-08 that excludes every cheap host and, for the
   default primary, leaves **no eligible host at all**. Without it, a host that
   can't do strict schemas falls back to its own JSON mode and the answer is
-  caught by zod plus the free repair retry: a slightly higher repair rate for
-  roughly 9× on price. See `docs/ai-provider-costs.md`.
+  caught by zod, and an invented catalog row is dropped rather than re-asked:
+  slightly more salvaging for roughly 9× on price. See
+  `docs/ai-provider-costs.md`.
 
 **Defaults: Qwen3.7 Flash, falling back to Llama 3.1 8B**, both floored. See
 `docs/ai-provider-costs.md` for the verified prices and the still-open LGPD
@@ -532,14 +622,14 @@ uncheckable. This screen is the read side.
 | **Taxa de cache** | The base-only catalog keeps the prompt prefix byte-identical, so it stays in the provider's cache. A ratio that sits low means the prefix is moving between calls — nothing else would say so. |
 | **Gerações vs. limite** (per clinic) | 1/10/25 is the right shape. Clinics pinned at the cap say it's stingy; a platform of 2-a-month coaches says it's generous. |
 | **Custo no mês** | `docs/monetization.md` §7's ~0.9%-of-revenue projection, built on unverified prices and a guessed token count. |
-| **Reparos / falhas** | The prompt still produces schema-valid JSON. A rising repair count is drift, and each repair is a second paid round-trip. |
+| **Corrigidas / falhas** | The prompt still produces schema-valid JSON naming real catalog rows. A rising count of corrected generations is drift — the model is inventing rows the server has to drop. |
 
 ### The **Modelos** tab
 
 Choosing a model is a form field now, so the question worth asking is no longer
 only "what did this clinic spend" but **"what does this model cost us, and how
-often does it need repairing"** — which spans tenants and so has no home on the
-per-clinic table.
+often does it invent catalog rows"** — which spans tenants and so has no home on
+the per-clinic table.
 
 Before swapping in a slug, check its `reasoning` block in OpenRouter's model
 list: a model with `mandatory: true` cannot be stopped from thinking, and
@@ -548,9 +638,10 @@ answer — see the hazards in `docs/ai-provider-costs.md`.
 
 - **Custo / geração is the column that compares two models.** A total says more
   about how much a model was used than about what it costs.
-- **Reparos as a share of successes is the quality signal that decides a swap.**
-  A repair is a second round-trip: a cheap model that needs repairing half the
-  time is not cheap.
+- **Corrigidas as a share of successes is the quality signal that decides a
+  swap.** Every one of them is a food or an exercise the coach asked for and did
+  not get, because the model named a row that does not exist and the server
+  dropped it. A model that does that half the time is not cheap.
 - **The host column is where a cost that moved shows up first.** One slug served
   by two hosts at two prices, chosen per call by `:floor`.
 - **The config card above it says what the server is currently asking for.**

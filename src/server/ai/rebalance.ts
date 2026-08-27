@@ -7,8 +7,8 @@ import type { DietPlan } from "./schemas";
  *
  * **Why this is deterministic.** Asking for 2600 kcal produced 2827, then 3214;
  * asking for 2500 low-carb produced 1832 with 61% of the calories from
- * carbohydrate. Restating the target more firmly and re-asking (the repair turn)
- * moved the number without controlling it, because summing twenty foods and
+ * carbohydrate. Restating the target more firmly and re-asking moved the number
+ * without controlling it, because summing twenty foods and
  * solving for portions is arithmetic, and arithmetic is not what a language
  * model is for. The server has every food's macros; it can simply do it.
  *
@@ -268,8 +268,8 @@ export type RebalanceResult = {
 /**
  * The plan with its portions fitted to the coach's numbers.
  *
- * Runs after the model has had its say — including its free repair turn — so
- * what it fits is the best answer the model produced, not the first one.
+ * Runs on the model's one and only answer — there is no second call to improve
+ * it, which is precisely why this has to be arithmetic and not a request.
  */
 export function rebalance(
   plan: DietPlan,

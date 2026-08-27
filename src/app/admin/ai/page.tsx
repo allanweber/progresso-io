@@ -71,7 +71,7 @@ import type { Plan } from "@/db/schema";
  *
  * **Modelos** is the read that model shopping needs. Choosing a model is a form
  * field now, so the question worth asking is no longer only "what did this clinic
- * spend" but "what does this model cost, and how often does it need repairing" —
+ * spend" but "what does this model cost, and how often does it invent rows" —
  * which spans tenants and so has no home on the per-clinic table. The config
  * card above it says what the server is currently asking for, because otherwise
  * a cost that moved and a config someone changed look identical here.
@@ -438,11 +438,12 @@ export default function AdminAiPage() {
               {r.failed > 0 && (
                 <span className="text-destructive"> / {r.failed}</span>
               )}
-              {/* Repairs are successes that cost a second round-trip — a rising
-                  count means the prompt is drifting out of spec. */}
+              {/* Successes the server had to correct — the model named a
+                  catalog row that does not exist. A rising count means the
+                  prompt is drifting out of spec. */}
               {r.repaired > 0 && (
                 <span className="ml-1.5 text-xs text-muted-foreground">
-                  ({r.repaired} reparo{r.repaired === 1 ? "" : "s"})
+                  ({r.repaired} corrigida{r.repaired === 1 ? "" : "s"})
                 </span>
               )}
             </span>
@@ -553,11 +554,11 @@ export default function AdminAiPage() {
       }),
       modelColumn.display({
         id: "repaired",
-        header: "Reparos",
+        header: "Corrigidas",
         cell: (ctx) => {
           const r = ctx.row.original;
-          // The quality signal that actually decides a model swap: a repair is
-          // a second round-trip, so a high rate is a cheap model billing twice.
+          // The quality signal that actually decides a model swap: this is how
+          // often the model invented a catalog row the server had to drop.
           const share = r.succeeded > 0 ? r.repaired / r.succeeded : null;
           return (
             <span className="tabular-nums">

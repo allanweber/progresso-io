@@ -2323,9 +2323,11 @@ export const aiGeneration = pgTable(
      */
     reportedCostMicroUsd: integer("reported_cost_micro_usd"),
     durationMs: integer("duration_ms"),
-    // Whether the model's first answer had to be repaired (hallucinated a
-    // catalog index). Free for the coach, but worth measuring: a model that
-    // needs repairing often costs twice the tokens for the same credit.
+    // Whether the SERVER had to correct the answer — today, that means the
+    // model referenced a catalog index that does not exist and the item was
+    // dropped (`src/server/ai/salvage.ts`). It never means a second model call:
+    // a generation is exactly one. Worth measuring anyway, because it is the
+    // clearest quality signal there is for choosing between cheap models.
     repaired: boolean("repaired").default(false).notNull(),
     /**
      * Hash of the rendered catalog block. The catalog is a global, cached

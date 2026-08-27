@@ -25,6 +25,7 @@ import {
 
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { clearAiMemory } from "@/lib/ai-generate-memory";
 import { apiFetch } from "@/lib/api-client";
 // Deliberately from @/lib/format, NOT @/lib/billing: this shell renders on every
 // coach + admin page, and billing pulls in zod, which would land in all of them.
@@ -242,6 +243,9 @@ export function DashboardShell({
     } finally {
       // Wipe every cached query so the next user never sees this tenant's data.
       queryClient.clear();
+      // Same rule, different store: the remembered "Gerar com IA" answers are
+      // keyed by aluno and hold their objective, preferences and aversions.
+      clearAiMemory();
       router.replace("/login");
       router.refresh();
     }

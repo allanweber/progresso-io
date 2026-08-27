@@ -310,7 +310,7 @@ export function dietSystemPrompt(catalog: CatalogBlock): string {
     "- Prefira quantidades em múltiplos práticos (ex. 100 g, 150 g), não valores exóticos.",
     "- Alimentos a evitar são proibição, não preferência: não aparecem em refeição nenhuma, em quantidade nenhuma.",
     "- Distribua a proteína ao longo do dia, não concentrada em uma refeição.",
-    "- Se houver metas de kcal ou macros, **some o dia inteiro e confira antes de responder**: kcal por 100 g × gramas ÷ 100, item por item. O total tem que cair dentro de ±5% da meta — o sistema refaz essa conta e devolve a dieta se não bater. Metas não informadas você calcula a partir da anamnese.",
+    "- Se houver metas de kcal ou macros, **some o dia inteiro e confira antes de responder**: kcal por 100 g × gramas ÷ 100, item por item. O total tem que cair dentro de ±5% da meta. Você tem UMA resposta — não haverá segunda chance de corrigir. Metas não informadas você calcula a partir da anamnese.",
     "- Se vier uma dieta atual, ela é o ponto de partida: mantenha alimentos, horários e a cara do plano, mudando só o necessário. Trocar tudo é o pior resultado possível — o aluno já segue aquilo.",
     "",
     schemaBlock(DIET_JSON_SCHEMA),
@@ -336,6 +336,12 @@ export function userPrompt(
         input: AiDietGenerateInput;
         /** The current diet as catalog indices, when one exists and is being kept. */
         baseline?: string | null;
+        /**
+         * Catalog rows the coach's "Evitar" text rules out, resolved to numbers
+         * by `forbiddenIndices`. Per-aluno, so it belongs here and never in the
+         * cacheable system block.
+         */
+        forbidden?: number[];
       }
   ),
 ): string {
@@ -361,52 +367,31 @@ export function userPrompt(
         ]
       : [];
 
+  // The aversion, as numbers rather than as prose. "Alimentos a evitar: não come
+  // peixe" asks the model to work out which of six hundred catalog lines are
+  // fish; this hands it the answer, and it is the same predicate the server
+  // audits with afterwards, so a plan that obeys cannot be flagged.
+  const forbidden =
+    args.kind === "diet" && args.forbidden && args.forbidden.length > 0
+      ? [
+          "",
+          `PROIBIDOS — estes ${args.forbidden.length} números do catálogo estão vetados`
+            + " para este aluno e não podem aparecer em refeição nenhuma, em"
+            + " quantidade nenhuma:",
+          args.forbidden.join(", "),
+        ]
+      : [];
+
   return [
     what,
     "",
     `Aluno: ${args.studentName}`,
     "",
     form,
+    ...forbidden,
     ...baseline,
     "",
     "Anamnese:",
     renderAnamnesis(args.sections, args.answers),
-  ].join("\n");
-}
-
-/**
- * The repair turn, sent once when the first answer referenced catalog numbers
- * that don't exist. Free to the coach — it costs tokens, not a credit.
- *
- * It restates the constraint and names the offending numbers rather than
- * re-sending the whole task, so the retry is cheap and the model's attention is
- * on the one thing it got wrong.
- */
-export function repairPrompt(
-  base: string,
-  invalid: number[],
-  problems: string[] = [],
-): string {
-  return [
-    base,
-    "",
-    ...(invalid.length > 0
-      ? [
-          `ATENÇÃO: na tentativa anterior você usou números que não existem no catálogo: ${invalid.join(", ")}.`,
-          "Refaça a resposta usando somente números presentes no catálogo.",
-        ]
-      : []),
-    // The server checked the previous answer and these are things it can prove
-    // wrong — arithmetic and a word search, not opinions. Stated as findings
-    // with the real figures, because "bata a meta" is what failed the first
-    // time; "você entregou 2827 e a meta era 2600" is actionable.
-    ...(problems.length > 0
-      ? [
-          "ATENÇÃO: a resposta anterior foi conferida pelo sistema e tem estes problemas:",
-          ...problems.map((p) => `- ${p}`),
-          "Refaça a dieta inteira corrigindo TODOS eles. Some você mesmo os macros de cada item"
-            + " (kcal por 100 g × gramas ÷ 100) e confira o total antes de responder.",
-        ]
-      : []),
   ].join("\n");
 }

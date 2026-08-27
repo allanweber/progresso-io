@@ -15,9 +15,10 @@ import { expect, test } from "@playwright/test";
  * The e2e environment has no LLM configured, so the "not configured" banner is
  * asserted too — an all-zero table would otherwise be ambiguous.
  *
- * The demo clinic's row is found by its "reparo" marker, **not** by name: the
+ * The demo clinic's row is found by its "corrigida" marker, **not** by name: the
  * `coach` project runs concurrently and `settings.spec.ts` renames that clinic
- * mid-run. It is the only clinic the seed gives a repaired generation to.
+ * mid-run. It is the only clinic the seed gives a server-corrected generation
+ * to.
  */
 test.describe("admin ai overview", () => {
   test("renders KPIs and per-tenant usage (desktop + mobile)", async ({
@@ -43,7 +44,7 @@ test.describe("admin ai overview", () => {
     await expect(page.getByText("No limite")).toBeVisible();
 
     await expect(page.getByText("Uso de IA por tenant")).toBeVisible();
-    const row = page.getByRole("row").filter({ hasText: "reparo" });
+    const row = page.getByRole("row").filter({ hasText: "corrigida" });
     await expect(row).toHaveCount(1);
 
     // 3 of the seed's 4 rows are billed — the failed one is free, which is the

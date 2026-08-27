@@ -65,3 +65,5 @@ next-env.d.ts
 plans/
 package-lock.json
 .impeccable/critique/
+# LLM_DEBUG_PROMPTS dumps (full prompts — never commit these)
+.llm-debug/

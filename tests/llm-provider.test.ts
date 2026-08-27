@@ -1,5 +1,9 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildRequestBody,
@@ -32,7 +36,12 @@ import { addUsage, zeroUsage } from "@/server/ai/generate";
  * which is the class of bug that needs a test rather than a review.
  */
 
-const LLM_KEYS = ["LLM_API_KEY", "LLM_BASE_URL"] as const;
+const LLM_KEYS = [
+  "LLM_API_KEY",
+  "LLM_BASE_URL",
+  "LLM_DEBUG_PROMPTS",
+  "LLM_DEBUG_PROMPTS_DIR",
+] as const;
 const saved: Record<string, string | undefined> = {};
 
 beforeEach(() => {
@@ -318,5 +327,85 @@ describe("costBasis", () => {
   it("has nothing to qualify when there is no cost at all", () => {
     expect(costBasis(null, null)).toBe("none");
     expect(formatCostBasis("none")).toBeNull();
+  });
+});
+
+describe("LLM_DEBUG_PROMPTS", () => {
+  const dir = path.join(tmpdir(), "llm-debug-test");
+
+  /** One call against a stubbed endpoint, with the dump switched on. */
+  async function callWith(respond: () => Response) {
+    rmSync(dir, { recursive: true, force: true });
+    process.env.LLM_API_KEY = "k";
+    process.env.LLM_DEBUG_PROMPTS = "1";
+    process.env.LLM_DEBUG_PROMPTS_DIR = dir;
+    const sent: RequestInit[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      sent.push(init);
+      return respond();
+    });
+    const provider = getLlmProvider(models);
+    const result = await provider.generateJson(request);
+    vi.unstubAllGlobals();
+    const files = readdirSync(dir).sort();
+    return { result, sent, files };
+  }
+
+  const ok = () =>
+    new Response(
+      JSON.stringify({
+        id: "gen-1",
+        model: "served/model",
+        choices: [{ message: { content: '{"ok":true}' }, finish_reason: "stop" }],
+      }),
+      { status: 200 },
+    );
+
+  it("writes the request byte-for-byte as it went on the wire", async () => {
+    const { sent, files } = await callWith(ok);
+    const written = readFileSync(path.join(dir, files[0]!), "utf8");
+    // Not "equivalent JSON" — identical. A dump that re-serializes is a second
+    // rendering of the truth, close enough to trust and different enough to
+    // mislead about the one thing you opened the file to check.
+    expect(written).toBe(sent[0]!.body);
+    expect(files[0]).toMatch(/\.request\.json$/);
+  });
+
+  it("keeps the prompts readable inside that body", async () => {
+    await callWith(ok);
+    const written = readdirSync(dir).find((f) => f.endsWith(".request.json"))!;
+    const body = JSON.parse(readFileSync(path.join(dir, written), "utf8"));
+    expect(body.messages[0].content).toBe(request.system);
+    expect(body.messages[1].content).toBe(request.user);
+  });
+
+  it("writes the provider's own answer bytes, unparsed", async () => {
+    const { files } = await callWith(ok);
+    const response = files.find((f) => f.endsWith(".response.json"))!;
+    expect(JSON.parse(readFileSync(path.join(dir, response), "utf8")).model).toBe(
+      "served/model",
+    );
+  });
+
+  it("records the untruncated error body when the provider rejects the call", async () => {
+    const long = "campo inválido: " + "x".repeat(2000);
+    const { result, files } = await callWith(
+      () => new Response(long, { status: 400 }),
+    );
+    expect(result.ok).toBe(false);
+    const response = files.find((f) => f.endsWith(".response.json"))!;
+    // The log line caps at 500 chars; the file must not, since the part that
+    // names the offending field is routinely past that.
+    expect(readFileSync(path.join(dir, response), "utf8")).toBe(long);
+  });
+
+  it("writes nothing at all when the flag is off", async () => {
+    rmSync(dir, { recursive: true, force: true });
+    process.env.LLM_API_KEY = "k";
+    process.env.LLM_DEBUG_PROMPTS_DIR = dir;
+    vi.stubGlobal("fetch", async () => ok());
+    await getLlmProvider(models).generateJson(request);
+    vi.unstubAllGlobals();
+    expect(existsSync(dir)).toBe(false);
   });
 });

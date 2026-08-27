@@ -5,22 +5,27 @@ import type { DietPlan } from "./schemas";
 /**
  * Server-side checks on a diet the model just wrote.
  *
- * **Why this exists.** The prompt already states the targets and the aversions,
- * and the model still misses them: a 2600 kcal request came back at 2827, and a
- * plan told to avoid feijão put feijão in the almoço. Both are things the server
- * can check exactly — it has every food's macros and the coach's own words — so
- * checking beats asking more firmly. The findings go back as the **repair turn**
- * that already exists for hallucinated catalog indices, which costs tokens and
- * not a credit.
+ * **Why this exists.** The prompt states the targets and the aversions and the
+ * model still misses them: a 2600 kcal request came back at 2827, and a plan
+ * told to avoid feijão put feijão in the almoço. Both are things the server can
+ * check exactly — it has every food's macros and the coach's own words.
  *
- * **These are soft.** Unlike an invalid index — which cannot be persisted at all
- * — a plan that is 8% over on calories is a real plan a coach can fix in thirty
- * seconds. So a surviving violation is delivered as a draft, not thrown away:
- * the credit was already spent, and handing back nothing would be the worse of
- * the two outcomes.
+ * **Nothing here asks the model again.** These findings used to be sent back as
+ * a repair turn; they are not any more, because re-asking was never how they got
+ * fixed. The targets are settled by arithmetic in `rebalance`, which runs before
+ * this and moves the portions until they close. Aversions are settled *before*
+ * the call instead — `forbiddenIndices` names the offending catalog rows by
+ * number in the prompt, which is a constraint the model can follow rather than a
+ * complaint about an answer it already gave.
+ *
+ * So what runs here is the **audit of the final plan**: proof, in the log, of
+ * what the coach is being handed. A residue — two staples in one meal, a fit
+ * that could not close inside its portion bounds — is delivered as a draft and
+ * recorded. It is a plate a coach fixes in thirty seconds; a second model call
+ * costs another few thousand tokens and only sometimes fixes it.
  */
 
-/** How far off a target may land before it is worth a repair turn. */
+/** How far off a target may land before the plan is worth flagging. */
 export const TARGET_TOLERANCE = 0.05;
 
 /** The day's totals, summed from the catalog rather than from the model. */
@@ -117,6 +122,35 @@ export function avoidViolations(
 }
 
 /**
+ * The catalog rows the coach's "Evitar" text rules out, by index.
+ *
+ * This is the aversion check run **forwards**. `avoidViolations` can only say
+ * that an answer broke the rule, which is a fact worth having and a terrible
+ * instruction — it arrives one whole call too late. The same word search over
+ * the catalog, done before the call, turns "não come peixe" into a list of
+ * numbers the model is told not to use. It is the identical predicate, so a plan
+ * that respects the list cannot fail the check afterwards.
+ *
+ * Empty when the coach wrote nothing, or when nothing in the catalog matches —
+ * in which case there is no line to add to the prompt and no tokens to spend.
+ */
+export function forbiddenIndices(
+  catalog: FoodCatalogBlock,
+  avoid: string | null,
+): number[] {
+  const terms = avoidTerms(avoid);
+  if (terms.length === 0) return [];
+  const hits: number[] = [];
+  for (const [index, facts] of catalog.foods) {
+    const description = fold(facts.description);
+    if (terms.some((t) => description.includes(t))) hits.push(index);
+  }
+  // Ascending, so the prompt line is stable between generations and reads like
+  // the catalog it points into.
+  return hits.sort((a, b) => a - b);
+}
+
+/**
  * Groups whose carbohydrate-dense rows are the meal's *staple* — the rice, the
  * bread, the potato — as opposed to a side or a fruit.
  *
@@ -177,8 +211,8 @@ function targetLine(
 }
 
 /**
- * Everything wrong with this plan that the server can prove, in PT-BR, ready to
- * paste into the repair turn. Empty means the plan passed.
+ * Everything wrong with the final plan that the server can prove, in PT-BR.
+ * Empty means it passed.
  *
  * The one-carb-per-meal rule IS checked here, which took a food taxonomy to do
  * safely: the naive "two carbohydrate-dense rows" test flags arroz com feijão,

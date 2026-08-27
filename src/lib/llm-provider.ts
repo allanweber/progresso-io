@@ -1,5 +1,8 @@
 import "server-only";
 
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
 import { logger } from "@/server/observability";
 
 /**
@@ -198,6 +201,106 @@ export function isLlmConfigured(): boolean {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Prompt debugging                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `LLM_DEBUG_PROMPTS=1` writes the **raw wire bytes** of every call to
+ * `.llm-debug/`: the exact JSON body posted to the provider, and the exact bytes
+ * it answered with. Two files per attempt, no headers, no wrapper, nothing
+ * reformatted.
+ *
+ * **Raw, and that is the point.** Anything this module pretty-printed would be a
+ * second rendering of the truth — close enough to trust and different enough to
+ * mislead about the one thing you opened the file to check. Verbatim, the
+ * request file is also replayable: feed it back with `curl -d @file` and you get
+ * the same call.
+ *
+ * **A file, not the console.** A generation's prompt runs to tens of thousands
+ * of characters; every terminal and dev-server log pane truncates somewhere, and
+ * what gets cut is the middle of the catalog. On disk it is greppable, diffable
+ * between two generations, and still there tomorrow. Reading a prompt out of the
+ * body is one command:
+ *
+ * ```sh
+ * jq -r '.messages[0].content' .llm-debug/<stamp>-000-dieta.request.json   # system
+ * jq -r '.messages[1].content' .llm-debug/<stamp>-000-dieta.request.json   # user
+ * jq -r '.choices[0].message.content' .llm-debug/<stamp>-000-dieta.response.json
+ * ```
+ *
+ * Off by default and read per call, so flipping it in `.env` takes effect on the
+ * next generation without a restart. It exists because the audit row records
+ * everything about a call *except* the bytes we sent, and the interesting
+ * failures here — a model ignoring the catalog, an answer truncated at
+ * `max_tokens`, a prompt that grew past the cacheable prefix — are all questions
+ * about those bytes.
+ *
+ * **Never turn it on in production.** The prompt contains the aluno's anamnese —
+ * name, weight, health history — and this writes it to disk in full.
+ */
+function promptDebugEnabled(): boolean {
+  const raw = (process.env.LLM_DEBUG_PROMPTS ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+/** Where the dumps land. Override with `LLM_DEBUG_PROMPTS_DIR`. */
+function promptDebugDir(): string {
+  const configured = (process.env.LLM_DEBUG_PROMPTS_DIR ?? "").trim();
+  return configured || path.join(process.cwd(), ".llm-debug");
+}
+
+/**
+ * Distinguishes two attempts of the same generation that start inside the same
+ * millisecond — the repair retry usually does not, but a filename collision
+ * would silently overwrite the first attempt, which is the one you wanted.
+ */
+let promptDebugSeq = 0;
+
+/**
+ * One call's two files. `null` when the flag is off, which is what the response
+ * side checks instead of re-reading the environment.
+ */
+type PromptDebugFiles = { request: string; response: string } | null;
+
+/** Writes one file, or gives up quietly — debugging must never fail a call. */
+function debugWrite(file: string | undefined, body: string): void {
+  if (file === undefined) return;
+  try {
+    writeFileSync(file, body);
+  } catch (error) {
+    logger.warn("llm.debug_write_failed", { err: error, path: file });
+  }
+}
+
+/**
+ * Writes the request exactly as it goes on the wire.
+ *
+ * Called **before** `fetch`, so a call that times out or 500s still leaves the
+ * body that caused it on disk. Takes the serialized string rather than the
+ * object, so what lands in the file is the same bytes `fetch` sends — not a
+ * second serialization that could differ.
+ */
+function debugRequest(serializedBody: string, schemaName: string): PromptDebugFiles {
+  if (!promptDebugEnabled()) return null;
+  const dir = promptDebugDir();
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const seq = String(promptDebugSeq++).padStart(3, "0");
+  const base = path.join(dir, `${stamp}-${seq}-${schemaName}`);
+  const files = { request: `${base}.request.json`, response: `${base}.response.json` };
+  try {
+    mkdirSync(dir, { recursive: true });
+  } catch (error) {
+    logger.warn("llm.debug_write_failed", { err: error, path: dir });
+    return null;
+  }
+  debugWrite(files.request, serializedBody);
+  // The one console line: short enough that nothing truncates it, and the whole
+  // reason the rest went to a file.
+  logger.info("llm.debug_prompt", { file: files.request });
+  return files;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Implementations                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -351,6 +454,10 @@ function buildHttpProvider(env: LlmEnv, models: LlmModels): LlmProvider {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       const startedAt = Date.now();
+      // Serialized once and reused, so the debug dump is literally the bytes
+      // that went out rather than a second, possibly divergent, rendering.
+      const body = JSON.stringify(buildRequestBody(models, request));
+      const debugFiles = debugRequest(body, request.schemaName);
       try {
         const response = await fetch(`${env.baseUrl}/chat/completions`, {
           method: "POST",
@@ -359,18 +466,21 @@ function buildHttpProvider(env: LlmEnv, models: LlmModels): LlmProvider {
             "content-type": "application/json",
             authorization: `Bearer ${env.apiKey}`,
           },
-          body: JSON.stringify(buildRequestBody(models, request)),
+          body,
         });
 
         if (!response.ok) {
           // The body can echo prompt content, so it is logged server-side for
           // debugging but never returned to the caller or persisted.
-          const body = await response.text().catch(() => "");
+          const errorBody = await response.text().catch(() => "");
           logger.error("llm.http_error", {
             status: response.status,
             model: models.model,
-            body: body.slice(0, 500),
+            body: errorBody.slice(0, 500),
           });
+          // Untruncated on disk: a provider's rejection often names the
+          // offending field, and 500 chars is where that gets cut off.
+          debugWrite(debugFiles?.response, errorBody);
           return {
             ok: false,
             reason: "http",
@@ -378,7 +488,12 @@ function buildHttpProvider(env: LlmEnv, models: LlmModels): LlmProvider {
           };
         }
 
-        const payload = (await response.json()) as ChatCompletionPayload;
+        // Read as text first so the dump is the provider's own bytes; parsing
+        // a string we already hold costs nothing and cannot diverge from what
+        // was written.
+        const answer = await response.text();
+        debugWrite(debugFiles?.response, answer);
+        const payload = JSON.parse(answer) as ChatCompletionPayload;
         const usage = readUsage(payload);
         const call: LlmCall = {
           // The model that answered, which is the one the row must be priced
@@ -467,6 +582,7 @@ function buildHttpProvider(env: LlmEnv, models: LlmModels): LlmProvider {
         }
       } catch (error) {
         const aborted = error instanceof Error && error.name === "AbortError";
+        debugWrite(debugFiles?.response, String(error));
         logger.error("llm.request_failed", {
           err: error,
           aborted,

@@ -33,7 +33,6 @@ import {
 import {
   dietSystemPrompt,
   renderDietBaseline,
-  repairPrompt,
   userPrompt,
   workoutSystemPrompt,
 } from "./prompts";
@@ -48,10 +47,11 @@ import {
   type WorkoutPlan,
 } from "./schemas";
 import { rebalance } from "./rebalance";
-import { dietProblems } from "./verify";
+import { dropUnknownExercises, dropUnknownFoods } from "./salvage";
+import { dietProblems, forbiddenIndices } from "./verify";
 
 /**
- * The generation service: quota → model → validate → repair → draft.
+ * The generation service: quota → model → salvage → fit → draft.
  *
  * Everything here is orchestration; the interesting invariants live in the
  * pieces it calls. Two are worth restating because they are easy to break:
@@ -60,8 +60,14 @@ import { dietProblems } from "./verify";
  *   two-phase shape is what makes a failure free while still stopping two
  *   concurrent requests from sharing one credit. Every exit path below must
  *   settle the row — an abandoned `pending` silently costs the coach a credit.
- * - **The repair retry is free.** A hallucinated catalog index costs tokens, not
- *   a credit; only the second failure ends the generation.
+ * - **Exactly one model call per generation.** Whatever comes back is what the
+ *   coach gets: what the server can prove, it fixes itself (`salvage` drops an
+ *   invented catalog row, `rebalance` fits the portions to the targets); what it
+ *   cannot fix, it logs and delivers as a draft. Re-asking is never the answer —
+ *   it doubles the latency and the tokens to redo work the server does for
+ *   certain. The requirements have to be met on the first call, which is why
+ *   the coach's aversions reach the prompt as forbidden catalog numbers rather
+ *   than as prose to interpret.
  */
 
 export type GenerateRefusal =
@@ -119,14 +125,27 @@ export function addUsage(total: LlmUsage, next: LlmUsage): LlmUsage {
 }
 
 /**
- * Asks the model for JSON, validates it, and retries **once** if it referenced
- * catalog numbers that don't exist.
+ * Asks the model for JSON, **once**, and validates the answer.
  *
- * Returns the parsed plan plus the accumulated usage across both attempts — the
- * coach isn't charged a second credit for a repair, but we did spend the tokens
- * and the cost ledger should say so.
+ * One call per generation is a hard rule, not a budget preference. The previous
+ * shape sent a second "repair" turn whenever the answer missed the coach's
+ * targets or referenced a catalog row that does not exist, and it was wrong on
+ * both counts:
+ *
+ * - **The targets were already being fixed by arithmetic anyway.** `rebalance`
+ *   runs after this and fits the portions to the kcal and macro targets exactly.
+ *   The repair turn spent an entire extra round-trip — and the coach's waiting —
+ *   asking a language model to do the sum that the very next function does for
+ *   certain.
+ * - **A bad catalog index does not need the model either.** The offending item
+ *   is dropped and the plan re-fitted; see `salvage.ts`.
+ *
+ * What is left over — a plate the server can object to but not fix, like two
+ * staples in one meal — is delivered as a draft and logged. A coach fixes that
+ * in thirty seconds; a second call fixes it in thirty seconds *and* another few
+ * thousand tokens, and only sometimes.
  */
-async function askWithRepair<T>(
+async function ask<T>(
   provider: LlmProvider,
   args: {
     system: string;
@@ -134,18 +153,9 @@ async function askWithRepair<T>(
     schemaName: string;
     schema: Record<string, unknown>;
     parse: (json: unknown) => { ok: true; plan: T } | { ok: false };
-    indicesOf: (plan: T) => number[];
-    catalog: CatalogBlock;
-    /**
-     * Soft checks the server can prove — targets missed, an avoided food used.
-     * Worth one free repair each; a plan that still fails is DELIVERED, because
-     * a draft 8% over on calories is fixable in thirty seconds and nothing at
-     * all is not.
-     */
-    verify?: (plan: T) => string[];
   },
 ): Promise<
-  | { ok: true; plan: T; usage: LlmUsage; call: LlmCall | null; repaired: boolean }
+  | { ok: true; plan: T; usage: LlmUsage; call: LlmCall | null }
   | {
       ok: false;
       errorCode: string;
@@ -154,95 +164,39 @@ async function askWithRepair<T>(
       call: LlmCall | null;
     }
 > {
-  let total = zeroUsage();
-  const add = (u: LlmUsage) => {
-    total = addUsage(total, u);
-  };
-
-  // Which model actually answered, from the **last** attempt: a repair can be
-  // served by a different model than the first try when a fallback fires, and
-  // the row should name the one whose answer we kept.
-  let call: LlmCall | null = null;
-
-  let user = args.user;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const result = await provider.generateJson({
-      system: args.system,
-      user,
-      schemaName: args.schemaName,
-      schema: args.schema,
-    });
-    if (!result.ok) {
-      // A refusal or a truncated answer still consumed tokens and still lands on
-      // the invoice, so it is accumulated rather than written off as free.
-      if (result.usage) add(result.usage);
-      if (result.call) call = result.call;
-      return {
-        ok: false,
-        errorCode: result.reason,
-        message: result.message,
-        usage: total,
-        call,
-      };
-    }
-    add(result.usage);
-    call = result.call;
-
-    const parsed = args.parse(result.json);
-    if (!parsed.ok) {
-      // Shape is wrong — the provider ignored the schema, or drifted. Worth one
-      // retry too: the repair prompt restates the contract.
-      if (attempt === 0) {
-        user = repairPrompt(args.user, []);
-        continue;
-      }
-      return {
-        ok: false,
-        errorCode: "invalid_shape",
-        message: "O modelo não seguiu o formato pedido.",
-        usage: total,
-        call,
-      };
-    }
-
-    const check = resolveIndices(args.catalog, args.indicesOf(parsed.plan));
-    if (check.ok) {
-      const problems = args.verify?.(parsed.plan) ?? [];
-      if (problems.length > 0 && attempt === 0) {
-        logger.warn("ai.plan_problems", { problems: problems.slice(0, 4) });
-        user = repairPrompt(args.user, [], problems);
-        continue;
-      }
-      return {
-        ok: true,
-        plan: parsed.plan,
-        usage: total,
-        call,
-        // A second attempt is a repair whichever check triggered it — the
-        // coach is not charged for it either way.
-        repaired: attempt > 0,
-      };
-    }
-    if (attempt === 0) {
-      logger.warn("ai.invalid_indices", { invalid: check.invalid.slice(0, 10) });
-      user = repairPrompt(args.user, check.invalid);
-      continue;
-    }
+  const result = await provider.generateJson({
+    system: args.system,
+    user: args.user,
+    schemaName: args.schemaName,
+    schema: args.schema,
+  });
+  if (!result.ok) {
+    // A refusal or a truncated answer still consumed tokens and still lands on
+    // the invoice, so it is recorded rather than written off as free.
     return {
       ok: false,
-      errorCode: "invalid_ids",
-      message: "O modelo insistiu em itens que não existem no catálogo.",
-      usage: total,
-      call,
+      errorCode: result.reason,
+      message: result.message,
+      usage: result.usage ?? zeroUsage(),
+      call: result.call ?? null,
     };
   }
-  // Unreachable — the loop returns on every path.
+
+  const parsed = args.parse(result.json);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      errorCode: "invalid_shape",
+      message: "O modelo não seguiu o formato pedido.",
+      usage: result.usage,
+      call: result.call,
+    };
+  }
   return {
-    ok: false,
-    errorCode: "invalid_ids",
-    message: "Não foi possível gerar um programa válido.",
-    usage: total,
-    call,
+    ok: true,
+    plan: parsed.plan,
+    usage: result.usage,
+    call: result.call,
   };
 }
 
@@ -412,7 +366,7 @@ export async function generateWorkout(
   row.id = generationId;
   row.startedAt = startedAt;
 
-  const asked = await askWithRepair<WorkoutPlan>(provider, {
+  const asked = await ask<WorkoutPlan>(provider, {
     system: workoutSystemPrompt(catalog),
     user: userPrompt({
       studentName,
@@ -427,8 +381,6 @@ export async function generateWorkout(
       const r = workoutPlanSchema.safeParse(json);
       return r.success ? { ok: true, plan: r.data } : { ok: false };
     },
-    indicesOf: workoutIndices,
-    catalog,
   });
 
   const durationMs = Date.now() - startedAt;
@@ -444,8 +396,28 @@ export async function generateWorkout(
     return { ok: false, failed: true, message: asked.message };
   }
 
-  const ids = resolveIndices(catalog, workoutIndices(asked.plan));
-  // Already validated inside askWithRepair; this narrows the type.
+  // A hallucinated index costs that exercise, not the generation and not a
+  // second call: it is dropped and the rest of the treino stands.
+  const salvaged = dropUnknownExercises(asked.plan, catalog);
+  if (!salvaged.ok) {
+    logger.warn("ai.unsalvageable", {
+      kind: "workout",
+      dropped: salvaged.dropped.slice(0, 10),
+    });
+    await ai.failGeneration(ctx, generationId, "invalid_ids", {
+      usage: asked.usage,
+      call: asked.call,
+      durationMs,
+    });
+    return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
+  }
+  if (salvaged.dropped.length > 0) {
+    logger.warn("ai.dropped_exercises", { dropped: salvaged.dropped.slice(0, 10) });
+  }
+  const plan = salvaged.plan;
+
+  const ids = resolveIndices(catalog, workoutIndices(plan));
+  // Every remaining index came out of the catalog map above; this narrows.
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
       usage: asked.usage,
@@ -456,9 +428,9 @@ export async function generateWorkout(
   }
 
   const write: WorkoutWriteInput = {
-    name: asked.plan.name,
-    notes: asked.plan.notes,
-    sessions: asked.plan.sessions.map((s) => ({
+    name: plan.name,
+    notes: plan.notes,
+    sessions: plan.sessions.map((s) => ({
       name: s.name,
       exercises: s.exercises.map((e) => ({
         exerciseId: ids.ids.get(e.exercise)!,
@@ -491,9 +463,16 @@ export async function generateWorkout(
     usage: asked.usage,
     call: asked.call,
     durationMs,
-    repaired: asked.repaired,
+    // `repaired` now means "the SERVER had to fix the answer" — here, an
+    // exercise the model invented. It never means a second call; see `ask`.
+    repaired: salvaged.dropped.length > 0,
   });
-  return { ok: true, used: used + 1, limit, repaired: asked.repaired };
+  return {
+    ok: true,
+    used: used + 1,
+    limit,
+    repaired: salvaged.dropped.length > 0,
+  };
   });
 }
 
@@ -538,7 +517,7 @@ export async function generateDiet(
   row.id = generationId;
   row.startedAt = startedAt;
 
-  const asked = await askWithRepair<DietPlan>(provider, {
+  const asked = await ask<DietPlan>(provider, {
     system: dietSystemPrompt(catalog),
     user: userPrompt({
       studentName,
@@ -547,6 +526,11 @@ export async function generateDiet(
       input,
       kind: "diet",
       baseline,
+      // The avoided foods, resolved to the exact catalog numbers they match.
+      // Naming the rows is what makes "não come peixe" enforceable on the
+      // FIRST call — the model no longer has to work out which of 600 lines
+      // count as fish.
+      forbidden: forbiddenIndices(catalog, input.avoid),
     }),
     schemaName: "dieta",
     schema: DIET_JSON_SCHEMA,
@@ -554,9 +538,6 @@ export async function generateDiet(
       const r = dietPlanSchema.safeParse(json);
       return r.success ? { ok: true, plan: r.data } : { ok: false };
     },
-    indicesOf: dietIndices,
-    catalog,
-    verify: (plan) => dietProblems(plan, catalog, input),
   });
 
   const durationMs = Date.now() - startedAt;
@@ -572,7 +553,27 @@ export async function generateDiet(
     return { ok: false, failed: true, message: asked.message };
   }
 
-  const ids = resolveIndices(catalog, dietIndices(asked.plan));
+  // Same as the treino: an invented food costs that item, not the generation
+  // and not a second call. The hole closes on its own — `rebalance` below
+  // re-fits the remaining portions to the coach's targets.
+  const salvaged = dropUnknownFoods(asked.plan, catalog);
+  if (!salvaged.ok) {
+    logger.warn("ai.unsalvageable", {
+      kind: "diet",
+      dropped: salvaged.dropped.slice(0, 10),
+    });
+    await ai.failGeneration(ctx, generationId, "invalid_ids", {
+      usage: asked.usage,
+      call: asked.call,
+      durationMs,
+    });
+    return { ok: false, failed: true, message: "Itens inválidos no catálogo." };
+  }
+  if (salvaged.dropped.length > 0) {
+    logger.warn("ai.dropped_foods", { dropped: salvaged.dropped.slice(0, 10) });
+  }
+
+  const ids = resolveIndices(catalog, dietIndices(salvaged.plan));
 
   if (!ids.ok) {
     await ai.failGeneration(ctx, generationId, "invalid_ids", {
@@ -589,7 +590,7 @@ export async function generateDiet(
   // back at 1832 with 61% of the calories from carbohydrate. Only quantities
   // move — the food selection and the meal order are the model's work.
   const fitted = rebalance(
-    asked.plan,
+    salvaged.plan,
     catalog.foods,
     input,
     // The anamnese is not only prose for the model to read: the aluno's weight
@@ -602,6 +603,16 @@ export async function generateDiet(
       afterKcal: Math.round(fitted.after.kcal),
       targetKcal: fitted.targets ? Math.round(fitted.targets.kcal) : null,
     });
+  }
+
+  // What the server can still prove wrong about the FINAL plan — after the
+  // portions were fitted, so the numbers here are the ones the coach will see.
+  // Logged, not re-asked: these are either already settled by the arithmetic
+  // above, or they are a plate a coach fixes in thirty seconds. A second model
+  // call to argue about them would cost more than it saves.
+  const problems = dietProblems(fitted.plan, catalog, input);
+  if (problems.length > 0) {
+    logger.warn("ai.diet_problems", { problems: problems.slice(0, 4) });
   }
 
   const write: DietWriteInput = {
@@ -640,13 +651,18 @@ export async function generateDiet(
     return { ok: false, failed: true, message: saved.message };
   }
 
+  // `repaired` counts what the MODEL got wrong, not what the pipeline routinely
+  // does: `rebalance` runs on every diet, so folding it in here would light the
+  // flag on every row and tell /admin/ai nothing. A dropped food is the real
+  // signal — the model referenced a catalog row that does not exist.
+  const repaired = salvaged.dropped.length > 0;
   await ai.finishGeneration(ctx, generationId, {
     usage: asked.usage,
     call: asked.call,
     durationMs,
-    repaired: asked.repaired,
+    repaired,
   });
-  return { ok: true, used: used + 1, limit, repaired: asked.repaired };
+  return { ok: true, used: used + 1, limit, repaired };
   });
 }
 

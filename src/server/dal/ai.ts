@@ -44,9 +44,9 @@ import type { TenantContext } from "@/server/tenant";
  * `saveDraft` — exactly what the lock exists to prevent. Expiring late only
  * makes a coach wait, so the margin is deliberately lopsided.
  *
- * Coupled to `TIMEOUT_MS` and to the repair attempt count. If either grows, or
- * the generator becomes a polled background job (see the docstring on
- * `generateWorkout`'s module), this has to clear the new ceiling.
+ * Coupled to `TIMEOUT_MS` — one call per generation, so that is the whole
+ * ceiling. If it grows, or the generator becomes a polled background job (see
+ * the docstring on `generateWorkout`'s module), this has to clear the new one.
  */
 const PENDING_TTL_MS = 10 * 60 * 1000;
 
@@ -392,7 +392,7 @@ export type AdminAiTenantRow = {
   used: number;
   succeeded: number;
   failed: number;
-  /** Successful generations that needed the repair retry. */
+  /** Successful generations the server had to correct (an invented catalog row). */
   repaired: number;
   inputTokens: number;
   cachedInputTokens: number;

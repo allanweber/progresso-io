@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -21,6 +21,11 @@ import {
   type AiMacroProfile,
   type AiRestriction,
 } from "@/lib/ai-programs";
+import {
+  readAiDietMemory,
+  readAiWorkoutMemory,
+  writeAiMemory,
+} from "@/lib/ai-generate-memory";
 import {
   DEFAULT_AI_MEALS,
   MEAL_SLOT_LABELS,
@@ -61,6 +66,13 @@ import { Input } from "@/components/ui/input";
  * dieta what they can't eat and how the day is split. Asking both sets on both
  * screens is what previously made a diet impossible to generate without ticking
  * gym equipment. They remain two separate generations, one credit each.
+ *
+ * **The answers are remembered per aluno** (`@/lib/ai-generate-memory`, in
+ * `localStorage`). Opening the dialog restores what was asked for last time so
+ * the coach adjusts rather than retypes, and every edit is written back as it
+ * is made — *not* only on submit, because the coach who fills the form and then
+ * gets interrupted is precisely the one who should not have to type it twice.
+ * `fromScratch` is the one field that never carries over — see that module.
  */
 
 type Props = {
@@ -184,6 +196,105 @@ export function AiGenerateButton({
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
   /**
+   * Brings back what this aluno's last generation asked for.
+   *
+   * Run when the dialog **opens**, not on mount: the coach may have generated
+   * from the other tab, or in another browser tab entirely, and the answers on
+   * screen should be the newest ones rather than whichever set existed when this
+   * page loaded.
+   *
+   * `fromScratch` is reset here unconditionally — it is a one-time instruction
+   * to discard the aluno's current dieta, and it must be re-ticked deliberately
+   * every single time, whether or not anything was remembered.
+   */
+  function restoreAnswers() {
+    setFromScratch(false);
+    if (kind === "workout") {
+      const saved = readAiWorkoutMemory(studentId);
+      if (!saved) return;
+      // A remembered blank objective still yields to the aluno's recorded goal:
+      // the prefill is the better answer, and an empty required field is not
+      // worth "restoring".
+      setObjective(saved.objective || defaultObjective?.trim() || "");
+      setEquipment(saved.equipment);
+      setDaysPerWeek(saved.daysPerWeek);
+      return;
+    }
+    const saved = readAiDietMemory(studentId);
+    if (!saved) return;
+    setObjective(saved.objective || defaultObjective?.trim() || "");
+    setRestrictions(saved.restrictions);
+    setMeals(saved.meals);
+    setMealsPerDayRaw(saved.mealsPerDayRaw);
+    setMacroProfiles(saved.macroProfiles);
+    setPreferences(saved.preferences);
+    setAvoid(saved.avoid);
+    setTargetKcal(saved.targetKcal);
+    setTargetProteinG(saved.targetProteinG);
+    setTargetCarbsG(saved.targetCarbsG);
+    setTargetFatG(saved.targetFatG);
+  }
+
+  /**
+   * Writes the answers back as they are edited, for as long as the dialog is
+   * open.
+   *
+   * **Not on submit.** Persisting only what was generated loses the more common
+   * interruption by far: the coach who ticks six restrictions, gets a call, and
+   * closes the dialog. Nothing was generated, so nothing would have been saved,
+   * and the next open is the blank form all over again.
+   *
+   * Gated on `open` so the initial mount never runs it — otherwise the defaults
+   * this component starts with would be written over a real saved record before
+   * anyone had opened anything. By the time it does run, `restoreAnswers` has
+   * already put the saved values into state, so the first write is the record
+   * restoring itself.
+   */
+  useEffect(() => {
+    if (!open) return;
+    if (kind === "workout") {
+      writeAiMemory("workout", studentId, {
+        objective: objective.trim(),
+        equipment,
+        daysPerWeek,
+      });
+      return;
+    }
+    writeAiMemory("diet", studentId, {
+      objective: objective.trim(),
+      restrictions,
+      meals,
+      // The raw box, as typed — remembering "" is what keeps an empty total
+      // empty instead of pinning it to a number the coach never chose.
+      mealsPerDayRaw,
+      macroProfiles,
+      preferences: preferences.trim(),
+      avoid: avoid.trim(),
+      targetKcal,
+      targetProteinG,
+      targetCarbsG,
+      targetFatG,
+    });
+  }, [
+    open,
+    kind,
+    studentId,
+    objective,
+    equipment,
+    daysPerWeek,
+    restrictions,
+    meals,
+    mealsPerDayRaw,
+    macroProfiles,
+    preferences,
+    avoid,
+    targetKcal,
+    targetProteinG,
+    targetCarbsG,
+    targetFatG,
+  ]);
+
+  /**
    * The dieta's meal answer, in any of its three shapes: ticked slots, a bare
    * total, or slots inside a larger total. The failure worth catching here is
    * the last one — a total below the slots already ticked describes a day that
@@ -222,6 +333,7 @@ export function AiGenerateButton({
           disabled={blocked !== null || anamnesis.isLoading}
           onClick={() => {
             setError(null);
+            restoreAnswers();
             setConfirmed(!hasDraft);
             setOpen(true);
           }}
@@ -550,6 +662,8 @@ export function AiGenerateButton({
                   disabled={!canSubmit}
                   onClick={() => {
                     setError(null);
+                    // The answers are already on disk — the effect above wrote
+                    // them as they were typed. This only has to send them.
                     generate.mutate(
                       kind === "workout"
                         ? {
@@ -563,14 +677,15 @@ export function AiGenerateButton({
                             meals,
                             mealsPerDay,
                             macroProfiles,
+                            // Never remembered — see `restoreAnswers`.
                             fromScratch,
                             targetKcal: numOrNull(targetKcal),
                             targetProteinG: numOrNull(targetProteinG),
                             targetCarbsG: numOrNull(targetCarbsG),
                             targetFatG: numOrNull(targetFatG),
                             // Blank is normalised to null by the schema so the
-                            // prompt skips the line rather than sending an
-                            // empty label.
+                            // prompt skips the line rather than sending an empty
+                            // label.
                             preferences: preferences.trim() || null,
                             avoid: avoid.trim() || null,
                           },

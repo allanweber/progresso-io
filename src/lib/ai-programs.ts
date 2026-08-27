@@ -305,7 +305,10 @@ export type AiGenerateResultDto = {
   /** Credits used / allowed this month, after this generation. */
   used: number;
   limit: number | null;
-  /** Whether the model's first answer had to be repaired (free to the coach). */
+  /**
+   * Whether the server had to correct the model's answer — an invented catalog
+   * item was dropped. Never a second model call: a generation is exactly one.
+   */
   repaired: boolean;
 };
 

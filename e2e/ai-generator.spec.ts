@@ -93,6 +93,64 @@ test.describe("ai program generator", () => {
     });
   });
 
+  test("brings back the answers the last generation asked for, per aluno", async ({
+    page,
+    request,
+  }) => {
+    const student = await anaId(request);
+    await page.goto(`/coach/students/${student}/workout`);
+
+    const trigger = page.getByRole("button", { name: "Gerar treino com IA" });
+    const replace = page.getByRole("button", { name: "Substituir rascunho" });
+    const submit = page.getByRole("button", { name: "Gerar", exact: true });
+
+    await trigger.click();
+    if (await replace.isVisible()) await replace.click();
+    await page.getByLabel("Objetivo").fill("força máxima no agachamento");
+    await page.getByText("Halteres").click();
+    await page.getByLabel("Dias por semana").fill("5");
+    // No provider in e2e, so this refuses — which is the harder case on purpose:
+    // the answers must survive a generation that did NOT succeed, or the retry
+    // starts from a blank form.
+    await submit.click();
+    await expect(
+      page.getByText("A geração por IA ainda não está configurada nesta instalação."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar" }).click();
+
+    await trigger.click();
+    if (await replace.isVisible()) await replace.click();
+    await expect(page.getByLabel("Objetivo")).toHaveValue(
+      "força máxima no agachamento",
+    );
+    await expect(page.getByLabel("Dias por semana")).toHaveValue("5");
+    await expect(page.getByRole("checkbox", { name: "Halteres" })).toBeChecked();
+    await expect(
+      page.getByRole("checkbox", { name: "Academia completa" }),
+    ).not.toBeChecked();
+
+    // A full page load, not just a reopen: the point is that it outlives the
+    // session, not that React kept the state around.
+    await page.reload();
+    await trigger.click();
+    if (await replace.isVisible()) await replace.click();
+    await expect(page.getByLabel("Dias por semana")).toHaveValue("5");
+
+    // The other aluno is untouched — these are answers about a person, and
+    // leaking them across alunos would be worse than not remembering at all.
+    const { students } = (await (
+      await request.get("/api/students")
+    ).json()) as StudentList;
+    const outro = students.find((s) => s.id !== student);
+    expect(outro, "a second seeded aluno").toBeTruthy();
+    await page.goto(`/coach/students/${outro!.id}/workout`);
+    if (await trigger.isEnabled()) {
+      await trigger.click();
+      if (await replace.isVisible()) await replace.click();
+      await expect(page.getByLabel("Dias por semana")).toHaveValue("3");
+    }
+  });
+
   test("a student with no anamnese gets the button disabled with the reason, never hidden", async ({
     page,
     request,
