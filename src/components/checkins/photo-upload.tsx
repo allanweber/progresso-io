@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Check, Loader2, X } from "lucide-react";
+import { Camera, Check, Loader2, Maximize2, X } from "lucide-react";
 
+import { PhotoLightbox } from "@/components/checkins/photo-lightbox";
 import { ApiError } from "@/lib/api-client";
 import { compressImage } from "@/lib/image-compression";
 import {
@@ -220,27 +221,50 @@ export function CheckinPhotoGrid({
   basePath: string;
   photos: CheckinPhotoDto[];
 }) {
+  // Which photo the lightbox is showing (null = closed). The tiles crop to
+  // `object-cover`, so enlarging is the only way to see the whole pose.
+  const [zoomed, setZoomed] = useState<number | null>(null);
+
   if (photos.length === 0) return null;
   return (
-    <div className="grid grid-cols-2 gap-2.5">
-      {photos.map((p) => (
-        <div
-          key={p.id}
-          className="relative aspect-[4/5] overflow-hidden rounded-xl bg-muted"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
-          <img
-            src={`${basePath}/${p.id}`}
-            alt={CHECKIN_POSE_LABELS[p.pose]}
-            className="h-full w-full object-cover"
-          />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
-            <span className="text-caption font-semibold text-white">
-              {CHECKIN_POSE_LABELS[p.pose]}
+    <>
+      <div className="grid grid-cols-2 gap-2.5">
+        {photos.map((p, i) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setZoomed(i)}
+            aria-label={`Ampliar ${CHECKIN_POSE_LABELS[p.pose]}`}
+            className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
+            <img
+              src={`${basePath}/${p.id}`}
+              alt={CHECKIN_POSE_LABELS[p.pose]}
+              className="h-full w-full object-cover"
+            />
+            {/* aria-hidden: keeps this out of the a11y tree so the four photos
+                stay the only images the specs count. */}
+            <span className="pointer-events-none absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-black/45 text-white opacity-80 transition-opacity group-hover:opacity-100">
+              <Maximize2 className="size-3.5" aria-hidden="true" />
             </span>
-          </div>
-        </div>
-      ))}
-    </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5 text-left">
+              <span className="text-caption font-semibold text-white">
+                {CHECKIN_POSE_LABELS[p.pose]}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <PhotoLightbox
+        photos={photos.map((p) => ({
+          src: `${basePath}/${p.id}`,
+          label: CHECKIN_POSE_LABELS[p.pose],
+        }))}
+        index={zoomed}
+        onIndexChange={setZoomed}
+      />
+    </>
   );
 }

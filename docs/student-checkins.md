@@ -106,7 +106,9 @@ propagates to every student with no code change.
   it.
 - **Histórico de check-ins** — the timeline (both authors). Each row is a button
   that opens a **detail modal** (`GET /api/student/checkin/<id>`) showing the
-  weight, note, and the four pose photos; a `coach` marker flags coach entries.
+  weight, note, and the four pose photos — each photo enlarges into a lightbox
+  (`PhotoLightbox`) with ←/→ between the poses; a `coach` marker flags coach
+  entries.
   A student entry is badged **respondido / aguardando resposta**, and once the
   coach responds the modal shows the **coach's feedback** and any **measures**
   they recorded. Submitting a check-in also raises a `checkin_submitted`

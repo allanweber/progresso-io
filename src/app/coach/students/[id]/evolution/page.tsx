@@ -4,9 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { Maximize2, TrendingDown, TrendingUp } from "lucide-react";
 
 import { StudentTabs } from "@/components/students/student-tabs";
+import {
+  PhotoLightbox,
+  type LightboxPhoto,
+} from "@/components/checkins/photo-lightbox";
 import { WeightChart } from "@/components/checkins/weight-chart";
 import {
   CIRCUMFERENCE_LABELS,
@@ -92,6 +96,7 @@ function posePhotoId(set: PhotoSetDto, pose: CheckinPose): string | null {
 export default function StudentEvolutionPage() {
   const { id } = useParams<{ id: string }>();
   const [pose, setPose] = useState<CheckinPose>("frente");
+  const [zoom, setZoom] = useState<number | null>(null);
 
   const student = useQuery({
     queryKey: ["student", id],
@@ -128,6 +133,34 @@ export default function StudentEvolutionPage() {
   const earliestPhotos = photoSets[0];
   const latestPhotos = photoSets[photoSets.length - 1];
   const hasComparablePhotos = photoSets.length > 0;
+
+  // The tiles crop to `object-cover`; the lightbox shows the whole pose. Its
+  // set is the before/after of the SELECTED pose, so the arrows walk antes ↔ depois.
+  const comparableSets =
+    photoSets.length > 1 ? [earliestPhotos, latestPhotos] : [earliestPhotos];
+  const zoomPhotos: LightboxPhoto[] = comparableSets.flatMap((set) => {
+    const photoId = set ? posePhotoId(set, pose) : null;
+    if (!set || !photoId) return [];
+    return [
+      {
+        src: `/api/students/${id}/checkin/${set.checkinId}/photo/${photoId}`,
+        label: CHECKIN_POSE_LABELS[pose],
+        caption:
+          set.weightKg !== null
+            ? `${formatCheckinDate(set.date)} · ${formatCheckinWeight(set.weightKg)} kg`
+            : formatCheckinDate(set.date),
+      },
+    ];
+  });
+
+  /** Where a tile's photo sits in {@link zoomPhotos} (null when it has none). */
+  function zoomIndexFor(set: PhotoSetDto | undefined): number | null {
+    const photoId = set ? posePhotoId(set, pose) : null;
+    if (!set || !photoId) return null;
+    const src = `/api/students/${id}/checkin/${set.checkinId}/photo/${photoId}`;
+    const found = zoomPhotos.findIndex((photo) => photo.src === src);
+    return found === -1 ? null : found;
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -224,15 +257,30 @@ export default function StudentEvolutionPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <ComparePhoto studentId={id} set={earliestPhotos} pose={pose} />
+                <ComparePhoto
+                  studentId={id}
+                  set={earliestPhotos}
+                  pose={pose}
+                  onOpen={() => setZoom(zoomIndexFor(earliestPhotos))}
+                />
                 {photoSets.length > 1 ? (
-                  <ComparePhoto studentId={id} set={latestPhotos} pose={pose} />
+                  <ComparePhoto
+                    studentId={id}
+                    set={latestPhotos}
+                    pose={pose}
+                    onOpen={() => setZoom(zoomIndexFor(latestPhotos))}
+                  />
                 ) : (
                   <div className="flex aspect-[3/4] items-center justify-center rounded-xl border border-dashed border-border text-center text-label text-muted-foreground">
                     Envie mais check-ins com fotos para comparar.
                   </div>
                 )}
               </div>
+              <PhotoLightbox
+                photos={zoomPhotos}
+                index={zoom}
+                onIndexChange={setZoom}
+              />
             </div>
           ) : null}
 
@@ -312,33 +360,49 @@ function ComparePhoto({
   studentId,
   set,
   pose,
+  onOpen,
 }: {
   studentId: string;
   set: PhotoSetDto | undefined;
   pose: CheckinPose;
+  /** Opens the lightbox on this tile. Absent tiles stay inert. */
+  onOpen?: () => void;
 }) {
   const photoId = set ? posePhotoId(set, pose) : null;
+  const caption = set ? (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-5 text-center text-caption font-semibold text-white">
+      {formatCheckinDate(set.date)}
+    </div>
+  ) : null;
   return (
     <div>
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
-        {set && photoId ? (
-          // eslint-disable-next-line @next/next/no-img-element -- private API stream
+      {set && photoId ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`Ampliar ${CHECKIN_POSE_LABELS[pose]} de ${formatCheckinDate(set.date)}`}
+          className="group relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
           <img
             src={`/api/students/${studentId}/checkin/${set.checkinId}/photo/${photoId}`}
             alt={CHECKIN_POSE_LABELS[pose]}
             className="h-full w-full object-cover"
           />
-        ) : (
+          {/* aria-hidden so the specs' image counts see only the photos. */}
+          <span className="pointer-events-none absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-black/45 text-white opacity-80 transition-opacity group-hover:opacity-100">
+            <Maximize2 className="size-3.5" aria-hidden="true" />
+          </span>
+          {caption}
+        </button>
+      ) : (
+        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
           <div className="flex h-full items-center justify-center text-label text-muted-foreground">
             Sem foto
           </div>
-        )}
-        {set ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-5 text-center text-caption font-semibold text-white">
-            {formatCheckinDate(set.date)}
-          </div>
-        ) : null}
-      </div>
+          {caption}
+        </div>
+      )}
       {set?.weightKg !== null && set?.weightKg !== undefined ? (
         <div className="mt-1 text-center text-caption text-muted-foreground">
           {formatCheckinWeight(set.weightKg)} kg

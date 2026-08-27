@@ -14,8 +14,8 @@ their clinic**, never another's.
    notification** fires for the clinic (every coach's bell; href → the student's
    Feedback tab).
 2. The check-in shows on the Feedback timeline as **pending** ("aguarda
-   resposta"). The coach opens it, sees the weight, note and **photos**, and
-   writes a **feedback** response — optionally capturing a body **assessment**
+   resposta"). The coach opens it, sees the weight, note and **photos** (each
+   tile enlarges into a lightbox — see below), and writes a **feedback** response — optionally capturing a body **assessment**
    (measures + skinfolds).
 3. Submitting the feedback stamps the check-in and clears the pending state; the
    response is **sent to the student's WhatsApp** (logged in dev) and shows in
@@ -90,6 +90,11 @@ To avoid duplicating the aluno pieces, the reusable bits live under
 - `photo-upload.tsx` — the pose upload slots, the `usePhotoSlots` hook, the
   XHR-progress uploader (`uploadCheckinForm`) and a read-only `CheckinPhotoGrid`.
   Shared by the aluno submit form and the coach manual check-in.
+- `photo-lightbox.tsx` — `PhotoLightbox`, the full-size viewer the grid and the
+  Evolução comparison open. The tiles crop to `object-cover`, so this is how the
+  whole pose gets seen. Controlled by an `index` (null = closed); it reuses the
+  thumbnail's stream URL (already cached), stacks over an open dialog at
+  `z-[60]`, and closes on Esc without closing the review dialog underneath.
 - `weight-chart.tsx` — the inline SVG weight chart (aluno + coach Evolução).
 - `assessment-fields.tsx` — the controlled measures form (coach review + manual).
 - `assessment-view.tsx` — the read-only measures display (coach + aluno modal).
@@ -98,7 +103,8 @@ To avoid duplicating the aluno pieces, the reusable bits live under
 
 - **Weight chart** — the same chart as the portal, over every check-in weight.
 - **Fotos comparáveis** — earliest vs latest check-in that carry photos, with a
-  pose selector.
+  pose selector. Either tile opens the **lightbox** on the selected pose, where
+  ←/→ walk antes ↔ depois and the caption carries the date + weight.
 - **Medidas** — a Δ table built from the assessments: first vs last value per
   measured site, colored by direction (down = green for a cutting phase).
 

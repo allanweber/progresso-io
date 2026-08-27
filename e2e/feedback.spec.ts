@@ -32,6 +32,72 @@ async function openAnaFeedback(page: import("@playwright/test").Page) {
 }
 
 test.describe("coach feedback", () => {
+  test("enlarges a check-in photo in a lightbox (desktop + mobile)", async ({
+    page,
+  }) => {
+    await openAnaFeedback(page);
+
+    // An ANSWERED entry on purpose: the suite runs fullyParallel, and the
+    // review test in this file consumes the single pending check-in — depending
+    // on it here would race across workers.
+    await page
+      .getByRole("button", { name: /respondido/ })
+      .first()
+      .click();
+    const review = page.getByRole("dialog");
+    await expect(review).toBeVisible();
+    await expect(review.getByRole("img").first()).toBeVisible();
+
+    // --- Open the lightbox (a second dialog, stacked over the review one) ---
+    await review.getByRole("button", { name: "Ampliar Pose de frente" }).click();
+    const lightbox = page.getByRole("dialog").last();
+    await expect(
+      lightbox.getByRole("heading", { name: "Pose de frente" }),
+    ).toBeVisible();
+
+    // The enlarged image is the same stream URL — assert it really decoded.
+    const enlarged = lightbox.getByRole("img", { name: "Pose de frente" });
+    await expect
+      .poll(
+        () =>
+          enlarged.evaluate(
+            (i) =>
+              (i as HTMLImageElement).complete &&
+              (i as HTMLImageElement).naturalWidth > 0,
+          ),
+        { timeout: 20000 },
+      )
+      .toBe(true);
+
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-lightbox-desktop.png",
+    });
+
+    // --- The arrows walk the four poses ---
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      lightbox.getByRole("heading", { name: "Pose de costas" }),
+    ).toBeVisible();
+
+    // --- Esc closes ONLY the lightbox; the review dialog stays open ---
+    await page.keyboard.press("Escape");
+    await expect(
+      lightbox.getByRole("heading", { name: "Pose de costas" }),
+    ).toBeHidden();
+    await expect(review.getByRole("img").first()).toBeVisible();
+
+    // --- Mobile ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await review.getByRole("button", { name: "Ampliar Pose de frente" }).click();
+    const mobileBox = page.getByRole("dialog").last();
+    await expect(
+      mobileBox.getByRole("heading", { name: "Pose de frente" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-lightbox-mobile.png",
+    });
+  });
+
   test("reviews a pending check-in and logs a manual one (desktop + mobile)", async ({
     page,
   }) => {
@@ -136,12 +202,37 @@ test.describe("coach feedback", () => {
       fullPage: true,
     });
 
+    // The comparable tiles enlarge too, captioned with the check-in's date.
+    await page
+      .getByRole("button", { name: /^Ampliar Pose de frente de / })
+      .first()
+      .click();
+    const lightbox = page.getByRole("dialog");
+    await expect(
+      lightbox.getByRole("heading", { name: "Pose de frente" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-evolution-lightbox-desktop.png",
+    });
+    await page.keyboard.press("Escape");
+    await expect(lightbox).toBeHidden();
+
     // --- Mobile ---
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByText("Peso ao longo do tempo")).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-evolution-mobile.png",
       fullPage: true,
+    });
+    await page
+      .getByRole("button", { name: /^Ampliar Pose de frente de / })
+      .first()
+      .click();
+    await expect(
+      lightbox.getByRole("heading", { name: "Pose de frente" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-evolution-lightbox-mobile.png",
     });
   });
 });
