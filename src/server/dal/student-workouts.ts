@@ -314,6 +314,7 @@ export async function getStudentWorkoutState(
       versionId: draftVersion.id,
       isNewWorkout: w.status === "draft",
       notes: draftVersion.notes,
+      cardio: draftVersion.cardio,
       sessions: hydrateWith(draftVersion.tree, catalog),
     };
   }
@@ -326,6 +327,7 @@ export async function getStudentWorkoutState(
       version: currentVersion.version!,
       publishedAt: currentVersion.publishedAt!.toISOString(),
       notes: currentVersion.notes,
+      cardio: currentVersion.cardio,
       sessions: hydrateWith(currentVersion.tree, catalog),
     };
   }
@@ -377,6 +379,7 @@ export async function getStudentWorkoutVersion(
     version: row.version.version!,
     publishedAt: row.version.publishedAt!.toISOString(),
     notes: row.version.notes,
+    cardio: row.version.cardio,
     sessions: await hydrateStructure(ctx, row.version.tree),
   };
 }
@@ -425,7 +428,7 @@ export async function createFromTemplate(
   if (!detail) return { ok: false, reason: "not_found" };
 
   const structure = toStructure(
-    detailToWriteInput(detail.name, detail.notes, detail.sessions),
+    detailToWriteInput(detail.name, detail.notes, detail.cardio, detail.sessions),
   );
   if (!(await allExercisesVisible(ctx, structure))) {
     return { ok: false, reason: "invalid_exercise" };
@@ -449,6 +452,7 @@ export async function createFromTemplate(
         status: "draft",
         tree: structure,
         notes: detail.notes,
+        cardio: detail.cardio,
       })
       .returning({ id: schema.studentWorkoutVersion.id });
     return { ok: true, workoutId: w.id, versionId: v.id };
@@ -500,12 +504,13 @@ export async function editActive(
       status: "draft",
       tree: latest?.tree ?? EMPTY_STRUCTURE,
       notes: latest?.notes ?? null,
+      cardio: latest?.cardio ?? null,
     })
     .returning({ id: schema.studentWorkoutVersion.id });
   return { ok: true, workoutId: active.id, versionId: v.id };
 }
 
-/** Saves the in-flight draft (name + structure + notes). Does not publish. */
+/** Saves the in-flight draft (name + structure + notes + cardio). Does not publish. */
 export async function saveDraft(
   ctx: TenantContext,
   studentId: string,
@@ -526,7 +531,12 @@ export async function saveDraft(
       .where(eq(schema.studentWorkout.id, draft.workout.id));
     await tx
       .update(schema.studentWorkoutVersion)
-      .set({ tree: structure, notes: input.notes, updatedAt: new Date() })
+      .set({
+        tree: structure,
+        notes: input.notes,
+        cardio: input.cardio ?? null,
+        updatedAt: new Date(),
+      })
       .where(eq(schema.studentWorkoutVersion.id, draft.version.id));
   });
   return { ok: true, workoutId: draft.workout.id, versionId: draft.version.id };
@@ -570,6 +580,7 @@ export async function publishDraft(
       .set({
         tree: structure,
         notes: input.notes,
+        cardio: input.cardio ?? null,
         status: "published",
         version: nextVersion,
         publishedAt: new Date(),
@@ -652,6 +663,7 @@ export async function saveAsTemplate(
         version: state.current.version,
         publishedAt: state.current.publishedAt,
         notes: state.current.notes,
+        cardio: state.current.cardio,
         sessions: state.current.sessions,
       };
     }
@@ -660,7 +672,12 @@ export async function saveAsTemplate(
 
   const res = await createWorkout(
     ctx,
-    detailToWriteInput(source.workoutName, source.notes, source.sessions),
+    detailToWriteInput(
+      source.workoutName,
+      source.notes,
+      source.cardio,
+      source.sessions,
+    ),
   );
   if (!res.ok) return { ok: false, reason: "invalid_exercise" };
   return { ok: true, id: res.id };

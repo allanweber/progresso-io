@@ -82,6 +82,8 @@ export type StudentWorkoutDraftDto = {
    */
   isNewWorkout: boolean;
   notes: string | null;
+  /** The program-level cardio prescription (free text), or null. */
+  cardio: string | null;
   sessions: WorkoutSessionDto[];
 };
 
@@ -93,6 +95,8 @@ export type StudentWorkoutPublishedDto = {
   /** ISO timestamp. */
   publishedAt: string;
   notes: string | null;
+  /** The program-level cardio prescription (free text), or null. */
+  cardio: string | null;
   sessions: WorkoutSessionDto[];
 };
 
@@ -131,6 +135,8 @@ export type StudentWorkoutVersionDto = {
   version: number;
   publishedAt: string;
   notes: string | null;
+  /** The program-level cardio prescription (free text), or null. */
+  cardio: string | null;
   sessions: WorkoutSessionDto[];
 };
 

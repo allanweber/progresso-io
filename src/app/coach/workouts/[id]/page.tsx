@@ -170,6 +170,7 @@ export default function WorkoutDetailPage() {
           <div className="mt-4">
             <WorkoutSessionsView
               sessions={data.sessions}
+              cardio={data.cardio}
               onExerciseClick={(exercise, group) => setDetail({ exercise, group })}
             />
           </div>

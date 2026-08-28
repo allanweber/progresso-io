@@ -106,9 +106,12 @@ function entryStyle(c: CheckinDto): EntryStyle {
         className: "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
       }
     : {
+        // Tag "coach", not "online": the title already says how it happened, and
+        // repeating it would read "Check-in online online" — and open exactly
+        // like an aluno's own card, which this is not.
         title: "Check-in online",
-        tag: "online",
-        className: "bg-primary-light text-primary",
+        tag: "coach",
+        className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40",
       };
 }
 

@@ -1417,6 +1417,7 @@ function WorkoutTab() {
 
           <WorkoutSessionsView
             sessions={current.sessions}
+            cardio={current.cardio}
             onExerciseClick={(exercise, group) => setDetail({ exercise, group })}
             posture="reading"
           />
@@ -1512,7 +1513,11 @@ function WorkoutHistoryDialog({
           </p>
         ) : version.data ? (
           <div className="flex flex-col gap-3.5">
-            <WorkoutSessionsView sessions={version.data.sessions} posture="reading" />
+            <WorkoutSessionsView
+              sessions={version.data.sessions}
+              cardio={version.data.cardio}
+              posture="reading"
+            />
             <p className="text-label text-muted-foreground">
               Versão arquivada · somente leitura.
             </p>

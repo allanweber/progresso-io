@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
-  ChevronLeft,
   ChevronRight,
   CornerDownRight,
-  Dumbbell,
+  HeartPulse,
   Repeat,
   TrendingUp,
 } from "lucide-react";
@@ -33,6 +32,7 @@ import {
   techniqueInfo,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
+import { ExerciseImages } from "@/components/workouts/exercise-images";
 import {
   TechniqueBadge,
   TechniqueIcon,
@@ -201,14 +201,18 @@ function ExerciseRow({
  * The read-only sessions (fichas) of a workout: each ficha is a card, each
  * exercise a row with its prescription (séries × reps, descanso, carga), the
  * advanced-technique badge, super-set/giant grouping rail, and its substitutes.
- * When `onExerciseClick` is set, rows open the exercise detail.
+ * When `onExerciseClick` is set, rows open the exercise detail. The program's
+ * `cardio` prescription (free text), when set, is shown above the fichas.
  */
 export function WorkoutSessionsView({
   sessions,
+  cardio,
   onExerciseClick,
   posture,
 }: {
   sessions: WorkoutSessionDto[];
+  /** The program-level cardio prescription (free text); hidden when empty. */
+  cardio?: string | null;
   onExerciseClick?: (exercise: WorkoutExerciseDto, group: GroupInfo | null) => void;
   /**
    * `"reading"` steps the reading rungs of the type ramp up one notch for the
@@ -217,18 +221,35 @@ export function WorkoutSessionsView({
    */
   posture?: "reading";
 }) {
+  const cardioCard = cardio ? (
+    <div className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary-light text-primary">
+        <HeartPulse className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <div className="font-heading text-subtitle font-semibold text-foreground">
+          Cardio
+        </div>
+        <p className="mt-0.5 whitespace-pre-line text-body text-muted-foreground">
+          {cardio}
+        </p>
+      </div>
+    </div>
+  ) : null;
+
   if (sessions.length === 0) {
     return (
-      <div className={cn(
-        "rounded-2xl border border-border bg-white p-8 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]",
-        posture === "reading" && "posture-reading",
-      )}>
-        Este treino ainda não tem fichas.
+      <div className={cn("space-y-4", posture === "reading" && "posture-reading")}>
+        {cardioCard}
+        <div className="rounded-2xl border border-border bg-white p-8 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          Este treino ainda não tem fichas.
+        </div>
       </div>
     );
   }
   return (
     <div className={cn("space-y-4", posture === "reading" && "posture-reading")}>
+      {cardioCard}
       {sessions.map((session) => {
         const groups = groupInfoFor(session.exercises);
         return (
@@ -270,106 +291,6 @@ export function WorkoutSessionsView({
           </div>
         );
       })}
-    </div>
-  );
-}
-
-/**
- * The exercise's image **carousel** — a swipeable, scroll-snapped track with
- * prev/next arrows and dot indicators. Free-exercise-db exercises usually ship a
- * start- and end-position image, so this lets the aluno flip between them. Images
- * that fail to load (e.g. the CDN / R2 isn't configured in a given environment)
- * are dropped; when none remain a dumbbell placeholder is shown. Keyed by
- * exercise id by the caller, so state resets when the exercise changes.
- */
-function ExerciseImages({ images }: { images: string[] }) {
-  const [broken, setBroken] = useState<Set<string>>(() => new Set());
-  const [index, setIndex] = useState(0);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const onErr = (src: string) => setBroken((prev) => new Set(prev).add(src));
-  const shown = images.filter((src) => !broken.has(src));
-
-  // Keep the active dot in sync as the user swipes/scrolls the track.
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      const i = Math.round(el.scrollLeft / el.clientWidth);
-      setIndex((prev) => (prev === i ? prev : i));
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [shown.length]);
-
-  if (shown.length === 0) {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-2xl bg-surface-light text-muted-foreground">
-        <Dumbbell className="size-10" />
-      </div>
-    );
-  }
-
-  const go = (i: number) => {
-    const el = trackRef.current;
-    const next = Math.max(0, Math.min(shown.length - 1, i));
-    if (el) el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
-    setIndex(next);
-  };
-
-  return (
-    <div className="relative">
-      <div
-        ref={trackRef}
-        className="flex snap-x snap-mandatory overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {shown.map((src) => (
-          <div key={src} className="w-full shrink-0 snap-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt=""
-              onError={() => onErr(src)}
-              className="aspect-video w-full bg-slate-900 object-cover"
-            />
-          </div>
-        ))}
-      </div>
-
-      {shown.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={() => go(index - 1)}
-            disabled={index === 0}
-            aria-label="Imagem anterior"
-            className="absolute left-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => go(index + 1)}
-            disabled={index === shown.length - 1}
-            aria-label="Próxima imagem"
-            className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
-          >
-            <ChevronRight className="size-5" />
-          </button>
-          <div className="pointer-events-none absolute inset-x-0 bottom-2.5 flex justify-center gap-1.5">
-            {shown.map((src, i) => (
-              <button
-                key={src}
-                type="button"
-                onClick={() => go(i)}
-                aria-label={`Ir para a imagem ${i + 1}`}
-                className={`pointer-events-auto h-1.5 rounded-full transition-all ${
-                  i === index ? "w-5 bg-white" : "w-1.5 bg-white/60"
-                }`}
-              />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }
@@ -422,7 +343,11 @@ export function WorkoutExerciseDetail({
 
             <div className="space-y-5 pt-1">
               {/* Media — the exercise's images (main + thumbnails) */}
-              <ExerciseImages key={exercise.id} images={images} />
+              <ExerciseImages
+                key={exercise.id}
+                images={images}
+                name={exercise.name}
+              />
 
               {/* Prescription stat cards */}
               <div className="grid grid-cols-4 gap-2.5">
@@ -640,7 +565,11 @@ function SubstituteDetail({
             </DialogHeader>
 
             <div className="space-y-5 pt-1">
-              <ExerciseImages key={sub.exerciseId} images={images} />
+              <ExerciseImages
+                key={sub.exerciseId}
+                images={images}
+                name={sub.name}
+              />
 
               {sub.note && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">

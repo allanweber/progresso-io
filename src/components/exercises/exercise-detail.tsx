@@ -8,6 +8,7 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  Expand,
   Pencil,
   Plus,
   Search,
@@ -27,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ExerciseImageLightbox } from "@/components/workouts/exercise-images";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
   CATEGORY_LABELS,
@@ -78,6 +80,8 @@ export function ExerciseDetail({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [archiveOpen, setArchiveOpen] = useState(false);
+  /** Index into the resolved gallery images; null = the viewer is closed. */
+  const [zoomed, setZoomed] = useState<number | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [apiBase, id],
@@ -118,6 +122,12 @@ export function ExerciseDetail({
     (manage === "clinic" ? data.origin === "clinic" : manage === "base");
   // The admin may also restore any archived exercise.
   const canUnarchive = !!data && data.archived && manage === "base";
+
+  // The gallery's images resolved to URLs, dropping any that don't resolve.
+  // The viewer walks this same array, so a tile's position IS its index there.
+  const gallery = (data?.images ?? [])
+    .map((key) => exerciseImageUrl(key))
+    .filter((url): url is string => Boolean(url));
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -261,16 +271,18 @@ export function ExerciseDetail({
             </p>
           )}
 
-          {/* Image gallery */}
-          {data.images.length > 0 && (
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {data.images.map((key) => {
-                const src = exerciseImageUrl(key);
-                if (!src) return null;
-                return (
-                  <div
-                    key={key}
-                    className="aspect-[4/3] overflow-hidden rounded-2xl border border-border bg-surface-light"
+          {/* Image gallery — a tile opens the full-size viewer at its position */}
+          {gallery.length > 0 && (
+            <>
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {gallery.map((src, i) => (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setZoomed(i)}
+                    aria-label={`Ampliar imagem ${i + 1} de ${data.name}`}
+                    title="Ampliar"
+                    className="group relative aspect-[4/3] cursor-zoom-in overflow-hidden rounded-2xl border border-border bg-surface-light"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -279,10 +291,19 @@ export function ExerciseDetail({
                       loading="lazy"
                       className="size-full object-cover"
                     />
-                  </div>
-                );
-              })}
-            </div>
+                    <span className="absolute inset-0 hidden items-center justify-center bg-black/45 text-white group-hover:flex group-focus-visible:flex">
+                      <Expand className="size-5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <ExerciseImageLightbox
+                images={gallery}
+                name={data.name}
+                index={zoomed}
+                onIndexChange={setZoomed}
+              />
+            </>
           )}
 
           {/* Muscles */}

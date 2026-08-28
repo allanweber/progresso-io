@@ -66,6 +66,7 @@ export type WorkoutDetail = {
   id: string;
   name: string;
   notes: string | null;
+  cardio: string | null;
   origin: WorkoutOrigin;
   archived: boolean;
   createdAt: Date;
@@ -102,6 +103,11 @@ export type WorkoutSessionInput = {
 export type WorkoutWriteInput = {
   name: string;
   notes: string | null;
+  /**
+   * The program-level cardio prescription (free text). Optional so the seeds,
+   * starter templates and AI generator can omit it; stored as NULL when absent.
+   */
+  cardio?: string | null;
   sessions: WorkoutSessionInput[];
 };
 
@@ -317,6 +323,7 @@ export async function getWorkout(
     id: row.id,
     name: row.name,
     notes: row.notes,
+    cardio: row.cardio,
     origin: row.clinicId === null ? "base" : "clinic",
     archived: row.archived,
     createdAt: row.createdAt,
@@ -393,6 +400,7 @@ export async function createWorkout(
         coachId: ctx.userId,
         name: input.name,
         notes: input.notes,
+        cardio: input.cardio ?? null,
       })
       .returning({ id: schema.workout.id });
     await insertTree(tx, row.id, input.sessions);
@@ -419,11 +427,13 @@ function copyName(name: string): string {
 export function detailToWriteInput(
   name: string,
   notes: string | null,
+  cardio: string | null,
   sessions: WorkoutSessionDto[],
 ): WorkoutWriteInput {
   return {
     name,
     notes,
+    cardio,
     sessions: sessions.map((s) => ({
       name: s.name,
       exercises: s.exercises.map((x) => ({
@@ -459,7 +469,12 @@ export async function copyWorkout(
   if (!source) return { ok: false, reason: "not_found" };
   return createWorkout(
     ctx,
-    detailToWriteInput(copyName(source.name), source.notes, source.sessions),
+    detailToWriteInput(
+      copyName(source.name),
+      source.notes,
+      source.cardio,
+      source.sessions,
+    ),
   );
 }
 
@@ -480,7 +495,12 @@ export async function updateWorkout(
   const ok = await ctx.db.transaction(async (tx) => {
     const [row] = await tx
       .update(schema.workout)
-      .set({ name: input.name, notes: input.notes, updatedAt: new Date() })
+      .set({
+        name: input.name,
+        notes: input.notes,
+        cardio: input.cardio ?? null,
+        updatedAt: new Date(),
+      })
       .where(
         and(eq(schema.workout.id, id), eq(schema.workout.clinicId, ctx.clinicId)),
       )

@@ -213,6 +213,8 @@ export type WorkoutDetailDto = {
   id: string;
   name: string;
   notes: string | null;
+  /** The cardio prescription for the whole program (free text), or null. */
+  cardio: string | null;
   origin: WorkoutOrigin;
   archived: boolean;
   createdAt: string;
@@ -343,6 +345,12 @@ export const workoutFormSchema = z.object({
     .string()
     .trim()
     .max(2000, "Observações muito longas.")
+    .nullish()
+    .transform((v) => (v ? v : null)),
+  cardio: z
+    .string()
+    .trim()
+    .max(2000, "Cardio muito longo.")
     .nullish()
     .transform((v) => (v ? v : null)),
   sessions: z.array(sessionSchema).max(30).default([]),
