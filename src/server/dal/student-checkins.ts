@@ -7,6 +7,7 @@ import type {
   CheckinDetailDto,
   CheckinDto,
   CheckinListDto,
+  CheckinPlanRefDto,
   WeightPointDto,
 } from "@/lib/student-checkins";
 import type { TenantContext } from "@/server/tenant";
@@ -150,6 +151,155 @@ export function mapCheckinRows(
   }));
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Plan snapshot (which diet/treino was in force on the check-in's date)      */
+/* -------------------------------------------------------------------------- */
+
+/** The snapshot columns written onto a `student_checkin` row. */
+export type PlanSnapshot = {
+  dietVersionId: string | null;
+  dietName: string | null;
+  dietVersion: number | null;
+  workoutVersionId: string | null;
+  workoutName: string | null;
+  workoutVersion: number | null;
+};
+
+/**
+ * The diet + workout that were the plan of record ON `date`, resolved once at
+ * write time and frozen onto the check-in.
+ *
+ * Rules, in order of why they matter:
+ * - **By date, not by "now".** A check-in imported from March must carry March's
+ *   plan; stamping today's would be a fabricated record.
+ * - **Across every plan the student has had**, archived ones included — the
+ *   version live last February usually belongs to a diet that has since been
+ *   replaced and archived.
+ * - **Same day counts** (`published_at::date <= date`): a plan published the
+ *   morning of the check-in is plainly the plan for that day, and a backdated
+ *   import has no time-of-day to compare against anyway.
+ * - **Nothing published by then → nulls.** A check-in from before the student
+ *   had any plan honestly carries none.
+ *
+ * The published version row is immutable, so the id alone is the snapshot; the
+ * name/number ride along so the label survives that plan being deleted.
+ */
+export async function resolvePlanSnapshot(
+  ctx: TenantContext,
+  studentId: string,
+  date: string,
+): Promise<PlanSnapshot> {
+  const [diet] = await ctx.db
+    .select({
+      versionId: schema.studentDietVersion.id,
+      name: schema.studentDiet.name,
+      version: schema.studentDietVersion.version,
+    })
+    .from(schema.studentDietVersion)
+    .innerJoin(
+      schema.studentDiet,
+      eq(schema.studentDietVersion.studentDietId, schema.studentDiet.id),
+    )
+    .where(
+      and(
+        eq(schema.studentDiet.clinicId, ctx.clinicId),
+        eq(schema.studentDiet.studentId, studentId),
+        eq(schema.studentDietVersion.status, "published"),
+        sql`${schema.studentDietVersion.publishedAt}::date <= ${date}::date`,
+      ),
+    )
+    .orderBy(
+      desc(schema.studentDietVersion.publishedAt),
+      desc(schema.studentDietVersion.version),
+    )
+    .limit(1);
+
+  const [workout] = await ctx.db
+    .select({
+      versionId: schema.studentWorkoutVersion.id,
+      name: schema.studentWorkout.name,
+      version: schema.studentWorkoutVersion.version,
+    })
+    .from(schema.studentWorkoutVersion)
+    .innerJoin(
+      schema.studentWorkout,
+      eq(
+        schema.studentWorkoutVersion.studentWorkoutId,
+        schema.studentWorkout.id,
+      ),
+    )
+    .where(
+      and(
+        eq(schema.studentWorkout.clinicId, ctx.clinicId),
+        eq(schema.studentWorkout.studentId, studentId),
+        eq(schema.studentWorkoutVersion.status, "published"),
+        sql`${schema.studentWorkoutVersion.publishedAt}::date <= ${date}::date`,
+      ),
+    )
+    .orderBy(
+      desc(schema.studentWorkoutVersion.publishedAt),
+      desc(schema.studentWorkoutVersion.version),
+    )
+    .limit(1);
+
+  return {
+    dietVersionId: diet?.versionId ?? null,
+    dietName: diet?.name ?? null,
+    dietVersion: diet?.version ?? null,
+    workoutVersionId: workout?.versionId ?? null,
+    workoutName: workout?.name ?? null,
+    workoutVersion: workout?.version ?? null,
+  };
+}
+
+/** The snapshot columns, for spreading into a `student_checkin` select. */
+export const planSnapshotColumns = {
+  dietVersionId: schema.studentCheckin.dietVersionId,
+  dietName: schema.studentCheckin.dietName,
+  dietVersion: schema.studentCheckin.dietVersion,
+  workoutVersionId: schema.studentCheckin.workoutVersionId,
+  workoutName: schema.studentCheckin.workoutName,
+  workoutVersion: schema.studentCheckin.workoutVersion,
+} as const;
+
+/** The snapshot columns of a check-in row, as the detail DTO reads them. */
+export type PlanSnapshotRow = {
+  dietVersionId: string | null;
+  dietName: string | null;
+  dietVersion: number | null;
+  workoutVersionId: string | null;
+  workoutName: string | null;
+  workoutVersion: number | null;
+};
+
+/**
+ * The two plan refs of a check-in row. A name without an id means that plan was
+ * deleted after the fact — the label still reads, it just no longer opens.
+ */
+export function toPlanRefs(row: PlanSnapshotRow): {
+  diet: CheckinPlanRefDto | null;
+  workout: CheckinPlanRefDto | null;
+} {
+  return {
+    diet:
+      row.dietName !== null && row.dietVersion !== null
+        ? {
+            versionId: row.dietVersionId,
+            name: row.dietName,
+            version: row.dietVersion,
+          }
+        : null,
+    workout:
+      row.workoutName !== null && row.workoutVersion !== null
+        ? {
+            versionId: row.workoutVersionId,
+            name: row.workoutName,
+            version: row.workoutVersion,
+          }
+        : null,
+  };
+}
+
 export type CheckinPhotoInput = { pose: CheckinPose; r2Key: string };
 
 export type CreateCheckinInput = {
@@ -172,6 +322,9 @@ export async function createStudentCheckin(
   if (!student) return null;
 
   const date = todayIsoDate();
+  // Freeze the plan the student was following today, so the check-in still says
+  // what they were doing after the diet/treino moves on.
+  const snapshot = await resolvePlanSnapshot(ctx, student.id, date);
 
   const dto = await ctx.db.transaction(async (tx) => {
     const [checkin] = await tx
@@ -184,6 +337,7 @@ export async function createStudentCheckin(
         authorUserId: ctx.userId,
         weightKg: input.weightKg,
         note: input.note,
+        ...snapshot,
       })
       .returning();
 
@@ -300,6 +454,7 @@ export async function getMyCheckin(
       note: schema.studentCheckin.note,
       feedback: schema.studentCheckin.feedback,
       feedbackAt: schema.studentCheckin.feedbackAt,
+      ...planSnapshotColumns,
     })
     .from(schema.studentCheckin)
     .where(
@@ -350,6 +505,7 @@ export async function getMyCheckin(
     feedbackAt: row.feedbackAt ? row.feedbackAt.toISOString() : null,
     photos,
     assessment: assessment ? toAssessmentDto(assessment) : null,
+    ...toPlanRefs(row),
   } satisfies CheckinDetailDto;
 }
 

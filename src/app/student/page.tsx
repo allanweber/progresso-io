@@ -85,6 +85,7 @@ import {
 } from "@/components/checkins/photo-upload";
 import { WeightChart } from "@/components/checkins/weight-chart";
 import { AssessmentView } from "@/components/checkins/assessment-view";
+import { PlanSnapshotView } from "@/components/checkins/plan-snapshot";
 import { cn } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------- */
@@ -819,6 +820,9 @@ function CheckinDetailDialog({
 
             {/* Measures the coach recorded, if any. */}
             {d.assessment ? <AssessmentView assessment={d.assessment} /> : null}
+
+            {/* The dieta/treino that were in force on this date. */}
+            <PlanSnapshotView diet={d.diet} workout={d.workout} />
 
             {d.photos.length > 0 ? (
               <div>

@@ -5,6 +5,8 @@ import {
   type CheckinCircumferences,
   type CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
+import { todayYmd } from "@/lib/calendar";
+import { brToIso, isoToBr } from "@/lib/date-br";
 import { z } from "@/lib/validation";
 
 /**
@@ -95,15 +97,48 @@ const optionalWeightSchema = z
   .transform((n) => (n === null ? null : Math.round(n * 10) / 10));
 
 /**
+ * The floor for a backdated check-in — a typo guard (a mistyped year lands
+ * decades away), not a product rule.
+ */
+export const CHECKIN_MIN_DATE = "2015-01-01";
+
+/**
+ * The date of a coach check-in, canonical `yyyy-mm-dd` (the UI types it as
+ * `dd/mm/aaaa` — see `@/lib/date-br`). A coach may backdate freely so past
+ * check-ins can be imported, but never forward: a future date would become the
+ * student's most recent check-in and push their next one out (the agenda and the
+ * WhatsApp reminder both derive from `MAX(date)`).
+ */
+export const checkinDateSchema = z
+  .string({ error: "Informe a data do check-in." })
+  .trim()
+  .min(1, "Informe a data do check-in.")
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data no formato dd/mm/aaaa.")
+  // Round-trip through the BR helpers so 31/02 is rejected rather than rolled.
+  .refine((v) => brToIso(isoToBr(v)) === v, "Data inválida.")
+  .refine(
+    (v) => v >= CHECKIN_MIN_DATE,
+    `Data muito antiga (a partir de ${isoToBr(CHECKIN_MIN_DATE)}).`,
+  )
+  // `todayYmd()` is anchored to America/São_Paulo, not the server's or the
+  // device's zone — so "hoje" means the same day for a coach in Recife, a
+  // container running UTC, and a browser set to Tokyo.
+  .refine((v) => v <= todayYmd(), "A data não pode ser futura.");
+
+/**
  * The text fields of a coach MANUAL check-in (multipart). Photos (0–4, optional)
  * are validated as files in the route; the optional assessment rides as a JSON
  * field parsed with {@link assessmentSchema}. Weight + note are both optional —
- * the route rejects a check-in that carries nothing at all.
+ * the route rejects a check-in that carries nothing at all. The date defaults to
+ * today in the form but is backdatable (see {@link checkinDateSchema}).
  */
 export const coachCheckinSchema = z.object({
+  date: checkinDateSchema,
   weightKg: optionalWeightSchema,
   note: noteSchema,
 });
+
+export type CoachCheckinInput = z.input<typeof coachCheckinSchema>;
 
 /**
  * The coach's feedback on a student check-in (JSON). Feedback text is required —
@@ -131,8 +166,7 @@ export function formatCheckinWeight(n: number): string {
 
 /** "11/08/2026" from a `YYYY-MM-DD` string, timezone-safe (no Date parsing). */
 export function formatCheckinDate(d: string): string {
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
+  return isoToBr(d);
 }
 
 /** "11/08" short date for a chart axis, from a `YYYY-MM-DD` string. */
@@ -188,6 +222,21 @@ export type CheckinListDto = {
 export type CheckinPhotoDto = { id: string; pose: CheckinPose };
 
 /**
+ * The diet or workout that was the plan of record on a check-in's date — the
+ * version published on or before it, captured when the check-in was written.
+ *
+ * `versionId` is null when that plan has since been deleted; `name`/`version`
+ * were copied at capture time, so the label still reads (as dead text, with no
+ * link to open). A check-in from before the student had any published plan
+ * carries no ref at all.
+ */
+export type CheckinPlanRefDto = {
+  versionId: string | null;
+  name: string;
+  version: number;
+};
+
+/**
  * A single check-in's full detail, for the modal opened from the history — adds
  * the photos. Their bytes are streamed, owner-scoped, from
  * `/api/student/checkin/<id>/photo/<photoId>`.
@@ -204,6 +253,10 @@ export type CheckinDetailDto = {
   photos: CheckinPhotoDto[];
   /** The captured body assessment, if any. */
   assessment: CheckinAssessmentDto | null;
+  /** The diet the student was following on this date (null if none). */
+  diet: CheckinPlanRefDto | null;
+  /** The workout the student was following on this date (null if none). */
+  workout: CheckinPlanRefDto | null;
 };
 
 /* -------------------------------------------------------------------------- */

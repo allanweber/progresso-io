@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import type { NextResponse } from "next/server";
 
 import { z } from "@/lib/validation";
@@ -306,6 +311,40 @@ export async function readCheckinPhoto(
     return { body, contentType };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Deletes one check-in photo's bytes by its stored key — from R2 when
+ * configured, otherwise from the local `.uploads/` fallback. Best-effort by
+ * design: the caller has ALREADY deleted the database row inside a committed
+ * transaction, so a storage hiccup must not fail (or half-undo) the delete. A
+ * missing object is a no-op. Returns whether the bytes are known to be gone,
+ * for logging only.
+ */
+export async function deleteCheckinPhoto(key: string): Promise<boolean> {
+  const env = r2Env();
+  if (env) {
+    try {
+      const s3 = r2Client(env);
+      await s3.send(
+        new DeleteObjectCommand({
+          Bucket: env.R2_BUCKET,
+          Key: keyPrefix(env) + key,
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    await unlink(path.join(process.cwd(), LOCAL_UPLOAD_DIR, key));
+    return true;
+  } catch {
+    // Already absent (e.g. a seeded placeholder key) — nothing to remove.
+    return false;
   }
 }
 

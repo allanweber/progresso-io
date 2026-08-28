@@ -1866,6 +1866,24 @@ export const studentCheckin = pgTable(
     feedbackByUserId: text("feedback_by_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    // The plan of record ON THE DAY of this check-in — the diet/workout version
+    // published on or before `date`, resolved once at write time (see
+    // `resolvePlanSnapshot`). A published version row is immutable, so the FK is
+    // the snapshot; `name`/`version` are copied alongside it so the label still
+    // reads after that plan is deleted (the FK then goes NULL). Both NULL means
+    // nothing was published by that date, or the row predates this feature.
+    dietVersionId: uuid("diet_version_id").references(
+      () => studentDietVersion.id,
+      { onDelete: "set null" },
+    ),
+    dietName: text("diet_name"),
+    dietVersion: integer("diet_version"),
+    workoutVersionId: uuid("workout_version_id").references(
+      () => studentWorkoutVersion.id,
+      { onDelete: "set null" },
+    ),
+    workoutName: text("workout_name"),
+    workoutVersion: integer("workout_version"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

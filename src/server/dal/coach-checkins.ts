@@ -22,7 +22,10 @@ import {
   type CheckinPhotoInput,
   mapCheckinRows,
   photoCountsByCheckin,
+  planSnapshotColumns,
+  resolvePlanSnapshot,
   toAssessmentDto,
+  toPlanRefs,
 } from "./student-checkins";
 
 /**
@@ -34,11 +37,6 @@ import {
  * clinic: review a submission, respond with feedback, record an assessment, or
  * log an in-person check-in.
  */
-
-/** Server-side "today" as `YYYY-MM-DD`. */
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /** Whether `studentId` is a student of the coach's clinic (gates every call). */
 async function studentInClinic(
@@ -163,6 +161,7 @@ export async function getStudentCheckin(
       note: schema.studentCheckin.note,
       feedback: schema.studentCheckin.feedback,
       feedbackAt: schema.studentCheckin.feedbackAt,
+      ...planSnapshotColumns,
     })
     .from(schema.studentCheckin)
     .where(
@@ -213,6 +212,7 @@ export async function getStudentCheckin(
     feedbackAt: row.feedbackAt ? row.feedbackAt.toISOString() : null,
     photos,
     assessment: assessment ? toAssessmentDto(assessment) : null,
+    ...toPlanRefs(row),
   } satisfies CheckinDetailDto;
 }
 
@@ -248,6 +248,12 @@ export async function getStudentCheckinPhoto(
 }
 
 export type CreateCoachCheckinInput = {
+  /**
+   * Calendar date of the entry, `YYYY-MM-DD`. Today for a live in-person
+   * check-in; a past date when the coach is importing history. Validated (never
+   * in the future) at the route's zod layer.
+   */
+  date: string;
   weightKg: number | null;
   note: string | null;
   photos: CheckinPhotoInput[];
@@ -256,7 +262,10 @@ export type CreateCoachCheckinInput = {
 
 /**
  * Logs an in-person (coach-authored) check-in for a student: weight + note +
- * optional photos + optional assessment, dated today. Returns the new
+ * optional photos + optional assessment, on `input.date` — today for a live
+ * entry, or a past date when importing the history a coach kept elsewhere. The
+ * assessment is dated with it, and the plan snapshot resolves against it, so an
+ * imported entry reads exactly as it would have on the day. Returns the new
  * {@link CheckinDto}, or null when the student isn't in this clinic.
  */
 export async function createCoachCheckin(
@@ -266,7 +275,8 @@ export async function createCoachCheckin(
 ): Promise<CheckinDto | null> {
   if (!(await studentInClinic(ctx, studentId))) return null;
 
-  const date = todayIsoDate();
+  const date = input.date;
+  const snapshot = await resolvePlanSnapshot(ctx, studentId, date);
 
   return ctx.db.transaction(async (tx) => {
     const txCtx: TenantContext = { ...ctx, db: tx as unknown as typeof ctx.db };
@@ -281,6 +291,7 @@ export async function createCoachCheckin(
         authorUserId: ctx.userId,
         weightKg: input.weightKg,
         note: input.note,
+        ...snapshot,
       })
       .returning();
 
@@ -373,6 +384,63 @@ export async function submitFeedback(
   });
 
   return getStudentCheckin(ctx, studentId, checkinId);
+}
+
+/**
+ * Permanently deletes one check-in of a student in this clinic — either author's
+ * — and reports the photo keys whose bytes the caller must now remove. Returns
+ * null when the check-in isn't in this clinic for this student.
+ *
+ * Irreversible on purpose: there is no archive for a check-in, and the entry a
+ * coach needs to remove is usually a duplicate, a wrong-student submission or a
+ * botched import. The assessment and photo ROWS cascade with it (see the FKs in
+ * the schema); the photo BYTES are deleted by the caller after this returns,
+ * never inside the transaction — storage is not transactional, and a hiccup
+ * there must not roll back a delete the coach was told succeeded.
+ *
+ * One consequence worth knowing: the student's next check-in date derives from
+ * `MAX(date)`, so deleting the most recent entry moves their due date (agenda +
+ * WhatsApp reminder) back to the one before it.
+ */
+export async function deleteCheckin(
+  ctx: TenantContext,
+  studentId: string,
+  checkinId: string,
+): Promise<string[] | null> {
+  // Prove the check-in belongs to this student in this clinic before deleting.
+  const [target] = await ctx.db
+    .select({ id: schema.studentCheckin.id })
+    .from(schema.studentCheckin)
+    .where(
+      and(
+        eq(schema.studentCheckin.id, checkinId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+        eq(schema.studentCheckin.studentId, studentId),
+      ),
+    );
+  if (!target) return null;
+
+  // Read the keys BEFORE the delete cascades the photo rows away.
+  const photos = await ctx.db
+    .select({ r2Key: schema.studentCheckinPhoto.r2Key })
+    .from(schema.studentCheckinPhoto)
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+      ),
+    );
+
+  await ctx.db
+    .delete(schema.studentCheckin)
+    .where(
+      and(
+        eq(schema.studentCheckin.id, checkinId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+      ),
+    );
+
+  return photos.map((p) => p.r2Key);
 }
 
 /**

@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { randomUUID } from "node:crypto";
+
 import { and, eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -162,6 +164,7 @@ describe("coach check-in DAL", () => {
 
   it("logs a coach manual check-in with photos + an assessment", async () => {
     const created = await coachCheckins.createCoachCheckin(coachCtxA, studentA, {
+      date: today(),
       weightKg: 71.2,
       note: "Avaliação presencial.",
       photos: fourPhotos,
@@ -189,6 +192,7 @@ describe("coach check-in DAL", () => {
 
   it("never lets another clinic's coach read or write", async () => {
     const created = await coachCheckins.createCoachCheckin(coachCtxA, studentA, {
+      date: today(),
       weightKg: 70,
       note: null,
       photos: fourPhotos,
@@ -208,6 +212,7 @@ describe("coach check-in DAL", () => {
     ).toBeNull();
     expect(
       await coachCheckins.createCoachCheckin(coachCtxB, studentA, {
+        date: today(),
         weightKg: 60,
         note: null,
         photos: [],
@@ -243,5 +248,173 @@ describe("coach check-in DAL", () => {
 
     // Cross-clinic gets nothing.
     expect(await coachCheckins.getStudentEvolution(coachCtxB, studentA)).toBeNull();
+  });
+
+  it("deletes a check-in for good, cascading its photos and assessment", async () => {
+    const created = await coachCheckins.createCoachCheckin(coachCtxA, studentA, {
+      date: today(),
+      weightKg: 68.5,
+      note: "Duplicado — para excluir.",
+      photos: fourPhotos,
+      assessment: {
+        circumferences: { cintura: 80 },
+        skinfolds: {},
+        bodyFatPct: null,
+      },
+    });
+
+    // Another clinic's coach cannot delete it, and neither can a bad id.
+    expect(
+      await coachCheckins.deleteCheckin(coachCtxB, studentA, created!.id),
+    ).toBeNull();
+    expect(
+      await coachCheckins.deleteCheckin(coachCtxA, studentA, randomUUID()),
+    ).toBeNull();
+
+    // The keys come back so the route can remove the bytes after the commit.
+    const keys = await coachCheckins.deleteCheckin(
+      coachCtxA,
+      studentA,
+      created!.id,
+    );
+    expect(keys).toHaveLength(4);
+
+    expect(
+      await coachCheckins.getStudentCheckin(coachCtxA, studentA, created!.id),
+    ).toBeNull();
+    expect(
+      await db
+        .select()
+        .from(schema.checkinAssessment)
+        .where(eq(schema.checkinAssessment.checkinId, created!.id)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(schema.studentCheckinPhoto)
+        .where(eq(schema.studentCheckinPhoto.checkinId, created!.id)),
+    ).toHaveLength(0);
+  });
+
+  it("backdates an imported check-in, dating its assessment with it", async () => {
+    const created = await coachCheckins.createCoachCheckin(coachCtxA, studentA, {
+      date: "2024-03-11",
+      weightKg: 80,
+      note: "Importado da planilha antiga.",
+      photos: [],
+      assessment: {
+        circumferences: { cintura: 92 },
+        skinfolds: {},
+        bodyFatPct: null,
+      },
+    });
+    expect(created!.date).toBe("2024-03-11");
+
+    const [assessment] = await db
+      .select()
+      .from(schema.checkinAssessment)
+      .where(eq(schema.checkinAssessment.checkinId, created!.id));
+    expect(assessment.assessedAt).toBe("2024-03-11");
+  });
+
+  it("freezes the plan of record by DATE, archived plans included", async () => {
+    // No plan published yet → the entry above honestly carries none.
+    const beforeAnyPlan = await coachCheckins.createCoachCheckin(
+      coachCtxA,
+      studentA,
+      { date: "2024-02-01", weightKg: 81, note: null, photos: [], assessment: null },
+    );
+    const bare = await coachCheckins.getStudentCheckin(
+      coachCtxA,
+      studentA,
+      beforeAnyPlan!.id,
+    );
+    expect(bare!.diet).toBeNull();
+    expect(bare!.workout).toBeNull();
+
+    // A diet published in March and later ARCHIVED, then a second one in July.
+    const [marchDiet] = await db
+      .insert(schema.studentDiet)
+      .values({
+        clinicId: clinicAId,
+        studentId: studentA,
+        name: "Cutting março",
+        status: "archived",
+      })
+      .returning();
+    await db.insert(schema.studentDietVersion).values({
+      studentDietId: marchDiet.id,
+      version: 1,
+      status: "published",
+      tree: { meals: [] },
+      publishedAt: new Date("2024-03-05T12:00:00Z"),
+    });
+
+    const [julyDiet] = await db
+      .insert(schema.studentDiet)
+      .values({
+        clinicId: clinicAId,
+        studentId: studentA,
+        name: "Bulking julho",
+        status: "active",
+      })
+      .returning();
+    await db.insert(schema.studentDietVersion).values({
+      studentDietId: julyDiet.id,
+      version: 1,
+      status: "published",
+      tree: { meals: [] },
+      publishedAt: new Date("2024-07-02T12:00:00Z"),
+    });
+
+    // A workout published the very morning of the check-in below.
+    const [wk] = await db
+      .insert(schema.studentWorkout)
+      .values({
+        clinicId: clinicAId,
+        studentId: studentA,
+        name: "ABC abril",
+        status: "active",
+      })
+      .returning();
+    await db.insert(schema.studentWorkoutVersion).values({
+      studentWorkoutId: wk.id,
+      version: 3,
+      status: "published",
+      tree: { sessions: [] },
+      publishedAt: new Date("2024-04-20T09:30:00Z"),
+    });
+
+    // A check-in imported for 20/04: March's (archived) diet was the plan of
+    // record, NOT July's — and the workout published that same morning counts.
+    const april = await coachCheckins.createCoachCheckin(coachCtxA, studentA, {
+      date: "2024-04-20",
+      weightKg: 79,
+      note: null,
+      photos: [],
+      assessment: null,
+    });
+    const detail = await coachCheckins.getStudentCheckin(
+      coachCtxA,
+      studentA,
+      april!.id,
+    );
+    expect(detail!.diet).toMatchObject({ name: "Cutting março", version: 1 });
+    expect(detail!.workout).toMatchObject({ name: "ABC abril", version: 3 });
+
+    // Deleting the diet leaves the label readable, with nothing left to open.
+    await db
+      .delete(schema.studentDiet)
+      .where(eq(schema.studentDiet.id, marchDiet.id));
+    const orphaned = await coachCheckins.getStudentCheckin(
+      coachCtxA,
+      studentA,
+      april!.id,
+    );
+    expect(orphaned!.diet).toEqual({
+      versionId: null,
+      name: "Cutting março",
+      version: 1,
+    });
   });
 });

@@ -235,4 +235,99 @@ test.describe("coach feedback", () => {
       path: "test-results/screens/coach-evolution-lightbox-mobile.png",
     });
   });
+
+  test("imports backdated check-ins and deletes one (desktop + mobile)", async ({
+    page,
+  }) => {
+    await openAnaFeedback(page);
+    const feedbackUrl = page.url();
+    // Unique per run: the suite is fullyParallel and this test asserts its own
+    // entries appear and then disappear.
+    const stamp = String(Date.now()).slice(-6);
+    const first = `Importado e2e ${stamp} A`;
+    const second = `Importado e2e ${stamp} B`;
+
+    await page.getByRole("button", { name: "Novo check-in" }).click();
+    const manual = page.getByRole("dialog");
+    await expect(manual).toBeVisible();
+    const date = manual.getByLabel("Data do check-in");
+
+    // Typing eight digits yields dd/mm/aaaa — the format is the product's, not
+    // the device locale's (which is what the native date input would follow).
+    await date.fill("11032024");
+    await expect(date).toHaveValue("11/03/2024");
+
+    // The icon opens a month grid on the typed date; picking a day writes it
+    // back in the same format. Both routes into the field, one canonical value.
+    await manual
+      .getByRole("button", { name: "Data do check-in: escolher no calendário" })
+      .click();
+    const grid = page.getByRole("dialog").last();
+    await expect(grid.getByText("Março de 2024")).toBeVisible();
+    await grid.getByRole("button", { name: "15/03/2024" }).click();
+    await expect(date).toHaveValue("15/03/2024");
+    // Back to the date this test asserts on later.
+    await date.fill("11032024");
+    await expect(date).toHaveValue("11/03/2024");
+
+    await manual.getByLabel(/Peso \(kg\)/).fill("80,5");
+    await manual.getByLabel("Feedback / observação").fill(first);
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-import-desktop.png",
+      fullPage: true,
+    });
+
+    // "Salvar e adicionar outro" keeps the dialog open, clears the entry fields
+    // and KEEPS the date — importing history means typing many in a row.
+    await manual.getByRole("button", { name: "Salvar e adicionar outro" }).click();
+    await expect(manual.getByText("Check-in de 11/03/2024 salvo.")).toBeVisible();
+    await expect(manual.getByLabel(/Peso \(kg\)/)).toHaveValue("");
+    await expect(date).toHaveValue("11/03/2024");
+
+    await date.fill("18032024");
+    await manual.getByLabel("Feedback / observação").fill(second);
+    await manual.getByRole("button", { name: "Salvar check-in" }).click();
+    await expect(manual).toBeHidden();
+
+    // Both land on the timeline under their own PAST dates, not today's.
+    await expect(page.getByText(first)).toBeVisible();
+    await expect(page.getByText(second)).toBeVisible();
+    await expect(page.getByText("11/03/2024").first()).toBeVisible();
+    await expect(page.getByText("18/03/2024").first()).toBeVisible();
+
+    // --- Delete one of them; the confirmation names the date ---
+    await page.getByRole("button", { name: new RegExp(first) }).click();
+    const detail = page.getByRole("dialog");
+    await expect(detail).toBeVisible();
+    await detail.getByRole("button", { name: "Excluir check-in" }).click();
+    await expect(
+      detail.getByText(/Excluir o check-in de 11\/03\/2024/),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-delete-desktop.png",
+    });
+    await detail
+      .getByRole("button", { name: "Excluir definitivamente" })
+      .click();
+    await expect(detail).toBeHidden();
+
+    // Gone from the timeline — and only that one.
+    await expect(page.getByText(first)).toBeHidden();
+    await expect(page.getByText(second)).toBeVisible();
+
+    // --- Mobile ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(feedbackUrl);
+    await expect(
+      page.getByRole("heading", { name: "Timeline de feedback" }),
+    ).toBeVisible();
+    await expect(page.getByText(second)).toBeVisible();
+    await page.getByRole("button", { name: "Novo check-in" }).click();
+    const mobileManual = page.getByRole("dialog");
+    await expect(mobileManual.getByLabel("Data do check-in")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-import-mobile.png",
+      fullPage: true,
+    });
+  });
 });

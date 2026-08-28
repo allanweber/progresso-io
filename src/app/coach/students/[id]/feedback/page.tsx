@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Plus,
   Ruler,
+  Trash2,
 } from "lucide-react";
 
 import { StudentTabs } from "@/components/students/student-tabs";
@@ -23,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +37,7 @@ import {
   type AssessmentFormValues,
 } from "@/components/checkins/assessment-fields";
 import { AssessmentView } from "@/components/checkins/assessment-view";
+import { PlanSnapshotView } from "@/components/checkins/plan-snapshot";
 import {
   anyCompressing as anySlotCompressing,
   appendPhotos,
@@ -44,9 +47,12 @@ import {
   usePhotoSlots,
 } from "@/components/checkins/photo-upload";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { todayYmd } from "@/lib/calendar";
 import { fieldError } from "@/lib/form";
 import {
+  CHECKIN_MIN_DATE,
   CHECKIN_POSE_VALUES,
+  coachCheckinSchema,
   formatCheckinDate,
   formatCheckinWeight,
   isCheckinPending,
@@ -182,6 +188,7 @@ export default function StudentFeedbackPage() {
       <ManualCheckinDialog
         studentId={id}
         open={manualOpen}
+        existingDates={checkins.map((c) => c.date)}
         onClose={() => setManualOpen(false)}
       />
     </div>
@@ -348,6 +355,8 @@ function ReviewDialog({
 
             {d.assessment ? <AssessmentView assessment={d.assessment} /> : null}
 
+            <PlanSnapshotView diet={d.diet} workout={d.workout} />
+
             {/* Keyed by the check-in id so the form (re)initializes from this
                 detail without a render-phase or effect setState. */}
             {d.author === "student" ? (
@@ -358,10 +367,108 @@ function ReviewDialog({
                 onClose={onClose}
               />
             ) : null}
+
+            <DeleteCheckin
+              key={`del-${d.id}`}
+              studentId={studentId}
+              detail={d}
+              onDeleted={onClose}
+            />
           </div>
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Permanently removes a check-in. Two-step on purpose: destroying a student's
+ * weight, photos and measures is irreversible and there is no archive to undo
+ * it, so the button only arms the confirmation — which names the date, since a
+ * timeline of similar entries is exactly where the wrong one gets picked.
+ */
+function DeleteCheckin({
+  studentId,
+  detail,
+  onDeleted,
+}: {
+  studentId: string;
+  detail: CheckinDetailDto;
+  onDeleted: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+
+  const remove = useMutation({
+    mutationFn: () =>
+      apiFetch<{ ok: true }>(
+        `/api/students/${studentId}/checkin/${detail.id}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: () => {
+      queryClient.removeQueries({
+        queryKey: ["coach-checkin", studentId, detail.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["coach-checkins", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["coach-evolution", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["coach-dashboard"] });
+      onDeleted();
+    },
+  });
+
+  const banner =
+    remove.error instanceof ApiError ? remove.error.message : undefined;
+
+  if (!confirming) {
+    return (
+      <div className="border-t border-border pt-3">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 className="size-4" />
+          Excluir check-in
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3">
+      <p className="text-body-dense text-foreground">
+        Excluir o check-in de{" "}
+        <span className="font-semibold">{formatCheckinDate(detail.date)}</span>?
+        Peso, fotos, medidas e feedback são apagados para sempre — não há como
+        desfazer.
+      </p>
+      {banner ? (
+        <p className="text-body-dense font-medium text-destructive">{banner}</p>
+      ) : null}
+      <div className="flex flex-wrap justify-end gap-2.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setConfirming(false)}
+          disabled={remove.isPending}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="bg-destructive text-white hover:bg-destructive/90"
+          onClick={() => remove.mutate()}
+          disabled={remove.isPending}
+        >
+          <Trash2 className="size-4" />
+          {remove.isPending ? "Excluindo…" : "Excluir definitivamente"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -484,10 +591,13 @@ function ReviewForm({
 function ManualCheckinDialog({
   studentId,
   open,
+  existingDates,
   onClose,
 }: {
   studentId: string;
   open: boolean;
+  /** Dates already on the timeline — only to warn, never to block. */
+  existingDates: string[];
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -497,6 +607,13 @@ function ManualCheckinDialog({
   );
   const [showAssessment, setShowAssessment] = useState(false);
   const [progress, setProgress] = useState(0);
+  // Set by "Salvar e adicionar outro" just before submit, so the same handler
+  // knows whether to close or to clear itself for the next entry.
+  const keepOpen = useRef(false);
+  // The date of the last entry saved without closing — the only feedback that a
+  // long import is actually landing.
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const today = todayYmd();
 
   const mutation = useMutation({
     mutationFn: (fd: FormData) =>
@@ -508,14 +625,16 @@ function ManualCheckinDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-checkins", studentId] });
       queryClient.invalidateQueries({ queryKey: ["coach-evolution", studentId] });
-      close();
+      queryClient.invalidateQueries({ queryKey: ["coach-dashboard"] });
     },
   });
 
   const form = useForm({
-    defaultValues: { weightKg: "", note: "" },
+    defaultValues: { date: today, weightKg: "", note: "" },
+    validators: { onChange: coachCheckinSchema },
     onSubmit: async ({ value }) => {
       const fd = new FormData();
+      fd.set("date", value.date);
       if (value.weightKg.trim()) fd.set("weightKg", value.weightKg);
       if (value.note.trim()) fd.set("note", value.note);
       if (assessmentFormHasValues(assessment)) {
@@ -526,16 +645,39 @@ function ManualCheckinDialog({
       try {
         await mutation.mutateAsync(fd);
       } catch {
-        /* surfaced below */
+        return; // surfaced in the banner below
+      }
+      if (keepOpen.current) {
+        setLastSaved(value.date);
+        clearForNext();
+      } else {
+        close();
       }
     },
   });
+
+  /**
+   * Clears everything the next imported entry must not inherit, but keeps the
+   * date: importing a year of history means typing a date every time, and
+   * auto-advancing it would invent one the coach never chose.
+   */
+  function clearForNext() {
+    resetPhotos();
+    setAssessment(emptyAssessmentForm());
+    setShowAssessment(false);
+    setProgress(0);
+    mutation.reset();
+    form.setFieldValue("weightKg", "");
+    form.setFieldValue("note", "");
+    document.getElementById("m-date")?.focus();
+  }
 
   function close() {
     resetPhotos();
     setAssessment(emptyAssessmentForm());
     setShowAssessment(false);
     setProgress(0);
+    setLastSaved(null);
     mutation.reset();
     form.reset();
     onClose();
@@ -553,7 +695,9 @@ function ManualCheckinDialog({
             Novo check-in presencial
           </DialogTitle>
           <p className="text-body-dense text-muted-foreground">
-            Registrado na data de hoje. O feedback é enviado ao aluno no WhatsApp.
+            Use a data de hoje para uma avaliação agora, ou uma data passada para
+            importar um check-in antigo. Só um check-in de hoje avisa o aluno no
+            WhatsApp.
           </p>
         </DialogHeader>
 
@@ -564,6 +708,30 @@ function ManualCheckinDialog({
           }}
           className="flex flex-col gap-4"
         >
+          <form.Field name="date">
+            {(field) => (
+              <div className="space-y-1.5">
+                <DateInput
+                  id="m-date"
+                  label="Data do check-in"
+                  value={field.state.value}
+                  onChange={(v) => field.handleChange(v)}
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
+                  min={CHECKIN_MIN_DATE}
+                  max={today}
+                />
+                {existingDates.includes(field.state.value) ? (
+                  <p className="text-body-dense text-muted-foreground">
+                    Já existe um check-in nesta data. Pode salvar assim mesmo — a
+                    avaliação presencial do dia em que o aluno enviou o check-in
+                    online é uma dupla legítima.
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </form.Field>
+
           <form.Field name="weightKg">
             {(field) => (
               <Field
@@ -663,13 +831,40 @@ function ManualCheckinDialog({
               </div>
             </div>
           ) : (
-            <div className="flex justify-end gap-2.5">
-              <Button type="button" variant="outline" onClick={close}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={anySlotCompressing(photos)}>
-                Salvar check-in
-              </Button>
+            <div className="flex flex-col gap-2.5">
+              {lastSaved ? (
+                <p className="text-body-dense text-primary">
+                  Check-in de {formatCheckinDate(lastSaved)} salvo. Informe a
+                  data do próximo.
+                </p>
+              ) : null}
+              <div className="flex flex-wrap justify-end gap-2.5">
+                <Button type="button" variant="outline" onClick={close}>
+                  Cancelar
+                </Button>
+                {/* Importing history means many entries in a row; reopening the
+                    dialog for each one is the difference between a usable
+                    import and a miserable one. */}
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={anySlotCompressing(photos)}
+                  onClick={() => {
+                    keepOpen.current = true;
+                  }}
+                >
+                  Salvar e adicionar outro
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={anySlotCompressing(photos)}
+                  onClick={() => {
+                    keepOpen.current = false;
+                  }}
+                >
+                  Salvar check-in
+                </Button>
+              </div>
             </div>
           )}
         </form>

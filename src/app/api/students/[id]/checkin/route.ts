@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { todayYmd } from "@/lib/calendar";
 import {
   assessmentHasValues,
   assessmentSchema,
@@ -31,10 +32,11 @@ import { putCheckinPhoto, validateCheckinPhoto } from "@/server/r2";
  * clinic's student yields a 404.
  *
  * - GET  → the timeline (both authors) + weight series (Feedback / Evolução).
- * - POST → an in-person (coach) check-in: a multipart body with an optional
- *   `weightKg`, `note`, an `assessment` JSON field (measures/skinfolds) and up
- *   to four optional pose photos. The coach's note is also sent to the student
- *   on WhatsApp (logged in dev).
+ * - POST → an in-person (coach) check-in: a multipart body with a `date`
+ *   (today, or a past one when importing history), an optional `weightKg`,
+ *   `note`, an `assessment` JSON field (measures/skinfolds) and up to four
+ *   optional pose photos. A note on a check-in dated today is also sent to the
+ *   student on WhatsApp (logged in dev); a backdated one never is.
  */
 type Params = { params: Promise<{ id: string }> };
 
@@ -63,8 +65,10 @@ export const POST = withCoach<Params>(
       return apiError("Envio inválido.", 400);
     }
 
-    // Text fields: weight + note are both optional for a coach entry.
+    // Text fields: the date is required (the form defaults it to today and the
+    // schema refuses the future); weight + note are both optional.
     const parsed = coachCheckinSchema.safeParse({
+      date: form.get("date") ?? "",
       weightKg: form.get("weightKg") ?? "",
       note: form.get("note") ?? "",
     });
@@ -125,6 +129,7 @@ export const POST = withCoach<Params>(
     }
 
     const input: CreateCoachCheckinInput = {
+      date: parsed.data.date,
       weightKg: parsed.data.weightKg,
       note: parsed.data.note,
       photos: stored,
@@ -135,8 +140,11 @@ export const POST = withCoach<Params>(
 
     // Notify the student on WhatsApp that their check-in was answered — the
     // `checkin_feedback` template points them to the portal (the note itself
-    // lives there). Best-effort + plan-gated inside the helper.
-    if (parsed.data.note) {
+    // lives there). Best-effort + plan-gated inside the helper. A BACKDATED
+    // entry never notifies: it is a record of something the student already
+    // lived through, and importing a year of history must not fire a year of
+    // messages at them.
+    if (parsed.data.note && parsed.data.date === todayYmd()) {
       const origin = new URL(request.url).origin;
       await notifyCheckinFeedback(ctx, id, `${origin}/student`);
     }
