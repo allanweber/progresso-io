@@ -190,12 +190,20 @@ const itemSchema = z.object({
   substitutes: z.array(substituteSchema).max(20).default([]),
 });
 
+/**
+ * Meal-shape limits, named because the builder enforces them too — it must not
+ * let a coach create a diet the save would reject (a duplicated meal whose name
+ * overflows, or a 31st meal).
+ */
+export const MEAL_NAME_MAX = 80;
+export const DIET_MEALS_MAX = 30;
+
 const mealSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "Informe o nome da refeição.")
-    .max(80, "Nome muito longo."),
+    .max(MEAL_NAME_MAX, "Nome muito longo."),
   time: optionalText(20, "Horário muito longo."),
   items: z.array(itemSchema).max(100).default([]),
 });
@@ -212,7 +220,7 @@ export const dietFormSchema = z.object({
     .min(1, "Informe o nome da dieta.")
     .max(120, "Nome muito longo."),
   notes: optionalText(2000, "Observações muito longas."),
-  meals: z.array(mealSchema).max(30).default([]),
+  meals: z.array(mealSchema).max(DIET_MEALS_MAX).default([]),
 });
 
 export type DietFormInput = z.input<typeof dietFormSchema>;

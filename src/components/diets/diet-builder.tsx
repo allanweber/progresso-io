@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowLeft,
   Clock,
+  Copy,
   GripVertical,
   Loader2,
   Pencil,
@@ -47,6 +48,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import {
+  DIET_MEALS_MAX,
+  MEAL_NAME_MAX,
   MEAL_SUGGESTIONS,
   dietFormSchema,
   formatGrams,
@@ -68,7 +71,7 @@ type Macro = {
   fat: number | null;
 };
 
-type SubDraft = {
+export type SubDraft = {
   key: string;
   foodId: string;
   description: string;
@@ -78,7 +81,7 @@ type SubDraft = {
   per100: Macro;
 };
 
-type ItemDraft = {
+export type ItemDraft = {
   key: string;
   foodId: string;
   description: string;
@@ -89,7 +92,7 @@ type ItemDraft = {
   substitutes: SubDraft[];
 };
 
-type MealDraft = {
+export type MealDraft = {
   key: string;
   name: string;
   time: string;
@@ -137,6 +140,64 @@ export type DietBuilderAdapter = {
 };
 
 const newKey = () => crypto.randomUUID();
+
+/** The suffix a duplicated meal takes, matching the diet/anamnese copy flows. */
+const MEAL_COPY_SUFFIX = " (cópia)";
+
+/** "Almoço" → "Almoço (cópia)", trimmed so it still fits {@link MEAL_NAME_MAX}. */
+function copyMealName(name: string): string {
+  const trimmed = name.trim();
+  // A meal the coach hasn't named yet copies as unnamed — " (cópia)" alone
+  // would be a name they never chose, and the save would reject it anyway.
+  if (trimmed === "") return "";
+  const base =
+    trimmed.length + MEAL_COPY_SUFFIX.length > MEAL_NAME_MAX
+      ? trimmed.slice(0, MEAL_NAME_MAX - MEAL_COPY_SUFFIX.length).trimEnd()
+      : trimmed;
+  return `${base}${MEAL_COPY_SUFFIX}`;
+}
+
+/**
+ * Duplicates one meal — its foods, quantities, medidas caseiras and every
+ * substitution — and drops the copy **directly below** the original, where a
+ * coach building a week of similar meals expects it.
+ *
+ * Every key is regenerated, top to bottom. They are not cosmetic: the meal keys
+ * are @dnd-kit's sortable ids and React's list keys, so a shared key between
+ * the original and its copy would make dragging one move the other and let
+ * React reuse the wrong row's state. Nothing else is shared either — `per100`
+ * is cloned rather than aliased, so editing the copy can never reach back into
+ * the meal it came from.
+ *
+ * `nextKey` is injectable so tests can assert against stable ids.
+ */
+export function duplicateMealDraft(
+  meals: MealDraft[],
+  key: string,
+  nextKey: () => string = newKey,
+): MealDraft[] {
+  const index = meals.findIndex((m) => m.key === key);
+  if (index < 0 || meals.length >= DIET_MEALS_MAX) return meals;
+
+  const source = meals[index];
+  const copy: MealDraft = {
+    key: nextKey(),
+    name: copyMealName(source.name),
+    time: source.time,
+    items: source.items.map((item) => ({
+      ...item,
+      key: nextKey(),
+      per100: { ...item.per100 },
+      substitutes: item.substitutes.map((sub) => ({
+        ...sub,
+        key: nextKey(),
+        per100: { ...sub.per100 },
+      })),
+    })),
+  };
+
+  return [...meals.slice(0, index + 1), copy, ...meals.slice(index + 1)];
+}
 
 /**
  * Keep only digits and format a meal time as `HH:MM` while typing (e.g. "0800"
@@ -496,6 +557,9 @@ export function DietBuilder({
   const removeMeal = (key: string) =>
     updateMeals((prev) => prev.filter((m) => m.key !== key));
 
+  const duplicateMeal = (key: string) =>
+    updateMeals((prev) => duplicateMealDraft(prev, key));
+
   const patchItems = (
     mealKey: string,
     updater: (items: ItemDraft[]) => ItemDraft[],
@@ -728,6 +792,11 @@ export function DietBuilder({
                 onNameChange={(name) => patchMeal(meal.key, { name })}
                 onTimeChange={(time) => patchMeal(meal.key, { time })}
                 onRemove={() => removeMeal(meal.key)}
+                onDuplicate={
+                  meals.length < DIET_MEALS_MAX
+                    ? () => duplicateMeal(meal.key)
+                    : undefined
+                }
                 onItems={(updater) => patchItems(meal.key, updater)}
               />
             ))}
@@ -788,6 +857,7 @@ function SortableMeal({
   onNameChange,
   onTimeChange,
   onRemove,
+  onDuplicate,
   onItems,
 }: {
   meal: MealDraft;
@@ -796,6 +866,8 @@ function SortableMeal({
   onNameChange: (name: string) => void;
   onTimeChange: (time: string) => void;
   onRemove: () => void;
+  /** Absent once the diet is at its meal cap — the copy would not save. */
+  onDuplicate?: () => void;
   onItems: (updater: (items: ItemDraft[]) => ItemDraft[]) => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
@@ -875,6 +947,17 @@ function SortableMeal({
                 className="pl-8"
               />
             </div>
+            {onDuplicate ? (
+              <button
+                type="button"
+                onClick={onDuplicate}
+                aria-label={`Duplicar refeição${meal.name.trim() ? ` ${meal.name.trim()}` : ""}`}
+                title="Duplicar refeição"
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <Copy className="size-4" />
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onRemove}
