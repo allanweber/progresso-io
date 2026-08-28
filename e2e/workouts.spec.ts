@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Authenticated coach workout (treino) flows against the real DB (see
@@ -334,5 +334,152 @@ test.describe("workout builder", () => {
       path: "test-results/screens/coach-exercise-prescription-mobile.png",
       fullPage: true,
     });
+  });
+});
+
+/**
+ * An exercise's photo is how a coach confirms the movement is the right one,
+ * and a 36px thumbnail can't do that. Every place a picture is shown must open
+ * it full-size — the catalog's gallery and the builder's thumbnails, including
+ * the search dropdown, where the row had to be split into two controls (the
+ * image expands, the rest picks) and could easily stop picking.
+ */
+test.describe("exercise images", () => {
+  /**
+   * The exercise-image host (R2 / CDN) isn't reachable from the e2e browser, so
+   * stand in for it — otherwise nothing renders and there is nothing to expand.
+   * The two catalog frames (…/0.jpg, …/1.jpg) get different art so a walk
+   * through the set is visible.
+   */
+  const stubImages = (page: Page) =>
+    page.route(/\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i, (route) => {
+      const second = /1\.(png|jpe?g|webp|gif|avif)/i.test(route.request().url());
+      const fill = second ? "#1e293b" : "#334155";
+      const label = second ? "Posição final" : "Posição inicial";
+      route.fulfill({
+        contentType: "image/svg+xml",
+        body: `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="${fill}"/><text x="50%" y="50%" fill="#94a3b8" font-family="sans-serif" font-size="15" text-anchor="middle" dominant-baseline="middle">${label}</text></svg>`,
+      });
+    });
+
+  test("opens a catalog image full-size and walks the set (desktop + mobile)", async ({
+    page,
+  }) => {
+    await stubImages(page);
+
+    // A base exercise that actually ships photos — without them there is no
+    // gallery, and the test would assert nothing.
+    const list = await page.request.get(
+      "/api/exercises?search=agachamento&pageSize=1",
+    );
+    expect(list.ok()).toBeTruthy();
+    const { items } = (await list.json()) as {
+      items: { id: string; name: string }[];
+    };
+    const exercise = items[0];
+    expect(exercise, "o catálogo semeado precisa ter um agachamento").toBeTruthy();
+    const detailRes = await page.request.get(`/api/exercises/${exercise.id}`);
+    const { images } = (await detailRes.json()) as { images: string[] };
+    expect(images.length).toBeGreaterThan(0);
+
+    await page.goto(`/coach/library/exercises/${exercise.id}`);
+    // The cookie banner also carries role="dialog" and would collide with the
+    // viewer's locator below.
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await expect(
+      page.getByRole("heading", { name: exercise.name, level: 1 }),
+    ).toBeVisible();
+
+    // Each tile is its own control, opening the viewer AT ITS OWN POSITION.
+    await page
+      .getByRole("button", { name: `Ampliar imagem 1 de ${exercise.name}` })
+      .click();
+    const viewer = page.getByRole("dialog");
+    await expect(viewer.getByRole("heading", { name: exercise.name })).toBeVisible();
+    await expect(viewer.getByRole("img", { name: exercise.name })).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-image-viewer-desktop.png",
+    });
+
+    // With more than one frame the viewer counts them and walks with ← / →.
+    if (images.length > 1) {
+      await expect(viewer.getByText(`1 / ${images.length}`)).toBeVisible();
+      await viewer.getByRole("button", { name: "Próxima imagem" }).click();
+      await expect(viewer.getByText(`2 / ${images.length}`)).toBeVisible();
+      await page.keyboard.press("ArrowLeft");
+      await expect(viewer.getByText(`1 / ${images.length}`)).toBeVisible();
+    }
+
+    // Esc closes the viewer and leaves the page it opened over.
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+    await expect(
+      page.getByRole("heading", { name: exercise.name, level: 1 }),
+    ).toBeVisible();
+
+    // --- Mobile: the same gallery, the same way in ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page
+      .getByRole("button", { name: `Ampliar imagem 1 de ${exercise.name}` })
+      .click();
+    await expect(viewer.getByRole("img", { name: exercise.name })).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-image-viewer-mobile.png",
+    });
+  });
+
+  test("expands a thumbnail from the builder's search row and ficha row", async ({
+    page,
+  }) => {
+    await stubImages(page);
+
+    await page.goto("/coach/workouts/new");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await page
+      .getByPlaceholder("Ex.: Hipertrofia · 4x semana")
+      .fill("Treino com fotos");
+    await page.getByRole("button", { name: "Nova ficha" }).click();
+    await page.getByPlaceholder(/Nome da ficha/).fill("Ficha A · Pernas");
+    await page.getByRole("button", { name: "Adicionar exercício" }).click();
+    await page.getByPlaceholder(/Buscar exercício/).fill("agachamento");
+
+    // --- The search row: the thumbnail expands without picking the exercise ---
+    const thumb = page
+      .getByRole("button", { name: /^Ampliar imagem de / })
+      .first();
+    await expect(thumb).toBeVisible();
+    const name = (await thumb.getAttribute("aria-label"))!.replace(
+      "Ampliar imagem de ",
+      "",
+    );
+    await thumb.click();
+    const viewer = page.getByRole("dialog");
+    await expect(viewer.getByRole("heading", { name })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+    // Expanding is not picking: the results are still on screen, and the
+    // prescription step has not opened.
+    await expect(thumb).toBeVisible();
+    await expect(page.getByRole("button", { name: "Aumentar Séries" })).toHaveCount(0);
+
+    // --- The rest of the row still picks (it is a separate control now) ---
+    // The picking control carries the name AND the category, so match on text
+    // rather than on the exact accessible name.
+    await page.getByRole("button").filter({ hasText: name }).first().click();
+    await expect(page.getByRole("button", { name: "Aumentar Séries" })).toBeVisible();
+    await page.getByRole("button", { name: "Adicionar ao treino" }).click();
+
+    // --- The ficha row's thumbnail expands the same way ---
+    const rowThumb = page.getByRole("button", {
+      name: `Ampliar imagem de ${name}`,
+    });
+    await expect(rowThumb).toBeVisible();
+    await rowThumb.click();
+    await expect(viewer.getByRole("heading", { name })).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-builder-image-viewer-desktop.png",
+    });
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
   });
 });

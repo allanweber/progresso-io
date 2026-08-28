@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowLeft,
   GripVertical,
+  HeartPulse,
   Pencil,
   Plus,
   Save,
@@ -37,6 +38,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ExerciseImageButton } from "@/components/workouts/exercise-images";
 import {
   ExercisePicker,
   type PickedExercise,
@@ -48,7 +50,7 @@ import {
 } from "@/components/workouts/exercise-prescription-fields";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
-import { CATEGORY_LABELS, exerciseImageUrl } from "@/lib/exercises";
+import { CATEGORY_LABELS } from "@/lib/exercises";
 import {
   SESSION_SUGGESTIONS,
   formatReps,
@@ -88,12 +90,18 @@ type ExerciseDraft = {
 };
 
 type SessionDraft = { key: string; name: string; exercises: ExerciseDraft[] };
-type Draft = { name: string; notes: string; sessions: SessionDraft[] };
+type Draft = {
+  name: string;
+  notes: string;
+  cardio: string;
+  sessions: SessionDraft[];
+};
 
 /** The whole-tree payload the builder emits on save (matches `workoutFormSchema`). */
 export type WorkoutBuilderPayload = {
   name: string;
   notes: string;
+  cardio: string;
   sessions: {
     name: string;
     exercises: {
@@ -127,10 +135,11 @@ export type WorkoutBuilderAdapter = {
 const newKey = () => crypto.randomUUID();
 
 function initialDraft(workout?: WorkoutDetailDto): Draft {
-  if (!workout) return { name: "", notes: "", sessions: [] };
+  if (!workout) return { name: "", notes: "", cardio: "", sessions: [] };
   return {
     name: workout.name,
     notes: workout.notes ?? "",
+    cardio: workout.cardio ?? "",
     sessions: workout.sessions.map((s) => ({
       key: newKey(),
       name: s.name,
@@ -173,6 +182,7 @@ const shellSchema = z.object({
     .min(1, "Informe o nome do treino.")
     .max(120, "Nome muito longo."),
   notes: z.string().max(2000, "Observações muito longas."),
+  cardio: z.string().max(2000, "Cardio muito longo."),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -233,7 +243,11 @@ export function WorkoutBuilder({
   });
 
   const form = useForm({
-    defaultValues: { name: workout?.name ?? "", notes: workout?.notes ?? "" },
+    defaultValues: {
+      name: workout?.name ?? "",
+      notes: workout?.notes ?? "",
+      cardio: workout?.cardio ?? "",
+    },
     validators: { onChange: shellSchema },
     onSubmit: async ({ value }) => {
       if (adapter) {
@@ -255,6 +269,7 @@ export function WorkoutBuilder({
   function buildPayload(value: {
     name: string;
     notes: string;
+    cardio: string;
   }): WorkoutBuilderPayload | null {
     const errs: Record<string, string> = {};
     for (const s of sessions) {
@@ -265,6 +280,7 @@ export function WorkoutBuilder({
     return {
       name: value.name,
       notes: value.notes,
+      cardio: value.cardio,
       sessions: sessions.map((s) => ({
         name: s.name.trim(),
         exercises: withGroupIds(s.exercises).map(({ exercise: x, groupId }) => ({
@@ -322,6 +338,7 @@ export function WorkoutBuilder({
       if (saved && Array.isArray(saved.sessions)) {
         form.setFieldValue("name", saved.name ?? "");
         form.setFieldValue("notes", saved.notes ?? "");
+        form.setFieldValue("cardio", saved.cardio ?? "");
         /* eslint-disable react-hooks/set-state-in-effect */
         setSessions(saved.sessions);
         setRecovered(true);
@@ -340,6 +357,7 @@ export function WorkoutBuilder({
       const draft: Draft = {
         name: form.state.values.name,
         notes: form.state.values.notes,
+        cardio: form.state.values.cardio,
         sessions,
       };
       localStorage.setItem(storageKey, JSON.stringify(draft));
@@ -415,6 +433,7 @@ export function WorkoutBuilder({
     const fresh = initialDraft(workout);
     form.setFieldValue("name", fresh.name);
     form.setFieldValue("notes", fresh.notes);
+    form.setFieldValue("cardio", fresh.cardio);
     setSessions(fresh.sessions);
     setRecovered(false);
     dirtyRef.current = false;
@@ -551,6 +570,33 @@ export function WorkoutBuilder({
                 id="workout-notes"
                 rows={2}
                 placeholder="Orientações gerais, aquecimento, cadência…"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => {
+                  field.handleChange(e.target.value);
+                  markDirty();
+                }}
+              />
+              {fieldError(field) && (
+                <p className="text-body-dense text-destructive">{fieldError(field)}</p>
+              )}
+            </div>
+          )}
+        </form.Field>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <form.Field name="cardio">
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label htmlFor="workout-cardio" className="flex items-center gap-2">
+                <HeartPulse className="size-4 text-primary" />
+                Cardio (opcional)
+              </Label>
+              <Textarea
+                id="workout-cardio"
+                rows={2}
+                placeholder="Ex.: 30 min de esteira em Z2, 3x na semana, após o treino."
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(e) => {
@@ -787,7 +833,6 @@ function SortableExercise({
   };
   const [editing, setEditing] = useState(false);
   const tech = techniqueInfo(exercise.technique);
-  const thumb = exerciseImageUrl(exercise.thumbnail);
 
   return (
     <div
@@ -806,12 +851,12 @@ function SortableExercise({
         >
           <GripVertical className="size-4" />
         </button>
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="" className="size-9 shrink-0 rounded-md object-cover" />
-        ) : (
-          <div className="size-9 shrink-0 rounded-md bg-surface-light" />
-        )}
+        <ExerciseImageButton
+          exerciseId={exercise.exerciseId}
+          name={exercise.name}
+          thumbnail={exercise.thumbnail}
+          className="size-9 rounded-md"
+        />
         <button
           type="button"
           onClick={() => setEditing((v) => !v)}

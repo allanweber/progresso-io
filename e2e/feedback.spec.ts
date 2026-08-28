@@ -303,7 +303,7 @@ test.describe("coach feedback", () => {
     await page.getByRole("button", { name: "Novo check-in" }).click();
     const manual = page.getByRole("dialog");
     await expect(manual).toBeVisible();
-    const date = manual.getByLabel("Data do check-in");
+    const date = manual.getByLabel("Data do check-in", { exact: true });
     await expect(manual.getByLabel("Modalidade")).toHaveText("Presencial");
 
     // Typing eight digits yields dd/mm/aaaa — the format is the product's, not
@@ -339,6 +339,7 @@ test.describe("coach feedback", () => {
     await expect(date).toHaveValue("11/03/2024");
 
     await date.fill("18032024");
+    await manual.getByLabel(/Peso \(kg\)/).fill("79,8");
     await manual.getByLabel("Feedback / observação").fill(second);
     // The second one came in over WhatsApp, so it is filed as Online — same
     // author, different modality.
@@ -390,7 +391,7 @@ test.describe("coach feedback", () => {
     await expect(page.getByText(second)).toBeVisible();
     await page.getByRole("button", { name: "Novo check-in" }).click();
     const mobileManual = page.getByRole("dialog");
-    await expect(mobileManual.getByLabel("Data do check-in")).toBeVisible();
+    await expect(mobileManual.getByLabel("Data do check-in", { exact: true })).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-checkin-import-mobile.png",
       fullPage: true,
@@ -479,7 +480,7 @@ test.describe("coach feedback", () => {
     // --- An entry to correct ---
     await page.getByRole("button", { name: "Novo check-in" }).click();
     const manual = page.getByRole("dialog");
-    await manual.getByLabel("Data do check-in").fill("05022024");
+    await manual.getByLabel("Data do check-in", { exact: true }).fill("05022024");
     await manual.getByLabel(/Peso \(kg\)/).fill("88,0");
     await manual.getByLabel("Feedback / observação").fill(before);
     await manual.getByLabel("Enviar Pose de frente").setInputFiles(POSE_FIXTURE);
@@ -496,7 +497,7 @@ test.describe("coach feedback", () => {
     await detail.getByRole("button", { name: "Editar check-in" }).click();
 
     // The form opens seeded with what the check-in already holds.
-    const date = detail.getByLabel("Data do check-in");
+    const date = detail.getByLabel("Data do check-in", { exact: true });
     await expect(date).toHaveValue("05/02/2024");
     await expect(detail.getByLabel(/Peso \(kg\)/)).toHaveValue("88,0");
     await expect(detail.getByLabel("Feedback / observação")).toHaveValue(before);
@@ -535,7 +536,7 @@ test.describe("coach feedback", () => {
     await page.getByRole("button", { name: new RegExp(after) }).click();
     const mobileDetail = page.getByRole("dialog");
     await mobileDetail.getByRole("button", { name: "Editar check-in" }).click();
-    await expect(mobileDetail.getByLabel("Data do check-in")).toHaveValue(
+    await expect(mobileDetail.getByLabel("Data do check-in", { exact: true })).toHaveValue(
       "12/02/2024",
     );
     await page.screenshot({

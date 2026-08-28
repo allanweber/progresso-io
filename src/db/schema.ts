@@ -1186,6 +1186,9 @@ export const workout = pgTable(
     name: text("name").notNull(),
     // Free-text notes/observations (PT-BR), optional.
     notes: text("notes"),
+    // The cardio prescription for the whole program (free text, PT-BR), shown
+    // above the fichas. Optional.
+    cardio: text("cardio"),
     // Soft-delete: archived workouts drop out of listings but keep their rows.
     archived: boolean("archived").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1351,6 +1354,8 @@ export const studentWorkoutVersion = pgTable(
     // the catalog on read (see the DAL's `hydrateStructure`).
     tree: jsonb("tree").$type<WorkoutStructure>().notNull(),
     notes: text("notes"),
+    // The cardio prescription for this version (free text, PT-BR).
+    cardio: text("cardio"),
     publishedAt: timestamp("published_at"),
     publishedBy: text("published_by").references(() => user.id, {
       onDelete: "set null",

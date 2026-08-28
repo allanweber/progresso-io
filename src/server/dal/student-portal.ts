@@ -252,6 +252,7 @@ export async function getMyWorkoutState(
       version: schema.studentWorkoutVersion.version,
       publishedAt: schema.studentWorkoutVersion.publishedAt,
       notes: schema.studentWorkoutVersion.notes,
+      cardio: schema.studentWorkoutVersion.cardio,
       tree: schema.studentWorkoutVersion.tree,
     })
     .from(schema.studentWorkoutVersion)
@@ -288,6 +289,7 @@ export async function getMyWorkoutState(
         version: latest.version!,
         publishedAt: latest.publishedAt!.toISOString(),
         notes: latest.notes,
+        cardio: latest.cardio,
         sessions: await hydrateWorkoutStructure(ctx, latest.tree),
       };
     }
@@ -350,6 +352,7 @@ export async function getMyWorkoutVersion(
     version: row.version.version!,
     publishedAt: row.version.publishedAt!.toISOString(),
     notes: row.version.notes,
+    cardio: row.version.cardio,
     sessions: await hydrateWorkoutStructure(ctx, row.version.tree),
   };
 }

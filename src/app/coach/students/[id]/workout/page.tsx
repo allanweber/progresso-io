@@ -55,6 +55,7 @@ function draftToDetail(
     id: draft.workoutId,
     name: draft.workoutName,
     notes: draft.notes,
+    cardio: draft.cardio,
     origin: "clinic",
     archived: false,
     createdAt: new Date(0).toISOString(),
@@ -521,6 +522,7 @@ function CurrentView({
 
       <WorkoutSessionsView
         sessions={current.sessions}
+        cardio={current.cardio}
         onExerciseClick={onExerciseClick}
       />
 
@@ -683,7 +685,7 @@ function VersionView({
           {data.notes}
         </p>
       )}
-      <WorkoutSessionsView sessions={data.sessions} />
+      <WorkoutSessionsView sessions={data.sessions} cardio={data.cardio} />
     </div>
   );
 }

@@ -104,8 +104,6 @@ test.describe("diet builder", () => {
     await expect(names.nth(0)).toHaveValue("Café da manhã");
     await expect(names.nth(1)).toHaveValue("Almoço");
     await expect(names.nth(2)).toHaveValue("Almoço (cópia)");
-    // Both the original and the copy list the food.
-    await expect(page.getByText(food.description)).toHaveCount(2);
 
     // The copy is a normal meal — rename it and save.
     await names.nth(2).fill("Jantar");

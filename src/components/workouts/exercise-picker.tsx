@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ChevronLeft, Plus } from "lucide-react";
 
-import { CATEGORY_LABELS, exerciseImageUrl } from "@/lib/exercises";
+import { CATEGORY_LABELS } from "@/lib/exercises";
+import { ExerciseImageButton } from "@/components/workouts/exercise-images";
 import {
   ExerciseSearch,
   type PickedExercise,
@@ -61,7 +62,6 @@ export function ExercisePicker({
   }
 
   // Prescription step -----------------------------------------------------
-  const thumb = exerciseImageUrl(selected.thumbnail);
   return (
     <div className="rounded-xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
       <button
@@ -73,16 +73,12 @@ export function ExercisePicker({
         Voltar aos resultados
       </button>
       <div className="mb-4 flex items-center gap-3">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumb}
-            alt=""
-            className="size-11 shrink-0 rounded-lg object-cover"
-          />
-        ) : (
-          <div className="size-11 shrink-0 rounded-lg bg-surface-light" />
-        )}
+        <ExerciseImageButton
+          exerciseId={selected.id}
+          name={selected.name}
+          thumbnail={selected.thumbnail}
+          className="size-11 rounded-lg"
+        />
         <div className="min-w-0">
           <div className="truncate text-subtitle font-semibold text-foreground">
             {selected.name}

@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 
+import { ExerciseImageButton } from "@/components/workouts/exercise-images";
 import { apiFetch } from "@/lib/api-client";
 import {
   CATEGORY_LABELS,
-  exerciseImageUrl,
   type ExerciseCategory,
   type ExerciseEquipment,
   type ExerciseListResponse,
@@ -148,44 +148,41 @@ export function ExerciseSearch({
             </div>
           ) : (
             <ul className="max-h-72 divide-y divide-[#F5F7FA] overflow-y-auto">
-              {results.map((f, i) => {
-                const thumb = exerciseImageUrl(f.thumbnail);
-                return (
-                  <li key={f.id}>
-                    <button
-                      type="button"
-                      onMouseEnter={() => setActive(i)}
-                      onClick={() => onPick(toPicked(f))}
-                      className={`flex w-full items-center gap-3 px-2 py-2.5 text-left ${
-                        i === activeIndex ? "bg-primary/5" : "bg-white"
-                      }`}
-                    >
-                      {thumb ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={thumb}
-                          alt=""
-                          className="size-9 shrink-0 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="size-9 shrink-0 rounded-md bg-surface-light" />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-body font-medium text-foreground">
-                          {f.name}
-                        </span>
-                        <span className="block truncate text-label text-muted-foreground">
-                          {CATEGORY_LABELS[f.category]}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
+              {results.map((f, i) => (
+                // The thumbnail is its own control (it expands the images), so
+                // the row is a flex container, not one big button.
+                <li
+                  key={f.id}
+                  onMouseEnter={() => setActive(i)}
+                  className={`flex items-center gap-3 px-2 py-2.5 ${
+                    i === activeIndex ? "bg-primary/5" : "bg-white"
+                  }`}
+                >
+                  <ExerciseImageButton
+                    exerciseId={f.id}
+                    name={f.name}
+                    thumbnail={f.thumbnail}
+                    className="size-9 rounded-md"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onPick(toPicked(f))}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <span className="block truncate text-body font-medium text-foreground">
+                      {f.name}
+                    </span>
+                    <span className="block truncate text-label text-muted-foreground">
+                      {CATEGORY_LABELS[f.category]}
+                    </span>
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
           <div className="mt-1 px-2 pt-1 text-label text-muted-foreground">
-            ↑ ↓ navegar · Enter selecionar · Esc fechar
+            ↑ ↓ navegar · Enter selecionar · Esc fechar · toque na imagem para
+            ampliar
           </div>
         </div>
       )}
