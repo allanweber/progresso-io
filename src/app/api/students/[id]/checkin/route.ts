@@ -1,30 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { todayYmd } from "@/lib/calendar";
-import {
-  assessmentHasValues,
-  assessmentSchema,
-} from "@/lib/checkin-assessment";
-import {
-  CHECKIN_POSE_VALUES,
-  coachCheckinSchema,
-  type CheckinListDto,
-} from "@/lib/student-checkins";
+import type { CheckinListDto } from "@/lib/student-checkins";
 import { coachCheckins } from "@/server/dal";
 import { withCoach } from "@/server/guard";
 import { notifyCheckinFeedback } from "@/server/whatsapp-automations";
-import type {
-  AssessmentWriteInput,
-  CreateCoachCheckinInput,
-} from "@/server/dal/coach-checkins";
-import type { CheckinPhotoInput } from "@/server/dal/student-checkins";
+import type { CreateCoachCheckinInput } from "@/server/dal/coach-checkins";
 import {
-  apiError,
-  isUuid,
-  notFound,
-  validationError,
-} from "@/server/api";
-import { putCheckinPhoto, validateCheckinPhoto } from "@/server/r2";
+  parseCoachCheckinForm,
+  storeCheckinPhotos,
+} from "@/server/checkin-form";
+import { apiError, isUuid, notFound } from "@/server/api";
 
 /**
  * A student's check-ins, coach-side. Coach-only; the DAL scopes every query by
@@ -35,8 +21,9 @@ import { putCheckinPhoto, validateCheckinPhoto } from "@/server/r2";
  * - POST → an in-person (coach) check-in: a multipart body with a `date`
  *   (today, or a past one when importing history), an optional `weightKg`,
  *   `note`, an `assessment` JSON field (measures/skinfolds) and up to four
- *   optional pose photos. A note on a check-in dated today is also sent to the
- *   student on WhatsApp (logged in dev); a backdated one never is.
+ *   optional pose photos — all parsed by the shared `parseCoachCheckinForm`,
+ *   which the edit route uses too. A note on a check-in dated today is also sent
+ *   to the student on WhatsApp (logged in dev); a backdated one never is.
  */
 type Params = { params: Promise<{ id: string }> };
 
@@ -58,60 +45,14 @@ export const POST = withCoach<Params>(
     const { id } = await params;
     if (!isUuid(id)) return notFound("Aluno não encontrado.");
 
-    let form: FormData;
-    try {
-      form = await request.formData();
-    } catch {
-      return apiError("Envio inválido.", 400);
-    }
+    const form = await parseCoachCheckinForm(request);
+    if (!form.ok) return form.response;
+    const { date, modality, weightKg, note, assessment, photoFiles } = form.data;
 
-    // Text fields: the date is required (the form defaults it to today and the
-    // schema refuses the future); weight + note are both optional.
-    const parsed = coachCheckinSchema.safeParse({
-      date: form.get("date") ?? "",
-      weightKg: form.get("weightKg") ?? "",
-      note: form.get("note") ?? "",
-    });
-    if (!parsed.success) return validationError(parsed.error);
-
-    // Optional assessment, carried as a JSON field.
-    const rawAssessment = form.get("assessment");
-    let assessmentInput: unknown = {};
-    if (typeof rawAssessment === "string" && rawAssessment.trim() !== "") {
-      try {
-        assessmentInput = JSON.parse(rawAssessment);
-      } catch {
-        return apiError("Avaliação inválida.", 400);
-      }
-    }
-    const parsedAssessment = assessmentSchema.safeParse(assessmentInput);
-    if (!parsedAssessment.success) return validationError(parsedAssessment.error);
-    const assessment: AssessmentWriteInput = assessmentHasValues(
-      parsedAssessment.data,
-    )
-      ? {
-          circumferences: parsedAssessment.data.circumferences,
-          skinfolds: parsedAssessment.data.skinfolds,
-          bodyFatPct: parsedAssessment.data.bodyFatPct,
-        }
-      : null;
-
-    // Optional photos (0–4); each must be a valid, small (compressed) image.
-    const photoFiles: { pose: (typeof CHECKIN_POSE_VALUES)[number]; file: File }[] =
-      [];
-    for (const pose of CHECKIN_POSE_VALUES) {
-      const file = form.get(pose);
-      if (file instanceof File && file.size > 0) {
-        const check = validateCheckinPhoto(file);
-        if (!check.ok) return apiError(check.message, 422);
-        photoFiles.push({ pose, file });
-      }
-    }
-
-    // A coach entry must carry SOMETHING.
+    // A coach entry must carry SOMETHING (a date alone is not a check-in).
     const empty =
-      parsed.data.weightKg === null &&
-      parsed.data.note === null &&
+      weightKg === null &&
+      note === null &&
       photoFiles.length === 0 &&
       assessment === null;
     if (empty) {
@@ -121,18 +62,12 @@ export const POST = withCoach<Params>(
       );
     }
 
-    const stored: CheckinPhotoInput[] = [];
-    for (const { pose, file } of photoFiles) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const r2Key = await putCheckinPhoto(buffer, file.type);
-      stored.push({ pose, r2Key });
-    }
-
     const input: CreateCoachCheckinInput = {
-      date: parsed.data.date,
-      weightKg: parsed.data.weightKg,
-      note: parsed.data.note,
-      photos: stored,
+      date,
+      modality,
+      weightKg,
+      note,
+      photos: await storeCheckinPhotos(photoFiles),
       assessment,
     };
     const created = await coachCheckins.createCoachCheckin(ctx, id, input);
@@ -144,7 +79,7 @@ export const POST = withCoach<Params>(
     // entry never notifies: it is a record of something the student already
     // lived through, and importing a year of history must not fire a year of
     // messages at them.
-    if (parsed.data.note && parsed.data.date === todayYmd()) {
+    if (note && date === todayYmd()) {
       const origin = new URL(request.url).origin;
       await notifyCheckinFeedback(ctx, id, `${origin}/student`);
     }

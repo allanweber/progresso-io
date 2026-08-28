@@ -1,12 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Maximize2, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  Columns2,
+  Maximize2,
+  TrendingDown,
+  TrendingUp,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 
 import { StudentTabs } from "@/components/students/student-tabs";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   PhotoLightbox,
   type LightboxPhoto,
@@ -97,6 +111,41 @@ export default function StudentEvolutionPage() {
   const { id } = useParams<{ id: string }>();
   const [pose, setPose] = useState<CheckinPose>("frente");
   const [zoom, setZoom] = useState<number | null>(null);
+  const [comparing, setComparing] = useState(false);
+  // Zoom + pan are shared by BOTH panes of the comparison, so the two sides
+  // always show the same region at the same magnification.
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const drag = useRef<{
+    x: number;
+    y: number;
+    ox: number;
+    oy: number;
+    w: number;
+    h: number;
+  } | null>(null);
+
+  function resetView() {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+    drag.current = null;
+  }
+
+  /** Zooms about the centre, pulling the pan back inside the new bounds. */
+  function zoomBy(delta: number) {
+    setScale((current) => {
+      const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current + delta));
+      if (next === MIN_SCALE) setOffset({ x: 0, y: 0 });
+      else
+        setOffset((o) => ({
+          // The frame is unknown here; scaling the offset by the zoom ratio
+          // keeps the same point centred and never grows it past the old bound.
+          x: (o.x * (next - 1)) / Math.max(current - 1, next - 1),
+          y: (o.y * (next - 1)) / Math.max(current - 1, next - 1),
+        }));
+      return next;
+    });
+  }
 
   const student = useQuery({
     queryKey: ["student", id],
@@ -130,14 +179,20 @@ export default function StudentEvolutionPage() {
   const firstAssessment = assessments[0];
   const lastAssessment = assessments[assessments.length - 1];
 
-  const earliestPhotos = photoSets[0];
+  // The TWO MOST RECENT check-ins that carry photos — `photoSets` is oldest →
+  // newest. Comparing against the very first set answers "since we started",
+  // which stops being the useful question once a student has a year of history:
+  // what a coach reads on this tab is "what changed since last time".
+  const previousPhotos = photoSets.length > 1 ? photoSets[photoSets.length - 2] : undefined;
   const latestPhotos = photoSets[photoSets.length - 1];
   const hasComparablePhotos = photoSets.length > 0;
+  const canCompare = previousPhotos !== undefined;
 
-  // The tiles crop to `object-cover`; the lightbox shows the whole pose. Its
-  // set is the before/after of the SELECTED pose, so the arrows walk antes ↔ depois.
-  const comparableSets =
-    photoSets.length > 1 ? [earliestPhotos, latestPhotos] : [earliestPhotos];
+  // The tiles crop to `object-cover`; the lightbox shows the whole pose. Its set
+  // is the pair for the SELECTED pose, so the arrows walk anterior ↔ atual.
+  const comparableSets = canCompare
+    ? [previousPhotos, latestPhotos]
+    : [latestPhotos];
   const zoomPhotos: LightboxPhoto[] = comparableSets.flatMap((set) => {
     const photoId = set ? posePhotoId(set, pose) : null;
     if (!set || !photoId) return [];
@@ -234,48 +289,225 @@ export default function StudentEvolutionPage() {
           {/* Comparable photos */}
           {hasComparablePhotos ? (
             <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="font-heading text-subtitle font-semibold">
-                  Fotos comparáveis
-                </div>
-                <div className="flex gap-1">
-                  {CHECKIN_POSE_VALUES.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPose(p)}
-                      className={cn(
-                        "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
-                        pose === p
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/70",
-                      )}
-                    >
-                      {CHECKIN_POSE_LABELS[p].replace("Pose ", "")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <ComparePhoto
-                  studentId={id}
-                  set={earliestPhotos}
-                  pose={pose}
-                  onOpen={() => setZoom(zoomIndexFor(earliestPhotos))}
-                />
-                {photoSets.length > 1 ? (
-                  <ComparePhoto
-                    studentId={id}
-                    set={latestPhotos}
-                    pose={pose}
-                    onOpen={() => setZoom(zoomIndexFor(latestPhotos))}
-                  />
-                ) : (
-                  <div className="flex aspect-[3/4] items-center justify-center rounded-xl border border-dashed border-border text-center text-label text-muted-foreground">
-                    Envie mais check-ins com fotos para comparar.
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                {/* The action belongs beside the title, not in the pill strip:
+                    a 36px ghost button next to an 18px heading is the row's
+                    natural height, while the same button wedged among 24px pills
+                    reads as a misalignment. Left = what this card does, right =
+                    which pose you are looking at. */}
+                <div className="flex items-center gap-1">
+                  <div className="font-heading text-subtitle font-semibold">
+                    Fotos comparáveis
                   </div>
+                  {canCompare ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Comparar lado a lado"
+                      onClick={() => setComparing(true)}
+                    >
+                      <Columns2 className="size-4" />
+                      Comparar
+                    </Button>
+                  ) : null}
+                </div>
+                <PoseSwitcher pose={pose} onChange={setPose} />
+              </div>
+              <p className="mb-3 text-label text-muted-foreground">
+                {canCompare
+                  ? `Os dois últimos check-ins com fotos: ${formatCheckinDate(previousPhotos.date)} e ${formatCheckinDate(latestPhotos!.date)}.`
+                  : "O último check-in com fotos."}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {canCompare ? (
+                  <>
+                    <ComparePhoto
+                      studentId={id}
+                      set={previousPhotos}
+                      pose={pose}
+                      onOpen={() => setZoom(zoomIndexFor(previousPhotos))}
+                    />
+                    <ComparePhoto
+                      studentId={id}
+                      set={latestPhotos}
+                      pose={pose}
+                      onOpen={() => setZoom(zoomIndexFor(latestPhotos))}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ComparePhoto
+                      studentId={id}
+                      set={latestPhotos}
+                      pose={pose}
+                      onOpen={() => setZoom(zoomIndexFor(latestPhotos))}
+                    />
+                    <div className="flex aspect-[3/4] items-center justify-center rounded-xl border border-dashed border-border text-center text-label text-muted-foreground">
+                      Envie mais check-ins com fotos para comparar.
+                    </div>
+                  </>
                 )}
               </div>
+
+              {/* Side by side, both whole, on the same dark surface the single
+                  photo viewer uses — this IS the viewer, with two panes. The
+                  tiles crop to `object-cover` and the lightbox shows one pose at
+                  a time; neither answers "what changed", which can only be read
+                  with both images open at once. Zoom and pan are SHARED, so both
+                  sides magnify the same region — comparing an abdomen at 1× on
+                  one side and 2.5× on the other would be worse than useless. */}
+              <Dialog
+                open={comparing}
+                onOpenChange={(o) => {
+                  setComparing(o);
+                  if (!o) resetView();
+                }}
+              >
+                <DialogContent
+                  overlayClassName="bg-black/80"
+                  className="max-w-[min(96vw,1100px)] border-0 bg-neutral-950 p-3 [&>button]:bg-black/50 [&>button]:text-white/80 [&>button:hover]:bg-black/70 [&>button:hover]:text-white"
+                >
+                  <DialogHeader className="flex-row flex-wrap items-center gap-2 pr-10">
+                    <DialogTitle className="text-body font-semibold text-white">
+                      Comparar · {CHECKIN_POSE_LABELS[pose]}
+                    </DialogTitle>
+                    <div className="ml-auto flex flex-wrap items-center gap-2">
+                      <PoseSwitcher
+                        pose={pose}
+                        tone="dark"
+                        onChange={(p) => {
+                          setPose(p);
+                          resetView();
+                        }}
+                      />
+                      <div className="flex items-center gap-0.5 rounded-full bg-white/10 p-0.5">
+                        <button
+                          type="button"
+                          aria-label="Diminuir zoom"
+                          disabled={scale <= MIN_SCALE}
+                          onClick={() => zoomBy(-ZOOM_STEP)}
+                          className={ZOOM_BUTTON}
+                        >
+                          <ZoomOut className="size-4" aria-hidden="true" />
+                        </button>
+                        <span className="min-w-11 text-center text-caption tabular-nums text-white/80">
+                          {Math.round(scale * 100)}%
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Aumentar zoom"
+                          disabled={scale >= MAX_SCALE}
+                          onClick={() => zoomBy(ZOOM_STEP)}
+                          className={ZOOM_BUTTON}
+                        >
+                          <ZoomIn className="size-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  </DialogHeader>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {comparableSets.map((set, i) => {
+                      const photoId = set ? posePhotoId(set, pose) : null;
+                      return (
+                        <div
+                          key={set?.checkinId ?? i}
+                          className="flex flex-col gap-1.5"
+                        >
+                          <div
+                            className={cn(
+                              "relative flex h-[52vh] items-center justify-center overflow-hidden rounded-lg bg-black sm:h-[68vh]",
+                              scale > 1
+                                ? "cursor-grab active:cursor-grabbing"
+                                : "",
+                            )}
+                            onDoubleClick={() =>
+                              setScale((z) => (z > 1 ? 1 : 2))
+                            }
+                            onWheel={(e) =>
+                              zoomBy(e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)
+                            }
+                            onPointerDown={(e) => {
+                              if (scale <= 1) return;
+                              e.currentTarget.setPointerCapture(e.pointerId);
+                              drag.current = {
+                                x: e.clientX,
+                                y: e.clientY,
+                                ox: offset.x,
+                                oy: offset.y,
+                                w: e.currentTarget.clientWidth,
+                                h: e.currentTarget.clientHeight,
+                              };
+                            }}
+                            onPointerMove={(e) => {
+                              const d = drag.current;
+                              if (!d) return;
+                              setOffset({
+                                x: clampPan(
+                                  d.ox + (e.clientX - d.x),
+                                  d.w,
+                                  scale,
+                                ),
+                                y: clampPan(
+                                  d.oy + (e.clientY - d.y),
+                                  d.h,
+                                  scale,
+                                ),
+                              });
+                            }}
+                            onPointerUp={() => {
+                              drag.current = null;
+                            }}
+                            onPointerCancel={() => {
+                              drag.current = null;
+                            }}
+                          >
+                            {set && photoId ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
+                                <img
+                                  src={`/api/students/${id}/checkin/${set.checkinId}/photo/${photoId}`}
+                                  alt={CHECKIN_POSE_LABELS[pose]}
+                                  draggable={false}
+                                  className="max-h-full max-w-full select-none object-contain"
+                                  style={{
+                                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setZoom(zoomIndexFor(set))}
+                                  aria-label={`Ampliar ${CHECKIN_POSE_LABELS[pose]} de ${formatCheckinDate(set.date)}`}
+                                  className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white/80 transition-colors hover:bg-black/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                  <Maximize2 className="size-4" aria-hidden="true" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-label text-white/50">
+                                Sem foto nesta pose
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-center text-caption text-white/70">
+                            {set ? formatCheckinDate(set.date) : "—"}
+                            {set?.weightKg != null
+                              ? ` · ${formatCheckinWeight(set.weightKg)} kg`
+                              : ""}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-1 text-center text-caption text-white/40">
+                    Role ou use −/+ para aproximar; arraste para mover. Os dois
+                    lados acompanham juntos.
+                  </p>
+                </DialogContent>
+              </Dialog>
+
               <PhotoLightbox
                 photos={zoomPhotos}
                 index={zoom}
@@ -356,6 +588,64 @@ export default function StudentEvolutionPage() {
 }
 
 /** One before/after photo tile for a chosen pose (or a placeholder). */
+/* -------------------------------------------------------------------------- */
+/*  Comparison viewer zoom                                                     */
+/* -------------------------------------------------------------------------- */
+
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+const ZOOM_STEP = 0.25;
+
+const ZOOM_BUTTON =
+  "flex size-7 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/**
+ * Keeps a pan inside the image: at scale `z` the picture overflows its frame by
+ * `(z - 1) / 2` of the frame on each side, and dragging past that would park
+ * empty space in view — the one thing a comparison must never show.
+ */
+function clampPan(value: number, frame: number, scale: number): number {
+  const max = ((scale - 1) * frame) / 2;
+  return Math.max(-max, Math.min(max, value));
+}
+
+/**
+ * The four pose pills — above the tiles on the card, and again inside the
+ * comparison viewer, whose surface is dark like the lightbox's.
+ */
+function PoseSwitcher({
+  pose,
+  onChange,
+  tone = "light",
+}: {
+  pose: CheckinPose;
+  onChange: (pose: CheckinPose) => void;
+  tone?: "light" | "dark";
+}) {
+  return (
+    <div className="flex gap-1">
+      {CHECKIN_POSE_VALUES.map((p) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onChange(p)}
+          aria-pressed={pose === p}
+          className={cn(
+            "rounded-full px-2.5 py-1 text-caption font-semibold transition-colors",
+            pose === p
+              ? "bg-primary text-primary-foreground"
+              : tone === "dark"
+                ? "bg-white/10 text-white/70 hover:bg-white/20"
+                : "bg-muted text-muted-foreground hover:bg-muted/70",
+          )}
+        >
+          {CHECKIN_POSE_LABELS[p].replace("Pose ", "")}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ComparePhoto({
   studentId,
   set,

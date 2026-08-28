@@ -1,4 +1,4 @@
-import type { CheckinAuthor, CheckinPose } from "@/db/schema";
+import type { CheckinAuthor, CheckinPose, Modality } from "@/db/schema";
 import {
   assessmentSchema,
   type CheckinAssessmentDto,
@@ -6,6 +6,7 @@ import {
   type CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
 import { todayYmd } from "@/lib/calendar";
+import { MODALITY_VALUES } from "@/lib/students";
 import { brToIso, isoToBr } from "@/lib/date-br";
 import { z } from "@/lib/validation";
 
@@ -134,9 +135,18 @@ export const checkinDateSchema = z
  */
 export const coachCheckinSchema = z.object({
   date: checkinDateSchema,
+  modality: z.enum(MODALITY_VALUES, { error: "Informe a modalidade." }),
   weightKg: optionalWeightSchema,
   note: noteSchema,
 });
+
+/**
+ * The modality a coach's own entry starts on. Presencial is the default because
+ * it is the reason to log one by hand at all — the aluno's online check-ins
+ * arrive through the portal on their own. A coach entering data a student sent
+ * another way (WhatsApp, a call) switches it to Online.
+ */
+export const COACH_CHECKIN_DEFAULT_MODALITY: Modality = "in_person";
 
 export type CoachCheckinInput = z.input<typeof coachCheckinSchema>;
 
@@ -154,6 +164,14 @@ export const coachFeedbackSchema = z.object({
 });
 
 export type CoachFeedbackInput = z.input<typeof coachFeedbackSchema>;
+
+/**
+ * Re-labelling a check-in photo as another pose (JSON). The everyday case is a
+ * left/right mix-up at upload time; any of the four can be moved to any other.
+ */
+export const checkinPhotoPoseSchema = z.object({
+  pose: z.enum(CHECKIN_POSE_VALUES, { error: "Pose inválida." }),
+});
 
 /* -------------------------------------------------------------------------- */
 /*  Display helpers (client-safe)                                             */
@@ -181,6 +199,8 @@ export type CheckinDto = {
   /** Calendar date, `YYYY-MM-DD`. */
   date: string;
   author: CheckinAuthor;
+  /** How the check-in happened — presencial or online (not the enrolment). */
+  modality: Modality;
   weightKg: number | null;
   note: string | null;
   /** How many photos this entry carries. */
@@ -245,6 +265,7 @@ export type CheckinDetailDto = {
   id: string;
   date: string;
   author: CheckinAuthor;
+  modality: Modality;
   weightKg: number | null;
   note: string | null;
   /** The coach's response (null while pending / for coach entries). */

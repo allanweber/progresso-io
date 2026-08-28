@@ -1849,6 +1849,12 @@ export const studentCheckin = pgTable(
     // Who logged it. A student submission carries weight + all four poses; a
     // coach in-person entry can carry the same fields (and more, later).
     author: text("author").$type<CheckinAuthor>().default("student").notNull(),
+    // How the check-in happened, NOT how the student is enrolled: an online
+    // student can walk in for a presencial assessment, and a coach can log an
+    // online check-in a student sent over WhatsApp. Stated by the coach on their
+    // own entries (defaulting to presencial, the reason to log one by hand); an
+    // aluno submission through the portal is always `online`.
+    modality: text("modality").$type<Modality>().default("online").notNull(),
     // The user who created the row (aluno or coach). NULL if that user is later
     // deleted — the entry itself stays on the student's timeline.
     authorUserId: text("author_user_id").references(() => user.id, {

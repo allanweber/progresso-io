@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { schema } from "@/db";
-import type { CheckinAuthor, CheckinPose } from "@/db/schema";
+import type { CheckinAuthor, CheckinPose, Modality } from "@/db/schema";
 import type { CheckinAssessmentDto } from "@/lib/checkin-assessment";
 import type {
   CheckinDetailDto,
@@ -124,6 +124,7 @@ export type CheckinRow = {
   id: string;
   date: string;
   author: CheckinAuthor;
+  modality: Modality;
   weightKg: number | null;
   note: string | null;
   feedback: string | null;
@@ -141,6 +142,7 @@ export function mapCheckinRows(
     id: r.id,
     date: r.date,
     author: r.author,
+    modality: r.modality,
     weightKg: r.weightKg,
     note: r.note,
     photoCount: photoCounts.get(r.id) ?? 0,
@@ -334,6 +336,8 @@ export async function createStudentCheckin(
         studentId: student.id,
         date,
         author: "student",
+        // Submitted through the portal — there is no other way for an aluno.
+        modality: "online",
         authorUserId: ctx.userId,
         weightKg: input.weightKg,
         note: input.note,
@@ -357,6 +361,7 @@ export async function createStudentCheckin(
       id: checkin.id,
       date: checkin.date,
       author: checkin.author,
+      modality: checkin.modality,
       weightKg: checkin.weightKg,
       note: checkin.note,
       photoCount: input.photos.length,
@@ -398,6 +403,7 @@ export async function listMyCheckins(
       id: schema.studentCheckin.id,
       date: schema.studentCheckin.date,
       author: schema.studentCheckin.author,
+      modality: schema.studentCheckin.modality,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
       feedback: schema.studentCheckin.feedback,
@@ -450,6 +456,7 @@ export async function getMyCheckin(
       id: schema.studentCheckin.id,
       date: schema.studentCheckin.date,
       author: schema.studentCheckin.author,
+      modality: schema.studentCheckin.modality,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
       feedback: schema.studentCheckin.feedback,
@@ -499,6 +506,7 @@ export async function getMyCheckin(
     id: row.id,
     date: row.date,
     author: row.author,
+    modality: row.modality,
     weightKg: row.weightKg,
     note: row.note,
     feedback: row.feedback,

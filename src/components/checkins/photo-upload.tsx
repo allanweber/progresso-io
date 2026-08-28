@@ -4,6 +4,13 @@ import { useRef, useState } from "react";
 import { Camera, Check, Loader2, Maximize2, X } from "lucide-react";
 
 import { PhotoLightbox } from "@/components/checkins/photo-lightbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError } from "@/lib/api-client";
 import { compressImage } from "@/lib/image-compression";
 import {
@@ -84,18 +91,20 @@ export function anyCompressing(
 }
 
 /**
- * POSTs a multipart check-in via XMLHttpRequest — `fetch` can't report upload
+ * Sends a multipart check-in via XMLHttpRequest — `fetch` can't report upload
  * progress, so we use XHR's `upload.onprogress` to drive a determinate bar tied
- * to the real byte transfer. Generic over the response shape.
+ * to the real byte transfer. `POST` creates, `PATCH` edits; both carry the same
+ * body. Generic over the response shape.
  */
 export function uploadCheckinForm<T>(
   url: string,
   formData: FormData,
   onProgress: (pct: number) => void,
+  method: "POST" | "PATCH" = "POST",
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", url);
+    xhr.open(method, url);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
@@ -134,26 +143,38 @@ export function uploadCheckinForm<T>(
 export function PhotoUploadSlot({
   pose,
   slot,
+  existingUrl,
   disabled,
   onPick,
   onRemove,
 }: {
   pose: CheckinPose;
   slot: PhotoSlot | null;
+  /**
+   * A photo this pose ALREADY has (the edit form) — shown when nothing new has
+   * been picked, so the coach sees what they are about to replace rather than an
+   * empty "Adicionar" card. Picking a file covers it; removing reveals it again.
+   */
+  existingUrl?: string;
   disabled: boolean;
   onPick: (file: File) => void;
   onRemove: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const label = CHECKIN_POSE_LABELS[pose];
-  const ready = slot !== null && !slot.compressing;
+  const picked = slot !== null && !slot.compressing;
+  const ready = picked || (slot === null && existingUrl !== undefined);
 
   return (
     <div className="relative aspect-[4/5] overflow-hidden rounded-xl">
       {ready ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
-          <img src={slot.url} alt={label} className="h-full w-full object-cover" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview / private API stream */}
+          <img
+            src={picked ? slot!.url : existingUrl}
+            alt={label}
+            className="h-full w-full object-cover"
+          />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5">
             <span className="text-caption font-semibold text-white">{label}</span>
           </div>
@@ -217,9 +238,20 @@ export function PhotoUploadSlot({
 export function CheckinPhotoGrid({
   basePath,
   photos,
+  onReassign,
+  reassigning = false,
 }: {
   basePath: string;
   photos: CheckinPhotoDto[];
+  /**
+   * Coach-only: re-label a photo as another pose. Given, each tile grows a pose
+   * selector — a left/right mix-up at upload time is common enough that the fix
+   * belongs next to the photo, not in a re-upload. Omitted (the aluno's own
+   * history) the grid stays read-only.
+   */
+  onReassign?: (photoId: string, pose: CheckinPose) => void;
+  /** Whether a reassignment is in flight (disables every selector). */
+  reassigning?: boolean;
 }) {
   // Which photo the lightbox is showing (null = closed). The tiles crop to
   // `object-cover`, so enlarging is the only way to see the whole pose.
@@ -230,30 +262,53 @@ export function CheckinPhotoGrid({
     <>
       <div className="grid grid-cols-2 gap-2.5">
         {photos.map((p, i) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setZoomed(i)}
-            aria-label={`Ampliar ${CHECKIN_POSE_LABELS[p.pose]}`}
-            className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
-            <img
-              src={`${basePath}/${p.id}`}
-              alt={CHECKIN_POSE_LABELS[p.pose]}
-              className="h-full w-full object-cover"
-            />
-            {/* aria-hidden: keeps this out of the a11y tree so the four photos
-                stay the only images the specs count. */}
-            <span className="pointer-events-none absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-black/45 text-white opacity-80 transition-opacity group-hover:opacity-100">
-              <Maximize2 className="size-3.5" aria-hidden="true" />
-            </span>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5 text-left">
-              <span className="text-caption font-semibold text-white">
-                {CHECKIN_POSE_LABELS[p.pose]}
+          <div key={p.id} className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setZoomed(i)}
+              aria-label={`Ampliar ${CHECKIN_POSE_LABELS[p.pose]}`}
+              className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
+              <img
+                src={`${basePath}/${p.id}`}
+                alt={CHECKIN_POSE_LABELS[p.pose]}
+                className="h-full w-full object-cover"
+              />
+              {/* aria-hidden: keeps this out of the a11y tree so the four photos
+                  stay the only images the specs count. */}
+              <span className="pointer-events-none absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-black/45 text-white opacity-80 transition-opacity group-hover:opacity-100">
+                <Maximize2 className="size-3.5" aria-hidden="true" />
               </span>
-            </div>
-          </button>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5 text-left">
+                <span className="text-caption font-semibold text-white">
+                  {CHECKIN_POSE_LABELS[p.pose]}
+                </span>
+              </div>
+            </button>
+
+            {onReassign ? (
+              <Select
+                value={p.pose}
+                disabled={reassigning}
+                onValueChange={(v) => onReassign(p.id, v as CheckinPose)}
+              >
+                <SelectTrigger
+                  aria-label={`Corrigir pose (${CHECKIN_POSE_LABELS[p.pose]})`}
+                  className="h-9 rounded-lg text-body-dense"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHECKIN_POSE_VALUES.map((pose) => (
+                    <SelectItem key={pose} value={pose}>
+                      {CHECKIN_POSE_LABELS[pose]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+          </div>
         ))}
       </div>
 

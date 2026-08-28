@@ -6,11 +6,14 @@ import type {
   CheckinCircumferences,
   CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
+import type { Modality } from "@/db/schema";
+import { CHECKIN_POSE_VALUES } from "@/lib/student-checkins";
 import type {
   AssessmentPointDto,
   CheckinDetailDto,
   CheckinDto,
   CheckinListDto,
+  CheckinPhotoDto,
   EvolutionDto,
   PhotoSetDto,
   WeightPointDto,
@@ -113,6 +116,7 @@ export async function listStudentCheckins(
       id: schema.studentCheckin.id,
       date: schema.studentCheckin.date,
       author: schema.studentCheckin.author,
+      modality: schema.studentCheckin.modality,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
       feedback: schema.studentCheckin.feedback,
@@ -157,6 +161,7 @@ export async function getStudentCheckin(
       id: schema.studentCheckin.id,
       date: schema.studentCheckin.date,
       author: schema.studentCheckin.author,
+      modality: schema.studentCheckin.modality,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
       feedback: schema.studentCheckin.feedback,
@@ -206,6 +211,7 @@ export async function getStudentCheckin(
     id: row.id,
     date: row.date,
     author: row.author,
+    modality: row.modality,
     weightKg: row.weightKg,
     note: row.note,
     feedback: row.feedback,
@@ -254,6 +260,8 @@ export type CreateCoachCheckinInput = {
    * in the future) at the route's zod layer.
    */
   date: string;
+  /** How it happened: `in_person` for an assessment, `online` for one relayed. */
+  modality: Modality;
   weightKg: number | null;
   note: string | null;
   photos: CheckinPhotoInput[];
@@ -288,6 +296,7 @@ export async function createCoachCheckin(
         studentId,
         date,
         author: "coach",
+        modality: input.modality,
         authorUserId: ctx.userId,
         weightKg: input.weightKg,
         note: input.note,
@@ -318,6 +327,7 @@ export async function createCoachCheckin(
       id: checkin.id,
       date: checkin.date,
       author: checkin.author,
+      modality: checkin.modality,
       weightKg: checkin.weightKg,
       note: checkin.note,
       photoCount: input.photos.length,
@@ -384,6 +394,285 @@ export async function submitFeedback(
   });
 
   return getStudentCheckin(ctx, studentId, checkinId);
+}
+
+export type UpdateCoachCheckinInput = {
+  /** The (possibly corrected) calendar date — never in the future. */
+  date: string;
+  /** Correctable like the rest — an entry filed presencial by mistake. */
+  modality: Modality;
+  weightKg: number | null;
+  note: string | null;
+  /** Photos to add, or to replace whatever holds that pose. */
+  photos: CheckinPhotoInput[];
+  /** Poses whose photo is dropped entirely. */
+  removePoses: CheckinPose[];
+  /** The measures to keep. **null clears** any assessment already attached. */
+  assessment: AssessmentWriteInput;
+};
+
+export type UpdateCoachCheckinResult = {
+  detail: CheckinDetailDto;
+  /**
+   * Keys of photos that are no longer referenced (replaced or removed) — the
+   * caller deletes their bytes after the transaction commits, exactly as the
+   * check-in delete does.
+   */
+  orphanedKeys: string[];
+};
+
+/**
+ * Edits an existing check-in: date, weight, note, measures and photos. Either
+ * author's — a coach owns the clinical record, whether the aluno submitted it or
+ * the coach logged it.
+ *
+ * Two things follow the date rather than being edited separately, because
+ * letting them drift would quietly corrupt the history:
+ *
+ * - the **assessment's `assessedAt`**, which is the date the measures were taken;
+ * - the **plan snapshot**, re-resolved whenever the date moves, so a check-in
+ *   corrected from July to March stops claiming July's diet.
+ *
+ * A `null` assessment CLEARS the measures (unlike the create path, where null
+ * simply means "none supplied") — on an edit, an empty measures form is the
+ * coach saying to remove them.
+ *
+ * Returns the fresh detail plus the orphaned photo keys, or null when the
+ * check-in isn't this student's in this clinic.
+ */
+export async function updateCheckin(
+  ctx: TenantContext,
+  studentId: string,
+  checkinId: string,
+  input: UpdateCoachCheckinInput,
+): Promise<UpdateCoachCheckinResult | null> {
+  const [target] = await ctx.db
+    .select({ id: schema.studentCheckin.id, date: schema.studentCheckin.date })
+    .from(schema.studentCheckin)
+    .where(
+      and(
+        eq(schema.studentCheckin.id, checkinId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+        eq(schema.studentCheckin.studentId, studentId),
+      ),
+    );
+  if (!target) return null;
+
+  // Only re-resolve the plan when the date actually moved: the snapshot is
+  // meant to be frozen, and re-running it on an unrelated edit would silently
+  // repoint an old check-in at a plan published since.
+  const snapshot =
+    target.date === input.date
+      ? null
+      : await resolvePlanSnapshot(ctx, studentId, input.date);
+
+  const existing = await ctx.db
+    .select({
+      pose: schema.studentCheckinPhoto.pose,
+      r2Key: schema.studentCheckinPhoto.r2Key,
+    })
+    .from(schema.studentCheckinPhoto)
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+      ),
+    );
+
+  // A pose that is being replaced or dropped loses its current bytes.
+  const vacating = new Set<CheckinPose>([
+    ...input.removePoses,
+    ...input.photos.map((p) => p.pose),
+  ]);
+  const orphanedKeys = existing
+    .filter((p) => vacating.has(p.pose))
+    .map((p) => p.r2Key);
+
+  await ctx.db.transaction(async (tx) => {
+    const txCtx: TenantContext = { ...ctx, db: tx as unknown as typeof ctx.db };
+
+    await tx
+      .update(schema.studentCheckin)
+      .set({
+        date: input.date,
+        modality: input.modality,
+        weightKg: input.weightKg,
+        note: input.note,
+        updatedAt: new Date(),
+        ...(snapshot ?? {}),
+      })
+      .where(
+        and(
+          eq(schema.studentCheckin.id, checkinId),
+          eq(schema.studentCheckin.clinicId, ctx.clinicId),
+        ),
+      );
+
+    if (vacating.size > 0) {
+      await tx
+        .delete(schema.studentCheckinPhoto)
+        .where(
+          and(
+            eq(schema.studentCheckinPhoto.checkinId, checkinId),
+            eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+            inArray(schema.studentCheckinPhoto.pose, [...vacating]),
+          ),
+        );
+    }
+
+    if (input.photos.length > 0) {
+      await tx.insert(schema.studentCheckinPhoto).values(
+        input.photos.map((p) => ({
+          clinicId: ctx.clinicId,
+          checkinId,
+          pose: p.pose,
+          r2Key: p.r2Key,
+          sortOrder: poseOrder(p.pose),
+        })),
+      );
+    }
+
+    if (input.assessment) {
+      await upsertAssessment(txCtx, {
+        checkinId,
+        studentId,
+        assessedAt: input.date,
+        assessment: input.assessment,
+      });
+    } else {
+      await tx
+        .delete(schema.checkinAssessment)
+        .where(
+          and(
+            eq(schema.checkinAssessment.checkinId, checkinId),
+            eq(schema.checkinAssessment.clinicId, ctx.clinicId),
+          ),
+        );
+    }
+  });
+
+  const detail = await getStudentCheckin(ctx, studentId, checkinId);
+  if (!detail) return null;
+  return { detail, orphanedKeys };
+}
+
+/**
+ * A pose value no photo can legitimately hold — used for a single statement
+ * while two photos trade places. `unique(checkin_id, pose)` is not deferrable,
+ * so "A takes B's pose, B takes A's" cannot be done in two updates without
+ * colliding halfway; parking A here frees the slot for B first.
+ */
+const PARKED_POSE = "__swapping__" as CheckinPose;
+
+/** A pose's canonical position in the grid (frente, costas, esquerdo, direito). */
+function poseOrder(pose: CheckinPose): number {
+  return CHECKIN_POSE_VALUES.indexOf(pose);
+}
+
+/** The photos of a check-in, in display order — the shape the detail DTO uses. */
+async function checkinPhotos(
+  ctx: TenantContext,
+  checkinId: string,
+): Promise<CheckinPhotoDto[]> {
+  return ctx.db
+    .select({
+      id: schema.studentCheckinPhoto.id,
+      pose: schema.studentCheckinPhoto.pose,
+    })
+    .from(schema.studentCheckinPhoto)
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+      ),
+    )
+    .orderBy(schema.studentCheckinPhoto.sortOrder);
+}
+
+/**
+ * Re-labels one check-in photo as another pose — the fix for the everyday
+ * mistake of uploading "lado esquerdo" into the "lado direito" slot. Works for
+ * all four, in any combination:
+ *
+ * - the target pose is **taken** → the two photos trade places (a swap);
+ * - the target pose is **free** (an incomplete check-in) → the photo just moves.
+ *
+ * What changes is the LABEL, never the bytes: each photo keeps its id, so its
+ * private stream URL still resolves to the same image and nothing already
+ * cached by a browser goes stale. Scoped to clinic + student; returns the
+ * check-in's photos in display order, or null when the photo isn't this
+ * student's in this clinic.
+ */
+export async function movePhotoToPose(
+  ctx: TenantContext,
+  studentId: string,
+  checkinId: string,
+  photoId: string,
+  targetPose: CheckinPose,
+): Promise<CheckinPhotoDto[] | null> {
+  // The join proves the photo hangs off a check-in of this student, this clinic.
+  const [source] = await ctx.db
+    .select({
+      id: schema.studentCheckinPhoto.id,
+      pose: schema.studentCheckinPhoto.pose,
+      sortOrder: schema.studentCheckinPhoto.sortOrder,
+    })
+    .from(schema.studentCheckinPhoto)
+    .innerJoin(
+      schema.studentCheckin,
+      eq(schema.studentCheckinPhoto.checkinId, schema.studentCheckin.id),
+    )
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.id, photoId),
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+        eq(schema.studentCheckin.studentId, studentId),
+      ),
+    );
+  if (!source) return null;
+  if (source.pose === targetPose) return checkinPhotos(ctx, checkinId);
+
+  const [occupant] = await ctx.db
+    .select({
+      id: schema.studentCheckinPhoto.id,
+      sortOrder: schema.studentCheckinPhoto.sortOrder,
+    })
+    .from(schema.studentCheckinPhoto)
+    .where(
+      and(
+        eq(schema.studentCheckinPhoto.checkinId, checkinId),
+        eq(schema.studentCheckinPhoto.clinicId, ctx.clinicId),
+        eq(schema.studentCheckinPhoto.pose, targetPose),
+      ),
+    );
+
+  await ctx.db.transaction(async (tx) => {
+    if (!occupant) {
+      // Free slot: a plain move, taking the pose's canonical grid position.
+      await tx
+        .update(schema.studentCheckinPhoto)
+        .set({ pose: targetPose, sortOrder: poseOrder(targetPose) })
+        .where(eq(schema.studentCheckinPhoto.id, source.id));
+      return;
+    }
+    // Taken: park, hand over, then land — three statements so the unique
+    // (checkin, pose) constraint is satisfied after every one of them.
+    await tx
+      .update(schema.studentCheckinPhoto)
+      .set({ pose: PARKED_POSE })
+      .where(eq(schema.studentCheckinPhoto.id, source.id));
+    await tx
+      .update(schema.studentCheckinPhoto)
+      .set({ pose: source.pose, sortOrder: source.sortOrder })
+      .where(eq(schema.studentCheckinPhoto.id, occupant.id));
+    await tx
+      .update(schema.studentCheckinPhoto)
+      .set({ pose: targetPose, sortOrder: occupant.sortOrder })
+      .where(eq(schema.studentCheckinPhoto.id, source.id));
+  });
+
+  return checkinPhotos(ctx, checkinId);
 }
 
 /**

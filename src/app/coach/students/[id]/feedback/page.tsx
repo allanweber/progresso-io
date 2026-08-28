@@ -11,11 +11,13 @@ import {
   ClipboardList,
   Clock,
   MessageCircle,
+  Pencil,
   Plus,
   Ruler,
   Trash2,
 } from "lucide-react";
 
+import type { CheckinPose, Modality } from "@/db/schema";
 import { StudentTabs } from "@/components/students/student-tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +29,13 @@ import {
 import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AssessmentFields,
@@ -49,9 +58,11 @@ import {
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { todayYmd } from "@/lib/calendar";
 import { fieldError } from "@/lib/form";
+import { MODALITY_LABELS, MODALITY_VALUES } from "@/lib/students";
 import {
   CHECKIN_MIN_DATE,
   CHECKIN_POSE_VALUES,
+  COACH_CHECKIN_DEFAULT_MODALITY,
   coachCheckinSchema,
   formatCheckinDate,
   formatCheckinWeight,
@@ -76,20 +87,29 @@ function entryStyle(c: CheckinDto): EntryStyle {
       className: "bg-primary-light text-primary",
     };
   }
-  // A coach entry with measures/photos/weight reads as an in-person assessment;
-  // a note-only coach entry is a plain annotation.
-  if (c.hasAssessment || c.photoCount > 0 || c.weightKg !== null) {
+  // A coach note with nothing attached is an annotation however it was
+  // collected — there is no check-in to classify.
+  if (!c.hasAssessment && c.photoCount === 0 && c.weightKg === null) {
     return {
-      title: "Avaliação presencial",
-      tag: "presencial",
-      className: "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
+      title: "Anotação do coach",
+      tag: "coach",
+      className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40",
     };
   }
-  return {
-    title: "Anotação do coach",
-    tag: "coach",
-    className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40",
-  };
+  // Otherwise the coach SAID which it was when they logged it. This used to be
+  // guessed from the payload — weight or photos meant "presencial" — which
+  // quietly mislabelled every check-in a coach relayed from WhatsApp.
+  return c.modality === "in_person"
+    ? {
+        title: "Avaliação presencial",
+        tag: "presencial",
+        className: "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
+      }
+    : {
+        title: "Check-in online",
+        tag: "online",
+        className: "bg-primary-light text-primary",
+      };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -293,6 +313,7 @@ function ReviewDialog({
   checkinId: string | null;
   onClose: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const detail = useQuery({
     queryKey: ["coach-checkin", studentId, checkinId],
     queryFn: () =>
@@ -304,8 +325,13 @@ function ReviewDialog({
 
   const d = detail.data;
 
+  function close() {
+    setEditing(false);
+    onClose();
+  }
+
   return (
-    <Dialog open={checkinId !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={checkinId !== null} onOpenChange={(open) => !open && close()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg">
@@ -313,9 +339,13 @@ function ReviewDialog({
               ? "Check-in"
               : d.author === "student"
                 ? "Check-in do aluno"
-                : d.weightKg !== null || d.photos.length > 0 || d.assessment
-                  ? "Avaliação presencial"
-                  : "Anotação do coach"}
+                : d.weightKg === null &&
+                    d.photos.length === 0 &&
+                    d.assessment === null
+                  ? "Anotação do coach"
+                  : d.modality === "in_person"
+                    ? "Avaliação presencial"
+                    : "Check-in online"}
           </DialogTitle>
           {d ? (
             <p className="text-body-dense text-muted-foreground">
@@ -333,6 +363,13 @@ function ReviewDialog({
           <p className="text-sm text-destructive">
             Não foi possível carregar este check-in.
           </p>
+        ) : d && editing ? (
+          <EditCheckinForm
+            key={`edit-${d.id}`}
+            studentId={studentId}
+            detail={d}
+            onDone={() => setEditing(false)}
+          />
         ) : d ? (
           <div className="flex flex-col gap-4">
             {d.note ? (
@@ -342,15 +379,7 @@ function ReviewDialog({
             ) : null}
 
             {d.photos.length > 0 ? (
-              <div>
-                <div className="mb-2 text-xs font-medium text-muted-foreground">
-                  Fotos do aluno
-                </div>
-                <CheckinPhotoGrid
-                  basePath={`/api/students/${studentId}/checkin/${d.id}/photo`}
-                  photos={d.photos}
-                />
-              </div>
+              <CheckinPhotos studentId={studentId} detail={d} />
             ) : null}
 
             {d.assessment ? <AssessmentView assessment={d.assessment} /> : null}
@@ -368,16 +397,357 @@ function ReviewDialog({
               />
             ) : null}
 
-            <DeleteCheckin
-              key={`del-${d.id}`}
-              studentId={studentId}
-              detail={d}
-              onDeleted={onClose}
-            />
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditing(true)}
+              >
+                <Pencil className="size-4" />
+                Editar check-in
+              </Button>
+              <DeleteCheckin
+                key={`del-${d.id}`}
+                studentId={studentId}
+                detail={d}
+                onDeleted={close}
+              />
+            </div>
           </div>
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Edits an existing check-in: date, weight, note, measures and photos — the
+ * whole entry, whether the aluno submitted it or the coach logged it. A coach
+ * owns the clinical record: a weight typed with the decimal in the wrong place,
+ * an import filed under the wrong day or a photo shot in the wrong pose should
+ * be correctable in place, not by deleting and re-entering.
+ *
+ * Photos follow the same three rules the API does: a slot with a new file is
+ * replaced, a slot cleared is dropped, and a slot left alone is untouched — so
+ * fixing a weight never re-uploads four images. Clearing every measure removes
+ * the assessment.
+ */
+function EditCheckinForm({
+  studentId,
+  detail,
+  onDone,
+}: {
+  studentId: string;
+  detail: CheckinDetailDto;
+  onDone: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const basePath = `/api/students/${studentId}/checkin/${detail.id}/photo`;
+  const { photos, pick, remove, reset: resetPhotos } = usePhotoSlots();
+  const [assessment, setAssessment] = useState<AssessmentFormValues>(() =>
+    detail.assessment
+      ? assessmentFormFromDto(detail.assessment)
+      : emptyAssessmentForm(),
+  );
+  const [showAssessment, setShowAssessment] = useState(
+    detail.assessment !== null,
+  );
+  // Poses whose STORED photo the coach dropped (a new pick isn't a removal).
+  const [dropped, setDropped] = useState<CheckinPose[]>([]);
+  const [progress, setProgress] = useState(0);
+
+  const storedByPose = new Map(detail.photos.map((p) => [p.pose, p.id]));
+  const today = todayYmd();
+
+  const mutation = useMutation({
+    mutationFn: (fd: FormData) =>
+      uploadCheckinForm<CheckinDetailDto>(
+        `/api/students/${studentId}/checkin/${detail.id}`,
+        fd,
+        setProgress,
+        "PATCH",
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["coach-checkin", studentId, detail.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["coach-checkins", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["coach-evolution", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["coach-dashboard"] });
+      onDone();
+    },
+  });
+
+  const form = useForm({
+    defaultValues: {
+      date: detail.date,
+      modality: detail.modality,
+      weightKg: detail.weightKg === null ? "" : formatCheckinWeight(detail.weightKg),
+      note: detail.note ?? "",
+    },
+    validators: { onChange: coachCheckinSchema },
+    onSubmit: async ({ value }) => {
+      const fd = new FormData();
+      fd.set("date", value.date);
+      fd.set("modality", value.modality);
+      fd.set("weightKg", value.weightKg.trim());
+      fd.set("note", value.note.trim());
+      fd.set(
+        "assessment",
+        JSON.stringify(
+          assessmentFormHasValues(assessment)
+            ? assessmentFormToPayload(assessment)
+            : {},
+        ),
+      );
+      // Only poses the coach actually cleared — a pose that got a new file is a
+      // replacement, which the API handles from the file alone.
+      fd.set(
+        "removePhotos",
+        dropped.filter((pose) => photos[pose] === null).join(","),
+      );
+      appendPhotos(fd, photos);
+      setProgress(0);
+      try {
+        await mutation.mutateAsync(fd);
+      } catch {
+        /* surfaced below */
+      }
+    },
+  });
+
+  const banner =
+    mutation.error instanceof ApiError ? mutation.error.message : undefined;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+      className="flex flex-col gap-4"
+    >
+      <form.Field name="date">
+        {(field) => (
+          <DateInput
+            id="e-date"
+            label="Data do check-in"
+            value={field.state.value}
+            onChange={(v) => field.handleChange(v)}
+            onBlur={field.handleBlur}
+            error={fieldError(field)}
+            min={CHECKIN_MIN_DATE}
+            max={today}
+          />
+        )}
+      </form.Field>
+
+      {/* An aluno submission arrived through the portal — that is a fact about
+          how it got here, not a judgement call, so only a coach's own entry
+          exposes the choice. The stored value rides along untouched either way. */}
+      {detail.author === "coach" ? (
+        <form.Field name="modality">
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label htmlFor="e-modality">Modalidade</Label>
+              <Select
+                value={field.state.value}
+                onValueChange={(v) => field.handleChange(v as Modality)}
+              >
+                <SelectTrigger id="e-modality" onBlur={field.handleBlur}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODALITY_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {MODALITY_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </form.Field>
+      ) : null}
+
+      <form.Field name="weightKg">
+        {(field) => (
+          <Field
+            id="e-weight"
+            label="Peso (kg) — opcional"
+            type="text"
+            inputMode="decimal"
+            placeholder="71,4"
+            value={field.state.value}
+            onBlur={field.handleBlur}
+            onChange={(e) => field.handleChange(e.target.value)}
+            error={fieldError(field)}
+          />
+        )}
+      </form.Field>
+
+      <form.Field name="note">
+        {(field) => (
+          <div className="space-y-1.5">
+            <Label htmlFor="e-note">
+              {detail.author === "student"
+                ? "Observação do aluno"
+                : "Feedback / observação"}
+            </Label>
+            <Textarea
+              id="e-note"
+              rows={3}
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+          </div>
+        )}
+      </form.Field>
+
+      <div className="space-y-2">
+        <Label>Fotos</Label>
+        <div className="grid grid-cols-4 gap-2.5">
+          {CHECKIN_POSE_VALUES.map((pose) => {
+            const storedId = storedByPose.get(pose);
+            const showStored =
+              storedId !== undefined && !dropped.includes(pose);
+            return (
+              <PhotoUploadSlot
+                key={pose}
+                pose={pose}
+                slot={photos[pose]}
+                existingUrl={showStored ? `${basePath}/${storedId}` : undefined}
+                disabled={mutation.isPending}
+                onPick={(file) => pick(pose, file)}
+                onRemove={() => {
+                  if (photos[pose]) remove(pose);
+                  else setDropped((d) => [...d, pose]);
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {showAssessment ? (
+        <div className="rounded-xl border border-border p-3.5">
+          <AssessmentFields
+            value={assessment}
+            onChange={setAssessment}
+            idPrefix="edit"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Apagar todos os campos remove as medidas deste check-in.
+          </p>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() => setShowAssessment(true)}
+        >
+          <Ruler className="size-4" />
+          Registrar medidas (opcional)
+        </Button>
+      )}
+
+      {banner ? (
+        <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
+          {banner}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap justify-end gap-2.5">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            resetPhotos();
+            setDropped([]);
+            onDone();
+          }}
+          disabled={mutation.isPending}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          disabled={anySlotCompressing(photos) || mutation.isPending}
+        >
+          {mutation.isPending
+            ? `Salvando…${progress > 0 && progress < 100 ? ` ${progress}%` : ""}`
+            : "Salvar alterações"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * The check-in's photos, with a pose selector under each one.
+ *
+ * Uploading "lado esquerdo" into the "lado direito" slot is the single most
+ * common mistake on a check-in — by the aluno at submit time or by the coach on
+ * an in-person entry — and it silently corrupts the before/after comparison,
+ * which lines photos up BY POSE. Fixing it here costs one dropdown; the
+ * alternative is asking the aluno to shoot and submit the whole set again.
+ *
+ * Choosing a pose another photo already holds swaps the two, so the fix is a
+ * single action rather than a three-step shuffle through a free slot.
+ */
+function CheckinPhotos({
+  studentId,
+  detail,
+}: {
+  studentId: string;
+  detail: CheckinDetailDto;
+}) {
+  const queryClient = useQueryClient();
+
+  const reassign = useMutation({
+    mutationFn: ({ photoId, pose }: { photoId: string; pose: CheckinPose }) =>
+      apiFetch<{ photos: CheckinDetailDto["photos"] }>(
+        `/api/students/${studentId}/checkin/${detail.id}/photo/${photoId}`,
+        { method: "PATCH", body: JSON.stringify({ pose }) },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["coach-checkin", studentId, detail.id],
+      });
+      // Evolução lines the before/after photos up by pose — it is the view the
+      // mix-up actually broke.
+      queryClient.invalidateQueries({ queryKey: ["coach-evolution", studentId] });
+    },
+  });
+
+  const banner =
+    reassign.error instanceof ApiError ? reassign.error.message : undefined;
+
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
+        <span className="text-xs font-medium text-muted-foreground">
+          Fotos do aluno
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Trocou de lado? Corrija a pose abaixo da foto.
+        </span>
+      </div>
+      <CheckinPhotoGrid
+        basePath={`/api/students/${studentId}/checkin/${detail.id}/photo`}
+        photos={detail.photos}
+        reassigning={reassign.isPending}
+        onReassign={(photoId, pose) => reassign.mutate({ photoId, pose })}
+      />
+      {banner ? (
+        <p className="mt-2 text-body-dense font-medium text-destructive">
+          {banner}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -421,23 +791,21 @@ function DeleteCheckin({
 
   if (!confirming) {
     return (
-      <div className="border-t border-border pt-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => setConfirming(true)}
-        >
-          <Trash2 className="size-4" />
-          Excluir check-in
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => setConfirming(true)}
+      >
+        <Trash2 className="size-4" />
+        Excluir check-in
+      </Button>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3">
+    <div className="flex w-full flex-col gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3">
       <p className="text-body-dense text-foreground">
         Excluir o check-in de{" "}
         <span className="font-semibold">{formatCheckinDate(detail.date)}</span>?
@@ -630,11 +998,17 @@ function ManualCheckinDialog({
   });
 
   const form = useForm({
-    defaultValues: { date: today, weightKg: "", note: "" },
+    defaultValues: {
+      date: today,
+      modality: COACH_CHECKIN_DEFAULT_MODALITY,
+      weightKg: "",
+      note: "",
+    },
     validators: { onChange: coachCheckinSchema },
     onSubmit: async ({ value }) => {
       const fd = new FormData();
       fd.set("date", value.date);
+      fd.set("modality", value.modality);
       if (value.weightKg.trim()) fd.set("weightKg", value.weightKg);
       if (value.note.trim()) fd.set("note", value.note);
       if (assessmentFormHasValues(assessment)) {
@@ -669,6 +1043,9 @@ function ManualCheckinDialog({
     mutation.reset();
     form.setFieldValue("weightKg", "");
     form.setFieldValue("note", "");
+    // Date and modality carry over: a batch of imported entries is normally the
+    // same kind, and re-picking both for every one would be the tax that makes
+    // an import not worth doing.
     document.getElementById("m-date")?.focus();
   }
 
@@ -692,12 +1069,13 @@ function ManualCheckinDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading text-lg">
             <ClipboardList className="size-5 text-primary" />
-            Novo check-in presencial
+            Novo check-in
           </DialogTitle>
           <p className="text-body-dense text-muted-foreground">
-            Use a data de hoje para uma avaliação agora, ou uma data passada para
-            importar um check-in antigo. Só um check-in de hoje avisa o aluno no
-            WhatsApp.
+            Presencial por padrão; mude para Online se o aluno passou os dados
+            por outro canal. Use a data de hoje para uma avaliação agora, ou uma
+            data passada para importar um check-in antigo — só um check-in de
+            hoje avisa o aluno no WhatsApp.
           </p>
         </DialogHeader>
 
@@ -728,6 +1106,29 @@ function ManualCheckinDialog({
                     online é uma dupla legítima.
                   </p>
                 ) : null}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="modality">
+            {(field) => (
+              <div className="space-y-1.5">
+                <Label htmlFor="m-modality">Modalidade</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v as Modality)}
+                >
+                  <SelectTrigger id="m-modality" onBlur={field.handleBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODALITY_VALUES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {MODALITY_LABELS[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </form.Field>

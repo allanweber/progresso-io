@@ -217,6 +217,51 @@ test.describe("coach feedback", () => {
     await page.keyboard.press("Escape");
     await expect(lightbox).toBeHidden();
 
+    // --- Side by side: both photos whole, in one dialog ---
+    await expect(
+      page.getByText(/Os dois últimos check-ins com fotos/),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Comparar lado a lado" }).click();
+    const compare = page.getByRole("dialog");
+    await expect(
+      compare.getByRole("heading", { name: /^Comparar · Pose de frente/ }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-evolution-compare-desktop.png",
+    });
+
+    // Each one still opens on top of the comparison.
+    await compare
+      .getByRole("button", { name: /^Ampliar Pose de frente de / })
+      .first()
+      .click();
+    const stacked = page.getByRole("dialog").last();
+    await expect(
+      stacked.getByRole("heading", { name: "Pose de frente" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    // Esc closed only the lightbox — the comparison is still open behind it.
+    await expect(
+      compare.getByRole("heading", { name: /^Comparar · Pose de frente/ }),
+    ).toBeVisible();
+
+    // The pose pills switch both sides at once.
+    await compare.getByRole("button", { name: "de costas" }).click();
+    await expect(
+      compare.getByRole("heading", { name: /^Comparar · Pose de costas/ }),
+    ).toBeVisible();
+
+    // Zoom is shared by both panes — one control, one magnification.
+    await expect(compare.getByText("100%")).toBeVisible();
+    await compare.getByRole("button", { name: "Aumentar zoom" }).click();
+    await expect(compare.getByText("125%")).toBeVisible();
+    // Switching pose starts the comparison over at 1×.
+    await compare.getByRole("button", { name: "de frente" }).click();
+    await expect(compare.getByText("100%")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(compare).toBeHidden();
+
     // --- Mobile ---
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByText("Peso ao longo do tempo")).toBeVisible();
@@ -233,6 +278,14 @@ test.describe("coach feedback", () => {
     ).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-evolution-lightbox-mobile.png",
+    });
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Comparar lado a lado" }).click();
+    await expect(
+      page.getByRole("dialog").getByRole("heading", { name: /^Comparar · / }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-evolution-compare-mobile.png",
     });
   });
 
@@ -251,6 +304,7 @@ test.describe("coach feedback", () => {
     const manual = page.getByRole("dialog");
     await expect(manual).toBeVisible();
     const date = manual.getByLabel("Data do check-in");
+    await expect(manual.getByLabel("Modalidade")).toHaveText("Presencial");
 
     // Typing eight digits yields dd/mm/aaaa — the format is the product's, not
     // the device locale's (which is what the native date input would follow).
@@ -286,12 +340,24 @@ test.describe("coach feedback", () => {
 
     await date.fill("18032024");
     await manual.getByLabel("Feedback / observação").fill(second);
+    // The second one came in over WhatsApp, so it is filed as Online — same
+    // author, different modality.
+    await manual.getByLabel("Modalidade").click();
+    await page.getByRole("option", { name: "Online" }).click();
     await manual.getByRole("button", { name: "Salvar check-in" }).click();
     await expect(manual).toBeHidden();
 
     // Both land on the timeline under their own PAST dates, not today's.
     await expect(page.getByText(first)).toBeVisible();
     await expect(page.getByText(second)).toBeVisible();
+    // …and each carries the modality it was filed under, not one guessed from
+    // its contents.
+    await expect(
+      page.getByRole("button", { name: new RegExp(`Avaliação presencial.*${first}`, "s") }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: new RegExp(`Check-in online.*${second}`, "s") }),
+    ).toBeVisible();
     await expect(page.getByText("11/03/2024").first()).toBeVisible();
     await expect(page.getByText("18/03/2024").first()).toBeVisible();
 
@@ -327,6 +393,153 @@ test.describe("coach feedback", () => {
     await expect(mobileManual.getByLabel("Data do check-in")).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-checkin-import-mobile.png",
+      fullPage: true,
+    });
+  });
+
+  test("fixes a pose uploaded into the wrong slot (desktop + mobile)", async ({
+    page,
+  }) => {
+    await openAnaFeedback(page);
+    const feedbackUrl = page.url();
+    const note = `Fotos trocadas e2e ${String(Date.now()).slice(-6)}`;
+
+    // A check-in carrying both side poses — the pair that gets mixed up.
+    await page.getByRole("button", { name: "Novo check-in" }).click();
+    const manual = page.getByRole("dialog");
+    await manual.getByLabel("Feedback / observação").fill(note);
+    await manual
+      .getByLabel("Enviar Pose lado esquerdo")
+      .setInputFiles(POSE_FIXTURE);
+    await manual
+      .getByLabel("Enviar Pose lado direito")
+      .setInputFiles(POSE_FIXTURE);
+    await expect(
+      manual.getByRole("button", { name: "Remover Pose lado direito" }),
+    ).toBeVisible();
+    await manual.getByRole("button", { name: "Salvar check-in" }).click();
+    await expect(manual).toBeHidden();
+
+    // --- Swap the two sides from the detail dialog ---
+    await page.getByRole("button", { name: new RegExp(note) }).click();
+    const detail = page.getByRole("dialog");
+    const leftImg = detail.getByRole("img", { name: "Pose lado esquerdo" });
+    const rightImg = detail.getByRole("img", { name: "Pose lado direito" });
+    await expect(leftImg).toBeVisible();
+    // Each photo streams from its own id — the src is how a swap is proven,
+    // since both tiles show the same fixture image.
+    const wasLeft = await leftImg.getAttribute("src");
+    const wasRight = await rightImg.getAttribute("src");
+    expect(wasLeft).not.toBe(wasRight);
+
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-pose-fix-desktop.png",
+      fullPage: true,
+    });
+
+    await detail
+      .getByRole("combobox", { name: "Corrigir pose (Pose lado esquerdo)" })
+      .click();
+    await page.getByRole("option", { name: "Pose lado direito" }).click();
+
+    // The labels keep their grid positions; the PHOTOS traded places.
+    await expect(leftImg).toHaveAttribute("src", wasRight!);
+    await expect(rightImg).toHaveAttribute("src", wasLeft!);
+
+    // It survives a reload — the swap was persisted, not just local state.
+    await page.reload();
+    await page.getByRole("button", { name: new RegExp(note) }).click();
+    await expect(
+      page.getByRole("dialog").getByRole("img", { name: "Pose lado esquerdo" }),
+    ).toHaveAttribute("src", wasRight!);
+
+    // --- Mobile ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(feedbackUrl);
+    await page.getByRole("button", { name: new RegExp(note) }).click();
+    const mobileDetail = page.getByRole("dialog");
+    await expect(
+      mobileDetail.getByRole("combobox", {
+        name: "Corrigir pose (Pose lado esquerdo)",
+      }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-pose-fix-mobile.png",
+      fullPage: true,
+    });
+  });
+
+  test("edits a check-in end to end (desktop + mobile)", async ({ page }) => {
+    await openAnaFeedback(page);
+    const feedbackUrl = page.url();
+    const stamp = String(Date.now()).slice(-6);
+    const before = `Editar e2e ${stamp} antes`;
+    const after = `Editar e2e ${stamp} depois`;
+
+    // --- An entry to correct ---
+    await page.getByRole("button", { name: "Novo check-in" }).click();
+    const manual = page.getByRole("dialog");
+    await manual.getByLabel("Data do check-in").fill("05022024");
+    await manual.getByLabel(/Peso \(kg\)/).fill("88,0");
+    await manual.getByLabel("Feedback / observação").fill(before);
+    await manual.getByLabel("Enviar Pose de frente").setInputFiles(POSE_FIXTURE);
+    await expect(
+      manual.getByRole("button", { name: "Remover Pose de frente" }),
+    ).toBeVisible();
+    await manual.getByRole("button", { name: "Salvar check-in" }).click();
+    await expect(manual).toBeHidden();
+    await expect(page.getByText(before)).toBeVisible();
+
+    // --- Edit every field ---
+    await page.getByRole("button", { name: new RegExp(before) }).click();
+    const detail = page.getByRole("dialog");
+    await detail.getByRole("button", { name: "Editar check-in" }).click();
+
+    // The form opens seeded with what the check-in already holds.
+    const date = detail.getByLabel("Data do check-in");
+    await expect(date).toHaveValue("05/02/2024");
+    await expect(detail.getByLabel(/Peso \(kg\)/)).toHaveValue("88,0");
+    await expect(detail.getByLabel("Feedback / observação")).toHaveValue(before);
+
+    await date.fill("12022024");
+    await detail.getByLabel(/Peso \(kg\)/).fill("86,5");
+    await detail.getByLabel("Feedback / observação").fill(after);
+    // Drop the stored photo (the slot shows it, so the X removes it).
+    await detail
+      .getByRole("button", { name: "Remover Pose de frente" })
+      .click();
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-edit-desktop.png",
+      fullPage: true,
+    });
+    await detail.getByRole("button", { name: "Salvar alterações" }).click();
+
+    // Back on the read view, everything changed — including the photo going.
+    await expect(
+      detail.getByRole("button", { name: "Editar check-in" }),
+    ).toBeVisible();
+    await expect(detail.getByText(after)).toBeVisible();
+    await expect(detail.getByText(/12\/02\/2024/)).toBeVisible();
+    await expect(detail.getByRole("img")).toHaveCount(0);
+
+    // And it persisted: reload and the timeline carries the corrected entry.
+    await page.keyboard.press("Escape");
+    await page.reload();
+    await expect(page.getByText(after)).toBeVisible();
+    await expect(page.getByText(before)).toBeHidden();
+    await expect(page.getByText("12/02/2024").first()).toBeVisible();
+
+    // --- Mobile ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(feedbackUrl);
+    await page.getByRole("button", { name: new RegExp(after) }).click();
+    const mobileDetail = page.getByRole("dialog");
+    await mobileDetail.getByRole("button", { name: "Editar check-in" }).click();
+    await expect(mobileDetail.getByLabel("Data do check-in")).toHaveValue(
+      "12/02/2024",
+    );
+    await page.screenshot({
+      path: "test-results/screens/coach-checkin-edit-mobile.png",
       fullPage: true,
     });
   });

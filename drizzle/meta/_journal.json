@@ -267,6 +267,13 @@
       "when": 1787898032676,
       "tag": "0037_checkin_plan_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1787905932700,
+      "tag": "0038_checkin_modality",
+      "breakpoints": true
     }
   ]
 }
