@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dumbbell, FileText, Loader2, Pencil, Plus, Search } from "lucide-react";
+import {
+  Dumbbell,
+  FileText,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 
 import {
   WorkoutExerciseDetail,
@@ -27,7 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
 import type {
   StudentWorkoutStateDto,
   StudentWorkoutVersionDto,
@@ -106,6 +114,11 @@ export default function StudentWorkoutPage() {
   const [blankName, setBlankName] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
   const [viewVersionId, setViewVersionId] = useState<string | null>(null);
+  // The history version awaiting a delete confirmation (label = what the dialog
+  // names, so the coach sees exactly which version is about to go).
+  const [deleteTarget, setDeleteTarget] = useState<
+    { versionId: string; label: string } | null
+  >(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [detail, setDetail] = useState<{
@@ -171,6 +184,26 @@ export default function StudentWorkoutPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workouts"] });
       setBanner("Treino salvo como modelo na sua lista de treinos.");
+    },
+  });
+
+  /**
+   * Removes one published version from the histórico. The current (aluno-visible)
+   * version is not offered here and is refused by the API, so this never changes
+   * the program the student is training.
+   */
+  const deleteVersion = useMutation({
+    mutationFn: (versionId: string) =>
+      apiFetch(`/api/students/${id}/workout/versions/${versionId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: async (_data, versionId) => {
+      queryClient.removeQueries({
+        queryKey: ["student-workout-version", id, versionId],
+      });
+      setViewVersionId((open) => (open === versionId ? null : open));
+      setDeleteTarget(null);
+      await invalidate();
     },
   });
 
@@ -259,6 +292,7 @@ export default function StudentWorkoutPage() {
           onAssign={() => setDialog("assign")}
           onSaveAsTemplate={() => saveAsTemplate.mutate()}
           onViewVersion={setViewVersionId}
+          onDeleteVersion={setDeleteTarget}
           onExerciseClick={(exercise, group) => setDetail({ exercise, group })}
         />
       ) : draft ? (
@@ -390,6 +424,56 @@ export default function StudentWorkoutPage() {
           {viewVersionId && <VersionView studentId={id} versionId={viewVersionId} />}
         </DialogContent>
       </Dialog>
+
+      {/* Delete-one-version confirmation */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => {
+          if (!o && !deleteVersion.isPending) {
+            setDeleteTarget(null);
+            deleteVersion.reset();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir versão do histórico</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Excluir{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.label}
+              </span>{" "}
+              do histórico deste aluno? A prescrição dessa versão é apagada para
+              sempre — não há como desfazer. O treino atual do aluno não muda.
+            </p>
+            {deleteVersion.error instanceof ApiError ? (
+              <div className="rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
+                {deleteVersion.error.message}
+              </div>
+            ) : null}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={deleteVersion.isPending}
+                onClick={() =>
+                  deleteTarget && deleteVersion.mutate(deleteTarget.versionId)
+                }
+              >
+                <Trash2 className="size-4" />
+                {deleteVersion.isPending ? "Excluindo…" : "Excluir versão"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -410,6 +494,7 @@ function CurrentView({
   onAssign,
   onSaveAsTemplate,
   onViewVersion,
+  onDeleteVersion,
   onExerciseClick,
 }: {
   studentId: string;
@@ -427,6 +512,7 @@ function CurrentView({
   onAssign: () => void;
   onSaveAsTemplate: () => void;
   onViewVersion: (versionId: string) => void;
+  onDeleteVersion: (target: { versionId: string; label: string }) => void;
   onExerciseClick: (exercise: WorkoutExerciseDto, group: GroupInfo | null) => void;
 }) {
   const hasDraft = draft !== null;
@@ -538,14 +624,13 @@ function CurrentView({
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {olderOfCurrent.map((v) => (
-                  <button
+                  <VersionChip
                     key={v.versionId}
-                    type="button"
-                    onClick={() => onViewVersion(v.versionId)}
-                    className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
-                  >
-                    v{v.version} · {fmtDate(v.publishedAt)}
-                  </button>
+                    workoutName={current.workoutName}
+                    version={v}
+                    onView={onViewVersion}
+                    onDelete={onDeleteVersion}
+                  />
                 ))}
               </div>
             </div>
@@ -560,14 +645,13 @@ function CurrentView({
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {h.versions.map((v) => (
-                  <button
+                  <VersionChip
                     key={v.versionId}
-                    type="button"
-                    onClick={() => onViewVersion(v.versionId)}
-                    className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
-                  >
-                    v{v.version} · {fmtDate(v.publishedAt)}
-                  </button>
+                    workoutName={h.workoutName}
+                    version={v}
+                    onView={onViewVersion}
+                    onDelete={onDeleteVersion}
+                  />
                 ))}
               </div>
             </div>
@@ -575,6 +659,41 @@ function CurrentView({
         </div>
       )}
     </div>
+  );
+}
+
+/** One history entry: open the read-only view, or delete that version. */
+function VersionChip({
+  workoutName,
+  version,
+  onView,
+  onDelete,
+}: {
+  workoutName: string;
+  version: StudentWorkoutStateDto["history"][number]["versions"][number];
+  onView: (versionId: string) => void;
+  onDelete: (target: { versionId: string; label: string }) => void;
+}) {
+  const label = `${workoutName} v${version.version}`;
+  return (
+    <span className="inline-flex items-center overflow-hidden rounded-full border border-border bg-surface-light text-xs font-medium text-[#475569]">
+      <button
+        type="button"
+        onClick={() => onView(version.versionId)}
+        className="px-2.5 py-0.5 transition-colors hover:text-primary"
+      >
+        v{version.version} · {fmtDate(version.publishedAt)}
+      </button>
+      <button
+        type="button"
+        aria-label={`Excluir ${label}`}
+        title="Excluir esta versão"
+        onClick={() => onDelete({ versionId: version.versionId, label })}
+        className="border-l border-border px-1.5 py-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+    </span>
   );
 }
 
