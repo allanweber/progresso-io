@@ -21,6 +21,8 @@ import { createTestDb, type TestDb } from "./pglite";
 
 let db: TestDb;
 let coachA: TenantContext;
+let coachB: TenantContext; // a coach in the other clinic
+
 let alunoA: TenantContext;
 let alunoB: TenantContext;
 let strangerA: TenantContext;
@@ -103,6 +105,7 @@ beforeAll(async () => {
     .returning();
 
   coachA = { db: db as unknown as DB, clinicId: clinicA.id, userId: "coach-a", role: "coach" };
+  coachB = { db: db as unknown as DB, clinicId: clinicB.id, userId: "coach-b", role: "coach" };
   alunoA = { db: db as unknown as DB, clinicId: clinicA.id, userId: "aluno-a", role: "aluno" };
   alunoB = { db: db as unknown as DB, clinicId: clinicB.id, userId: "aluno-b", role: "aluno" };
   strangerA = { db: db as unknown as DB, clinicId: clinicA.id, userId: "stranger-a", role: "aluno" };
@@ -209,6 +212,63 @@ describe("student workout DAL", () => {
     state = await studentWorkouts.getStudentWorkoutState(coachA, studentA);
     expect(state!.current!.workoutName).toBe("Cutting força");
     expect(state!.history.some((h) => h.status === "archived")).toBe(true);
+  });
+
+  it("deletes history versions one by one, never the aluno-visible one", async () => {
+    const before = await studentWorkouts.getStudentWorkoutState(coachA, studentA);
+    const currentEntry = before!.history.find(
+      (h) => h.workoutId === before!.activeWorkoutId,
+    )!;
+
+    // The version the aluno is training is refused.
+    expect(
+      await studentWorkouts.deleteStudentWorkoutVersion(
+        coachA,
+        studentA,
+        currentEntry.versions[0].versionId,
+      ),
+    ).toEqual({ ok: false, reason: "current" });
+
+    const archived = before!.history.find((h) => h.status === "archived")!;
+    expect(archived.versions).toHaveLength(2); // Hipertrofia v2, v1
+
+    // Another clinic can't delete it.
+    expect(
+      await studentWorkouts.deleteStudentWorkoutVersion(
+        coachB,
+        studentA,
+        archived.versions[0].versionId,
+      ),
+    ).toEqual({ ok: false, reason: "not_found" });
+
+    // One archived version goes on its own; the workout keeps the rest.
+    expect(
+      await studentWorkouts.deleteStudentWorkoutVersion(
+        coachA,
+        studentA,
+        archived.versions[0].versionId,
+      ),
+    ).toEqual({ ok: true, deletedWorkout: false });
+    let state = await studentWorkouts.getStudentWorkoutState(coachA, studentA);
+    expect(
+      state!.history.find((h) => h.workoutId === archived.workoutId)!.versions,
+    ).toHaveLength(1);
+
+    // Deleting the last one takes the now-empty workout with it.
+    expect(
+      await studentWorkouts.deleteStudentWorkoutVersion(
+        coachA,
+        studentA,
+        archived.versions[1].versionId,
+      ),
+    ).toEqual({ ok: true, deletedWorkout: true });
+    state = await studentWorkouts.getStudentWorkoutState(coachA, studentA);
+    expect(
+      state!.history.some((h) => h.workoutId === archived.workoutId),
+    ).toBe(false);
+    // The aluno's current workout is untouched throughout.
+    expect(state!.current!.workoutName).toBe("Cutting força");
+    expect(state!.current!.version).toBe(before!.current!.version);
   });
 });
 

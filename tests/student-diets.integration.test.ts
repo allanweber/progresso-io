@@ -332,6 +332,70 @@ describe("student diets DAL", () => {
     await diets.archiveDiet(ctxA, orphan.id);
     expect(await diets.deleteDiet(ctxA, orphan.id)).toEqual({ ok: true });
   });
+
+  it("deletes history versions one by one, never the aluno-visible one", async () => {
+    const before = await studentDiets.getStudentDietState(ctxA, studentA);
+    const currentEntry = before!.history.find(
+      (h) => h.dietId === before!.activeDietId,
+    )!;
+
+    // The version the aluno is following is refused.
+    expect(
+      await studentDiets.deleteStudentDietVersion(
+        ctxA,
+        studentA,
+        currentEntry.versions[0].versionId,
+      ),
+    ).toEqual({ ok: false, reason: "current" });
+
+    const archived = before!.history.find((h) => h.status === "archived")!;
+    expect(archived.versions).toHaveLength(2); // Cutting v2, v1
+
+    // Another clinic can't delete it.
+    expect(
+      await studentDiets.deleteStudentDietVersion(
+        ctxB,
+        studentA,
+        archived.versions[0].versionId,
+      ),
+    ).toEqual({ ok: false, reason: "not_found" });
+
+    // One archived version goes on its own; the diet keeps the rest.
+    expect(
+      await studentDiets.deleteStudentDietVersion(
+        ctxA,
+        studentA,
+        archived.versions[0].versionId,
+      ),
+    ).toEqual({ ok: true, deletedDiet: false });
+    let state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(
+      state!.history.find((h) => h.dietId === archived.dietId)!.versions,
+    ).toHaveLength(1);
+
+    // Deleting the last one takes the now-empty diet with it.
+    expect(
+      await studentDiets.deleteStudentDietVersion(
+        ctxA,
+        studentA,
+        archived.versions[1].versionId,
+      ),
+    ).toEqual({ ok: true, deletedDiet: true });
+    state = await studentDiets.getStudentDietState(ctxA, studentA);
+    expect(state!.history.some((h) => h.dietId === archived.dietId)).toBe(false);
+    // The aluno's current diet is untouched throughout.
+    expect(state!.current!.dietName).toBe(before!.current!.dietName);
+    expect(state!.current!.version).toBe(before!.current!.version);
+
+    // A version that no longer exists is a plain not-found.
+    expect(
+      await studentDiets.deleteStudentDietVersion(
+        ctxA,
+        studentA,
+        archived.versions[1].versionId,
+      ),
+    ).toEqual({ ok: false, reason: "not_found" });
+  });
 });
 
 describe("catalog substitutes are derived live on read", () => {

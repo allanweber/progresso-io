@@ -682,3 +682,87 @@ export async function saveAsTemplate(
   if (!res.ok) return { ok: false, reason: "invalid_exercise" };
   return { ok: true, id: res.id };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  History deletes                                                            */
+/* -------------------------------------------------------------------------- */
+
+export type DeleteStudentWorkoutVersionResult =
+  | { ok: true; deletedWorkout: boolean }
+  | { ok: false; reason: "not_found" | "current" };
+
+/**
+ * Permanently removes ONE published version from the student's workout history.
+ *
+ * The aluno-visible version — the active workout's newest published one — is
+ * refused (`current`): deleting it would silently change the program the student
+ * is training. Everything the Histórico offers (older versions of the current
+ * workout, and every version of an archived one) can go, one at a time.
+ *
+ * When the version was the last one of its workout, the empty `student_workout`
+ * goes with it. Check-ins that snapshotted this version keep their label — the
+ * FK is `set null` and the name/number are copied onto the check-in row.
+ */
+export async function deleteStudentWorkoutVersion(
+  ctx: TenantContext,
+  studentId: string,
+  versionId: string,
+): Promise<DeleteStudentWorkoutVersionResult> {
+  const [row] = await ctx.db
+    .select({
+      workout: schema.studentWorkout,
+      version: schema.studentWorkoutVersion,
+    })
+    .from(schema.studentWorkoutVersion)
+    .innerJoin(
+      schema.studentWorkout,
+      eq(
+        schema.studentWorkoutVersion.studentWorkoutId,
+        schema.studentWorkout.id,
+      ),
+    )
+    .where(
+      and(
+        eq(schema.studentWorkoutVersion.id, versionId),
+        eq(schema.studentWorkout.clinicId, ctx.clinicId),
+        eq(schema.studentWorkout.studentId, studentId),
+        eq(schema.studentWorkoutVersion.status, "published"),
+      ),
+    );
+  if (!row) return { ok: false, reason: "not_found" };
+
+  const siblings = await ctx.db
+    .select({
+      id: schema.studentWorkoutVersion.id,
+      version: schema.studentWorkoutVersion.version,
+      status: schema.studentWorkoutVersion.status,
+    })
+    .from(schema.studentWorkoutVersion)
+    .where(
+      eq(schema.studentWorkoutVersion.studentWorkoutId, row.workout.id),
+    );
+
+  const newestPublished = siblings
+    .filter((v) => v.status === "published")
+    .reduce((max, v) => Math.max(max, v.version ?? 0), 0);
+  if (
+    row.workout.status === "active" &&
+    (row.version.version ?? 0) === newestPublished
+  ) {
+    return { ok: false, reason: "current" };
+  }
+
+  const lastOne = siblings.every((v) => v.id === versionId);
+
+  await ctx.db.transaction(async (tx) => {
+    await tx
+      .delete(schema.studentWorkoutVersion)
+      .where(eq(schema.studentWorkoutVersion.id, versionId));
+    if (lastOne) {
+      await tx
+        .delete(schema.studentWorkout)
+        .where(eq(schema.studentWorkout.id, row.workout.id));
+    }
+  });
+  return { ok: true, deletedWorkout: lastOne };
+}

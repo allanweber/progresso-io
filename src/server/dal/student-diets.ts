@@ -814,3 +814,82 @@ export async function saveAsTemplate(
   if (!res.ok) return { ok: false, reason: "invalid_food" };
   return { ok: true, id: res.id };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  History deletes                                                            */
+/* -------------------------------------------------------------------------- */
+
+export type DeleteStudentDietVersionResult =
+  | { ok: true; deletedDiet: boolean }
+  | { ok: false; reason: "not_found" | "current" };
+
+/**
+ * Permanently removes ONE published version from the student's diet history.
+ *
+ * The aluno-visible version — the active diet's newest published one — is
+ * refused (`current`): deleting it would silently change what the student is
+ * following. Everything the Histórico offers (older versions of the current
+ * diet, and every version of an archived one) can go, one at a time.
+ *
+ * When the version was the last one of its diet, the empty `student_diet` goes
+ * with it, so no nameless shell survives in the history. Check-ins that
+ * snapshotted this version keep their label — the FK is `set null` and the
+ * name/number are copied onto the check-in row.
+ */
+export async function deleteStudentDietVersion(
+  ctx: TenantContext,
+  studentId: string,
+  versionId: string,
+): Promise<DeleteStudentDietVersionResult> {
+  const [row] = await ctx.db
+    .select({ diet: schema.studentDiet, version: schema.studentDietVersion })
+    .from(schema.studentDietVersion)
+    .innerJoin(
+      schema.studentDiet,
+      eq(schema.studentDietVersion.studentDietId, schema.studentDiet.id),
+    )
+    .where(
+      and(
+        eq(schema.studentDietVersion.id, versionId),
+        eq(schema.studentDiet.clinicId, ctx.clinicId),
+        eq(schema.studentDiet.studentId, studentId),
+        eq(schema.studentDietVersion.status, "published"),
+      ),
+    );
+  if (!row) return { ok: false, reason: "not_found" };
+
+  // Every sibling version of the same diet — tells both whether this one is the
+  // current (newest published of an active diet) and whether it is the last.
+  const siblings = await ctx.db
+    .select({
+      id: schema.studentDietVersion.id,
+      version: schema.studentDietVersion.version,
+      status: schema.studentDietVersion.status,
+    })
+    .from(schema.studentDietVersion)
+    .where(eq(schema.studentDietVersion.studentDietId, row.diet.id));
+
+  const newestPublished = siblings
+    .filter((v) => v.status === "published")
+    .reduce((max, v) => Math.max(max, v.version ?? 0), 0);
+  if (
+    row.diet.status === "active" &&
+    (row.version.version ?? 0) === newestPublished
+  ) {
+    return { ok: false, reason: "current" };
+  }
+
+  const lastOne = siblings.every((v) => v.id === versionId);
+
+  await ctx.db.transaction(async (tx) => {
+    await tx
+      .delete(schema.studentDietVersion)
+      .where(eq(schema.studentDietVersion.id, versionId));
+    if (lastOne) {
+      await tx
+        .delete(schema.studentDiet)
+        .where(eq(schema.studentDiet.id, row.diet.id));
+    }
+  });
+  return { ok: true, deletedDiet: lastOne };
+}
