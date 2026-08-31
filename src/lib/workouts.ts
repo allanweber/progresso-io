@@ -52,16 +52,33 @@ export const SESSION_SUGGESTIONS = [
 
 /**
  * How an exercise's repetitions are prescribed:
- * - `fixed`   — a single number (e.g. 12);
- * - `range`   — a **sequence** of 2+ values, crescente or decrescente (e.g.
+ * - `fixed`    — a single number (e.g. 12);
+ * - `range`    — a **sequence** of 2+ values, crescente or decrescente (e.g.
  *   `8-12`, or a pyramid like `10-8-6-4`);
- * - `failure` — até a falha.
+ * - `pyramid`  — the same sequence, one value **per set**, with the load rising;
+ * - `duration` — tempo em segundos por série instead of repetitions (prancha,
+ *   isometria, cardio…);
+ * - `failure`  — até a falha.
  */
 export type WorkoutReps =
   | { kind: "fixed"; value: number }
   | { kind: "range"; values: number[] }
   | { kind: "pyramid"; values: number[] }
+  | { kind: "duration"; seconds: number }
   | { kind: "failure" };
+
+/** Default seconds for a freshly-picked `duration` prescription. */
+export const DEFAULT_DURATION_SECONDS = 30;
+
+/**
+ * A pirâmide prescribes **one set per position**, so its séries are derived
+ * from the sequence, never typed by hand: adding/removing a position moves the
+ * set count with it. Every other kind keeps the coach's own `sets`.
+ */
+export function resolveSets(reps: WorkoutReps, sets: number): number {
+  const r = normalizeReps(reps);
+  return r.kind === "pyramid" ? r.values.length : sets;
+}
 
 /**
  * Coerces a stored/unknown reps value into the current `WorkoutReps` shape.
@@ -86,12 +103,15 @@ export function normalizeReps(reps: unknown): WorkoutReps {
         return { kind, values: [r.min, r.max] };
       }
     }
+    if (r.kind === "duration" && typeof r.seconds === "number") {
+      return { kind: "duration", seconds: r.seconds };
+    }
     if (r.kind === "failure") return { kind: "failure" };
   }
   return { kind: "failure" };
 }
 
-/** Renders reps for display: `12` / `8-12` / `10-8-6-4` / `Falha`. */
+/** Renders reps for display: `12` / `8-12` / `10-8-6-4` / `30s` / `Falha`. */
 export function formatReps(reps: WorkoutReps): string {
   const r = normalizeReps(reps);
   switch (r.kind) {
@@ -100,19 +120,31 @@ export function formatReps(reps: WorkoutReps): string {
     case "range":
     case "pyramid":
       return r.values.join("-");
+    case "duration":
+      return formatSeconds(r.seconds);
     case "failure":
       return "Falha";
   }
+}
+
+/** The PT-BR header a reps value belongs under — `Reps`, or `Tempo` for a duração. */
+export function repsLabel(reps: WorkoutReps): string {
+  return normalizeReps(reps).kind === "duration" ? "Tempo" : "Reps";
+}
+
+/** Renders a number of seconds as `45s` / `2min` / `1:30`. */
+export function formatSeconds(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s === 0 ? `${m}min` : `${m}:${String(s).padStart(2, "0")}`;
 }
 
 /** Renders a rest time in seconds as `90s` / `1:30` / `—`. */
 export function formatRest(seconds: number | null): string {
   if (seconds === null || seconds === undefined) return "—";
   if (seconds === 0) return "sem descanso";
-  if (seconds < 60) return `${seconds}s`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return s === 0 ? `${m}min` : `${m}:${String(s).padStart(2, "0")}`;
+  return formatSeconds(seconds);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -240,9 +272,11 @@ export type WorkoutListQuery = z.output<typeof workoutListQuerySchema>;
 
 /**
  * Reps payload: `{kind:'fixed',value}` | `{kind:'range',values}` |
- * `{kind:'pyramid',values}` | `{kind:'failure'}`. A range and a pyramid are both
- * a sequence of 2+ values (crescente or decrescente), e.g. `[8,12]` or
- * `[12,10,8,6]`; the pyramid additionally implies the load rises each set.
+ * `{kind:'pyramid',values}` | `{kind:'duration',seconds}` | `{kind:'failure'}`.
+ * A range and a pyramid are both a sequence of 2+ values (crescente or
+ * decrescente), e.g. `[8,12]` or `[12,10,8,6]`; the pyramid additionally implies
+ * one set per position with the load rising. A duração prescribes seconds per
+ * set instead of repetitions.
  */
 const repsSequenceSchema = z
   .array(
@@ -266,6 +300,14 @@ export const repsSchema = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("range"), values: repsSequenceSchema }),
   z.object({ kind: z.literal("pyramid"), values: repsSequenceSchema }),
+  z.object({
+    kind: z.literal("duration"),
+    seconds: z
+      .number()
+      .int("Informe segundos inteiros.")
+      .min(1, "Mínimo de 1 segundo.")
+      .max(3600, "Tempo muito longo."),
+  }),
   z.object({ kind: z.literal("failure") }),
 ]);
 
@@ -280,7 +322,7 @@ export const customSubstituteSchema = z.object({
     .transform((v) => (v ? v : null)),
 });
 
-const exerciseInputSchema = z.object({
+const exerciseBaseSchema = z.object({
   exerciseId: z.string().uuid("Exercício inválido."),
   sets: z
     .number()
@@ -319,6 +361,15 @@ const exerciseInputSchema = z.object({
     .transform((v) => (v ? v : null)),
   customSubstitutes: z.array(customSubstituteSchema).max(20).default([]),
 });
+
+/**
+ * Enforces the pirâmide invariant on every write, wherever the payload came
+ * from (builder, AI, starter template): séries == número de posições.
+ */
+const exerciseInputSchema = exerciseBaseSchema.transform((x) => ({
+  ...x,
+  sets: resolveSets(x.reps, x.sets),
+}));
 
 const sessionSchema = z.object({
   name: z

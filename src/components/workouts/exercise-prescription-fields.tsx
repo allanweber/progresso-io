@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Repeat, X } from "lucide-react";
 
@@ -15,7 +15,7 @@ import {
 } from "@/components/workouts/exercise-search";
 import { apiFetch } from "@/lib/api-client";
 import type { ExerciseDetailDto } from "@/lib/exercises";
-import type { WorkoutReps } from "@/lib/workouts";
+import { resolveSets, type WorkoutReps } from "@/lib/workouts";
 import {
   WORKOUT_TECHNIQUE_OPTIONS,
   isGroupingTechnique,
@@ -60,8 +60,8 @@ export function newPrescription(): PrescriptionDraft {
 
 /**
  * The full field set for one exercise's prescription — séries, repetições
- * (número / intervalo-sequência / falha), carga, descanso, técnica avançada, uma
- * observação livre, and its substituições (the count of library swaps + the
+ * (número / intervalo-sequência / pirâmide / tempo / falha), carga, descanso,
+ * técnica avançada, uma observação livre, and its substituições (the count of library swaps + the
  * coach's own custom ones). Rendered identically at **insertion** (inside the
  * ExercisePicker) and at **edit** (inside a builder row); fields stack vertically
  * on mobile and go two-per-row from `sm`.
@@ -79,6 +79,8 @@ export function ExercisePrescriptionFields({
   onPatch: (patch: Partial<PrescriptionDraft>) => void;
 }) {
   const [addingSub, setAddingSub] = useState(false);
+  // Several prescriptions can be open at once, so the hint id must be unique.
+  const hintId = useId();
 
   // The exercise's library substitutes (base + clinic), just to show the count.
   const { data } = useQuery({
@@ -108,27 +110,53 @@ export function ExercisePrescriptionFields({
     setAddingSub(false);
   }
 
+  // A pirâmide prescribes one set per position, so Séries follows the sequence
+  // (and stops being typeable) — add/remove a position and the count moves.
+  const pyramid = value.reps.kind === "pyramid";
+  const sets = resolveSets(value.reps, value.sets);
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label>Séries</Label>
           <div className="mt-1">
-            <NumberField
-              value={value.sets}
-              onCommit={(sets) => onPatch({ sets })}
-              min={1}
-              max={50}
-              maxDigits={2}
-              stepper
-              ariaLabel="Séries"
-              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
-            />
+            {pyramid ? (
+              <>
+                <input
+                  readOnly
+                  value={sets}
+                  aria-label="Séries"
+                  aria-describedby={hintId}
+                  className="h-11 w-full rounded-[10px] border-[1.5px] border-dashed border-input bg-surface-light px-3.5 py-2.5 text-center text-body tabular-nums text-muted-foreground"
+                />
+                <p
+                  id={hintId}
+                  className="mt-1 text-label text-muted-foreground"
+                >
+                  Definido pela pirâmide — uma série por posição.
+                </p>
+              </>
+            ) : (
+              <NumberField
+                value={sets}
+                onCommit={(next) => onPatch({ sets: next })}
+                min={1}
+                max={50}
+                maxDigits={2}
+                stepper
+                ariaLabel="Séries"
+                inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              />
+            )}
           </div>
         </div>
         <div>
           <Label>Repetições</Label>
-          <RepsInput value={value.reps} onChange={(reps) => onPatch({ reps })} />
+          <RepsInput
+            value={value.reps}
+            onChange={(reps) => onPatch({ reps, sets: resolveSets(reps, value.sets) })}
+          />
         </div>
         <div>
           <Label>Carga (opcional)</Label>

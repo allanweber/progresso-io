@@ -48,6 +48,21 @@ export const POST = withCoach<Params>(
           return notFound("Nenhum rascunho em aberto.");
       }
     }
+    // The draft matched what is already published: it was closed, no version was
+    // numbered, and the aluno has nothing new to be told about.
+    if (result.unchanged) {
+      logger.info("student-diet.publish-unchanged", {
+        studentId: id,
+        dietId: result.dietId,
+        version: result.version,
+      });
+      return NextResponse.json({
+        dietId: result.dietId,
+        version: result.version,
+        unchanged: true,
+      });
+    }
+
     logger.info("student-diet.published", {
       studentId: id,
       dietId: result.dietId,
@@ -61,6 +76,10 @@ export const POST = withCoach<Params>(
     // Nudge the student on WhatsApp that a new diet is up (best-effort + gated).
     await notifyDietPublished(ctx, id);
 
-    return NextResponse.json({ dietId: result.dietId, version: result.version });
+    return NextResponse.json({
+      dietId: result.dietId,
+      version: result.version,
+      unchanged: false,
+    });
   },
 );

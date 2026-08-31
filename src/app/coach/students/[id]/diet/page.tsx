@@ -196,10 +196,18 @@ export default function StudentDietPage() {
     await invalidate();
   }
   async function publishDraft(payload: DietBuilderPayload) {
-    await apiFetch(`/api/students/${id}/diet/draft/publish`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    // Publishing an untouched draft changes nothing for the aluno, so the API
+    // closes it without numbering a version — say which of the two happened,
+    // otherwise the editor just closes and the coach cannot tell.
+    const res = await apiFetch<{ version: number; unchanged: boolean }>(
+      `/api/students/${id}/diet/draft/publish`,
+      { method: "POST", body: JSON.stringify(payload) },
+    );
+    setBanner(
+      res.unchanged
+        ? `Nenhuma alteração na dieta — o aluno continua na versão ${res.version}.`
+        : `Versão ${res.version} publicada para o aluno.`,
+    );
     setEditing(false);
     await invalidate();
   }

@@ -276,6 +276,10 @@ async function seedAlunoWorkout(
     values,
   });
   const fixed = (value: number): WorkoutReps => ({ kind: "fixed", value });
+  const duration = (seconds: number): WorkoutReps => ({
+    kind: "duration",
+    seconds,
+  });
   const failure: WorkoutReps = { kind: "failure" };
 
   type ExOpts = {
@@ -354,6 +358,8 @@ async function seedAlunoWorkout(
           item(agacha, { sets: 10, reps: fixed(10), rest: 60, load: "60 kg", technique: "gvt" }),
           item(legpress, { sets: 7, reps: range(10, 12), rest: 30, technique: "fs7" }),
           item(cadeira, { sets: 3, reps: range(12, 15), rest: 45, technique: "restpause" }),
+          // Prescribed by time, not reps.
+          item(abdominal, { sets: 3, reps: duration(45), rest: 30 }),
         ]),
       },
     ],

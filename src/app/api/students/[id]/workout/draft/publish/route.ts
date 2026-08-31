@@ -48,6 +48,21 @@ export const POST = withCoach<Params>(
           return notFound("Nenhum rascunho em aberto.");
       }
     }
+    // The draft matched what is already published: it was closed, no version was
+    // numbered, and the aluno has nothing new to be told about.
+    if (result.unchanged) {
+      logger.info("student-workout.publish-unchanged", {
+        studentId: id,
+        workoutId: result.workoutId,
+        version: result.version,
+      });
+      return NextResponse.json({
+        workoutId: result.workoutId,
+        version: result.version,
+        unchanged: true,
+      });
+    }
+
     logger.info("student-workout.published", {
       studentId: id,
       workoutId: result.workoutId,
@@ -64,6 +79,7 @@ export const POST = withCoach<Params>(
     return NextResponse.json({
       workoutId: result.workoutId,
       version: result.version,
+      unchanged: false,
     });
   },
 );

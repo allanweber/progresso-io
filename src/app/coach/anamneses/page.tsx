@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -125,16 +125,41 @@ export default function AnamnesesListPage() {
     () => searchParams.get("search") ?? "",
   );
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
-  const [page, setPage] = useState(1);
+  // The page lives in the URL, and paginating is a real navigation (push), so
+  // browser back/forward walk the pages. The search is mirrored with replace
+  // instead — it must never build up history. Page 1 is the default, so it
+  // stays out of the URL.
+  const page = Number(searchParams.get("page")) || 1;
+
+  function goToPage(next: number) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (next > 1) p.set("page", String(next));
+    else p.delete("page");
+    const qs = p.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // Mirror the search into the URL (replace, no history spam) so the list is
+  // restorable on back-navigation and shareable as a link.
+  // On mount the URL already carries it (the state was seeded from it), so skip
+  // that pass: writing here would strip the ?page= the coach arrived on. A later
+  // write is a real search change, and it drops the page — a new search starts
+  // at the first page.
+  const firstMirror = useRef(true);
   useEffect(() => {
-    const qs = search ? `?search=${encodeURIComponent(search)}` : "";
-    router.replace(`${pathname}${qs}`, { scroll: false });
+    if (firstMirror.current) {
+      firstMirror.current = false;
+      return;
+    }
+    const p = new URLSearchParams();
+    if (search) p.set("search", search);
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [search, pathname, router]);
 
   const query = useMemo(() => {
@@ -158,7 +183,6 @@ export default function AnamnesesListPage() {
   function clearSearch() {
     setSearchInput("");
     setSearch("");
-    setPage(1);
   }
 
   // TanStack Table (required by the frontend rules) returns functions the React
@@ -198,10 +222,7 @@ export default function AnamnesesListPage() {
           <Input
             type="search"
             value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Buscar anamnese…"
             className="pl-9"
           />
@@ -337,7 +358,7 @@ export default function AnamnesesListPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => goToPage(page - 1)}
                   disabled={page <= 1}
                   className="h-11 sm:h-10"
                 >
@@ -346,7 +367,7 @@ export default function AnamnesesListPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => goToPage(page + 1)}
                   disabled={page >= totalPages}
                   className="h-11 sm:h-10"
                 >

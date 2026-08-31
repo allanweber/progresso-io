@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Image as ImageIcon, Search } from "lucide-react";
+import { Dumbbell, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
   MUSCLE_LABELS,
   MUSCLE_OPTIONS,
   ORIGIN_LABELS,
+  exerciseImageUrl,
   type ExerciseCategory,
   type ExerciseEquipment,
   type ExerciseLevel,
@@ -112,7 +113,19 @@ export function ExerciseCatalog({
   const [includeArchived, setIncludeArchived] = useState(
     () => searchParams.get("archived") === "true",
   );
-  const [page, setPage] = useState(1);
+  // The page lives in the URL, and paginating is a real navigation (push), so
+  // browser back/forward walk the pages. The filters are mirrored with replace
+  // instead — they must never build up history. Page 1 is the default, so it
+  // stays out of the URL.
+  const page = Number(searchParams.get("page")) || 1;
+
+  function goToPage(next: number) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (next > 1) p.set("page", String(next));
+    else p.delete("page");
+    const qs = p.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   const { data: clinics } = useQuery({
     queryKey: ["admin-clinics"],
@@ -124,29 +137,23 @@ export function ExerciseCatalog({
     enabled: admin,
   });
 
-  // Debounce the free-text search so we don't refetch on every keystroke; a new
-  // search returns to the first page. (Resetting page inside the timeout — not
-  // synchronously in an effect body — keeps it clear of the render cascade.)
+  // Debounce the free-text search so we don't refetch on every keystroke.
   useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
-    }, 300);
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // A select filter change also returns to the first page. Applied in each
-  // handler (below) rather than in an effect, so we never setState in an effect
-  // body — the pattern the lint config flags.
-  function onFilterChange<T>(setter: (v: T) => void) {
-    return (v: T) => {
-      setter(v);
-      setPage(1);
-    };
-  }
-
   // Mirror the active filters into the URL (replace, no history spam).
+  // On mount the URL already carries these filters (the state was seeded from
+  // it), so skip that pass: writing here would strip the ?page= the coach
+  // arrived on. A later write is a real filter change, and it drops the page —
+  // new filters start at the first page.
+  const firstMirror = useRef(true);
   useEffect(() => {
+    if (firstMirror.current) {
+      firstMirror.current = false;
+      return;
+    }
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     if (origin) p.set("origin", origin);
@@ -231,9 +238,9 @@ export function ExerciseCatalog({
           <>
             <Select
               value={origin || "all"}
-              onValueChange={onFilterChange((v: string) =>
-                setOrigin(v === "all" ? "" : (v as "base" | "clinic")),
-              )}
+              onValueChange={(v: string) =>
+                setOrigin(v === "all" ? "" : (v as "base" | "clinic"))
+              }
             >
               <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Origem">
                 <SelectValue />
@@ -246,9 +253,9 @@ export function ExerciseCatalog({
             </Select>
             <Select
               value={clinic || "all"}
-              onValueChange={onFilterChange((v: string) =>
-                setClinic(v === "all" ? "" : v),
-              )}
+              onValueChange={(v: string) =>
+                setClinic(v === "all" ? "" : v)
+              }
             >
               <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Clínica">
                 <SelectValue />
@@ -266,9 +273,9 @@ export function ExerciseCatalog({
         )}
         <Select
           value={category || "all"}
-          onValueChange={onFilterChange((v: string) =>
-            setCategory(v === "all" ? "" : (v as ExerciseCategory)),
-          )}
+          onValueChange={(v: string) =>
+            setCategory(v === "all" ? "" : (v as ExerciseCategory))
+          }
         >
           <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Categoria">
             <SelectValue />
@@ -284,9 +291,9 @@ export function ExerciseCatalog({
         </Select>
         <Select
           value={muscle || "all"}
-          onValueChange={onFilterChange((v: string) =>
-            setMuscle(v === "all" ? "" : (v as Muscle)),
-          )}
+          onValueChange={(v: string) =>
+            setMuscle(v === "all" ? "" : (v as Muscle))
+          }
         >
           <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Músculo">
             <SelectValue />
@@ -302,9 +309,9 @@ export function ExerciseCatalog({
         </Select>
         <Select
           value={equipment || "all"}
-          onValueChange={onFilterChange((v: string) =>
-            setEquipment(v === "all" ? "" : (v as ExerciseEquipment)),
-          )}
+          onValueChange={(v: string) =>
+            setEquipment(v === "all" ? "" : (v as ExerciseEquipment))
+          }
         >
           <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Equipamento">
             <SelectValue />
@@ -320,9 +327,9 @@ export function ExerciseCatalog({
         </Select>
         <Select
           value={level || "all"}
-          onValueChange={onFilterChange((v: string) =>
-            setLevel(v === "all" ? "" : (v as ExerciseLevel)),
-          )}
+          onValueChange={(v: string) =>
+            setLevel(v === "all" ? "" : (v as ExerciseLevel))
+          }
         >
           <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Nível">
             <SelectValue />
@@ -339,9 +346,9 @@ export function ExerciseCatalog({
         {admin && (
           <Select
             value={includeArchived ? "all" : "active"}
-            onValueChange={onFilterChange((v: string) =>
-              setIncludeArchived(v === "all"),
-            )}
+            onValueChange={(v: string) =>
+              setIncludeArchived(v === "all")
+            }
           >
             <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Status">
               <SelectValue />
@@ -374,62 +381,74 @@ export function ExerciseCatalog({
       ) : (
         <>
           <ul className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((ex) => (
-              <li key={ex.id}>
-                <Link
-                  href={`${basePath}/${ex.id}`}
-                  className="group block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="break-words font-medium text-foreground">
-                      {ex.name}
-                    </h3>
-                    {ex.thumbnail && (
-                      <span
-                        title="Contém imagens"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-light px-2 py-0.5 text-caption font-medium text-[#475569]"
-                      >
-                        <ImageIcon className="size-3.5" aria-hidden />
-                        imagem
-                      </span>
-                    )}
-                  </div>
-                  {ex.clinicName && (
-                    <p className="mt-0.5 truncate text-xs text-meta">
-                      {ex.clinicName}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    {ex.origin === "clinic" && (
-                      <Badge variant="clinic" className="font-medium">
-                        {ORIGIN_LABELS.clinic}
-                      </Badge>
-                    )}
-                    {ex.archived && (
-                      <Badge variant="neutral" className="font-medium">
-                        arquivado
-                      </Badge>
-                    )}
-                    <Badge variant="neutral" className="font-medium">
-                      {CATEGORY_LABELS[ex.category]}
-                    </Badge>
-                    <Badge variant="base" className="font-medium">
-                      {LEVEL_LABELS[ex.level]}
-                    </Badge>
-                    {ex.equipment && (
-                      <span className="text-xs text-meta">
-                        {EQUIPMENT_LABELS[ex.equipment]}
-                      </span>
-                    )}
-                  </div>
-                  {ex.primaryMuscles.length > 0 && (
-                    <p className="mt-2 truncate text-body-dense text-[#475569]">
-                      {ex.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
+            {items.map((ex) => {
+              // The card leads with the exercise's first image — the same
+              // thumbnail the picker and the fichas show. Without one it keeps
+              // the box and shows the dumbbell placeholder, so the grid stays
+              // aligned and a missing image is visible at a glance.
+              const src = exerciseImageUrl(ex.thumbnail);
+              return (
+                <li key={ex.id}>
+                  <Link
+                    href={`${basePath}/${ex.id}`}
+                    className="group flex gap-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                  >
+                    <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-light text-muted-foreground">
+                      {src ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={src}
+                          alt=""
+                          loading="lazy"
+                          data-testid="exercise-thumb"
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <Dumbbell className="size-6" aria-hidden />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words font-medium text-foreground">
+                        {ex.name}
+                      </h3>
+                      {ex.clinicName && (
+                        <p className="mt-0.5 truncate text-xs text-meta">
+                          {ex.clinicName}
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {ex.origin === "clinic" && (
+                          <Badge variant="clinic" className="font-medium">
+                            {ORIGIN_LABELS.clinic}
+                          </Badge>
+                        )}
+                        {ex.archived && (
+                          <Badge variant="neutral" className="font-medium">
+                            arquivado
+                          </Badge>
+                        )}
+                        <Badge variant="neutral" className="font-medium">
+                          {CATEGORY_LABELS[ex.category]}
+                        </Badge>
+                        <Badge variant="base" className="font-medium">
+                          {LEVEL_LABELS[ex.level]}
+                        </Badge>
+                        {ex.equipment && (
+                          <span className="text-xs text-meta">
+                            {EQUIPMENT_LABELS[ex.equipment]}
+                          </span>
+                        )}
+                      </div>
+                      {ex.primaryMuscles.length > 0 && (
+                        <p className="mt-2 truncate text-body-dense text-[#475569]">
+                          {ex.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
 
           {/* Pagination */}
@@ -440,7 +459,7 @@ export function ExerciseCatalog({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => goToPage(page - 1)}
                 disabled={page <= 1}
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -448,7 +467,7 @@ export function ExerciseCatalog({
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => goToPage(page + 1)}
                 disabled={page >= totalPages}
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >

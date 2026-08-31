@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -38,14 +38,35 @@ export default function DietsListPage() {
   const [includeArchived, setIncludeArchived] = useState(
     () => searchParams.get("archived") === "true",
   );
-  const [page, setPage] = useState(1);
+  // The page lives in the URL, and paginating is a real navigation (push), so
+  // browser back/forward walk the pages. The filters are mirrored with replace
+  // instead — they must never build up history. Page 1 is the default, so it
+  // stays out of the URL.
+  const page = Number(searchParams.get("page")) || 1;
+
+  function goToPage(next: number) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (next > 1) p.set("page", String(next));
+    else p.delete("page");
+    const qs = p.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // On mount the URL already carries these filters (the state was seeded from
+  // it), so skip that pass: writing here would strip the ?page= the coach
+  // arrived on. A later write is a real filter change, and it drops the page —
+  // new filters start at the first page.
+  const firstMirror = useRef(true);
   useEffect(() => {
+    if (firstMirror.current) {
+      firstMirror.current = false;
+      return;
+    }
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     if (includeArchived) p.set("archived", "true");
@@ -97,20 +118,14 @@ export default function DietsListPage() {
           <Input
             type="search"
             value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Buscar dieta…"
             className="pl-9"
           />
         </div>
         <Select
           value={includeArchived ? "all" : "active"}
-          onValueChange={(v) => {
-            setIncludeArchived(v === "all");
-            setPage(1);
-          }}
+          onValueChange={(v) => setIncludeArchived(v === "all")}
         >
           <SelectTrigger className="h-10 w-full rounded-xl sm:w-56">
             <SelectValue />
@@ -211,7 +226,7 @@ export default function DietsListPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => goToPage(page - 1)}
                 disabled={page <= 1}
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -219,7 +234,7 @@ export default function DietsListPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => goToPage(page + 1)}
                 disabled={page >= totalPages}
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >

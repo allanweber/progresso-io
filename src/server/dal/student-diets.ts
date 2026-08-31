@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { schema } from "@/db";
 import type { DietFoodSubstituteDto } from "@/lib/diets";
+import { dietChanged } from "@/lib/plan-changes";
 import type { TenantContext } from "@/server/tenant";
 import {
   EMPTY_STRUCTURE,
@@ -377,7 +378,14 @@ export type StudentDietWriteResult =
     };
 
 export type StudentDietPublishResult =
-  | { ok: true; dietId: string; version: number }
+  | {
+      ok: true;
+      dietId: string;
+      version: number;
+      /** True when the draft matched the published version and was closed
+       *  instead of numbered — `version` is the one still standing. */
+      unchanged: boolean;
+    }
   | { ok: false; reason: "not_found" | "invalid_food" | "empty" };
 
 /* -------------------------------------------------------------------------- */
@@ -702,6 +710,36 @@ export async function publishDraft(
   }
   if (!structureHasItems(structure)) return { ok: false, reason: "empty" };
 
+  // Nothing changed → close the draft and leave the published version standing:
+  // no duplicate in the histórico, no notification about a dieta that did not
+  // move. A brand-new diet has no predecessor, so it always publishes.
+  const [previous] = await ctx.db
+    .select()
+    .from(schema.studentDietVersion)
+    .where(
+      and(
+        eq(schema.studentDietVersion.studentDietId, draft.diet.id),
+        eq(schema.studentDietVersion.status, "published"),
+      ),
+    )
+    .orderBy(desc(schema.studentDietVersion.version))
+    .limit(1);
+  if (
+    previous &&
+    !dietChanged(
+      { name: input.name, notes: input.notes, tree: structure },
+      { name: draft.diet.name, notes: previous.notes, tree: previous.tree },
+    )
+  ) {
+    await discardDraft(ctx, studentId);
+    return {
+      ok: true,
+      dietId: draft.diet.id,
+      version: previous.version!,
+      unchanged: true,
+    };
+  }
+
   return ctx.db.transaction(async (tx) => {
     const [{ max }] = await tx
       .select({
@@ -747,7 +785,12 @@ export async function publishDraft(
         .where(eq(schema.studentDiet.id, draft.diet.id));
     }
 
-    return { ok: true, dietId: draft.diet.id, version: nextVersion };
+    return {
+      ok: true,
+      dietId: draft.diet.id,
+      version: nextVersion,
+      unchanged: false,
+    };
   });
 }
 

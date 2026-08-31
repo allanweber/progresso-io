@@ -10,6 +10,7 @@ import type {
 } from "@/lib/exercises";
 import {
   normalizeReps,
+  resolveSets,
   type WorkoutExerciseDto,
   type WorkoutExerciseSubstituteDto,
   type WorkoutReps,
@@ -182,7 +183,7 @@ function placeholder(p: ExercisePrescription): WorkoutExerciseDto {
     images: [],
     instructions: [],
     available: false,
-    sets: p.sets,
+    sets: resolveSets(normalizeReps(p.reps), p.sets),
     reps: normalizeReps(p.reps),
     load: p.load,
     rest: p.rest,
@@ -249,7 +250,7 @@ export function buildExerciseDto(
     images: cat.images,
     instructions: cat.instructions,
     available: true,
-    sets: p.sets,
+    sets: resolveSets(normalizeReps(p.reps), p.sets),
     reps: normalizeReps(p.reps),
     load: p.load,
     rest: p.rest,

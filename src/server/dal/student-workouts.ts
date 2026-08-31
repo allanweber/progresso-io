@@ -10,6 +10,7 @@ import {
   type StudentWorkoutVersionDto,
   type WorkoutStructure,
 } from "@/lib/student-workouts";
+import { workoutChanged } from "@/lib/plan-changes";
 import type { WorkoutSessionDto } from "@/lib/workouts";
 import type { TenantContext } from "@/server/tenant";
 import {
@@ -236,7 +237,14 @@ export type StudentWorkoutWriteResult =
     };
 
 export type StudentWorkoutPublishResult =
-  | { ok: true; workoutId: string; version: number }
+  | {
+      ok: true;
+      workoutId: string;
+      version: number;
+      /** True when the draft matched the published version and was closed
+       *  instead of numbered — `version` is the one still standing. */
+      unchanged: boolean;
+    }
   | { ok: false; reason: "not_found" | "invalid_exercise" | "empty" };
 
 /* -------------------------------------------------------------------------- */
@@ -561,6 +569,46 @@ export async function publishDraft(
   }
   if (!structureHasItems(structure)) return { ok: false, reason: "empty" };
 
+  // Nothing changed → close the draft and leave the published version standing:
+  // no duplicate in the histórico, no notification about a program that did not
+  // move. A brand-new workout has no predecessor, so it always publishes.
+  const [previous] = await ctx.db
+    .select()
+    .from(schema.studentWorkoutVersion)
+    .where(
+      and(
+        eq(schema.studentWorkoutVersion.studentWorkoutId, draft.workout.id),
+        eq(schema.studentWorkoutVersion.status, "published"),
+      ),
+    )
+    .orderBy(desc(schema.studentWorkoutVersion.version))
+    .limit(1);
+  if (
+    previous &&
+    !workoutChanged(
+      {
+        name: input.name,
+        notes: input.notes,
+        cardio: input.cardio ?? null,
+        tree: structure,
+      },
+      {
+        name: draft.workout.name,
+        notes: previous.notes,
+        cardio: previous.cardio,
+        tree: previous.tree,
+      },
+    )
+  ) {
+    await discardDraft(ctx, studentId);
+    return {
+      ok: true,
+      workoutId: draft.workout.id,
+      version: previous.version!,
+      unchanged: true,
+    };
+  }
+
   return ctx.db.transaction(async (tx) => {
     const [{ max }] = await tx
       .select({
@@ -607,7 +655,12 @@ export async function publishDraft(
         .where(eq(schema.studentWorkout.id, draft.workout.id));
     }
 
-    return { ok: true, workoutId: draft.workout.id, version: nextVersion };
+    return {
+      ok: true,
+      workoutId: draft.workout.id,
+      version: nextVersion,
+      unchanged: false,
+    };
   });
 }
 

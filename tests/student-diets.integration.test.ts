@@ -445,3 +445,52 @@ describe("catalog substitutes are derived live on read", () => {
       .where(sql`${schema.foodSubstitution.foodId} = ${arrozId}`);
   });
 });
+
+/**
+ * The dieta half of the same rule: an untouched draft closes without numbering a
+ * version (its own student, so the counts above stay put).
+ */
+describe("publishing a diet draft that changed nothing", () => {
+  let studentC: string;
+
+  beforeAll(async () => {
+    const [row] = await db
+      .insert(schema.students)
+      .values({
+        clinicId: ctxA.clinicId,
+        firstName: "Carla",
+        lastName: "Dias",
+        email: "carla-dieta@example.com",
+      })
+      .returning({ id: schema.students.id });
+    studentC = row.id;
+    await studentDiets.createBlankDraft(ctxA, studentC, "Cutting");
+    await studentDiets.publishDraft(ctxA, studentC, mealPayload(200, "Cutting"));
+  });
+
+  it("closes the draft and leaves the published version standing", async () => {
+    expect((await studentDiets.editActive(ctxA, studentC)).ok).toBe(true);
+    const res = await studentDiets.publishDraft(
+      ctxA,
+      studentC,
+      mealPayload(200, "Cutting"),
+    );
+    expect(res).toMatchObject({ ok: true, version: 1, unchanged: true });
+
+    const state = await studentDiets.getStudentDietState(ctxA, studentC);
+    expect(state!.current!.version).toBe(1);
+    expect(state!.draft).toBeNull();
+    const h = state!.history.find((d) => d.dietId === state!.current!.dietId)!;
+    expect(h.versions).toHaveLength(1);
+  });
+
+  it("publishes when a portion actually changed", async () => {
+    expect((await studentDiets.editActive(ctxA, studentC)).ok).toBe(true);
+    const res = await studentDiets.publishDraft(
+      ctxA,
+      studentC,
+      mealPayload(250, "Cutting"),
+    );
+    expect(res).toMatchObject({ ok: true, version: 2, unchanged: false });
+  });
+});

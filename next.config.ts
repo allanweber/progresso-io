@@ -56,7 +56,9 @@ const csp = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data: https:", // exercise/check-in images (R2/CDN) + data URIs
+  // exercise/check-in images (R2/CDN) + data URIs + local `blob:` previews of
+  // files picked in the exercise/check-in forms before they are uploaded.
+  "img-src 'self' data: blob: https:",
   `script-src 'self' 'unsafe-inline'${devEval}${gaScript}${turnstileScript}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind inline styles
   `connect-src 'self'${gaConnect}${sentryConnect}${turnstileScript}`,

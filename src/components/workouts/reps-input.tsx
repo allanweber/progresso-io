@@ -3,7 +3,12 @@
 import { Minus, Plus, TrendingUp } from "lucide-react";
 
 import { NumberField } from "@/components/workouts/number-field";
-import { normalizeReps, type WorkoutReps } from "@/lib/workouts";
+import {
+  DEFAULT_DURATION_SECONDS,
+  formatSeconds,
+  normalizeReps,
+  type WorkoutReps,
+} from "@/lib/workouts";
 
 /** An editor for a reps **sequence** (2+ positions) — shared by intervalo + pirâmide. */
 function SequenceEditor({
@@ -62,7 +67,8 @@ function SequenceEditor({
       {kind === "pyramid" && (
         <p className="flex items-center gap-1 text-label font-medium text-primary">
           <TrendingUp className="size-3 shrink-0" aria-hidden />
-          A cada série o peso aumenta e as repetições diminuem.
+          Uma série por posição — a cada série o peso aumenta e as repetições
+          diminuem.
         </p>
       )}
     </div>
@@ -70,11 +76,13 @@ function SequenceEditor({
 }
 
 /**
- * Edits an exercise's repetitions — número / intervalo / pirâmide / falha. A
- * segmented control picks the kind. **Intervalo** and **Pirâmide** are both a
- * sequence of 2+ values (crescente or decrescente, e.g. `8-12` or `12-10-8-6`);
- * a pirâmide additionally signals that the load rises each set. Emits a
- * `WorkoutReps` value the builder stores and the API validates.
+ * Edits an exercise's repetitions — número / intervalo / pirâmide / tempo /
+ * falha. A segmented control picks the kind. **Intervalo** and **Pirâmide** are
+ * both a sequence of 2+ values (crescente or decrescente, e.g. `8-12` or
+ * `12-10-8-6`); a pirâmide additionally signals that the load rises each set and
+ * that each position **is** a série (the builder derives Séries from it).
+ * **Tempo** prescribes seconds per set instead of reps. Emits a `WorkoutReps`
+ * value the builder stores and the API validates.
  */
 export function RepsInput({
   value: rawValue,
@@ -88,15 +96,18 @@ export function RepsInput({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex overflow-hidden rounded-lg border border-border text-label font-medium">
+      {/* 3-up then 2-up: five kinds never fit one row on a phone. The gap-px
+          over a bordered container draws the dividers. */}
+      <div className="grid grid-cols-6 gap-px overflow-hidden rounded-lg border border-border bg-border text-label font-medium">
         {(
           [
-            ["fixed", "Número"],
-            ["range", "Intervalo"],
-            ["pyramid", "Pirâmide"],
-            ["failure", "Falha"],
+            ["fixed", "Número", "col-span-2"],
+            ["range", "Intervalo", "col-span-2"],
+            ["pyramid", "Pirâmide", "col-span-2"],
+            ["duration", "Tempo", "col-span-3"],
+            ["failure", "Falha", "col-span-3"],
           ] as const
-        ).map(([kind, label]) => (
+        ).map(([kind, label, span]) => (
           <button
             key={kind}
             type="button"
@@ -107,9 +118,14 @@ export function RepsInput({
                 onChange({ kind: "range", values: [8, 12] });
               else if (kind === "pyramid")
                 onChange({ kind: "pyramid", values: [12, 10, 8, 6] });
+              else if (kind === "duration")
+                onChange({
+                  kind: "duration",
+                  seconds: DEFAULT_DURATION_SECONDS,
+                });
               else onChange({ kind: "failure" });
             }}
-            className={`flex-1 px-1.5 py-1.5 ${
+            className={`${span} px-1.5 py-1.5 ${
               value.kind === kind
                 ? "bg-primary text-white"
                 : "bg-white text-[#475569] hover:bg-surface-light"
@@ -148,6 +164,26 @@ export function RepsInput({
           onChange={(values) => onChange({ kind: "pyramid", values })}
           hint="Ex.: 12-10-8-6 (repetições por série, da 1ª à última)."
         />
+      )}
+
+      {value.kind === "duration" && (
+        <div className="space-y-1.5">
+          <NumberField
+            value={value.seconds}
+            onCommit={(seconds) => onChange({ kind: "duration", seconds })}
+            min={1}
+            max={3600}
+            step={5}
+            maxDigits={4}
+            stepper
+            ariaLabel="Tempo em segundos"
+            inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+          />
+          <p className="text-label text-muted-foreground">
+            Segundos por série ({formatSeconds(value.seconds)}) — para prancha,
+            isometria ou cardio.
+          </p>
+        </div>
       )}
 
       {value.kind === "failure" && (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   ChevronRight,
   CornerDownRight,
+  Dumbbell,
   HeartPulse,
   Repeat,
   TrendingUp,
@@ -23,6 +24,7 @@ import {
 import {
   formatRest,
   formatReps,
+  repsLabel,
   type WorkoutExerciseDto,
   type WorkoutExerciseSubstituteDto,
   type WorkoutSessionDto,
@@ -132,9 +134,27 @@ function ExerciseRow({
     </div>
   ) : null;
 
+  // The exercise's first image, so a ficha reads visually — the same thumbnail
+  // the builder and the search show. Tapping the row still opens the carousel.
+  const thumb = exerciseImageUrl(exercise.images[0]);
+
   const body = (
     <div className="flex gap-2.5">
       {rail}
+      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-light text-muted-foreground">
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumb}
+            alt=""
+            loading="lazy"
+            data-testid="exercise-thumb"
+            className="size-full object-cover"
+          />
+        ) : (
+          <Dumbbell className="size-5" aria-hidden />
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -353,7 +373,10 @@ export function WorkoutExerciseDetail({
               <div className="grid grid-cols-4 gap-2.5">
                 {[
                   { label: "Séries", value: String(exercise.sets) },
-                  { label: "Reps", value: formatReps(exercise.reps) },
+                  {
+                    label: repsLabel(exercise.reps),
+                    value: formatReps(exercise.reps),
+                  },
                   { label: "Carga", value: exercise.load ?? "—" },
                   { label: "Descanso", value: formatRest(exercise.rest) },
                 ].map((s) => (

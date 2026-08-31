@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -88,7 +88,19 @@ export default function LibraryFoodsPage() {
   const [dir, setDir] = useState<"asc" | "desc">(() =>
     searchParams.get("dir") === "desc" ? "desc" : "asc",
   );
-  const [page, setPage] = useState(1);
+  // The page lives in the URL, and paginating is a real navigation (push), so
+  // browser back/forward walk the pages. The filters are mirrored with replace
+  // instead — they must never build up history. Page 1 is the default, so it
+  // stays out of the URL.
+  const page = Number(searchParams.get("page")) || 1;
+
+  function goToPage(next: number) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (next > 1) p.set("page", String(next));
+    else p.delete("page");
+    const qs = p.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   // Debounce the free-text search so we don't refetch on every keystroke.
   useEffect(() => {
@@ -96,12 +108,18 @@ export default function LibraryFoodsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Any filter/sort change returns to the first page.
-  useEffect(() => setPage(1), [search, group, type, favoritesOnly, sort, dir]);
-
   // Mirror the active filters into the URL (replace, no history spam) so the
   // list is restorable on back-navigation and shareable as a link.
+  // On mount the URL already carries these filters (the state was seeded from
+  // it), so skip that pass: writing here would strip the ?page= the coach
+  // arrived on. A later write is a real filter change, and it drops the page —
+  // new filters start at the first page.
+  const firstMirror = useRef(true);
   useEffect(() => {
+    if (firstMirror.current) {
+      firstMirror.current = false;
+      return;
+    }
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     if (group) p.set("group", group);
@@ -495,7 +513,7 @@ export default function LibraryFoodsPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => goToPage(page - 1)}
                 disabled={page <= 1}
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -503,7 +521,7 @@ export default function LibraryFoodsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => goToPage(page + 1)}
                 disabled={page >= totalPages}
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >

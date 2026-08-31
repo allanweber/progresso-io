@@ -294,3 +294,56 @@ describe("aluno portal workout boundary", () => {
     expect(await studentPortal.getMyWorkoutState(strangerA)).toBeNull();
   });
 });
+
+/**
+ * Publishing is not saving: it numbers a version, freezes it into the histórico
+ * and pings the aluno. An untouched draft must therefore close without doing any
+ * of that — on its own student, so the counts above stay put.
+ */
+describe("publishing a workout draft that changed nothing", () => {
+  let studentC: string;
+
+  beforeAll(async () => {
+    const [row] = await db
+      .insert(schema.students)
+      .values({
+        clinicId: coachA.clinicId,
+        firstName: "Carla",
+        lastName: "Dias",
+        email: "carla@example.com",
+      })
+      .returning({ id: schema.students.id });
+    studentC = row.id;
+    await studentWorkouts.createBlankDraft(coachA, studentC, "Hipertrofia");
+    await studentWorkouts.publishDraft(coachA, studentC, wk("Hipertrofia"));
+  });
+
+  it("closes the draft and leaves the published version standing", async () => {
+    expect((await studentWorkouts.editActive(coachA, studentC)).ok).toBe(true);
+    const res = await studentWorkouts.publishDraft(
+      coachA,
+      studentC,
+      wk("Hipertrofia"),
+    );
+    expect(res).toMatchObject({ ok: true, version: 1, unchanged: true });
+
+    const state = await studentWorkouts.getStudentWorkoutState(coachA, studentC);
+    expect(state!.current!.version).toBe(1);
+    // The draft is gone, so the coach can edit again without "has_draft".
+    expect(state!.draft).toBeNull();
+    // And the histórico has no identical twin.
+    const h = state!.history.find((w) => w.workoutId === state!.current!.workoutId)!;
+    expect(h.versions).toHaveLength(1);
+  });
+
+  it("publishes when the prescription actually changed", async () => {
+    expect((await studentWorkouts.editActive(coachA, studentC)).ok).toBe(true);
+    const changed = wk("Hipertrofia");
+    changed.sessions[0].exercises[0].sets = 5;
+    const res = await studentWorkouts.publishDraft(coachA, studentC, changed);
+    expect(res).toMatchObject({ ok: true, version: 2, unchanged: false });
+
+    const state = await studentWorkouts.getStudentWorkoutState(coachA, studentC);
+    expect(state!.current!.version).toBe(2);
+  });
+});

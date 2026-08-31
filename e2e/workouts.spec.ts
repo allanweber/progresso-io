@@ -200,6 +200,17 @@ test.describe("workout copy", () => {
       page.getByRole("heading", { name: /Programa completo/ }),
     ).toBeVisible();
     await expect(page.getByText(/Giant set/).first()).toBeVisible();
+    // Every ficha row leads with the exercise's first image, so a program reads
+    // visually and not as a wall of names. "Visible" is not enough — a blocked
+    // or 404'd image still occupies the box, so assert the art actually decoded.
+    const rowThumbs = page.getByTestId("exercise-thumb");
+    expect(await rowThumbs.count()).toBeGreaterThanOrEqual(3); // Ficha A alone
+    await expect(rowThumbs.first()).toBeVisible();
+    expect(
+      await rowThumbs
+        .first()
+        .evaluate((el: HTMLImageElement) => el.naturalWidth),
+    ).toBeGreaterThan(0);
     // Each técnica badge carries a drawn mark (lucide), never an emoji or a
     // unicode glyph — see components/workouts/technique-icon.tsx. The marks
     // must be real SVG *and* distinct from one another, so a technique reads
@@ -264,6 +275,7 @@ test.describe("workout copy", () => {
     await expect(
       page.getByRole("heading", { name: /Programa completo/ }),
     ).toBeVisible();
+    await expect(page.getByTestId("exercise-thumb").first()).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-workout-detail-mobile.png",
       fullPage: true,
@@ -277,7 +289,7 @@ test.describe("workout copy", () => {
 });
 
 test.describe("workout builder", () => {
-  test("prescribes an exercise at insertion — steppers + Pirâmide reps (desktop + mobile)", async ({
+  test("prescribes an exercise at insertion — steppers, Pirâmide séries e Tempo (desktop + mobile)", async ({
     page,
   }) => {
     // The exercise-image host isn't reachable from the e2e browser; fulfil image
@@ -324,6 +336,18 @@ test.describe("workout builder", () => {
       page.getByText(/o peso aumenta e as repetições diminuem/).first(),
     ).toBeVisible();
 
+    // A pirâmide prescribes one set per position: Séries stops being typed and
+    // follows the sequence (12-10-8-6 → 4 séries).
+    const series = page.getByLabel("Séries");
+    await expect(series).toHaveValue("4");
+    await expect(page.getByRole("button", { name: "Aumentar Séries" })).toHaveCount(0);
+
+    // Adding/removing a position moves the set count with it.
+    await page.getByRole("button", { name: "Adicionar posição" }).click();
+    await expect(series).toHaveValue("5");
+    await page.getByRole("button", { name: "Remover posição" }).click();
+    await expect(series).toHaveValue("4");
+
     await page.screenshot({
       path: "test-results/screens/coach-exercise-prescription-desktop.png",
       fullPage: true,
@@ -332,6 +356,22 @@ test.describe("workout builder", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({
       path: "test-results/screens/coach-exercise-prescription-mobile.png",
+      fullPage: true,
+    });
+
+    // Tempo prescribes seconds per set instead of reps — Séries is typed again.
+    await page.getByRole("button", { name: "Tempo", exact: true }).click();
+    await expect(page.getByLabel("Tempo em segundos")).toHaveValue("30");
+    await expect(page.getByText(/Segundos por série/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Aumentar Séries" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Adicionar ao treino" }).click();
+    // The ficha row summarises it as séries × tempo (the pirâmide left 4 séries
+    // behind, and Tempo makes them editable again).
+    await expect(page.getByText(/4× 30s/).first()).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-prescription-duration-mobile.png",
       fullPage: true,
     });
   });
@@ -382,10 +422,32 @@ test.describe("exercise images", () => {
     const { images } = (await detailRes.json()) as { images: string[] };
     expect(images.length).toBeGreaterThan(0);
 
-    await page.goto(`/coach/library/exercises/${exercise.id}`);
+    // --- The catalog grid: each card leads with the exercise's own photo ---
+    await page.goto("/coach/library/exercises?search=agachamento");
     // The cookie banner also carries role="dialog" and would collide with the
     // viewer's locator below.
     await page.getByRole("button", { name: "Aceitar" }).click();
+    const cardThumbs = page.getByTestId("exercise-thumb");
+    await expect(cardThumbs.first()).toBeVisible();
+    expect(
+      await cardThumbs
+        .first()
+        .evaluate((el: HTMLImageElement) => el.naturalWidth),
+    ).toBeGreaterThan(0);
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-catalog-desktop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(cardThumbs.first()).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-catalog-mobile.png",
+      fullPage: true,
+    });
+    // Back to the project's Desktop Chrome viewport for the detail screenshots.
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    await page.goto(`/coach/library/exercises/${exercise.id}`);
     await expect(
       page.getByRole("heading", { name: exercise.name, level: 1 }),
     ).toBeVisible();
@@ -481,5 +543,84 @@ test.describe("exercise images", () => {
     });
     await page.keyboard.press("Escape");
     await expect(viewer).toBeHidden();
+  });
+});
+/**
+ * A list's page belongs in the URL, like its filters — but as a real navigation:
+ * back and forward must walk the pages instead of dropping the coach back onto
+ * whatever they were looking at before the list, opening an exercise from page 2
+ * and returning must land on page 2, and a pasted link must open where it
+ * points. The exercise catalog is the shared `ExerciseCatalog` the coach library
+ * and the admin catalog both render, so this covers both.
+ */
+test.describe("list pagination", () => {
+  test("walks pages with browser back/forward and restores them from a link (desktop + mobile)", async ({
+    page,
+  }) => {
+    const res = await page.request.get("/api/exercises?page=1&pageSize=24");
+    expect(res.ok()).toBeTruthy();
+    const { total } = (await res.json()) as { total: number };
+    expect(
+      total,
+      "o catálogo semeado precisa passar de uma página",
+    ).toBeGreaterThan(24);
+    const totalPages = Math.ceil(total / 24);
+
+    await page.goto("/coach/library/exercises");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await expect(page.getByText(`Página 1 de ${totalPages}`)).toBeVisible();
+    // The first page stays out of the URL — it is the default, not a state.
+    expect(new URL(page.url()).searchParams.get("page")).toBeNull();
+
+    // Paginating is a navigation: it rewrites the URL...
+    await page.getByRole("button", { name: "Próxima" }).click();
+    await expect(page.getByText(`Página 2 de ${totalPages}`)).toBeVisible();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("page"))
+      .toBe("2");
+
+    // ...and back/forward walk the pages instead of leaving the list for
+    // whatever the coach was looking at before it.
+    await page.goBack();
+    await expect(page.getByText(`Página 1 de ${totalPages}`)).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("page")).toBeNull();
+    await page.goForward();
+    await expect(page.getByText(`Página 2 de ${totalPages}`)).toBeVisible();
+
+    // Opening an exercise and coming back restores page 2, not page 1.
+    // The card to click comes from the same listing the grid renders, so this
+    // also proves the second page really holds the second page's exercises.
+    const second = await page.request.get("/api/exercises?page=2&pageSize=24");
+    const { items } = (await second.json()) as { items: { name: string }[] };
+    const name = items[0].name;
+    await page.getByRole("link").filter({ hasText: name }).first().click();
+    await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByText(`Página 2 de ${totalPages}`)).toBeVisible();
+
+    // A pasted link opens straight on its page — and STAYS there: the effect
+    // that mirrors the filters into the URL must not strip the page on its
+    // mount pass, and the search debounce that follows must not either.
+    await page.goto("/coach/library/exercises?page=2");
+    await expect(page.getByText(`Página 2 de ${totalPages}`)).toBeVisible();
+    await page.waitForTimeout(700);
+    await expect(page.getByText(`Página 2 de ${totalPages}`)).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-catalog-page2-desktop.png",
+      fullPage: true,
+    });
+
+    // --- Mobile: the same pager, the same URL ---
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Anterior" }).click();
+    await expect(page.getByText(`Página 1 de ${totalPages}`)).toBeVisible();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("page"))
+      .toBeNull();
+    await page.screenshot({
+      path: "test-results/screens/coach-exercise-catalog-pager-mobile.png",
+      fullPage: true,
+    });
   });
 });
