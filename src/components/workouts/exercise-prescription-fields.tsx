@@ -2,10 +2,15 @@
 
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Plus, Repeat, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus, Repeat, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { NumberField } from "@/components/workouts/number-field";
 import { RepsInput } from "@/components/workouts/reps-input";
@@ -22,9 +27,10 @@ import {
   type WorkoutReps,
 } from "@/lib/workouts";
 import {
-  WORKOUT_TECHNIQUE_OPTIONS,
+  WORKOUT_TECHNIQUES,
   isGroupingTechnique,
   techniqueInfo,
+  WORKOUT_TECHNIQUE_CATALOG,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
 
@@ -35,10 +41,9 @@ const numberInputBase =
 const numberInputClass = `${numberInputBase} px-3.5`;
 
 /* Séries lives in a deliberately narrow column so the reps sequence gets the
-   rest of the row — its stepper and padding shrink to match. */
+   rest of the row. Only its padding shrinks — the height stays on the system's
+   44px control so the box and its − / + buttons sit on the same line. */
 const compactNumberInputClass = `${numberInputBase} px-2`;
-const compactStepperClass =
-  "flex size-9 shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-input bg-white text-muted-foreground transition-colors hover:border-primary hover:text-primary";
 
 /** A custom substitute the coach adds to a workout exercise (client draft). */
 export type CustomSubDraft = {
@@ -151,7 +156,7 @@ function EssentialFields({
   // starved the side that needed the room, so Séries takes a fixed narrow
   // column and Repetições takes everything left — they stay on one line.
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[9rem_1fr]">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[10rem_1fr] sm:gap-x-6">
       <div className="space-y-1.5">
         <div className="flex h-8 items-center">
           <Label>Séries</Label>
@@ -179,7 +184,6 @@ function EssentialFields({
             stepper
             ariaLabel="Séries"
             inputClassName={compactNumberInputClass}
-            stepperButtonClassName={compactStepperClass}
           />
         )}
       </div>
@@ -188,6 +192,100 @@ function EssentialFields({
         onChange={(reps) => onPatch({ reps, sets: resolveSets(reps, value.sets) })}
       />
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Técnica avançada — every option carries the explanation the aluno reads     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Picks an exercise's advanced technique. A bare `<select>` reduced this to nine
+ * opaque strings (`GVT 10×10`, `FS7`, `Cluster`) while the catalog already holds
+ * a full PT-BR explanation for every one of them — so this uses the same
+ * hinted-popover pattern as `RepsInput`, and a coach who has never run a cluster
+ * set can find out what it is without leaving the field.
+ */
+function TechniquePicker({
+  value,
+  onChange,
+}: {
+  value: WorkoutTechnique | null;
+  onChange: (technique: WorkoutTechnique | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = techniqueInfo(value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Técnica avançada: ${current?.label ?? "nenhuma"}. Alterar.`}
+          className="flex h-11 w-full items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 text-left text-body text-foreground transition-colors hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            {current && (
+              <span
+                aria-hidden
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: current.color }}
+              />
+            )}
+            <span className="truncate">{current?.label ?? "Nenhuma técnica"}</span>
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="max-h-80 w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-1.5">
+        <ul>
+          {[null, ...WORKOUT_TECHNIQUES].map((key) => {
+            const info = key ? WORKOUT_TECHNIQUE_CATALOG[key] : null;
+            const selected = key === value;
+            return (
+              <li key={key ?? "none"}>
+                <button
+                  type="button"
+                  aria-current={selected || undefined}
+                  onClick={() => {
+                    onChange(key);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                    selected ? "bg-primary/5" : "hover:bg-surface-light"
+                  }`}
+                >
+                  <Check
+                    className={`mt-0.5 size-3.5 shrink-0 ${
+                      selected ? "text-primary" : "text-transparent"
+                    }`}
+                    aria-hidden
+                  />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5">
+                      {info && (
+                        <span
+                          aria-hidden
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: info.color }}
+                        />
+                      )}
+                      <span className="text-body font-medium text-foreground">
+                        {info?.label ?? "Nenhuma técnica"}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block text-label text-muted-foreground">
+                      {info?.description ??
+                        "Série normal, sem técnica de intensidade."}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -273,24 +371,12 @@ function DetailFields({
 
       <div>
         <Label>Técnica avançada</Label>
-        <select
-          value={value.technique ?? ""}
-          onChange={(e) =>
-            onPatch({
-              technique: e.target.value
-                ? (e.target.value as WorkoutTechnique)
-                : null,
-            })
-          }
-          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-body text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
-        >
-          <option value="">Nenhuma técnica</option>
-          {WORKOUT_TECHNIQUE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <div className="mt-1">
+          <TechniquePicker
+            value={value.technique}
+            onChange={(technique) => onPatch({ technique })}
+          />
+        </div>
         {isGroupingTechnique(value.technique) && (
           <p className="mt-1 text-label text-muted-foreground">
             Encadeia com o próximo exercício da ficha, sem descanso entre eles.

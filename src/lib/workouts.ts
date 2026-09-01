@@ -31,20 +31,57 @@ export const WORKOUT_ORIGIN_LABELS: Record<WorkoutOrigin, string> = {
 };
 
 /**
- * Quick session-name (ficha) suggestions shown as chips in the builder. They
- * only prefill the free-text field — the coach can still type anything.
+ * Quick ficha-name suggestions, in the two groups a ficha name is actually made
+ * of: its **position** in the week and its **focus**. The conventional name
+ * pairs them — `Ficha A · Peito e Tríceps` — so the chips must **compose**, not
+ * replace: picking a focus keeps the position the coach already chose, and vice
+ * versa. They only prefill a free-text field; the coach can still type anything.
  */
-export const SESSION_SUGGESTIONS = [
+export const SESSION_POSITION_SUGGESTIONS = [
   "Ficha A",
   "Ficha B",
   "Ficha C",
   "Ficha D",
+] as const;
+
+export const SESSION_FOCUS_SUGGESTIONS = [
   "Peito e Tríceps",
   "Costas e Bíceps",
   "Pernas",
   "Ombros",
   "Full body",
 ] as const;
+
+/** The separator between a ficha's position and its focus. */
+export const SESSION_NAME_SEPARATOR = " · ";
+
+const isPositionSuggestion = (part: string) =>
+  (SESSION_POSITION_SUGGESTIONS as readonly string[]).includes(part);
+
+/**
+ * Applies one suggestion chip to the current ficha name, replacing only the
+ * half that chip owns. `composeSessionName("Ficha A", "Pernas", "focus")` gives
+ * `Ficha A · Pernas`; clicking a second position chip swaps the position and
+ * leaves the focus — including free text the coach typed themselves — intact.
+ */
+export function composeSessionName(
+  current: string,
+  suggestion: string,
+  group: "position" | "focus",
+): string {
+  const parts = current
+    .split(SESSION_NAME_SEPARATOR)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const position =
+    group === "position" ? suggestion : parts.find(isPositionSuggestion);
+  const rest = parts.filter((p) => !isPositionSuggestion(p));
+  const focus =
+    group === "focus"
+      ? suggestion
+      : rest.join(SESSION_NAME_SEPARATOR) || undefined;
+  return [position, focus].filter(Boolean).join(SESSION_NAME_SEPARATOR);
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Reps — number | range | failure                                           */

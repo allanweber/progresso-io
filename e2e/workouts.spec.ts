@@ -435,7 +435,9 @@ test.describe("workout builder", () => {
     // --- Tier 2: nothing else is on screen, but the drawer says what is in it
     await expect(page.getByPlaceholder("Ex.: 40 kg, peso corporal")).toHaveCount(0);
     await expect(page.getByLabel("Descanso", { exact: true })).toHaveCount(0);
-    await expect(page.getByRole("combobox")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /^Técnica avançada/ }),
+    ).toHaveCount(0);
     await expect(
       page.getByText("carga · descanso · técnica · observação · substituições"),
     ).toBeVisible();
@@ -458,14 +460,17 @@ test.describe("workout builder", () => {
     await expect(drawer).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByPlaceholder("Ex.: 40 kg, peso corporal")).toBeVisible();
     await expect(page.getByLabel("Descanso", { exact: true })).toBeVisible();
-    await expect(page.getByRole("combobox")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Técnica avançada/ }),
+    ).toBeVisible();
     await expect(page.getByPlaceholder(/Nota para este exercício/)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Adicionar substituição" }),
     ).toBeVisible();
 
     await page.getByPlaceholder("Ex.: 40 kg, peso corporal").fill("40 kg");
-    await page.getByRole("combobox").selectOption({ label: "Drop set" });
+    await page.getByRole("button", { name: /^Técnica avançada/ }).click();
+    await page.getByRole("button", { name: /^Drop set/ }).click();
     await page
       .getByPlaceholder(/Nota para este exercício/)
       .fill("Segura 2s embaixo.");
@@ -508,8 +513,12 @@ test.describe("workout builder", () => {
     // --- Adjusting the padrão is the batch edit ---------------------------
     await page.getByRole("button", { name: "Ajustar" }).click();
     await page.getByLabel("Descanso padrão da ficha").fill("60");
+    // Unchecked by default — the popover promises the padrão governs the NEXT
+    // exercises, so rewriting the existing ones is opt-in.
     const applyAll = page.getByRole("checkbox");
-    await expect(applyAll).toBeChecked();
+    await expect(applyAll).not.toBeChecked();
+    await expect(page.getByRole("button", { name: "Salvar padrão" })).toBeVisible();
+    await applyAll.check();
     await page.getByRole("button", { name: "Salvar e aplicar a 2" }).click();
 
     // Both exercises moved, and the row states the new padrão.
@@ -525,6 +534,176 @@ test.describe("workout builder", () => {
     await expect(page.getByText("3 séries · 1min")).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-ficha-padrao-mobile.png",
+      fullPage: true,
+    });
+  });
+
+  /**
+   * The builder must refuse out loud. It used to fail in total silence — an
+   * unnamed ficha made `buildPayload` return null and `Salvar treino` did
+   * nothing at all — and Enter in any single-line field saved the whole treino
+   * and navigated away mid-build.
+   */
+  test("names its refusal, takes the coach to it, and never saves on Enter (desktop + mobile)", async ({
+    page,
+  }) => {
+    await stubExerciseImages(page);
+
+    await page.goto("/coach/workouts/new");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await page
+      .getByPlaceholder("Ex.: Hipertrofia · 4x semana")
+      .fill("Treino seguro");
+
+    // Two fichas, neither named.
+    await page.getByRole("button", { name: "Nova ficha" }).click();
+    await page.getByRole("button", { name: "Nova ficha" }).click();
+
+    // Enter inside a single-line field must NOT submit the treino.
+    const fichaName = page.getByPlaceholder(/Nome da ficha/).first();
+    await fichaName.click();
+    await fichaName.press("Enter");
+    await expect(page).toHaveURL(/\/coach\/workouts\/new$/);
+
+    // Saving with unnamed fichas states the problem and counts them.
+    await page.getByRole("button", { name: "Salvar treino" }).click();
+    // Next.js injects its own role="alert" route announcer on <body>, so scope
+    // to the builder's own region.
+    const alert = page.getByRole("main").getByRole("alert");
+    await expect(alert).toBeVisible();
+    await expect(alert).toHaveText(/Nomeie as 2 fichas sem nome antes de salvar/);
+    await expect(page).toHaveURL(/\/coach\/workouts\/new$/);
+
+    // …and puts the cursor in the offending field rather than leaving the coach
+    // to hunt for a red border thousands of pixels away.
+    await expect(fichaName).toBeFocused();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-builder-refusal-desktop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-builder-refusal-mobile.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    // Typing a name clears the error immediately — the red border must not
+    // outlive the fix.
+    await fichaName.fill("Ficha A · Peito");
+    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+
+    // Leaving with unsaved work asks with real buttons, not an OS confirm().
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Sair sem salvar?")).toBeVisible();
+    await dialog.getByRole("button", { name: "Continuar editando" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/coach\/workouts\/new$/);
+  });
+
+  /**
+   * The three noise items: name chips must compose instead of overwriting each
+   * other, técnica must explain itself, and a grouping technique with nothing
+   * after it must stop claiming a chain the payload does not contain.
+   */
+  test("composes ficha names, explains técnicas, and tells the truth about super sets", async ({
+    page,
+  }) => {
+    await stubExerciseImages(page);
+
+    await page.goto("/coach/workouts/new");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await page.getByPlaceholder("Ex.: Hipertrofia · 4x semana").fill("Treino honesto");
+    await page.getByRole("button", { name: "Nova ficha" }).click();
+
+    // --- Chips compose: position + focus, not one clobbering the other ------
+    const fichaName = page.getByPlaceholder(/Nome da ficha/);
+    await page.getByRole("button", { name: "Ficha A", exact: true }).click();
+    await expect(fichaName).toHaveValue("Ficha A");
+    await page.getByRole("button", { name: "Pernas", exact: true }).click();
+    await expect(fichaName).toHaveValue("Ficha A · Pernas");
+    // Swapping the position keeps the focus half intact.
+    await page.getByRole("button", { name: "Ficha B", exact: true }).click();
+    await expect(fichaName).toHaveValue("Ficha B · Pernas");
+
+    // --- Técnica explains every option -------------------------------------
+    await page.getByRole("button", { name: "Adicionar exercício" }).click();
+    await page.getByPlaceholder(/Buscar exercício/).fill("agachamento");
+    await page.getByRole("button").filter({ hasText: /agachamento/i }).first().click();
+    await page.getByRole("button", { name: /^Mais detalhes/ }).click();
+    await page.getByRole("button", { name: /^Técnica avançada/ }).click();
+    // The catalog's PT-BR explanation reaches the coach, not just the label.
+    await expect(
+      page.getByText(/Dois exercícios executados em sequência, sem descanso/),
+    ).toBeVisible();
+    await page.getByRole("button", { name: /^Super set/ }).click();
+    await page.getByRole("button", { name: "Adicionar ao treino" }).click();
+
+    // --- A super set with nothing after it admits it does nothing ----------
+    await expect(
+      page.getByText(/Sem efeito aqui — não há exercício seguinte para encadear/),
+    ).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-superset-orphan-desktop.png",
+      fullPage: true,
+    });
+
+    // Give it a follower and the chain becomes real — and visible on BOTH rows.
+    await page.getByPlaceholder(/Buscar exercício/).fill("leg press");
+    await page.getByRole("button").filter({ hasText: /leg press/i }).first().click();
+    await page.getByRole("button", { name: "Adicionar ao treino" }).click();
+    await expect(
+      page.getByText(/sem descanso — encadeia com o próximo exercício/),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/em sequência com o anterior — sem descanso entre eles/),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Sem efeito aqui/),
+    ).toHaveCount(0);
+
+    // --- Removing an exercise is undoable ----------------------------------
+    await page.getByRole("button", { name: "Remover exercício" }).last().click();
+    const undo = page.getByRole("status").filter({ hasText: /removido/ });
+    await expect(undo).toBeVisible();
+    await expect(
+      page.getByText(/Sem efeito aqui — não há exercício seguinte para encadear/),
+    ).toBeVisible();
+    await undo.getByRole("button", { name: "Desfazer" }).click();
+    await expect(
+      page.getByText(/em sequência com o anterior — sem descanso entre eles/),
+    ).toBeVisible();
+
+    // --- Removing a ficha with exercises asks first ------------------------
+    await page.getByRole("button", { name: "Remover ficha" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Remover esta ficha?")).toBeVisible();
+    await expect(dialog.getByText(/Ficha B · Pernas.*2 exercícios/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Manter ficha" }).click();
+    await expect(fichaName).toHaveValue("Ficha B · Pernas");
+
+    await page.screenshot({
+      path: "test-results/screens/coach-superset-chain-desktop.png",
+      fullPage: true,
+    });
+
+    // The action bar must stay reachable on a long treino. A fullPage capture
+    // composites sticky elements at the wrong offset, so assert and shoot the
+    // real stuck state in the viewport.
+    await page.mouse.wheel(0, 600);
+    const saveBar = page.getByRole("button", { name: "Salvar treino" });
+    await expect(saveBar).toBeInViewport();
+    await page.screenshot({
+      path: "test-results/screens/coach-builder-sticky-bar-desktop.png",
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+      path: "test-results/screens/coach-superset-chain-mobile.png",
       fullPage: true,
     });
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,10 +33,19 @@ import {
   SlidersHorizontal,
   Trash2,
   TriangleAlert,
+  Undo2,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,7 +72,9 @@ import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import { CATEGORY_LABELS } from "@/lib/exercises";
 import {
-  SESSION_SUGGESTIONS,
+  SESSION_FOCUS_SUGGESTIONS,
+  SESSION_POSITION_SUGGESTIONS,
+  composeSessionName,
   formatReps,
   formatRest,
   resolveSets,
@@ -222,6 +233,43 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
 const withGroupIds = (exercises: ExerciseDraft[]) =>
   assignGroupIds(exercises, newKey);
 
+/**
+ * What a row should say about its super/giant-set block. The builder used to
+ * print "encadeia com o próximo exercício" from the technique tag alone, so
+ * tagging the LAST exercise of a ficha rendered a chain that `assignGroupIds`
+ * had already dropped — the UI asserted something the payload did not contain.
+ * These marks come from the real grouping pass, so the opener, the tail, and a
+ * tag that formed no block at all each say the truth.
+ */
+type GroupMark =
+  | { kind: "opener"; technique: WorkoutTechnique }
+  | { kind: "tail"; technique: WorkoutTechnique }
+  | { kind: "orphan" };
+
+function groupMarks(exercises: ExerciseDraft[]): (GroupMark | null)[] {
+  let n = 0;
+  const grouped = assignGroupIds(exercises, () => `g${n++}`);
+  return grouped.map((entry, i) => {
+    const tech = entry.exercise.technique;
+    if (isGroupingTechnique(tech)) {
+      return entry.groupId
+        ? { kind: "opener", technique: tech as WorkoutTechnique }
+        : { kind: "orphan" };
+    }
+    if (!entry.groupId) return null;
+    // The block's tail carries no technique of its own — inherit the opener's
+    // so the second half of a bi-set is visible instead of silent.
+    for (let j = i - 1; j >= 0; j--) {
+      if (grouped[j].groupId !== entry.groupId) break;
+      const t = grouped[j].exercise.technique;
+      if (isGroupingTechnique(t)) {
+        return { kind: "tail", technique: t as WorkoutTechnique };
+      }
+    }
+    return null;
+  });
+}
+
 const shellSchema = z.object({
   name: z
     .string()
@@ -231,6 +279,65 @@ const shellSchema = z.object({
   notes: z.string().max(2000, "Observações muito longas."),
   cardio: z.string().max(2000, "Cardio muito longo."),
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Confirmation for the actions that destroy work                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every control on this screen that throws work away routes through here. The
+ * builder used to guard only `Cancelar` — the one action that loses nothing on
+ * the server — with a native `confirm()`, whose OK/Cancel buttons are a trap
+ * against a PT-BR question containing the word "Cancelar". Real buttons, named
+ * after what they do.
+ */
+function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel = "Continuar editando",
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {cancelLabel}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              onOpenChange(false);
+              onConfirm();
+            }}
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Component                                                                  */
@@ -251,6 +358,7 @@ export function WorkoutBuilder({
   const storageKey = `workout-draft:${adapter ? "student" : mode === "edit" ? workout!.id : "new"}`;
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | "save" | "publish" | "discard">(null);
+  const [pending, setPending] = useState<null | "cancel" | "discard">(null);
 
   const [sessions, setSessions] = useState<SessionDraft[]>(
     () => initialDraft(workout).sessions,
@@ -297,6 +405,7 @@ export function WorkoutBuilder({
     },
     validators: { onChange: shellSchema },
     onSubmit: async ({ value }) => {
+      setActionError(null);
       if (adapter) {
         await runAdapter("save");
         return;
@@ -304,7 +413,12 @@ export function WorkoutBuilder({
       const payload = buildPayload(value);
       if (!payload) return;
       const parsed = workoutFormSchema.safeParse(payload);
-      if (!parsed.success) return;
+      if (!parsed.success) {
+        setActionError(
+          "Não foi possível salvar o treino. Revise os campos destacados.",
+        );
+        return;
+      }
       try {
         await mutation.mutateAsync(parsed.data);
       } catch {
@@ -323,7 +437,25 @@ export function WorkoutBuilder({
       if (!s.name.trim()) errs[s.key] = "Informe o nome da ficha.";
     }
     setSessionErrors(errs);
-    if (Object.keys(errs).length > 0) return null;
+    const missing = Object.keys(errs).length;
+    if (missing > 0) {
+      // The screen used to refuse in total silence: `Salvar` looked broken and
+      // the only clue was an inline <p> potentially thousands of px away.
+      setActionError(
+        missing === 1
+          ? "Nomeie a ficha sem nome antes de salvar."
+          : `Nomeie as ${missing} fichas sem nome antes de salvar.`,
+      );
+      const firstKey = sessions.find((sess) => errs[sess.key])?.key;
+      if (firstKey) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(fichaNameId(firstKey));
+          el?.scrollIntoView({ block: "center" });
+          (el as HTMLInputElement | null)?.focus({ preventScroll: true });
+        });
+      }
+      return null;
+    }
     return {
       name: value.name,
       notes: value.notes,
@@ -350,10 +482,10 @@ export function WorkoutBuilder({
 
   async function runAdapter(kind: "save" | "publish") {
     if (!adapter) return;
+    setActionError(null);
     const payload = buildPayload(form.state.values);
     if (!payload) return;
     setBusy(kind);
-    setActionError(null);
     try {
       await (kind === "save" ? adapter.onSave : adapter.onPublish)(payload);
     } catch (e) {
@@ -450,6 +582,18 @@ export function WorkoutBuilder({
     ]);
   const patchSession = (key: string, patch: Partial<SessionDraft>) =>
     updateSessions((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
+
+  /** Renaming a ficha clears its error — the red border must not outlive the fix. */
+  function renameSession(key: string, name: string) {
+    patchSession(key, { name });
+    setSessionErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setActionError(null);
+  }
   const removeSession = (key: string) =>
     updateSessions((prev) => prev.filter((s) => s.key !== key));
   const patchExercises = (
@@ -496,8 +640,27 @@ export function WorkoutBuilder({
   }
 
   function cancel() {
-    if (dirtyRef.current && !confirm("Descartar as alterações não salvas?")) return;
+    if (dirtyRef.current) {
+      setPending("cancel");
+      return;
+    }
+    leave();
+  }
+
+  /**
+   * Leaving throws away the local draft too. It used not to: `Cancelar` cleared
+   * `dirtyRef` but left `workout-draft:new` in storage, so the next `Novo treino`
+   * resurrected the very work the coach had just discarded.
+   */
+  function leave() {
     dirtyRef.current = false;
+    if (persistLocal) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        /* ignore */
+      }
+    }
     if (adapter) {
       adapter.onCancel();
       return;
@@ -513,9 +676,23 @@ export function WorkoutBuilder({
         e.preventDefault();
         form.handleSubmit();
       }}
+      onKeyDown={(e) => {
+        // One <form> wraps the whole builder and `Salvar treino` is its only
+        // submit button, so Enter anywhere used to save and navigate away
+        // mid-build. Enter in a single-line field commits that field instead.
+        if (e.key !== "Enter" || e.defaultPrevented) return;
+        const el = e.target as HTMLElement;
+        if (el.tagName !== "INPUT") return;
+        e.preventDefault();
+        (el as HTMLInputElement).blur();
+      }}
       className="mx-auto max-w-3xl pb-24"
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      {/* Sticky so `Salvar treino` and its error banner are never off-screen
+          together on a treino that runs thousands of px. The negative margin
+          takes the bar past the card column's edges, so scrolled content passes
+          under a solid bar instead of showing around a floating band. */}
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-light px-4 py-3 sm:-mx-6 sm:px-6">
         <button
           type="button"
           onClick={cancel}
@@ -530,7 +707,7 @@ export function WorkoutBuilder({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={runDiscard}
+                onClick={() => setPending("discard")}
                 disabled={busy !== null}
                 className="w-full sm:w-auto"
               >
@@ -582,7 +759,10 @@ export function WorkoutBuilder({
         </div>
       )}
       {(serverBanner || actionError) && (
-        <div className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
+        <div
+          role="alert"
+          className="mb-4 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive"
+        >
           {serverBanner ?? actionError}
         </div>
       )}
@@ -680,7 +860,7 @@ export function WorkoutBuilder({
                 session={session}
                 error={sessionErrors[session.key]}
                 sensors={sensors}
-                onNameChange={(name) => patchSession(session.key, { name })}
+                onNameChange={(name) => renameSession(session.key, name)}
                 onRemove={() => removeSession(session.key)}
                 onExercises={(updater) => patchExercises(session.key, updater)}
                 onDefaults={(next, applyToAll) => {
@@ -710,9 +890,29 @@ export function WorkoutBuilder({
         <Plus className="size-4" />
         Nova ficha
       </button>
+
+      <ConfirmDialog
+        open={pending === "cancel"}
+        onOpenChange={(o) => !o && setPending(null)}
+        title="Sair sem salvar?"
+        description="As alterações feitas desde o último salvamento serão perdidas."
+        confirmLabel="Sair sem salvar"
+        onConfirm={leave}
+      />
+      <ConfirmDialog
+        open={pending === "discard"}
+        onOpenChange={(o) => !o && setPending(null)}
+        title="Descartar o rascunho?"
+        description="O rascunho deste treino será apagado. O aluno continua com a versão publicada mais recente."
+        confirmLabel="Descartar rascunho"
+        onConfirm={runDiscard}
+      />
     </form>
   );
 }
+
+/** The dom id of a ficha's name field, so a validation error can focus it. */
+const fichaNameId = (key: string) => `ficha-nome-${key}`;
 
 /* -------------------------------------------------------------------------- */
 /*  Sortable session (ficha) card                                              */
@@ -744,6 +944,49 @@ function SortableSession({
     zIndex: isDragging ? 10 : undefined,
   };
   const [adding, setAdding] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [undo, setUndo] = useState<{ exercise: ExerciseDraft; index: number } | null>(
+    null,
+  );
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+
+  const marks = useMemo(() => groupMarks(session.exercises), [session.exercises]);
+
+  useEffect(() => () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  }, []);
+
+  /**
+   * Removing an exercise is the most frequent destructive act on the screen, so
+   * it gets an undo strip rather than a dialog — a confirmation on every removal
+   * would cost more than the mistake does.
+   */
+  function removeExercise(exercise: ExerciseDraft) {
+    const index = session.exercises.findIndex((e) => e.key === exercise.key);
+    onExercises((ex) => ex.filter((i) => i.key !== exercise.key));
+    setUndo({ exercise, index });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(null), 6000);
+  }
+
+  function restoreExercise() {
+    if (!undo) return;
+    const { exercise, index } = undo;
+    onExercises((ex) => {
+      const next = ex.slice();
+      next.splice(Math.min(index, next.length), 0, exercise);
+      return next;
+    });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndo(null);
+  }
+
+  // Visible while the ficha is still being set up, and again whenever the coach
+  // returns to the name field — but retired once the ficha has exercises in it,
+  // which is when they were pure noise (9 chips × every ficha, forever).
+  const showChips = session.exercises.length === 0 || nameFocused;
 
   function addExercise(picked: PickedExercise, prescription: PrescriptionDraft) {
     onExercises((ex) => [
@@ -801,15 +1044,26 @@ function SortableSession({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap gap-2">
             <Input
+              id={fichaNameId(session.key)}
               value={session.name}
               onChange={(e) => onNameChange(e.target.value)}
+              onFocus={() => setNameFocused(true)}
+              onBlur={(e) => {
+                // A suggestion chip must not make the chips vanish under the
+                // pointer before the coach can pick a second one.
+                const next = e.relatedTarget as Node | null;
+                if (next && chipsRef.current?.contains(next)) return;
+                setNameFocused(false);
+              }}
               placeholder="Nome da ficha (ex.: Ficha A · Peito e Tríceps)"
               aria-invalid={error ? true : undefined}
               className={`flex-1 ${error ? "border-destructive" : ""}`}
             />
             <button
               type="button"
-              onClick={onRemove}
+              onClick={() =>
+                session.exercises.length > 0 ? setConfirmRemove(true) : onRemove()
+              }
               aria-label="Remover ficha"
               className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
             >
@@ -817,18 +1071,46 @@ function SortableSession({
             </button>
           </div>
           {error && <p className="text-body-dense text-destructive">{error}</p>}
-          <div className="flex flex-wrap gap-1.5">
-            {SESSION_SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => onNameChange(s)}
-                className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-label font-medium text-[#475569] hover:border-primary hover:text-primary"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          {showChips && (
+            <div ref={chipsRef} className="space-y-1.5">
+              {(
+                [
+                  ["position", SESSION_POSITION_SUGGESTIONS],
+                  ["focus", SESSION_FOCUS_SUGGESTIONS],
+                ] as const
+              ).map(([group, options]) => (
+                <div key={group} className="flex flex-wrap gap-1.5">
+                  {options.map((option) => {
+                    const active = session.name
+                      .split(" · ")
+                      .some((part) => part.trim() === option);
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={active}
+                        // Keep focus in the name field so the chips survive the
+                        // click and a second group can still be picked.
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() =>
+                          onNameChange(
+                            composeSessionName(session.name, option, group),
+                          )
+                        }
+                        className={`rounded-full border px-2.5 py-1 text-label font-medium transition-colors ${
+                          active
+                            ? "border-primary bg-primary-light text-primary"
+                            : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
           {session.defaults && (
             <SessionDefaultsRow
               defaults={session.defaults}
@@ -847,25 +1129,43 @@ function SortableSession({
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-2">
-                {session.exercises.map((exercise) => (
+                {session.exercises.map((exercise, i) => (
                   <SortableExercise
                     key={exercise.key}
                     exercise={exercise}
+                    mark={marks[i] ?? null}
                     defaults={session.defaults}
                     sessionExerciseIds={session.exercises.map((e) => e.exerciseId)}
                     onPatch={(patch) =>
                       onExercises((ex) =>
-                        ex.map((i) => (i.key === exercise.key ? { ...i, ...patch } : i)),
+                        ex.map((i2) => (i2.key === exercise.key ? { ...i2, ...patch } : i2)),
                       )
                     }
-                    onRemove={() =>
-                      onExercises((ex) => ex.filter((i) => i.key !== exercise.key))
-                    }
+                    onRemove={() => removeExercise(exercise)}
                   />
                 ))}
               </div>
             </SortableContext>
           </DndContext>
+        )}
+
+        {undo && (
+          <div
+            role="status"
+            className="flex items-center justify-between gap-2 rounded-[10px] bg-surface-light px-3 py-2 text-label text-[#475569]"
+          >
+            <span className="min-w-0 truncate">
+              {undo.exercise.name} removido.
+            </span>
+            <button
+              type="button"
+              onClick={restoreExercise}
+              className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary transition-colors hover:text-primary-deep"
+            >
+              <Undo2 className="size-3.5" aria-hidden />
+              Desfazer
+            </button>
+          </div>
         )}
 
         {adding ? (
@@ -888,6 +1188,20 @@ function SortableSession({
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Remover esta ficha?"
+        description={`${
+          session.name.trim() || "A ficha"
+        } e seus ${session.exercises.length} ${
+          session.exercises.length === 1 ? "exercício" : "exercícios"
+        } serão removidos do treino.`}
+        confirmLabel="Remover ficha"
+        cancelLabel="Manter ficha"
+        onConfirm={onRemove}
+      />
     </div>
   );
 }
@@ -919,14 +1233,17 @@ function SessionDefaultsRow({
   const [open, setOpen] = useState(false);
   const [sets, setSets] = useState(defaults.sets);
   const [rest, setRest] = useState(defaults.rest);
-  const [applyAll, setApplyAll] = useState(true);
+  // Unchecked by default: the popover's own copy says the padrão governs the
+  // exercises you add NEXT, so rewriting the ones already prescribed has to be
+  // something the coach asks for, never the default under that sentence.
+  const [applyAll, setApplyAll] = useState(false);
 
   // Re-seed the editor from the ficha every time it opens, never mid-edit.
   function onOpenChange(next: boolean) {
     if (next) {
       setSets(defaults.sets);
       setRest(defaults.rest);
-      setApplyAll(true);
+      setApplyAll(false);
     }
     setOpen(next);
   }
@@ -992,8 +1309,12 @@ function SessionDefaultsRow({
                 className="mt-0.5 size-4 shrink-0 accent-[#059669]"
               />
               <span>
-                Aplicar {exerciseCount === 1 ? "ao" : "aos"} {exerciseCount}{" "}
-                {exerciseCount === 1 ? "exercício" : "exercícios"} já nesta ficha
+                Também aplicar {exerciseCount === 1 ? "ao" : "aos"}{" "}
+                {exerciseCount} {exerciseCount === 1 ? "exercício" : "exercícios"}{" "}
+                já {exerciseCount === 1 ? "prescrito" : "prescritos"} nesta ficha
+                <span className="mt-0.5 block text-label text-muted-foreground">
+                  Substitui as séries e o descanso que você ajustou neles.
+                </span>
               </span>
             </label>
           )}
@@ -1019,12 +1340,15 @@ function SessionDefaultsRow({
 
 function SortableExercise({
   exercise,
+  mark,
   defaults,
   sessionExerciseIds,
   onPatch,
   onRemove,
 }: {
   exercise: ExerciseDraft;
+  /** What this row truthfully is inside a super/giant-set block, if anything. */
+  mark: GroupMark | null;
   defaults: PrescriptionDefaults | null;
   sessionExerciseIds: string[];
   onPatch: (patch: Partial<ExerciseDraft>) => void;
@@ -1106,12 +1430,25 @@ function SortableExercise({
               </span>
             )}
           </span>
-          {isGroupingTechnique(exercise.technique) && (
+          {mark?.kind === "opener" && (
             <span
               className="mt-0.5 block text-label font-medium"
-              style={{ color: tech?.color }}
+              style={{ color: techniqueInfo(mark.technique)?.color }}
             >
               ↓ sem descanso — encadeia com o próximo exercício
+            </span>
+          )}
+          {mark?.kind === "tail" && (
+            <span
+              className="mt-0.5 block text-label font-medium"
+              style={{ color: techniqueInfo(mark.technique)?.color }}
+            >
+              ↑ em sequência com o anterior — sem descanso entre eles
+            </span>
+          )}
+          {mark?.kind === "orphan" && (
+            <span className="mt-0.5 block text-label font-medium text-amber-700">
+              Sem efeito aqui — não há exercício seguinte para encadear.
             </span>
           )}
         </button>

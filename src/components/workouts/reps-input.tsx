@@ -97,7 +97,7 @@ function SequenceEditor({
               min={1}
               max={1000}
               ariaLabel={`Posição ${i + 1}`}
-              inputClassName="w-12 rounded-lg border border-border bg-white px-1.5 py-2 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              inputClassName="h-11 w-12 rounded-[10px] border-[1.5px] border-input bg-white px-1.5 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             />
           </div>
         ))}
@@ -107,7 +107,7 @@ function SequenceEditor({
             aria-label="Adicionar posição"
             title="Adicionar posição"
             onClick={() => onChange([...values, values[values.length - 1] ?? 8])}
-            className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-input text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus className="size-4" />
           </button>
@@ -117,7 +117,7 @@ function SequenceEditor({
               aria-label="Remover posição"
               title="Remover posição"
               onClick={() => onChange(values.slice(0, -1))}
-              className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+              className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-input text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
             >
               <Minus className="size-4" />
             </button>
