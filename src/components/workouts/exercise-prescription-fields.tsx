@@ -12,7 +12,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { NumberField } from "@/components/workouts/number-field";
+import {
+  NumberField,
+  numberFieldClass,
+} from "@/components/workouts/number-field";
 import { RepsInput } from "@/components/workouts/reps-input";
 import {
   ExerciseSearch,
@@ -36,8 +39,8 @@ import {
 
 const newKey = () => crypto.randomUUID();
 
-const numberInputBase =
-  "h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15";
+/* The system's numeric box, widened to fill its column. */
+const numberInputBase = `${numberFieldClass} min-w-0 flex-1`;
 const numberInputClass = `${numberInputBase} px-3.5`;
 
 /* Séries lives in a deliberately narrow column so the reps sequence gets the

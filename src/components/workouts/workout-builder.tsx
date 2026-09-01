@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +22,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   GripVertical,
   HeartPulse,
   MessageSquareText,
@@ -67,7 +69,10 @@ import {
   type PrescriptionDefaults,
   type PrescriptionDraft,
 } from "@/components/workouts/exercise-prescription-fields";
-import { NumberField } from "@/components/workouts/number-field";
+import {
+  NumberField,
+  numberFieldClass,
+} from "@/components/workouts/number-field";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import { CATEGORY_LABELS } from "@/lib/exercises";
@@ -536,19 +541,26 @@ export function WorkoutBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debounced: this used to serialize the entire treino and write it to
+  // localStorage synchronously on every keystroke, which is main-thread work
+  // proportional to the whole tree on each character. `beforeunload` still
+  // guards the last half-second.
   useEffect(() => {
     if (!persistLocal || !dirtyRef.current) return;
-    try {
-      const draft: Draft = {
-        name: form.state.values.name,
-        notes: form.state.values.notes,
-        cardio: form.state.values.cardio,
-        sessions,
-      };
-      localStorage.setItem(storageKey, JSON.stringify(draft));
-    } catch {
-      /* ignore */
-    }
+    const timer = setTimeout(() => {
+      try {
+        const draft: Draft = {
+          name: form.state.values.name,
+          notes: form.state.values.notes,
+          cardio: form.state.values.cardio,
+          sessions,
+        };
+        localStorage.setItem(storageKey, JSON.stringify(draft));
+      } catch {
+        /* ignore */
+      }
+    }, 500);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions, rev, storageKey]);
 
@@ -580,31 +592,65 @@ export function WorkoutBuilder({
       ...prev,
       { key: newKey(), name: "", exercises: [], defaults: null },
     ]);
-  const patchSession = (key: string, patch: Partial<SessionDraft>) =>
-    updateSessions((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
-
-  /** Renaming a ficha clears its error — the red border must not outlive the fix. */
-  function renameSession(key: string, name: string) {
-    patchSession(key, { name });
-    setSessionErrors((prev) => {
-      if (!prev[key]) return prev;
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
-    setActionError(null);
-  }
-  const removeSession = (key: string) =>
-    updateSessions((prev) => prev.filter((s) => s.key !== key));
-  const patchExercises = (
-    sessionKey: string,
-    updater: (ex: ExerciseDraft[]) => ExerciseDraft[],
-  ) =>
-    updateSessions((prev) =>
-      prev.map((s) =>
-        s.key === sessionKey ? { ...s, exercises: updater(s.exercises) } : s,
+  const patchSession = useCallback(
+    (key: string, patch: Partial<SessionDraft>) =>
+      updateSessions((prev) =>
+        prev.map((s) => (s.key === key ? { ...s, ...patch } : s)),
       ),
-    );
+    [updateSessions],
+  );
+
+  /**
+   * Every handler below is `useCallback`-stable and takes the ficha's key,
+   * because `SortableSession` and `SortableExercise` are memoised: a fresh
+   * arrow per row would defeat the memo and put the whole tree — up to eighty
+   * `useSortable` rows on a real treino — back on the critical path of every
+   * keystroke in the treino's name.
+   */
+  const renameSession = useCallback(
+    (key: string, name: string) => {
+      patchSession(key, { name });
+      /* Renaming a ficha clears its error — the red border must not outlive
+         the fix. */
+      setSessionErrors((prev) => {
+        if (!prev[key]) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      setActionError(null);
+    },
+    [patchSession],
+  );
+  const removeSession = useCallback(
+    (key: string) => updateSessions((prev) => prev.filter((s) => s.key !== key)),
+    [updateSessions],
+  );
+  const patchExercises = useCallback(
+    (sessionKey: string, updater: (ex: ExerciseDraft[]) => ExerciseDraft[]) =>
+      updateSessions((prev) =>
+        prev.map((s) =>
+          s.key === sessionKey ? { ...s, exercises: updater(s.exercises) } : s,
+        ),
+      ),
+    [updateSessions],
+  );
+  const applySessionDefaults = useCallback(
+    (key: string, next: PrescriptionDefaults, applyToAll: boolean) => {
+      patchSession(key, { defaults: next });
+      if (!applyToAll) return;
+      patchExercises(key, (ex) =>
+        ex.map((x) => ({
+          ...x,
+          // A pirâmide derives its séries from the sequence, so the padrão
+          // only moves its descanso.
+          sets: resolveSets(x.reps, next.sets),
+          rest: next.rest,
+        })),
+      );
+    },
+    [patchSession, patchExercises],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -754,7 +800,7 @@ export function WorkoutBuilder({
       </div>
 
       {recovered && (
-        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-body-dense font-medium text-amber-700">
+        <div className="mb-4 rounded-[10px] bg-warn-bg px-4 py-2.5 text-body-dense font-medium text-warn-fg">
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
@@ -770,8 +816,8 @@ export function WorkoutBuilder({
       {/* Student workout (adapter) is always an unpublished draft in the builder
           — warn that saving/editing alone doesn't reach the aluno, only Publicar. */}
       {adapter && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-body-dense text-amber-800">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-warn-fg/25 bg-warn-bg px-4 py-3 text-body-dense text-warn-fg">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn-fg" />
           <p>
             <span className="font-semibold">Só editar não basta.</span> Salvar
             mantém as alterações como rascunho — o treino só fica disponível para
@@ -781,7 +827,7 @@ export function WorkoutBuilder({
         </div>
       )}
 
-      <div className="space-y-4 rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         <form.Field name="name">
           {(field) => (
             <Field
@@ -821,7 +867,7 @@ export function WorkoutBuilder({
         </form.Field>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
         <form.Field name="cardio">
           {(field) => (
             <div className="space-y-1.5">
@@ -860,22 +906,10 @@ export function WorkoutBuilder({
                 session={session}
                 error={sessionErrors[session.key]}
                 sensors={sensors}
-                onNameChange={(name) => renameSession(session.key, name)}
-                onRemove={() => removeSession(session.key)}
-                onExercises={(updater) => patchExercises(session.key, updater)}
-                onDefaults={(next, applyToAll) => {
-                  patchSession(session.key, { defaults: next });
-                  if (!applyToAll) return;
-                  patchExercises(session.key, (ex) =>
-                    ex.map((x) => ({
-                      ...x,
-                      // A pirâmide derives its séries from the sequence, so the
-                      // padrão only moves its descanso.
-                      sets: resolveSets(x.reps, next.sets),
-                      rest: next.rest,
-                    })),
-                  );
-                }}
+                onNameChange={renameSession}
+                onRemove={removeSession}
+                onExercises={patchExercises}
+                onDefaults={applySessionDefaults}
               />
             ))}
           </div>
@@ -885,7 +919,7 @@ export function WorkoutBuilder({
       <button
         type="button"
         onClick={addSession}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-white py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary-deep"
       >
         <Plus className="size-4" />
         Nova ficha
@@ -918,7 +952,7 @@ const fichaNameId = (key: string) => `ficha-nome-${key}`;
 /*  Sortable session (ficha) card                                              */
 /* -------------------------------------------------------------------------- */
 
-function SortableSession({
+const SortableSession = memo(function SortableSession({
   session,
   error,
   sensors,
@@ -930,10 +964,19 @@ function SortableSession({
   session: SessionDraft;
   error?: string;
   sensors: ReturnType<typeof useSensors>;
-  onNameChange: (name: string) => void;
-  onRemove: () => void;
-  onExercises: (updater: (ex: ExerciseDraft[]) => ExerciseDraft[]) => void;
-  onDefaults: (next: PrescriptionDefaults, applyToAll: boolean) => void;
+  /* All keyed for the same reason as the exercise row: one stable function per
+     handler, so typing the treino's name does not re-render every ficha. */
+  onNameChange: (key: string, name: string) => void;
+  onRemove: (key: string) => void;
+  onExercises: (
+    key: string,
+    updater: (ex: ExerciseDraft[]) => ExerciseDraft[],
+  ) => void;
+  onDefaults: (
+    key: string,
+    next: PrescriptionDefaults,
+    applyToAll: boolean,
+  ) => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: session.key });
@@ -953,10 +996,24 @@ function SortableSession({
   const chipsRef = useRef<HTMLDivElement>(null);
 
   const marks = useMemo(() => groupMarks(session.exercises), [session.exercises]);
+  const sessionExerciseIds = useMemo(
+    () => session.exercises.map((e) => e.exerciseId),
+    [session.exercises],
+  );
 
   useEffect(() => () => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
   }, []);
+
+  const clearUndoTimer = () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+  };
+  /** The strip is the only route back, so reading it must not run the clock. */
+  const startUndoTimer = () => {
+    clearUndoTimer();
+    undoTimer.current = setTimeout(() => setUndo(null), 6000);
+  };
 
   /**
    * Removing an exercise is the most frequent destructive act on the screen, so
@@ -965,23 +1022,43 @@ function SortableSession({
    */
   function removeExercise(exercise: ExerciseDraft) {
     const index = session.exercises.findIndex((e) => e.key === exercise.key);
-    onExercises((ex) => ex.filter((i) => i.key !== exercise.key));
+    onExercises(session.key, (ex) => ex.filter((i) => i.key !== exercise.key));
     setUndo({ exercise, index });
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => setUndo(null), 6000);
+    startUndoTimer();
   }
 
   function restoreExercise() {
     if (!undo) return;
     const { exercise, index } = undo;
-    onExercises((ex) => {
+    onExercises(session.key, (ex) => {
       const next = ex.slice();
       next.splice(Math.min(index, next.length), 0, exercise);
       return next;
     });
-    if (undoTimer.current) clearTimeout(undoTimer.current);
+    clearUndoTimer();
     setUndo(null);
   }
+
+  const patchExercise = useCallback(
+    (key: string, p: Partial<ExerciseDraft>) =>
+      onExercises(session.key, (ex) =>
+        ex.map((i) => (i.key === key ? { ...i, ...p } : i)),
+      ),
+    [onExercises, session.key],
+  );
+  const removeByKey = useCallback(
+    (key: string) => {
+      const target = session.exercises.find((e) => e.key === key);
+      if (target) removeExercise(target);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session.exercises, session.key, onExercises],
+  );
+  const applyDefaults = useCallback(
+    (next: PrescriptionDefaults, applyToAll: boolean) =>
+      onDefaults(session.key, next, applyToAll),
+    [onDefaults, session.key],
+  );
 
   // Visible while the ficha is still being set up, and again whenever the coach
   // returns to the name field — but retired once the ficha has exercises in it,
@@ -989,7 +1066,7 @@ function SortableSession({
   const showChips = session.exercises.length === 0 || nameFocused;
 
   function addExercise(picked: PickedExercise, prescription: PrescriptionDraft) {
-    onExercises((ex) => [
+    onExercises(session.key, (ex) => [
       ...ex,
       {
         key: newKey(),
@@ -1010,14 +1087,18 @@ function SortableSession({
     // The first exercise declares the ficha's padrão; every later one is
     // stamped from it. The picker stays open for the next search.
     if (!session.defaults) {
-      onDefaults({ sets: prescription.sets, rest: prescription.rest }, false);
+      onDefaults(
+        session.key,
+        { sets: prescription.sets, rest: prescription.rest },
+        false,
+      );
     }
   }
 
   function onExerciseDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    onExercises((ex) => {
+    onExercises(session.key, (ex) => {
       const from = ex.findIndex((i) => i.key === active.id);
       const to = ex.findIndex((i) => i.key === over.id);
       return from < 0 || to < 0 ? ex : arrayMove(ex, from, to);
@@ -1028,8 +1109,12 @@ function SortableSession({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="rounded-2xl border border-border bg-card shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
     >
+      {/* A treino runs thousands of px and every ficha's name lives in an
+          <Input>, so heading navigation had nothing to land on between the
+          page's <h1> and the end of the form. */}
+      <h2 className="sr-only">{session.name.trim() || "Ficha sem nome"}</h2>
       <div className="flex items-start gap-2 border-b border-border p-4">
         <button
           type="button"
@@ -1037,7 +1122,7 @@ function SortableSession({
           {...attributes}
           {...listeners}
           aria-label="Reordenar ficha"
-          className="mt-2 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing"
         >
           <GripVertical className="size-5" />
         </button>
@@ -1046,7 +1131,7 @@ function SortableSession({
             <Input
               id={fichaNameId(session.key)}
               value={session.name}
-              onChange={(e) => onNameChange(e.target.value)}
+              onChange={(e) => onNameChange(session.key, e.target.value)}
               onFocus={() => setNameFocused(true)}
               onBlur={(e) => {
                 // A suggestion chip must not make the chips vanish under the
@@ -1062,10 +1147,12 @@ function SortableSession({
             <button
               type="button"
               onClick={() =>
-                session.exercises.length > 0 ? setConfirmRemove(true) : onRemove()
+                session.exercises.length > 0
+                  ? setConfirmRemove(true)
+                  : onRemove(session.key)
               }
               aria-label="Remover ficha"
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
+              className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-border text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
             >
               <Trash2 className="size-4" />
             </button>
@@ -1094,13 +1181,14 @@ function SortableSession({
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() =>
                           onNameChange(
+                            session.key,
                             composeSessionName(session.name, option, group),
                           )
                         }
-                        className={`rounded-full border px-2.5 py-1 text-label font-medium transition-colors ${
+                        className={`inline-flex min-h-9 items-center rounded-full border px-3 text-label font-medium transition-colors ${
                           active
-                            ? "border-primary bg-primary-light text-primary"
-                            : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+                            ? "border-primary bg-primary-light text-primary-deep"
+                            : "border-border bg-surface-light text-text-secondary hover:border-primary hover:text-primary-deep"
                         }`}
                       >
                         {option}
@@ -1115,7 +1203,7 @@ function SortableSession({
             <SessionDefaultsRow
               defaults={session.defaults}
               exerciseCount={session.exercises.length}
-              onApply={onDefaults}
+              onApply={applyDefaults}
             />
           )}
         </div>
@@ -1135,13 +1223,9 @@ function SortableSession({
                     exercise={exercise}
                     mark={marks[i] ?? null}
                     defaults={session.defaults}
-                    sessionExerciseIds={session.exercises.map((e) => e.exerciseId)}
-                    onPatch={(patch) =>
-                      onExercises((ex) =>
-                        ex.map((i2) => (i2.key === exercise.key ? { ...i2, ...patch } : i2)),
-                      )
-                    }
-                    onRemove={() => removeExercise(exercise)}
+                    sessionExerciseIds={sessionExerciseIds}
+                    onPatch={patchExercise}
+                    onRemove={removeByKey}
                   />
                 ))}
               </div>
@@ -1152,7 +1236,11 @@ function SortableSession({
         {undo && (
           <div
             role="status"
-            className="flex items-center justify-between gap-2 rounded-[10px] bg-surface-light px-3 py-2 text-label text-[#475569]"
+            onMouseEnter={clearUndoTimer}
+            onMouseLeave={startUndoTimer}
+            onFocus={clearUndoTimer}
+            onBlur={startUndoTimer}
+            className="flex items-center justify-between gap-2 rounded-[10px] bg-surface-light px-3 py-1 text-label text-text-secondary"
           >
             <span className="min-w-0 truncate">
               {undo.exercise.name} removido.
@@ -1160,7 +1248,7 @@ function SortableSession({
             <button
               type="button"
               onClick={restoreExercise}
-              className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary transition-colors hover:text-primary-deep"
+              className="-mr-1 inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[10px] px-2 font-semibold text-primary-deep transition-colors hover:text-primary-press"
             >
               <Undo2 className="size-3.5" aria-hidden />
               Desfazer
@@ -1181,7 +1269,7 @@ function SortableSession({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary-deep"
           >
             <Plus className="size-4" />
             Adicionar exercício
@@ -1200,18 +1288,17 @@ function SortableSession({
         } serão removidos do treino.`}
         confirmLabel="Remover ficha"
         cancelLabel="Manter ficha"
-        onConfirm={onRemove}
+        onConfirm={() => onRemove(session.key)}
       />
     </div>
   );
-}
+});
 
 /* -------------------------------------------------------------------------- */
 /*  Ficha padrão — séries + descanso stamped onto new exercises                */
 /* -------------------------------------------------------------------------- */
 
-const defaultsInputClass =
-  "h-11 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15";
+const defaultsInputClass = `${numberFieldClass} w-full px-3.5`;
 
 /**
  * The ficha's séries/descanso padrão, stated once instead of retyped per
@@ -1253,20 +1340,20 @@ function SessionDefaultsRow({
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5">
       <span className="text-label text-muted-foreground">Padrão da ficha</span>
-      <span className="text-label font-semibold tabular-nums text-[#334155]">
+      <span className="text-label font-semibold tabular-nums text-foreground">
         {defaults.sets} séries · {formatRest(defaults.rest)}
       </span>
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-surface-light px-3 text-label font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-border bg-surface-light px-3 text-label font-medium text-text-secondary transition-colors hover:border-primary hover:text-primary-deep focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
           >
             <SlidersHorizontal className="size-3 shrink-0" aria-hidden />
             Ajustar
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[19rem]">
+        <PopoverContent align="start" className="w-[19rem] max-w-[calc(100vw-2rem)]">
           <p className="text-subtitle font-semibold text-foreground">
             Padrão da ficha
           </p>
@@ -1301,12 +1388,12 @@ function SessionDefaultsRow({
             </div>
           </div>
           {exerciseCount > 0 && (
-            <label className="mt-3 flex cursor-pointer items-start gap-2 text-body-dense text-[#334155]">
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-body-dense text-foreground">
               <input
                 type="checkbox"
                 checked={applyAll}
                 onChange={(e) => setApplyAll(e.target.checked)}
-                className="mt-0.5 size-4 shrink-0 accent-[#059669]"
+                className="mt-0.5 size-4 shrink-0 accent-primary"
               />
               <span>
                 Também aplicar {exerciseCount === 1 ? "ao" : "aos"}{" "}
@@ -1338,7 +1425,7 @@ function SessionDefaultsRow({
 /*  Sortable exercise row (with prescription editor + custom substitutes)      */
 /* -------------------------------------------------------------------------- */
 
-function SortableExercise({
+const SortableExercise = memo(function SortableExercise({
   exercise,
   mark,
   defaults,
@@ -1351,8 +1438,10 @@ function SortableExercise({
   mark: GroupMark | null;
   defaults: PrescriptionDefaults | null;
   sessionExerciseIds: string[];
-  onPatch: (patch: Partial<ExerciseDraft>) => void;
-  onRemove: () => void;
+  /* Keyed rather than closed over, so the parent can hand down one stable
+     function instead of a fresh arrow per row on every render. */
+  onPatch: (key: string, patch: Partial<ExerciseDraft>) => void;
+  onRemove: (key: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: exercise.key });
@@ -1364,6 +1453,10 @@ function SortableExercise({
   };
   const [editing, setEditing] = useState(false);
   const tech = techniqueInfo(exercise.technique);
+  const patch = useCallback(
+    (p: Partial<ExerciseDraft>) => onPatch(exercise.key, p),
+    [onPatch, exercise.key],
+  );
 
   return (
     <div
@@ -1371,14 +1464,14 @@ function SortableExercise({
       style={style}
       className="rounded-xl border border-border bg-surface-light/40 p-2.5"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           aria-label="Reordenar exercício"
-          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing"
         >
           <GripVertical className="size-4" />
         </button>
@@ -1388,84 +1481,93 @@ function SortableExercise({
           thumbnail={exercise.thumbnail}
           className="size-9 rounded-md"
         />
+        {/* One control opens the editor, not two. A separate pencil button did
+            the same thing as this summary and neither announced that the row
+            expands, so a screen reader met two identical unlabelled toggles.
+            The pencil stays as the affordance, inside the one button. */}
         <button
           type="button"
           onClick={() => setEditing((v) => !v)}
-          className="min-w-0 flex-1 text-left"
+          aria-expanded={editing}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] px-1 py-1.5 text-left"
         >
-          <span className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-body font-medium text-foreground">
-              {exercise.name}
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="truncate text-body font-medium text-foreground">
+                {exercise.name}
+              </span>
+              {tech && <TechniqueBadge technique={exercise.technique} />}
             </span>
-            {tech && <TechniqueBadge technique={exercise.technique} />}
-          </span>
-          {/* The collapsed row is the safety net for everything `Mais detalhes`
-              hides: técnica has its badge above, carga and descanso are in the
-              summary, and observação + substituições get these two marks. */}
-          <span className="flex items-center gap-1.5 text-label text-muted-foreground">
-            <span className="min-w-0 truncate">
-              {exercise.sets}× {formatReps(exercise.reps)}
-              {exercise.load ? ` · ${exercise.load}` : ""} ·{" "}
-              {formatRest(exercise.rest)}
+            {/* The collapsed row is the safety net for everything `Mais detalhes`
+                hides: técnica has its badge above, carga and descanso are in the
+                summary, and observação + substituições get these two marks. */}
+            <span className="flex items-center gap-1.5 text-label text-muted-foreground">
+              <span className="min-w-0 truncate">
+                {exercise.sets}× {formatReps(exercise.reps)}
+                {exercise.load ? ` · ${exercise.load}` : ""} ·{" "}
+                {formatRest(exercise.rest)}
+              </span>
+              {exercise.note.trim() !== "" && (
+                <span
+                  role="img"
+                  aria-label="Tem observação"
+                  title="Tem observação"
+                  className="shrink-0"
+                >
+                  <MessageSquareText className="size-3.5" aria-hidden />
+                </span>
+              )}
+              {exercise.customSubstitutes.length > 0 && (
+                <span
+                  role="img"
+                  aria-label={`${exercise.customSubstitutes.length} ${
+                    exercise.customSubstitutes.length === 1
+                      ? "substituição própria"
+                      : "substituições próprias"
+                  }`}
+                  title="Substituições próprias"
+                  className="flex shrink-0 items-center gap-0.5 tabular-nums"
+                >
+                  <Repeat className="size-3.5" aria-hidden />
+                  {exercise.customSubstitutes.length}
+                </span>
+              )}
             </span>
-            {exercise.note.trim() !== "" && (
-              <span
-                role="img"
-                aria-label="Tem observação"
-                title="Tem observação"
-                className="shrink-0"
-              >
-                <MessageSquareText className="size-3.5" aria-hidden />
+            {/* The chain marks name their técnica in words and read in Reading
+                Grey. They used to be painted in the técnica's own pigment at
+                12px, where three of the eight hues land under 3.8:1 — the hue
+                was carrying the identity alone, which is the one thing the
+                categorical set is not allowed to do. */}
+            {mark?.kind === "opener" && (
+              <span className="mt-0.5 flex items-center gap-1 text-label font-medium text-text-secondary">
+                <ArrowDown className="size-3.5 shrink-0" aria-hidden />
+                {techniqueInfo(mark.technique)?.label} — sem descanso, encadeia
+                com o próximo exercício
               </span>
             )}
-            {exercise.customSubstitutes.length > 0 && (
-              <span
-                role="img"
-                aria-label={`${exercise.customSubstitutes.length} substituição própria`}
-                title="Substituições próprias"
-                className="flex shrink-0 items-center gap-0.5 tabular-nums"
-              >
-                <Repeat className="size-3.5" aria-hidden />
-                {exercise.customSubstitutes.length}
+            {mark?.kind === "tail" && (
+              <span className="mt-0.5 flex items-center gap-1 text-label font-medium text-text-secondary">
+                <ArrowUp className="size-3.5 shrink-0" aria-hidden />
+                {techniqueInfo(mark.technique)?.label} — em sequência com o
+                anterior, sem descanso entre eles
+              </span>
+            )}
+            {mark?.kind === "orphan" && (
+              <span className="mt-0.5 block text-label font-medium text-warn-fg">
+                Sem efeito aqui — não há exercício seguinte para encadear.
               </span>
             )}
           </span>
-          {mark?.kind === "opener" && (
-            <span
-              className="mt-0.5 block text-label font-medium"
-              style={{ color: techniqueInfo(mark.technique)?.color }}
-            >
-              ↓ sem descanso — encadeia com o próximo exercício
-            </span>
-          )}
-          {mark?.kind === "tail" && (
-            <span
-              className="mt-0.5 block text-label font-medium"
-              style={{ color: techniqueInfo(mark.technique)?.color }}
-            >
-              ↑ em sequência com o anterior — sem descanso entre eles
-            </span>
-          )}
-          {mark?.kind === "orphan" && (
-            <span className="mt-0.5 block text-label font-medium text-amber-700">
-              Sem efeito aqui — não há exercício seguinte para encadear.
-            </span>
-          )}
+          <Pencil
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
         </button>
         <button
           type="button"
-          onClick={() => setEditing((v) => !v)}
-          aria-label="Editar exercício"
-          title="Editar"
-          className="text-muted-foreground hover:text-primary"
-        >
-          <Pencil className="size-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remover exercício"
-          className="text-muted-foreground hover:text-destructive"
+          onClick={() => onRemove(exercise.key)}
+          aria-label={`Remover ${exercise.name}`}
+          className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-destructive"
         >
           <X className="size-4" />
         </button>
@@ -1477,7 +1579,7 @@ function SortableExercise({
             exerciseId={exercise.exerciseId}
             excludeIds={sessionExerciseIds}
             value={exercise}
-            onPatch={onPatch}
+            onPatch={patch}
             defaults={defaults}
             defaultDetailsOpen={hasPrescriptionDetails(exercise, defaults)}
           />
@@ -1492,4 +1594,4 @@ function SortableExercise({
       )}
     </div>
   );
-}
+});

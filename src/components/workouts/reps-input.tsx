@@ -9,7 +9,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { NumberField } from "@/components/workouts/number-field";
+import {
+  NumberField,
+  numberFieldClass,
+} from "@/components/workouts/number-field";
 import {
   DEFAULT_DURATION_SECONDS,
   formatSeconds,
@@ -97,7 +100,7 @@ function SequenceEditor({
               min={1}
               max={1000}
               ariaLabel={`Posição ${i + 1}`}
-              inputClassName="h-11 w-12 rounded-[10px] border-[1.5px] border-input bg-white px-1.5 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              inputClassName={`${numberFieldClass} w-12 px-1.5 font-semibold`}
             />
           </div>
         ))}
@@ -223,7 +226,7 @@ export function RepsInput({
           max={1000}
           stepper
           ariaLabel="Repetições"
-          inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+          inputClassName={`${numberFieldClass} min-w-0 flex-1 px-3 font-semibold`}
         />
       )}
 
@@ -256,7 +259,7 @@ export function RepsInput({
             maxDigits={4}
             stepper
             ariaLabel="Tempo em segundos"
-            inputClassName="h-11 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-center text-body font-semibold tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+            inputClassName={`${numberFieldClass} min-w-0 flex-1 px-3 font-semibold`}
           />
           <p className="text-label text-muted-foreground">
             Segundos por série ({formatSeconds(value.seconds)}) — para prancha,

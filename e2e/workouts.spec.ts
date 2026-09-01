@@ -658,17 +658,21 @@ test.describe("workout builder", () => {
     await page.getByRole("button").filter({ hasText: /leg press/i }).first().click();
     await page.getByRole("button", { name: "Adicionar ao treino" }).click();
     await expect(
-      page.getByText(/sem descanso — encadeia com o próximo exercício/),
+      page.getByText(/Super set — sem descanso, encadeia com o próximo exercício/),
     ).toBeVisible();
     await expect(
-      page.getByText(/em sequência com o anterior — sem descanso entre eles/),
+      page.getByText(
+        /Super set — em sequência com o anterior, sem descanso entre eles/,
+      ),
     ).toBeVisible();
     await expect(
       page.getByText(/Sem efeito aqui/),
     ).toHaveCount(0);
 
     // --- Removing an exercise is undoable ----------------------------------
-    await page.getByRole("button", { name: "Remover exercício" }).last().click();
+    // Each row's remove button now names the exercise it removes, so the ficha's
+    // own "Remover ficha" has to be excluded rather than relied on for order.
+    await page.getByRole("button", { name: /^Remover (?!ficha)/ }).last().click();
     const undo = page.getByRole("status").filter({ hasText: /removido/ });
     await expect(undo).toBeVisible();
     await expect(
@@ -676,7 +680,9 @@ test.describe("workout builder", () => {
     ).toBeVisible();
     await undo.getByRole("button", { name: "Desfazer" }).click();
     await expect(
-      page.getByText(/em sequência com o anterior — sem descanso entre eles/),
+      page.getByText(
+        /Super set — em sequência com o anterior, sem descanso entre eles/,
+      ),
     ).toBeVisible();
 
     // --- Removing a ficha with exercises asks first ------------------------
