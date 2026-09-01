@@ -288,6 +288,24 @@ test.describe("workout copy", () => {
   });
 });
 
+/**
+ * The reps kind no longer costs two rows of segmented buttons: the field names
+ * the kind in use on a chip and keeps the other four one tap inside it.
+ */
+async function chooseRepsKind(page: Page, label: string) {
+  await page.getByRole("button", { name: /^Tipo de repetições/ }).click();
+  await page.getByRole("button", { name: new RegExp(`^${label}`) }).click();
+}
+
+/** Stubs the unreachable exercise-image host so search rows actually render. */
+const stubExerciseImages = (page: Page) =>
+  page.route(/\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i, (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#334155"/></svg>`,
+    }),
+  );
+
 test.describe("workout builder", () => {
   test("prescribes an exercise at insertion — steppers, Pirâmide séries e Tempo (desktop + mobile)", async ({
     page,
@@ -331,7 +349,7 @@ test.describe("workout builder", () => {
     await expect(page.getByRole("button", { name: "Diminuir Séries" })).toBeVisible();
 
     // Choose the pyramid reps type; its load-progression hint appears.
-    await page.getByRole("button", { name: "Pirâmide", exact: true }).click();
+    await chooseRepsKind(page, "Pirâmide");
     await expect(
       page.getByText(/o peso aumenta e as repetições diminuem/).first(),
     ).toBeVisible();
@@ -360,8 +378,10 @@ test.describe("workout builder", () => {
     });
 
     // Tempo prescribes seconds per set instead of reps — Séries is typed again.
-    await page.getByRole("button", { name: "Tempo", exact: true }).click();
-    await expect(page.getByLabel("Tempo em segundos")).toHaveValue("30");
+    await chooseRepsKind(page, "Tempo");
+    await expect(
+      page.getByLabel("Tempo em segundos", { exact: true }),
+    ).toHaveValue("30");
     await expect(page.getByText(/Segundos por série/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Aumentar Séries" })).toBeVisible();
 
@@ -372,6 +392,139 @@ test.describe("workout builder", () => {
 
     await page.screenshot({
       path: "test-results/screens/coach-exercise-prescription-duration-mobile.png",
+      fullPage: true,
+    });
+  });
+
+  /**
+   * A prescription asks for two fields, not seven. Séries × repetições are
+   * always on screen; carga, descanso, técnica, observação and substituições
+   * wait behind one `Mais detalhes` disclosure — which must never hide anything
+   * silently: closed, it names what is set, and the ficha row carries its own
+   * marks. The ficha's padrão is seeded by the first exercise, stamped onto the
+   * next, and adjusting it applies to the ones already there.
+   */
+  test("asks for séries × reps, hides the rest behind Mais detalhes, and stamps the ficha padrão (desktop + mobile)", async ({
+    page,
+  }) => {
+    await stubExerciseImages(page);
+
+    await page.goto("/coach/workouts/new");
+    await page.getByRole("button", { name: "Aceitar" }).click();
+    await page
+      .getByPlaceholder("Ex.: Hipertrofia · 4x semana")
+      .fill("Treino enxuto");
+    await page.getByRole("button", { name: "Nova ficha" }).click();
+    await page.getByPlaceholder(/Nome da ficha/).fill("Ficha A · Peito");
+
+    // Before the first exercise there is no padrão to state.
+    await expect(page.getByText("Padrão da ficha")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Adicionar exercício" }).click();
+    await page.getByPlaceholder(/Buscar exercício/).fill("supino");
+    await page
+      .getByRole("button")
+      .filter({ hasText: /supino/i })
+      .first()
+      .click();
+
+    // --- Tier 1: the two fields that are always asked for -----------------
+    await expect(page.getByRole("button", { name: "Aumentar Séries" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Tipo de repetições/ })).toBeVisible();
+
+    // --- Tier 2: nothing else is on screen, but the drawer says what is in it
+    await expect(page.getByPlaceholder("Ex.: 40 kg, peso corporal")).toHaveCount(0);
+    await expect(page.getByLabel("Descanso", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("combobox")).toHaveCount(0);
+    await expect(
+      page.getByText("carga · descanso · técnica · observação · substituições"),
+    ).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-prescription-minimal-desktop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+      path: "test-results/screens/coach-prescription-minimal-mobile.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    // Opening the drawer brings every demoted field back, in one tap.
+    const drawer = page.getByRole("button", { name: /^Mais detalhes/ });
+    await expect(drawer).toHaveAttribute("aria-expanded", "false");
+    await drawer.click();
+    await expect(drawer).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByPlaceholder("Ex.: 40 kg, peso corporal")).toBeVisible();
+    await expect(page.getByLabel("Descanso", { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox")).toBeVisible();
+    await expect(page.getByPlaceholder(/Nota para este exercício/)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Adicionar substituição" }),
+    ).toBeVisible();
+
+    await page.getByPlaceholder("Ex.: 40 kg, peso corporal").fill("40 kg");
+    await page.getByRole("combobox").selectOption({ label: "Drop set" });
+    await page
+      .getByPlaceholder(/Nota para este exercício/)
+      .fill("Segura 2s embaixo.");
+
+    await page.screenshot({
+      path: "test-results/screens/coach-prescription-details-desktop.png",
+      fullPage: true,
+    });
+
+    // Closed again, the drawer reports what it is holding instead of hiding it.
+    await drawer.click();
+    await expect(drawer).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByText(/40 kg · Drop set · observação/)).toBeVisible();
+
+    // --- Adding keeps the search open for the next exercise ---------------
+    await page.getByRole("button", { name: "Adicionar ao treino" }).click();
+    await expect(page.getByText(/adicionado à ficha/)).toBeVisible();
+    await expect(page.getByPlaceholder(/Buscar exercício/)).toBeVisible();
+
+    // The ficha row carries what the drawer hid: carga and descanso in the
+    // summary, técnica as a badge, observação as its own mark.
+    await expect(page.getByText(/3× 8-12 · 40 kg · 1:30/)).toBeVisible();
+    await expect(page.getByText("Drop set").first()).toBeVisible();
+    await expect(page.getByRole("img", { name: "Tem observação" })).toBeVisible();
+
+    // The first exercise declared the ficha's padrão.
+    await expect(page.getByText("Padrão da ficha")).toBeVisible();
+    await expect(page.getByText("3 séries · 1:30")).toBeVisible();
+
+    // --- The next exercise is stamped from it, untyped --------------------
+    await page.getByPlaceholder(/Buscar exercício/).fill("remada");
+    await page
+      .getByRole("button")
+      .filter({ hasText: /remada/i })
+      .first()
+      .click();
+    await page.getByRole("button", { name: "Adicionar ao treino" }).click();
+    await expect(page.getByText(/3× 8-12 · 1:30/)).toBeVisible();
+
+    // --- Adjusting the padrão is the batch edit ---------------------------
+    await page.getByRole("button", { name: "Ajustar" }).click();
+    await page.getByLabel("Descanso padrão da ficha").fill("60");
+    const applyAll = page.getByRole("checkbox");
+    await expect(applyAll).toBeChecked();
+    await page.getByRole("button", { name: "Salvar e aplicar a 2" }).click();
+
+    // Both exercises moved, and the row states the new padrão.
+    await expect(page.getByText("3 séries · 1min")).toBeVisible();
+    await expect(page.getByText(/3× 8-12 · 40 kg · 1min/)).toBeVisible();
+    await expect(page.getByText(/3× 8-12 · 1min/)).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-ficha-padrao-desktop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText("3 séries · 1min")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/screens/coach-ficha-padrao-mobile.png",
       fullPage: true,
     });
   });

@@ -25,9 +25,12 @@ import {
   ArrowLeft,
   GripVertical,
   HeartPulse,
+  MessageSquareText,
   Pencil,
   Plus,
+  Repeat,
   Save,
+  SlidersHorizontal,
   Trash2,
   TriangleAlert,
   X,
@@ -37,6 +40,11 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { ExerciseImageButton } from "@/components/workouts/exercise-images";
 import {
@@ -45,9 +53,12 @@ import {
 } from "@/components/workouts/exercise-picker";
 import {
   ExercisePrescriptionFields,
+  hasPrescriptionDetails,
   type CustomSubDraft,
+  type PrescriptionDefaults,
   type PrescriptionDraft,
 } from "@/components/workouts/exercise-prescription-fields";
+import { NumberField } from "@/components/workouts/number-field";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import { CATEGORY_LABELS } from "@/lib/exercises";
@@ -55,6 +66,7 @@ import {
   SESSION_SUGGESTIONS,
   formatReps,
   formatRest,
+  resolveSets,
   workoutFormSchema,
   type WorkoutDetailDto,
   type WorkoutMutationResponse,
@@ -89,7 +101,18 @@ type ExerciseDraft = {
   customSubstitutes: CustomSubDraft[];
 };
 
-type SessionDraft = { key: string; name: string; exercises: ExerciseDraft[] };
+type SessionDraft = {
+  key: string;
+  name: string;
+  exercises: ExerciseDraft[];
+  /**
+   * The ficha's séries/descanso padrão. Purely a client-side stamping tool: a
+   * newly added exercise is created from it and then owns its own values, so
+   * this never reaches the payload, the schema, or the aluno. `null` until the
+   * first exercise seeds it.
+   */
+  defaults: PrescriptionDefaults | null;
+};
 type Draft = {
   name: string;
   notes: string;
@@ -134,6 +157,29 @@ export type WorkoutBuilderAdapter = {
 
 const newKey = () => crypto.randomUUID();
 
+/**
+ * The most-repeated séries/descanso pair in a ficha — the padrão an existing
+ * workout was evidently built on, recovered so the row means something the
+ * moment a coach opens a treino they wrote weeks ago.
+ */
+function inferDefaults(
+  exercises: { sets: number; rest: number }[],
+): PrescriptionDefaults | null {
+  if (exercises.length === 0) return null;
+  const tally = new Map<string, { value: PrescriptionDefaults; count: number }>();
+  for (const x of exercises) {
+    const key = `${x.sets}:${x.rest}`;
+    const hit = tally.get(key);
+    if (hit) hit.count += 1;
+    else tally.set(key, { value: { sets: x.sets, rest: x.rest }, count: 1 });
+  }
+  let best: { value: PrescriptionDefaults; count: number } | null = null;
+  for (const entry of tally.values()) {
+    if (!best || entry.count > best.count) best = entry;
+  }
+  return best ? best.value : null;
+}
+
 function initialDraft(workout?: WorkoutDetailDto): Draft {
   if (!workout) return { name: "", notes: "", cardio: "", sessions: [] };
   return {
@@ -143,6 +189,7 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
     sessions: workout.sessions.map((s) => ({
       key: newKey(),
       name: s.name,
+      defaults: inferDefaults(s.exercises),
       exercises: s.exercises.map((x) => ({
         key: newKey(),
         exerciseId: x.exerciseId,
@@ -336,11 +383,17 @@ export function WorkoutBuilder({
       if (!raw) return;
       const saved = JSON.parse(raw) as Draft;
       if (saved && Array.isArray(saved.sessions)) {
+        // A draft written before the ficha padrão existed has no `defaults` —
+        // recover it from the exercises rather than dropping the row.
+        const sessions = saved.sessions.map((s) => ({
+          ...s,
+          defaults: s.defaults ?? inferDefaults(s.exercises ?? []),
+        }));
         form.setFieldValue("name", saved.name ?? "");
         form.setFieldValue("notes", saved.notes ?? "");
         form.setFieldValue("cardio", saved.cardio ?? "");
         /* eslint-disable react-hooks/set-state-in-effect */
-        setSessions(saved.sessions);
+        setSessions(sessions);
         setRecovered(true);
         /* eslint-enable react-hooks/set-state-in-effect */
         dirtyRef.current = true;
@@ -391,7 +444,10 @@ export function WorkoutBuilder({
   );
 
   const addSession = () =>
-    updateSessions((prev) => [...prev, { key: newKey(), name: "", exercises: [] }]);
+    updateSessions((prev) => [
+      ...prev,
+      { key: newKey(), name: "", exercises: [], defaults: null },
+    ]);
   const patchSession = (key: string, patch: Partial<SessionDraft>) =>
     updateSessions((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
   const removeSession = (key: string) =>
@@ -627,6 +683,19 @@ export function WorkoutBuilder({
                 onNameChange={(name) => patchSession(session.key, { name })}
                 onRemove={() => removeSession(session.key)}
                 onExercises={(updater) => patchExercises(session.key, updater)}
+                onDefaults={(next, applyToAll) => {
+                  patchSession(session.key, { defaults: next });
+                  if (!applyToAll) return;
+                  patchExercises(session.key, (ex) =>
+                    ex.map((x) => ({
+                      ...x,
+                      // A pirâmide derives its séries from the sequence, so the
+                      // padrão only moves its descanso.
+                      sets: resolveSets(x.reps, next.sets),
+                      rest: next.rest,
+                    })),
+                  );
+                }}
               />
             ))}
           </div>
@@ -656,6 +725,7 @@ function SortableSession({
   onNameChange,
   onRemove,
   onExercises,
+  onDefaults,
 }: {
   session: SessionDraft;
   error?: string;
@@ -663,6 +733,7 @@ function SortableSession({
   onNameChange: (name: string) => void;
   onRemove: () => void;
   onExercises: (updater: (ex: ExerciseDraft[]) => ExerciseDraft[]) => void;
+  onDefaults: (next: PrescriptionDefaults, applyToAll: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: session.key });
@@ -693,7 +764,11 @@ function SortableSession({
         customSubstitutes: prescription.customSubstitutes,
       },
     ]);
-    setAdding(false);
+    // The first exercise declares the ficha's padrão; every later one is
+    // stamped from it. The picker stays open for the next search.
+    if (!session.defaults) {
+      onDefaults({ sets: prescription.sets, rest: prescription.rest }, false);
+    }
   }
 
   function onExerciseDragEnd(e: DragEndEvent) {
@@ -754,6 +829,13 @@ function SortableSession({
               </button>
             ))}
           </div>
+          {session.defaults && (
+            <SessionDefaultsRow
+              defaults={session.defaults}
+              exerciseCount={session.exercises.length}
+              onApply={onDefaults}
+            />
+          )}
         </div>
       </div>
 
@@ -769,6 +851,7 @@ function SortableSession({
                   <SortableExercise
                     key={exercise.key}
                     exercise={exercise}
+                    defaults={session.defaults}
                     sessionExerciseIds={session.exercises.map((e) => e.exerciseId)}
                     onPatch={(patch) =>
                       onExercises((ex) =>
@@ -788,6 +871,7 @@ function SortableSession({
         {adding ? (
           <ExercisePicker
             excludeIds={session.exercises.map((e) => e.exerciseId)}
+            defaults={session.defaults}
             onPick={({ exercise, prescription }) =>
               addExercise(exercise, prescription)
             }
@@ -809,16 +893,139 @@ function SortableSession({
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Ficha padrão — séries + descanso stamped onto new exercises                */
+/* -------------------------------------------------------------------------- */
+
+const defaultsInputClass =
+  "h-11 w-full rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15";
+
+/**
+ * The ficha's séries/descanso padrão, stated once instead of retyped per
+ * exercise. It is seeded by the first exercise the coach adds and stamped onto
+ * every later one — and adjusting it offers to apply the new values to the
+ * exercises already in the ficha, which is what a batch edit would have been
+ * for. Nothing here is stored: each exercise keeps its own real séries and
+ * descanso in the payload, so the aluno always reads the actual prescription.
+ */
+function SessionDefaultsRow({
+  defaults,
+  exerciseCount,
+  onApply,
+}: {
+  defaults: PrescriptionDefaults;
+  exerciseCount: number;
+  onApply: (next: PrescriptionDefaults, applyToAll: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [sets, setSets] = useState(defaults.sets);
+  const [rest, setRest] = useState(defaults.rest);
+  const [applyAll, setApplyAll] = useState(true);
+
+  // Re-seed the editor from the ficha every time it opens, never mid-edit.
+  function onOpenChange(next: boolean) {
+    if (next) {
+      setSets(defaults.sets);
+      setRest(defaults.rest);
+      setApplyAll(true);
+    }
+    setOpen(next);
+  }
+
+  const willApply = applyAll && exerciseCount > 0;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5">
+      <span className="text-label text-muted-foreground">Padrão da ficha</span>
+      <span className="text-label font-semibold tabular-nums text-[#334155]">
+        {defaults.sets} séries · {formatRest(defaults.rest)}
+      </span>
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-surface-light px-3 text-label font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+          >
+            <SlidersHorizontal className="size-3 shrink-0" aria-hidden />
+            Ajustar
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[19rem]">
+          <p className="text-subtitle font-semibold text-foreground">
+            Padrão da ficha
+          </p>
+          <p className="mt-0.5 text-label text-muted-foreground">
+            Vale para os próximos exercícios que você adicionar aqui.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Séries</Label>
+              <NumberField
+                value={sets}
+                onCommit={setSets}
+                min={1}
+                max={50}
+                maxDigits={2}
+                ariaLabel="Séries padrão da ficha"
+                inputClassName={defaultsInputClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descanso (s)</Label>
+              <NumberField
+                value={rest}
+                onCommit={setRest}
+                min={0}
+                max={3600}
+                step={15}
+                maxDigits={4}
+                ariaLabel="Descanso padrão da ficha"
+                inputClassName={defaultsInputClass}
+              />
+            </div>
+          </div>
+          {exerciseCount > 0 && (
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-body-dense text-[#334155]">
+              <input
+                type="checkbox"
+                checked={applyAll}
+                onChange={(e) => setApplyAll(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-[#059669]"
+              />
+              <span>
+                Aplicar {exerciseCount === 1 ? "ao" : "aos"} {exerciseCount}{" "}
+                {exerciseCount === 1 ? "exercício" : "exercícios"} já nesta ficha
+              </span>
+            </label>
+          )}
+          <Button
+            type="button"
+            onClick={() => {
+              onApply({ sets, rest }, willApply);
+              setOpen(false);
+            }}
+            className="mt-3 w-full"
+          >
+            {willApply ? `Salvar e aplicar a ${exerciseCount}` : "Salvar padrão"}
+          </Button>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Sortable exercise row (with prescription editor + custom substitutes)      */
 /* -------------------------------------------------------------------------- */
 
 function SortableExercise({
   exercise,
+  defaults,
   sessionExerciseIds,
   onPatch,
   onRemove,
 }: {
   exercise: ExerciseDraft;
+  defaults: PrescriptionDefaults | null;
   sessionExerciseIds: string[];
   onPatch: (patch: Partial<ExerciseDraft>) => void;
   onRemove: () => void;
@@ -868,9 +1075,36 @@ function SortableExercise({
             </span>
             {tech && <TechniqueBadge technique={exercise.technique} />}
           </span>
-          <span className="block truncate text-label text-muted-foreground">
-            {exercise.sets}× {formatReps(exercise.reps)}
-            {exercise.load ? ` · ${exercise.load}` : ""} · {formatRest(exercise.rest)}
+          {/* The collapsed row is the safety net for everything `Mais detalhes`
+              hides: técnica has its badge above, carga and descanso are in the
+              summary, and observação + substituições get these two marks. */}
+          <span className="flex items-center gap-1.5 text-label text-muted-foreground">
+            <span className="min-w-0 truncate">
+              {exercise.sets}× {formatReps(exercise.reps)}
+              {exercise.load ? ` · ${exercise.load}` : ""} ·{" "}
+              {formatRest(exercise.rest)}
+            </span>
+            {exercise.note.trim() !== "" && (
+              <span
+                role="img"
+                aria-label="Tem observação"
+                title="Tem observação"
+                className="shrink-0"
+              >
+                <MessageSquareText className="size-3.5" aria-hidden />
+              </span>
+            )}
+            {exercise.customSubstitutes.length > 0 && (
+              <span
+                role="img"
+                aria-label={`${exercise.customSubstitutes.length} substituição própria`}
+                title="Substituições próprias"
+                className="flex shrink-0 items-center gap-0.5 tabular-nums"
+              >
+                <Repeat className="size-3.5" aria-hidden />
+                {exercise.customSubstitutes.length}
+              </span>
+            )}
           </span>
           {isGroupingTechnique(exercise.technique) && (
             <span
@@ -907,6 +1141,8 @@ function SortableExercise({
             excludeIds={sessionExerciseIds}
             value={exercise}
             onPatch={onPatch}
+            defaults={defaults}
+            defaultDetailsOpen={hasPrescriptionDetails(exercise, defaults)}
           />
           <Button
             type="button"

@@ -19,6 +19,7 @@ export function NumberField({
   stepper = false,
   maxDigits = 4,
   inputClassName,
+  stepperButtonClassName,
 }: {
   value: number;
   onCommit: (n: number) => void;
@@ -29,6 +30,8 @@ export function NumberField({
   stepper?: boolean;
   maxDigits?: number;
   inputClassName: string;
+  /** Overrides the − / + button styling, for fields in a narrow column. */
+  stepperButtonClassName?: string;
 }) {
   const clamp = (n: number) => Math.max(min, Math.min(max, n));
   const [draft, setDraft] = useState(() => String(value));
@@ -74,6 +77,7 @@ export function NumberField({
   if (!stepper) return input;
 
   const btn =
+    stepperButtonClassName ??
     "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-input bg-white text-muted-foreground transition-colors hover:border-primary hover:text-primary";
   return (
     <div className="flex items-stretch gap-2">

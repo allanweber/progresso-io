@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Plus } from "lucide-react";
+import { Check, ChevronLeft, Plus } from "lucide-react";
 
 import { CATEGORY_LABELS } from "@/lib/exercises";
 import { ExerciseImageButton } from "@/components/workouts/exercise-images";
@@ -12,28 +12,35 @@ import {
 import {
   ExercisePrescriptionFields,
   newPrescription,
+  type PrescriptionDefaults,
   type PrescriptionDraft,
 } from "@/components/workouts/exercise-prescription-fields";
 
 export type { PickedExercise };
 
 /**
- * Adds an exercise to a ficha. Step one searches the catalog (base + this
- * clinic's own) via `ExerciseSearch`; step two prescribes it with the full
- * field set — séries, repetições (número / intervalo-sequência / falha), carga
- * opcional, descanso, técnica avançada, uma observação, e substituições (a
- * biblioteca + as próprias do coach) — via the shared `ExercisePrescriptionFields`.
- * Confirming emits the exercise together with its complete prescription, so
- * everything is set at insertion time, not only on edit.
+ * Adds exercises to a ficha, in a loop. Step one searches the catalog (base +
+ * this clinic's own) via `ExerciseSearch`; step two asks for the two fields a
+ * prescription cannot do without — **séries e repetições** — with séries and
+ * descanso already stamped from the ficha's padrão. Everything else (carga,
+ * descanso, técnica, observação, substituições) waits behind `Mais detalhes`,
+ * available right here but never demanded.
+ *
+ * Confirming returns to the search with the field ready for the next exercise,
+ * so building an eight-exercise ficha is one continuous flow instead of eight
+ * round trips. The caller closes the picker when the coach is done.
  */
 export function ExercisePicker({
   excludeIds = [],
+  defaults,
   onPick,
   onClose,
   autoFocus = true,
 }: {
   /** Exercise ids to hide from the results (already in the ficha). */
   excludeIds?: string[];
+  /** The ficha's séries/descanso padrão, stamped onto each new prescription. */
+  defaults?: PrescriptionDefaults | null;
   onPick: (picked: {
     exercise: PickedExercise;
     prescription: PrescriptionDraft;
@@ -42,22 +49,36 @@ export function ExercisePicker({
   autoFocus?: boolean;
 }) {
   const [selected, setSelected] = useState<PickedExercise | null>(null);
-  const [draft, setDraft] = useState<PrescriptionDraft>(newPrescription);
+  const [draft, setDraft] = useState<PrescriptionDraft>(() =>
+    newPrescription(defaults),
+  );
+  const [justAdded, setJustAdded] = useState<string | null>(null);
 
   function choose(exercise: PickedExercise) {
     setSelected(exercise);
-    setDraft(newPrescription());
+    setDraft(newPrescription(defaults));
   }
 
   // Search step -----------------------------------------------------------
   if (!selected) {
     return (
-      <ExerciseSearch
-        excludeIds={excludeIds}
-        onPick={choose}
-        onClose={onClose}
-        autoFocus={autoFocus}
-      />
+      <div className="space-y-2">
+        {justAdded && (
+          <p
+            role="status"
+            className="flex items-center gap-1.5 px-1 text-label font-medium text-primary"
+          >
+            <Check className="size-3.5 shrink-0" aria-hidden />
+            {justAdded} adicionado à ficha. Busque o próximo ou feche a busca.
+          </p>
+        )}
+        <ExerciseSearch
+          excludeIds={excludeIds}
+          onPick={choose}
+          onClose={onClose}
+          autoFocus={autoFocus}
+        />
+      </div>
     );
   }
 
@@ -94,16 +115,18 @@ export function ExercisePicker({
         excludeIds={excludeIds}
         value={draft}
         onPatch={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+        defaults={defaults}
       />
 
       <button
         type="button"
         onClick={() => {
           onPick({ exercise: selected, prescription: draft });
+          setJustAdded(selected.name);
           setSelected(null);
-          setDraft(newPrescription());
+          setDraft(newPrescription(defaults));
         }}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-body font-semibold text-white hover:bg-primary/90"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-body font-semibold text-white transition-colors hover:bg-primary/90"
       >
         <Plus className="size-4" />
         Adicionar ao treino

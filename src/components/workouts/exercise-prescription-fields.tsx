@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Repeat, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Repeat, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,14 +15,30 @@ import {
 } from "@/components/workouts/exercise-search";
 import { apiFetch } from "@/lib/api-client";
 import type { ExerciseDetailDto } from "@/lib/exercises";
-import { resolveSets, type WorkoutReps } from "@/lib/workouts";
+import {
+  formatRest,
+  normalizeReps,
+  resolveSets,
+  type WorkoutReps,
+} from "@/lib/workouts";
 import {
   WORKOUT_TECHNIQUE_OPTIONS,
   isGroupingTechnique,
+  techniqueInfo,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
 
 const newKey = () => crypto.randomUUID();
+
+const numberInputBase =
+  "h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15";
+const numberInputClass = `${numberInputBase} px-3.5`;
+
+/* Séries lives in a deliberately narrow column so the reps sequence gets the
+   rest of the row — its stepper and padding shrink to match. */
+const compactNumberInputClass = `${numberInputBase} px-2`;
+const compactStepperClass =
+  "flex size-9 shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-input bg-white text-muted-foreground transition-colors hover:border-primary hover:text-primary";
 
 /** A custom substitute the coach adds to a workout exercise (client draft). */
 export type CustomSubDraft = {
@@ -45,13 +61,25 @@ export type PrescriptionDraft = {
   customSubstitutes: CustomSubDraft[];
 };
 
-/** A fresh prescription for a newly-picked exercise. */
-export function newPrescription(): PrescriptionDraft {
+/**
+ * The ficha's séries/descanso **padrão**. It is a stamping tool, not an
+ * inheritance layer: a new exercise is created from it and then owns its own
+ * values, so nothing about it reaches the payload, the schema or the aluno.
+ * Here it serves one more purpose — telling the coach when an exercise's
+ * descanso diverges from the ficha, which is the only reason that field needs
+ * to be named while it is collapsed.
+ */
+export type PrescriptionDefaults = { sets: number; rest: number };
+
+/** A fresh prescription for a newly-picked exercise, stamped from the ficha padrão. */
+export function newPrescription(
+  defaults?: PrescriptionDefaults | null,
+): PrescriptionDraft {
   return {
-    sets: 3,
+    sets: defaults?.sets ?? 3,
     reps: { kind: "range", values: [8, 12] },
     load: "",
-    rest: 90,
+    rest: defaults?.rest ?? 90,
     technique: null,
     note: "",
     customSubstitutes: [],
@@ -59,28 +87,132 @@ export function newPrescription(): PrescriptionDraft {
 }
 
 /**
- * The full field set for one exercise's prescription — séries, repetições
- * (número / intervalo-sequência / pirâmide / tempo / falha), carga, descanso,
- * técnica avançada, uma observação livre, and its substituições (the count of library swaps + the
- * coach's own custom ones). Rendered identically at **insertion** (inside the
- * ExercisePicker) and at **edit** (inside a builder row); fields stack vertically
- * on mobile and go two-per-row from `sm`.
+ * Whether this prescription carries anything beyond séries × repetições. Drives
+ * both the disclosure's summary line and whether it opens already expanded — an
+ * exercise that has detail never hides it behind a closed drawer.
  */
-export function ExercisePrescriptionFields({
+export function hasPrescriptionDetails(
+  value: PrescriptionDraft,
+  defaults?: PrescriptionDefaults | null,
+): boolean {
+  return describeDetails(value, defaults).length > 0;
+}
+
+/** The set details, in the coach's own words — `40 kg · descanso 60s · Drop set`. */
+function describeDetails(
+  value: PrescriptionDraft,
+  defaults?: PrescriptionDefaults | null,
+): string[] {
+  const out: string[] = [];
+  if (value.load.trim()) out.push(value.load.trim());
+  // Descanso always holds a value, so it is only worth naming when it departs
+  // from what the ficha declared.
+  if (defaults && value.rest !== defaults.rest) {
+    out.push(`descanso ${formatRest(value.rest)}`);
+  }
+  const tech = techniqueInfo(value.technique);
+  if (tech) out.push(tech.label);
+  if (value.note.trim()) out.push("observação");
+  const subs = value.customSubstitutes.length;
+  if (subs > 0) {
+    out.push(subs === 1 ? "1 substituição" : `${subs} substituições`);
+  }
+  return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Tier 1 — the essentials, always visible                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Séries × Repetições — the two fields a prescription cannot do without, and
+ * the only ones the coach is asked for by default. Two-up from `sm`; on a phone
+ * they stack, because the picker sits four padded containers deep and the
+ * Séries stepper alone needs more than half of what a column has left.
+ */
+function EssentialFields({
+  value,
+  onPatch,
+}: {
+  value: PrescriptionDraft;
+  onPatch: (patch: Partial<PrescriptionDraft>) => void;
+}) {
+  // Several prescriptions can be open at once, so the hint id must be unique.
+  const hintId = useId();
+
+  // A pirâmide prescribes one set per position, so Séries follows the sequence
+  // (and stops being typeable) — add/remove a position and the count moves.
+  const reps = normalizeReps(value.reps);
+  const pyramid = reps.kind === "pyramid";
+  const sets = resolveSets(value.reps, value.sets);
+
+  // Séries never needs more than a two-digit box, while a pirâmide can run to
+  // six positions plus its two controls. Splitting the row down the middle
+  // starved the side that needed the room, so Séries takes a fixed narrow
+  // column and Repetições takes everything left — they stay on one line.
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[9rem_1fr]">
+      <div className="space-y-1.5">
+        <div className="flex h-8 items-center">
+          <Label>Séries</Label>
+        </div>
+        {pyramid ? (
+          <>
+            <input
+              readOnly
+              value={sets}
+              aria-label="Séries"
+              aria-describedby={hintId}
+              className="h-11 w-full rounded-[10px] border-[1.5px] border-dashed border-input bg-surface-light px-2 py-2.5 text-center text-body tabular-nums text-muted-foreground"
+            />
+            <p id={hintId} className="text-label text-muted-foreground">
+              Definido pela pirâmide — uma série por posição.
+            </p>
+          </>
+        ) : (
+          <NumberField
+            value={sets}
+            onCommit={(next) => onPatch({ sets: next })}
+            min={1}
+            max={50}
+            maxDigits={2}
+            stepper
+            ariaLabel="Séries"
+            inputClassName={compactNumberInputClass}
+            stepperButtonClassName={compactStepperClass}
+          />
+        )}
+      </div>
+      <RepsInput
+        value={value.reps}
+        onChange={(reps) => onPatch({ reps, sets: resolveSets(reps, value.sets) })}
+      />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Tier 2 — the details, behind one disclosure                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Carga, descanso, técnica avançada, observação and substituições. Everything
+ * here is optional for most exercises, so it only renders once the coach opens
+ * the drawer — which also means the substitutes lookup below stops firing once
+ * per exercise on a screen the coach never asked for.
+ */
+function DetailFields({
   exerciseId,
   excludeIds,
   value,
   onPatch,
 }: {
   exerciseId: string;
-  /** Exercise ids to hide from the substitute search (self + ficha + added). */
   excludeIds: string[];
   value: PrescriptionDraft;
   onPatch: (patch: Partial<PrescriptionDraft>) => void;
 }) {
   const [addingSub, setAddingSub] = useState(false);
-  // Several prescriptions can be open at once, so the hint id must be unique.
-  const hintId = useId();
 
   // The exercise's library substitutes (base + clinic), just to show the count.
   const { data } = useQuery({
@@ -110,54 +242,9 @@ export function ExercisePrescriptionFields({
     setAddingSub(false);
   }
 
-  // A pirâmide prescribes one set per position, so Séries follows the sequence
-  // (and stops being typeable) — add/remove a position and the count moves.
-  const pyramid = value.reps.kind === "pyramid";
-  const sets = resolveSets(value.reps, value.sets);
-
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <Label>Séries</Label>
-          <div className="mt-1">
-            {pyramid ? (
-              <>
-                <input
-                  readOnly
-                  value={sets}
-                  aria-label="Séries"
-                  aria-describedby={hintId}
-                  className="h-11 w-full rounded-[10px] border-[1.5px] border-dashed border-input bg-surface-light px-3.5 py-2.5 text-center text-body tabular-nums text-muted-foreground"
-                />
-                <p
-                  id={hintId}
-                  className="mt-1 text-label text-muted-foreground"
-                >
-                  Definido pela pirâmide — uma série por posição.
-                </p>
-              </>
-            ) : (
-              <NumberField
-                value={sets}
-                onCommit={(next) => onPatch({ sets: next })}
-                min={1}
-                max={50}
-                maxDigits={2}
-                stepper
-                ariaLabel="Séries"
-                inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
-              />
-            )}
-          </div>
-        </div>
-        <div>
-          <Label>Repetições</Label>
-          <RepsInput
-            value={value.reps}
-            onChange={(reps) => onPatch({ reps, sets: resolveSets(reps, value.sets) })}
-          />
-        </div>
         <div>
           <Label>Carga (opcional)</Label>
           <Input
@@ -178,7 +265,7 @@ export function ExercisePrescriptionFields({
               maxDigits={4}
               stepper
               ariaLabel="Descanso"
-              inputClassName="h-11 min-w-0 flex-1 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 py-2.5 text-center text-body tabular-nums text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              inputClassName={numberInputClass}
             />
           </div>
         </div>
@@ -287,6 +374,93 @@ export function ExercisePrescriptionFields({
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  The two tiers, composed                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One exercise's prescription, in two tiers. **Séries × Repetições** are always
+ * on screen; **carga, descanso, técnica avançada, observação e substituições**
+ * live behind a single `Mais detalhes` disclosure that stays closed until the
+ * coach wants them. Nothing is ever hidden silently: closed, the disclosure's
+ * second line either names what is set (`40 kg · Drop set · observação`) or, on
+ * an untouched exercise, advertises what is available inside. Rendered
+ * identically at **insertion** (inside the ExercisePicker) and at **edit**
+ * (inside a builder row).
+ */
+export function ExercisePrescriptionFields({
+  exerciseId,
+  excludeIds,
+  value,
+  onPatch,
+  defaults,
+  defaultDetailsOpen = false,
+}: {
+  exerciseId: string;
+  /** Exercise ids to hide from the substitute search (self + ficha + added). */
+  excludeIds: string[];
+  value: PrescriptionDraft;
+  onPatch: (patch: Partial<PrescriptionDraft>) => void;
+  /** The ficha's padrão, so a diverging descanso can be named while collapsed. */
+  defaults?: PrescriptionDefaults | null;
+  defaultDetailsOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultDetailsOpen);
+  const panelId = useId();
+  const set = describeDetails(value, defaults);
+
+  return (
+    <div className="space-y-3">
+      <EssentialFields value={value} onPatch={onPatch} />
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="group flex w-full items-start gap-2 rounded-[10px] border border-dashed border-border px-3 py-2.5 text-left transition-colors hover:border-primary"
+        >
+          {open ? (
+            <ChevronDown
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+              aria-hidden
+            />
+          ) : (
+            <ChevronRight
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+              aria-hidden
+            />
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="block text-body-dense font-semibold text-[#334155]">
+              Mais detalhes
+            </span>
+            {!open && (
+              <span className="line-clamp-2 block text-label text-muted-foreground">
+                {set.length > 0
+                  ? set.join(" · ")
+                  : "carga · descanso · técnica · observação · substituições"}
+              </span>
+            )}
+          </span>
+        </button>
+
+        {open && (
+          <div id={panelId} className="mt-3">
+            <DetailFields
+              exerciseId={exerciseId}
+              excludeIds={excludeIds}
+              value={value}
+              onPatch={onPatch}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
