@@ -60,19 +60,35 @@ type ShellCapabilities = {
   whatsapp?: boolean;
 };
 
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
+/**
+ * A titled run of nav items. `title: null` is the opening run — the items that
+ * need no heading because they sit directly under the logo.
+ *
+ * Grouping is not decoration: ten flat links is a list you re-read every time,
+ * where four titled runs of two or three is a place you learn. The titles name
+ * what the coach is *doing* (atendimento / prescrição / acervo), which is also
+ * how they describe their own week.
+ */
+type NavGroup = { title: string | null; items: NavItem[] };
+
 /** Sidebar links for a role. Each area only ever links within itself. */
-function navItems(
+function navGroups(
   role: string | null | undefined,
   capabilities: ShellCapabilities,
-) {
+): NavGroup[] {
   const home = homePathForRole(role);
-  const items = [{ href: home, label: "Visão geral", icon: LayoutDashboard }];
+  const groups: NavGroup[] = [
+    { title: null, items: [{ href: home, label: "Visão geral", icon: LayoutDashboard }] },
+  ];
   if (role === "coach") {
-    items.push({ href: "/coach/students", label: "Alunos", icon: Users });
+    const atendimento: NavItem[] = [
+      { href: "/coach/students", label: "Alunos", icon: Users },
+    ];
     // Calendar is a paid-tier feature (Free excluded); hide the entry entirely
     // when the plan doesn't include it.
     if (capabilities.calendar) {
-      items.push({
+      atendimento.push({
         href: "/coach/calendar",
         label: "Calendário",
         icon: CalendarDays,
@@ -80,33 +96,50 @@ function navItems(
     }
     // WhatsApp is a paid-tier feature (Free excluded), gated like the Calendar.
     if (capabilities.whatsapp) {
-      items.push({
+      atendimento.push({
         href: "/coach/whatsapp",
         label: "WhatsApp",
         icon: MessageCircle,
       });
     }
-    items.push({ href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed });
-    items.push({ href: "/coach/workouts", label: "Treinos", icon: Dumbbell });
-    items.push({
-      href: "/coach/anamneses",
-      label: "Anamneses",
-      icon: ClipboardList,
+    groups.push({ title: "Atendimento", items: atendimento });
+    groups.push({
+      title: "Prescrição",
+      items: [
+        { href: "/coach/diets", label: "Dietas", icon: UtensilsCrossed },
+        { href: "/coach/workouts", label: "Treinos", icon: Dumbbell },
+        { href: "/coach/anamneses", label: "Anamneses", icon: ClipboardList },
+      ],
     });
-    // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
-    items.push({ href: "/coach/library", label: "Biblioteca", icon: BookOpen });
-    items.push({ href: "/coach/settings", label: "Configurações", icon: Settings });
+    groups.push({
+      title: "Acervo",
+      items: [
+        // One Biblioteca entry — Alimentos and Exercícios are tabs inside it.
+        { href: "/coach/library", label: "Biblioteca", icon: BookOpen },
+        { href: "/coach/settings", label: "Configurações", icon: Settings },
+      ],
+    });
   }
   if (isAdmin(role)) {
-    items.push({ href: "/admin/students", label: "Alunos", icon: Users });
-    items.push({ href: "/admin/foods", label: "Alimentos", icon: BookOpen });
-    items.push({ href: "/admin/exercises", label: "Exercícios", icon: Dumbbell });
-    items.push({ href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle });
-    items.push({ href: "/admin/ai", label: "IA", icon: Sparkles });
-    items.push({ href: "/admin/maintenance", label: "Manutenção", icon: Database });
-    items.push({ href: "/admin/admins", label: "Admins", icon: ShieldCheck });
+    groups.push({
+      title: "Catálogo",
+      items: [
+        { href: "/admin/students", label: "Alunos", icon: Users },
+        { href: "/admin/foods", label: "Alimentos", icon: BookOpen },
+        { href: "/admin/exercises", label: "Exercícios", icon: Dumbbell },
+      ],
+    });
+    groups.push({
+      title: "Plataforma",
+      items: [
+        { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
+        { href: "/admin/ai", label: "IA", icon: Sparkles },
+        { href: "/admin/maintenance", label: "Manutenção", icon: Database },
+        { href: "/admin/admins", label: "Admins", icon: ShieldCheck },
+      ],
+    });
   }
-  return items;
+  return groups;
 }
 
 /**
@@ -143,7 +176,8 @@ export function DashboardShell({
 
   const roleLabel = ROLE_LABELS[user.role as Role] ?? user.role;
   const home = homePathForRole(user.role);
-  const items = navItems(user.role, capabilities);
+  const groups = navGroups(user.role, capabilities);
+  const items = groups.flatMap((g) => g.items);
 
   // WhatsApp sidebar badge: how many conversations await a coach reply. Only
   // polled for a coach whose plan includes WhatsApp (the nav item only exists
@@ -271,70 +305,118 @@ export function DashboardShell({
 
   /** Nav links, shared by the desktop rail and the mobile drawer. */
   function navLinks(onNavigate?: () => void) {
-    return items.map(({ href, label, icon: Icon }) => {
-      const badge =
-        href === "/coach/whatsapp" && waWaitingCount > 0
-          ? waWaitingCount > 9
-            ? "9+"
-            : String(waWaitingCount)
-          : null;
-      return (
-        <Link
-          key={href}
-          href={href}
-          onClick={onNavigate}
-          aria-current={isActive(href) ? "page" : undefined}
-          className={
-            isActive(href)
-              ? "flex items-center gap-2.5 rounded-md bg-primary-light px-3 py-2 font-medium text-primary-deep"
-              : "flex items-center gap-2.5 rounded-md px-3 py-2 font-medium text-text-secondary transition-colors hover:bg-secondary"
-          }
-        >
-          <Icon className="size-4" />
-          {label}
-          {badge ? (
-            <>
-              {/* Two fixes in one bubble. `aria-label` on a bare span maps to
-                  role=generic, which does not support an accessible name — screen
-                  readers dropped it and announced a naked "9+"; the phrasing is
-                  real off-screen text now. And the fill is Deep Emerald: white on
-                  Vital Emerald reads 3.77:1, which fails AA at this 11px. */}
-              <span className="ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary-deep px-1 text-caption font-semibold text-primary-foreground">
-                <span aria-hidden>{badge}</span>
-                <span className="sr-only">
-                  {countPt(
-                    waWaitingCount,
-                    "conversa aguardando resposta",
-                    "conversas aguardando resposta",
-                  )}
-                </span>
-              </span>
-            </>
-          ) : null}
-        </Link>
-      );
-    });
+    return groups.map((group, gi) => (
+      <div key={group.title ?? "_"} className={gi === 0 ? undefined : "mt-5"}>
+        {group.title ? (
+          // Sentence case, not the 10px uppercase eyebrow. An eyebrow announces
+          // something you are about to read; this is a filing label on a drawer
+          // you are scanning past, and shouting it would make the rail's
+          // quietest text its loudest.
+          <div className="mb-1.5 px-3 text-caption font-medium text-meta">
+            {group.title}
+          </div>
+        ) : null}
+        <div className="flex flex-col gap-0.5">
+          {group.items.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            const badge =
+              href === "/coach/whatsapp" && waWaitingCount > 0
+                ? waWaitingCount > 9
+                  ? "9+"
+                  : String(waWaitingCount)
+                : null;
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={
+                  active
+                    ? // A solid pill, not a pale wash. Where you are is the one
+                      // fact the rail exists to state, and at ten items a tint
+                      // is something you hunt for. The fill is Deep Emerald
+                      // because the label is 14px white — Vital Emerald under
+                      // white is 3.77:1 (§ The 18px Rule).
+                      "flex items-center gap-2.5 rounded-md bg-primary-deep px-3 py-2 font-medium text-primary-foreground"
+                    : "flex items-center gap-2.5 rounded-md px-3 py-2 font-medium text-text-secondary transition-colors hover:bg-secondary hover:text-foreground"
+                }
+              >
+                <Icon className="size-4 shrink-0" />
+                {label}
+                {badge ? (
+                  <>
+                    {/* Two fixes in one bubble. `aria-label` on a bare span maps
+                        to role=generic, which does not support an accessible
+                        name — screen readers dropped it and announced a naked
+                        "9+"; the phrasing is real off-screen text now. And the
+                        bubble inverts on the active pill, where an emerald fill
+                        on an emerald fill would vanish. */}
+                    <span
+                      className={
+                        active
+                          ? "ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-white/20 px-1 text-caption font-semibold text-primary-foreground"
+                          : "ml-auto flex min-w-[18px] items-center justify-center rounded-full bg-primary-deep px-1 text-caption font-semibold text-primary-foreground"
+                      }
+                    >
+                      <span aria-hidden>{badge}</span>
+                      <span className="sr-only">
+                        {countPt(
+                          waWaitingCount,
+                          "conversa aguardando resposta",
+                          "conversas aguardando resposta",
+                        )}
+                      </span>
+                    </span>
+                  </>
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    ));
   }
 
   return (
     <Sheet open={navOpen} onOpenChange={setNavOpen}>
-      <div className="flex min-h-screen bg-surface-light print:block print:min-h-0 print:bg-white">
+      {/*
+        The desk, and the app lying on it. From `lg` the shell inset itself by
+        12px and becomes a single rounded sheet with a real shadow — the frame
+        that makes every panel inside it read as paper rather than as more
+        chrome. Below `lg` the frame is dropped entirely: on a 390px phone those
+        gutters cost 6% of the width to say something the phone already says by
+        filling the screen, and PRODUCT.md makes that width a correctness
+        requirement, not a taste one.
+
+        `min-h-screen` on both layers rather than `h-screen` + inner scroll: the
+        page keeps ordinary document scrolling, so the window grows with a
+        fifty-row roster instead of trapping it in a nested scroller.
+      */}
+      <div className="min-h-screen bg-ground lg:p-3 print:block print:min-h-0 print:bg-white print:p-0">
+        <div className="flex min-h-screen bg-card lg:min-h-[calc(100vh-1.5rem)] lg:overflow-hidden lg:rounded-window lg:shadow-window print:block print:min-h-0 print:rounded-none print:shadow-none">
         {/* Ten rail links stood between a keyboard user and the content on every
             page. Landmarks technically satisfy 2.4.1; this is the affordance
             people actually reach for. */}
         <a
           href="#conteudo"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2.5 focus:text-body focus:font-medium focus:text-primary-deep focus:shadow-[0_8px_40px_rgba(15,23,42,0.15)] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2.5 focus:text-body focus:font-medium focus:text-primary-deep focus:shadow-overlay focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           Pular para o conteúdo
         </a>
 
         {/* Desktop rail */}
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card px-5 py-6 md:flex print:!hidden">
-          <Link href={home} className="mb-8">
+        {/* No right border: the rail is the warm Inset and the content column
+            is Paper, and that half-step of tone separates them more calmly than
+            a drawn rule. Adding both would be saying it twice. */}
+        <aside className="hidden w-60 shrink-0 flex-col bg-surface-light px-3 py-6 md:flex print:!hidden">
+          {/* px-3 so the mark lines up with the nav icons rather than with the
+              rail's edge — the rail now pads at 12px and the items at another
+              12px inside it. */}
+          <Link href={home} className="mb-7 px-3">
             <Logo />
           </Link>
-          <nav aria-label="Navegação principal" className="flex flex-col gap-1 text-body">
+          <nav aria-label="Navegação principal" className="flex flex-col text-body">
             {navLinks()}
           </nav>
         </aside>
@@ -353,7 +435,7 @@ export function DashboardShell({
               <X className="size-5" />
             </SheetClose>
           </div>
-          <nav aria-label="Navegação principal" className="flex flex-col gap-1 text-body">
+          <nav aria-label="Navegação principal" className="flex flex-col text-body">
             {navLinks(() => setNavOpen(false))}
           </nav>
         </SheetContent>
@@ -408,24 +490,23 @@ export function DashboardShell({
             role="status"
             data-testid="billing-banner"
             data-tone={billingNotice.tone}
-            className={`flex flex-col gap-2.5 border-b px-4 py-3 text-body-dense sm:flex-row sm:items-center sm:justify-between sm:px-6 print:hidden ${
+            // The three tones come from the chip pairs rather than from
+            // Tailwind's own palette: `red-50`/`sky-50` are cool washes, and on
+            // a greige ground they read as a foreign object pasted over the
+            // app. No bottom border — the wash already separates it, and the
+            // banner is the one full-width tinted surface in the system.
+            className={`flex flex-col gap-2.5 px-4 py-3 text-body-dense sm:flex-row sm:items-center sm:justify-between sm:px-6 print:hidden ${
               billingNotice.tone === "danger"
-                ? "border-red-200 bg-red-50 text-red-800"
+                ? "bg-danger-bg text-danger-fg"
                 : billingNotice.tone === "warning"
-                  ? "border-amber-200 bg-amber-50 text-amber-800"
-                  : "border-sky-200 bg-sky-50 text-sky-800"
+                  ? "bg-warn-bg text-warn-fg"
+                  : "bg-info-bg text-info-fg"
             }`}
           >
             <div className="flex items-start gap-2.5">
-              <AlertCircle
-                className={`mt-0.5 size-4 shrink-0 ${
-                  billingNotice.tone === "danger"
-                    ? "text-red-600"
-                    : billingNotice.tone === "warning"
-                      ? "text-amber-600"
-                      : "text-sky-600"
-                }`}
-              />
+              {/* The icon inherits the tone's ink rather than carrying a
+                  second, brighter rung of the same hue — one voice per tone. */}
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <p>
                 <span className="font-semibold">{billingNotice.title}</span>{" "}
                 {billingNotice.body}
@@ -533,7 +614,7 @@ export function DashboardShell({
             )}
 
             {subscribe.isError && (
-              <p className="text-body-dense text-red-700">
+              <p className="text-body-dense text-danger-fg">
                 Não foi possível gerar a cobrança. Tente de novo em instantes.
               </p>
             )}
@@ -547,6 +628,7 @@ export function DashboardShell({
         >
           {children}
         </main>
+        </div>
         </div>
       </div>
     </Sheet>

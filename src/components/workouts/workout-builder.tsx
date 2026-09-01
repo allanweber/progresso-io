@@ -827,7 +827,7 @@ export function WorkoutBuilder({
         </div>
       )}
 
-      <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="space-y-4 rounded-2xl bg-card p-5 shadow-rest">
         <form.Field name="name">
           {(field) => (
             <Field
@@ -867,7 +867,7 @@ export function WorkoutBuilder({
         </form.Field>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-4 rounded-2xl bg-card p-5 shadow-rest">
         <form.Field name="cardio">
           {(field) => (
             <div className="space-y-1.5">
@@ -1109,7 +1109,7 @@ const SortableSession = memo(function SortableSession({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-border bg-card shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="rounded-2xl bg-card shadow-rest"
     >
       {/* A treino runs thousands of px and every ficha's name lives in an
           <Input>, so heading navigation had nothing to land on between the

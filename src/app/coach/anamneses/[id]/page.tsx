@@ -103,7 +103,7 @@ export default function AnamnesisDetailPage() {
   });
 
   const panel =
-    "rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]";
+    "rounded-2xl bg-white shadow-rest";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -180,7 +180,7 @@ export default function AnamnesisDetailPage() {
           </div>
 
           {data.description && (
-            <p className={`mt-4 rounded-xl border border-border bg-white p-4 text-body text-text-secondary shadow-[0_1px_8px_rgba(15,23,42,0.05)]`}>
+            <p className={`mt-4 rounded-xl border border-border bg-white p-4 text-body text-text-secondary shadow-rest`}>
               {data.description}
             </p>
           )}

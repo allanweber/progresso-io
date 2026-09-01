@@ -87,11 +87,11 @@ export default function WorkoutDetailPage() {
       </Link>
 
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data ? (
@@ -162,7 +162,7 @@ export default function WorkoutDetailPage() {
           </div>
 
           {data.notes && (
-            <p className="mt-4 rounded-xl border border-border bg-white p-4 text-sm text-[#475569] shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+            <p className="mt-4 rounded-xl border border-border bg-white p-4 text-sm text-[#475569] shadow-rest">
               {data.notes}
             </p>
           )}

@@ -251,7 +251,7 @@ export default function StudentEvolutionPage() {
         <div className="mt-6 flex flex-col gap-4">
           {/* Weight chart */}
           {weightSeries.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-body-dense text-muted-foreground">
@@ -269,7 +269,7 @@ export default function StudentEvolutionPage() {
                       "flex items-center gap-1 rounded-full px-2.5 py-1 text-body-dense font-semibold",
                       deltaW < 0
                         ? "bg-primary-light text-primary"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
+                        : "bg-amber-100 text-warn-fg dark:bg-amber-950/40",
                     )}
                   >
                     {deltaW < 0 ? (
@@ -288,7 +288,7 @@ export default function StudentEvolutionPage() {
 
           {/* Comparable photos */}
           {hasComparablePhotos ? (
-            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                 {/* The action belongs beside the title, not in the pill strip:
                     a 36px ghost button next to an 18px heading is the row's
@@ -518,7 +518,7 @@ export default function StudentEvolutionPage() {
 
           {/* Medidas Δ table */}
           {measureRows.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
               <div className="mb-3 font-heading text-subtitle font-semibold">
                 Medidas
               </div>
@@ -562,7 +562,7 @@ export default function StudentEvolutionPage() {
                               ? "text-muted-foreground"
                               : (r.delta < 0) === r.goodDown
                                 ? "text-primary"
-                                : "text-amber-700",
+                                : "text-warn-fg",
                           )}
                         >
                           {r.delta === null

@@ -343,7 +343,7 @@ export default function StudentProfilePage() {
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Perfil */}
-        <div className="rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-6 shadow-rest">
           <h2 className="font-heading text-base font-semibold text-foreground">
             Perfil
           </h2>
@@ -365,7 +365,7 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Anamnese */}
-        <div className="rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-6 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-heading text-base font-semibold text-foreground">
               Anamnese

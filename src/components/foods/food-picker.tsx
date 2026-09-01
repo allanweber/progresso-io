@@ -227,7 +227,7 @@ export function FoodPicker({
 
   // Search step ------------------------------------------------------------
   return (
-    <div className="rounded-xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="rounded-xl border border-border bg-white p-3 shadow-rest">
       <div className="relative flex items-center">
         <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
         <input

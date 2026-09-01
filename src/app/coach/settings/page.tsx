@@ -102,7 +102,7 @@ function SettingsCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-6">
+    <section className="rounded-2xl bg-white p-5 shadow-rest sm:p-6">
       <div className="mb-4 flex items-center gap-2.5">
         <h2 className="font-heading text-subtitle font-semibold text-foreground">
           {title}
@@ -1208,7 +1208,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
       {(isDirty || mutation.isSuccess || mutation.isPending) && (
         <div
           role="status"
-          className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border bg-white px-4 py-3 shadow-[0_-8px_40px_rgba(15,23,42,0.15)] sm:-mx-6 sm:px-6 lg:hidden"
+          className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border bg-white px-4 py-3 shadow-overlay-up sm:-mx-6 sm:px-6 lg:hidden"
         >
           {/* Terse on purpose: at 390px the two buttons leave ~90px, and
               "Alterações não salvas" wrapped to two lines and grew the bar. */}
@@ -1255,7 +1255,7 @@ export default function ClinicSettingsPage() {
         <h1 className="mb-5 font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="rounded-2xl border border-border bg-white p-6 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-6 text-center text-body text-muted-foreground shadow-rest">
           Carregando…
         </div>
       </div>
@@ -1268,7 +1268,7 @@ export default function ClinicSettingsPage() {
         <h1 className="mb-5 font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="rounded-2xl border border-border bg-white p-6 text-center text-body text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-6 text-center text-body text-destructive shadow-rest">
           {error instanceof Error
             ? error.message
             : "Não foi possível carregar as configurações."}

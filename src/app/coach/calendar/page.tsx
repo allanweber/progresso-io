@@ -409,7 +409,7 @@ function MonthGrid({
 }) {
   const days = monthGridDays(anchor);
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="overflow-hidden rounded-2xl bg-white shadow-rest">
       <div className="grid grid-cols-7 border-b border-border">
         {WEEKDAY_SHORT_LABELS.map((label) => (
           <div
@@ -557,7 +557,7 @@ function TimeGrid({
 }) {
   const cols = days.length;
   return (
-    <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="mt-5 overflow-hidden rounded-2xl bg-white shadow-rest">
       {/* Day headers */}
       <div
         className="grid border-b border-border"
@@ -674,7 +674,7 @@ function UpcomingPanel({
 }) {
   const upcoming = items.filter((i) => i.date >= today).slice(0, 12);
   return (
-    <div className="h-fit overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="h-fit overflow-hidden rounded-2xl bg-white shadow-rest">
       <div className="border-b border-border px-4 py-3.5">
         <h2 className="font-heading text-subtitle font-semibold text-foreground">
           Próximos 14 dias
@@ -745,7 +745,7 @@ function Legend() {
 
 function CalendarUpsell() {
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-white px-6 py-16 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="mt-6 rounded-2xl bg-white px-6 py-16 text-center shadow-rest">
       <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary-light">
         <CalendarDays className="size-7 text-primary" />
       </div>

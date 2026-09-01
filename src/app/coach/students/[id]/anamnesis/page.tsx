@@ -87,7 +87,7 @@ export default function CoachFillAnamnesisPage() {
             {(error as Error).message}
           </p>
         ) : (
-          <div className="mt-4 rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center shadow-rest">
             <p className="text-body text-muted-foreground">
               Este aluno ainda não tem uma anamnese. Atribua um dos templates da
               sua clínica no perfil dele para começar.
@@ -146,7 +146,7 @@ export default function CoachFillAnamnesisPage() {
             el.focus({ preventScroll: true });
           }
         }}
-        className="mt-6 space-y-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+        className="mt-6 space-y-6 rounded-2xl bg-white p-6 shadow-rest"
       >
         <AnamnesisFillForm
           sections={data.sections}

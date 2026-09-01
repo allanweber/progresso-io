@@ -4,98 +4,180 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Progresso IO design tokens.
- * Primary is emerald (#059669); neutrals follow the slate scale.
+ * Progresso IO design tokens — "A Ficha na Mesa" (The Chart on the Desk).
+ *
+ * Primary is emerald (#059669). Neutrals are a WARM greige ramp, not the cool
+ * slate this file used to carry. The difference is small per-swatch (R leads B
+ * by 4-10 points) and large in aggregate: slate reads as a hospital counter,
+ * greige reads as a desk with a lamp on it. The product is a coach's practice,
+ * not a clinic's intake bay, and the ground should say so.
+ *
+ * Structure is carried by SHADOW first and border second, inverting the old
+ * system. A panel is a sheet of paper lying on the desk; it is separated by the
+ * light falling around it, not by a drawn rule. Borders survive only where a
+ * user aims at something (§ The Thicker Stroke Rule).
  */
 :root {
   --radius: 0.75rem; /* 12px — buttons/inputs; cards use rounded-2xl (16px) */
+  /*
+   * The app window's own corner. The coach shell floats as a single sheet on
+   * the desk, and its radius has to outrank the 16px panels sitting inside it
+   * or the nesting reads as an accident. This is the one radius above 16px and
+   * it belongs to exactly one element.
+   */
+  --radius-window: 20px;
 
   --background: #ffffff;
-  --foreground: #0f172a; /* slate-900 */
+  --foreground: #1c1a18; /* Ink — 17.35:1 on Paper */
 
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1c1a18;
 
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #1c1a18;
 
   --primary: #059669; /* emerald-600 */
   --primary-foreground: #ffffff;
 
-  --secondary: #f8fafc; /* slate-50 */
-  --secondary-foreground: #0f172a;
+  --secondary: #f7f6f4; /* Inset — the warm equivalent of the old slate-50 */
+  --secondary-foreground: #1c1a18;
 
-  --muted: #f1f5f9; /* slate-100 */
-  --muted-foreground: #64748b; /* slate-500 */
+  --muted: #efedea;
+  --muted-foreground: #746f67; /* 4.99:1 on Paper, 4.62:1 on Inset */
   /*
    * Meta Grey — column headers, timestamps, "last activity". It ships at
-   * 11-12px, where the old slate-400 (#94a3b8) read 2.56:1 on Paper and failed
-   * the AA floor on every table header in the app. There is no room between
-   * 4.5:1 and Context Grey for a second, lighter passing rung: anything that
-   * clears the floor on white lands at slate-500. So Meta and Context share a
-   * pigment in light mode and are told apart by size, weight and role — Meta
-   * annotates the chart, Context describes a field. They diverge again in dark
-   * mode, where the lighter value is legible on slate.
+   * 11-12px, so it has to clear 4.5:1 on BOTH surfaces it ever lands on: Paper
+   * (#ffffff) and Inset (#f7f6f4). The old slate-500 (#64748b) cleared Paper at
+   * 4.76:1 and would have failed the sidebar and table headers once those moved
+   * onto Inset — which this system does. #746f67 clears both (4.99 / 4.62).
+   *
+   * It does NOT clear the Desk (#e3e1dd) at 3.82:1, and it does not have to:
+   * the desk is the empty ground around the window and never carries text.
    */
-  --meta: #64748b; /* slate-500 — 4.76:1 on Paper */
+  --meta: #746f67;
 
   --accent: #f0fdf4; /* emerald-50 */
   --accent-foreground: #047857; /* emerald-700 */
 
-  --destructive: #ef4444;
+  /*
+   * Destructive is a warm, darkened red rather than the old #ef4444. Two
+   * reasons, and the second is a bug fix: #ef4444 is a cool pigment that reads
+   * as a foreign object on a greige ground, and white on it lands at 3.76:1
+   * while DESIGN.md prescribes it for 13px error messages and white-label
+   * destructive buttons — a WCAG AA failure on every one of them. #c4392a
+   * reads 5.29:1 both ways.
+   */
+  --destructive: #c4392a;
   --destructive-foreground: #ffffff;
 
   /*
-   * Status-chip pairs (DESIGN.md § Colors "Tertiary"). Foregrounds are the
-   * darkened rungs, not the pure pigment: chip text ships at 11-12px, where
-   * #ef4444 on #fee2e2 lands at 3.3:1 and fails the 4.5:1 floor for small
-   * text. These pass at 5.9:1 (danger) and 7.4:1 (warn).
+   * Status-chip pairs. Every pair is a pale wash with a darkened ink, verified
+   * at >=5:1, because chip text ships at 11-12px. Never hand-write these hexes;
+   * never use a wash as a surface larger than a chip or a banner.
    */
-  --danger-bg: #fee2e2;
-  --danger-fg: #b91c1c;
-  --warn-bg: #fef3c7;
-  --warn-fg: #92400e;
+  --ok-bg: #e4f4e9;
+  --ok-fg: #186b3a; /* 5.75:1 */
+  --info-bg: #e5edfc;
+  --info-fg: #2a5cbf; /* 5.28:1 */
+  --warn-bg: #faeeda;
+  --warn-fg: #8a5712; /* 5.30:1 */
+  --danger-bg: #fbe7e3;
+  --danger-fg: #ae3826; /* 5.20:1 */
+  --neutral-bg: #efedea;
+  --neutral-fg: #57534d; /* 6.54:1 */
+  --base-bg: #e9e9fb;
+  --base-fg: #4338ca; /* 6.59:1 — platform "base" catalog data */
 
-  --border: #e2e8f0; /* slate-200 */
-  --input: #e2e8f0;
+  /*
+   * Three neutral strokes, by job (§ The Thicker Stroke Rule):
+   * - border        structural 1px — panel edges, header rules, dividers
+   * - border-light  hairline 1px   — table row separators, faint internal splits
+   * - border-strong 1.5px          — anything a user aims at: inputs, selects,
+   *                                  secondary buttons, the mobile menu trigger
+   */
+  --border: #e5e2de;
+  --border-light: #efedea;
+  --border-strong: #d9d5cf;
+  --input: #d9d5cf;
   --ring: #059669;
 
-  /* Extra brand tokens used by the marketing surfaces */
   /*
-   * Deep Emerald. One value, two named roles (DESIGN.md § Colors): the pressed
-   * and hovered primary fill, and — the reason it is a token and not a literal —
-   * the *ink* for emerald text on a pale emerald or white surface. Vital Emerald
-   * reads 3.60:1 on the Emerald Wash and 3.77:1 on Paper, so it fails AA at the
-   * 11-14px this app writes emerald at; Deep Emerald reads 5.24:1 and 5.48:1.
-   * Use `text-primary` only at >=18px, `text-primary-deep` below it.
+   * Deep Emerald. One value, two named roles: the resting fill of any filled
+   * control whose label is white and under 18px, and the *ink* for emerald text
+   * on a pale surface. Vital Emerald reads 3.77:1 on Paper, so it fails AA at
+   * the 11-14px this app writes emerald at; Deep Emerald reads 5.48:1 on Paper
+   * and 5.08:1 on Inset. Use `text-primary` only at >=18px or for a shape,
+   * `text-primary-deep` below it. (§ The 18px Rule.)
    */
   --primary-deep: #047857; /* emerald-700 */
   /*
-   * The pressed/hover rung *under a Deep Emerald fill*. Once a filled control
-   * rests at #047857 for contrast, #047857 can no longer be its hover — this is
-   * the next step down. White on it reads 7.68:1.
+   * The pressed/hover rung *under* a Deep Emerald fill. Once a filled control
+   * rests at #047857, that value can no longer be its own hover. White on it
+   * reads 7.68:1.
    */
   --primary-press: #065f46; /* emerald-800 */
   /*
    * Legacy alias, still correct for the handful of controls that rest at Vital
    * Emerald and darken on hover (marketing CTAs, where the type is >=18px).
-   * A control resting at --primary-deep hovers to --primary-press instead.
    */
   --primary-hover: var(--primary-deep);
   --primary-light: #f0fdf4; /* emerald-50 */
   --primary-light-border: #bbf7d0; /* emerald-200 */
-  --text-secondary: #475569; /* slate-600 */
-  --surface-light: #f8fafc; /* slate-50 — the coach's ground */
+  --text-secondary: #57534d; /* Reading Grey — 7.64:1 on Paper */
+
   /*
-   * The aluno's ground: a half-step cooler and darker than the coach's. That
-   * temperature difference is the whole signal that says which app you are in
-   * (DESIGN.md, The Two Grounds Rule), so it is a token rather than a literal
-   * repeated per aluno surface.
+   * The three grounds, warm and one step apart each.
+   *
+   * - surface-light  Inset. The sidebar, a table head, a sunken well INSIDE the
+   *                  app window. This is what the old cool #f8fafc becomes.
+   * - ground         The Desk. The surface the app window floats on, and the
+   *                  page background for surfaces that have no window (auth,
+   *                  marketing). Never carries text directly.
+   * - ground-aluno   The aluno's room — a half-step warmer and lighter than the
+   *                  coach's desk, so their app feels like a different place
+   *                  (§ The Two Grounds Rule). Warmer rather than cooler now:
+   *                  the coach is at work, the aluno is at home.
    */
-  --ground-aluno: #eef1f5;
-  --surface-dark: #0f172a; /* slate-900 */
-  --surface-dark-mid: #1e293b; /* slate-800 */
-  --border-light: #f1f5f9; /* slate-100 */
+  --surface-light: #f7f6f4;
+  --surface-sunken: #efedea;
+  --ground: #e3e1dd;
+  --ground-aluno: #f0ede7;
+
+  /* The two dark surfaces — warm-black, so they belong to the same room. */
+  --surface-dark: #221f1d;
+  --surface-dark-mid: #322e2b;
+
+  /*
+   * Elevation. Structure is carried by shadow in this system, so the shadows
+   * are real: every one has an offset AND a soft blur, and the pigment is
+   * warm-black (28,26,24) rather than the old cool slate — a cool shadow on a
+   * greige ground reads as grime.
+   *
+   * Two-layer construction throughout: a tight contact shadow that seats the
+   * sheet on the desk, plus a wide diffuse one that gives it height. One layer
+   * alone reads as a sticker.
+   *
+   * These are registered as `shadow-*` utilities under @theme inline below.
+   * There is no sixth value, and no arbitrary `shadow-[...]` anywhere in src.
+   */
+  --elev-rest:
+    0 0 0 1px rgba(28, 26, 24, 0.045), 0 1px 2px rgba(28, 26, 24, 0.05),
+    0 8px 20px -8px rgba(28, 26, 24, 0.12);
+  --elev-raised:
+    0 1px 3px rgba(28, 26, 24, 0.05), 0 12px 28px -10px rgba(28, 26, 24, 0.12);
+  --elev-window:
+    0 1px 3px rgba(28, 26, 24, 0.05), 0 24px 56px -20px rgba(28, 26, 24, 0.18);
+  --elev-overlay:
+    0 2px 6px rgba(28, 26, 24, 0.06), 0 16px 48px -12px rgba(28, 26, 24, 0.22);
+  /*
+   * Overlay cast upward, for a surface anchored to the bottom of the viewport
+   * where a downward shadow falls off-screen (the cookie banner, the aluno's
+   * tab bar). A direction change, not a sixth tier.
+   */
+  --elev-overlay-up:
+    0 -2px 6px rgba(28, 26, 24, 0.06), 0 -16px 48px -12px rgba(28, 26, 24, 0.22);
+  /* The landing hero's product mockup only. Never permitted inside the app. */
+  --elev-theatre: 0 40px 90px -30px rgba(28, 26, 24, 0.34);
 
   /*
    * Coach/admin header height. The notification dropdown pins itself directly
@@ -106,9 +188,9 @@
   --header-h: 73px;
 
   /*
-   * Type ramp (DESIGN.md § Typography). Seven rungs, each with a job:
+   * Type ramp (DESIGN.md § Typography). Eight rungs, each with a job:
    * eyebrow · caption · label · body-dense · body · subtitle · title ·
-   * headline.
+   * headline, plus figure.
    * These are the raw steps; `@theme inline` below turns them into
    * `text-*` utilities that resolve *at the element*, so a posture can
    * redefine a step for its own subtree.
@@ -151,35 +233,69 @@
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
+  /*
+   * Night is warm-black too. A greige light theme paired with a blue-black dark
+   * theme is two products; the neutrals keep their temperature through the
+   * switch and only their value inverts.
+   */
+  --background: #1a1817;
+  --foreground: #f5f3f1;
+  --card: #232120;
+  --card-foreground: #f5f3f1;
+  --popover: #232120;
+  --popover-foreground: #f5f3f1;
   --primary: #059669;
   --primary-foreground: #ffffff;
-  --secondary: #1e293b;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --meta: #94a3b8;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --secondary: #2b2826;
+  --secondary-foreground: #f5f3f1;
+  --muted: #2b2826;
+  --muted-foreground: #a9a39a;
+  /* Meta and Context diverge again on night: this reads 7.4:1 on --card. */
+  --meta: #a9a39a;
+  --accent: #2b2826;
+  --accent-foreground: #f5f3f1;
+  --destructive: #e2604c;
+  --destructive-foreground: #1a1817;
 
-  /* Washes darken and foregrounds lighten so chips stay legible on slate. */
-  --danger-bg: #450a0a;
-  --danger-fg: #fca5a5;
-  --warn-bg: #422006;
-  --warn-fg: #fcd34d;
-  --border: #334155;
-  --input: #334155;
+  /* Washes darken and inks lighten so every chip stays legible on night. */
+  --ok-bg: #14301f;
+  --ok-fg: #86dfa6;
+  --info-bg: #182541;
+  --info-fg: #9dbcf5;
+  --warn-bg: #33240c;
+  --warn-fg: #edc177;
+  --danger-bg: #37190f;
+  --danger-fg: #f0a293;
+  --neutral-bg: #2b2826;
+  --neutral-fg: #c4bfb8;
+  --base-bg: #201f3d;
+  --base-fg: #b0abf5;
+
+  --border: #35322f;
+  --border-light: #2b2826;
+  --border-strong: #45413d;
+  --input: #45413d;
   --ring: #059669;
 
-  /* On slate, both grounds collapse onto the page background. */
+  --text-secondary: #c4bfb8;
+  --surface-light: #201e1c;
+  --surface-sunken: #171514;
+  /* On night, every ground collapses onto the page background. */
+  --ground: var(--background);
   --ground-aluno: var(--background);
+
+  /*
+   * Shadows do not read on a dark ground — light does not fall that way. The
+   * resting tiers go to nothing and elevation is carried by the surface value
+   * (--card sits above --background) plus a border. Only the genuinely floating
+   * tiers keep a shadow, and it is deeper and tighter.
+   */
+  --elev-rest: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --elev-raised: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --elev-window: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --elev-overlay: 0 16px 48px -12px rgba(0, 0, 0, 0.7);
+  --elev-overlay-up: 0 -16px 48px -12px rgba(0, 0, 0, 0.7);
+  --elev-theatre: 0 40px 90px -30px rgba(0, 0, 0, 0.8);
 }
 
 /*
@@ -216,6 +332,56 @@
       scroll-behavior: auto;
     }
   }
+
+  /*
+   * The surfaces we did not draw. A browser ships selection, the caret, the
+   * scrollbar and the underline offset with defaults that belong to no design
+   * system, and on a greige ground the stock blue selection is the single most
+   * obviously foreign pixel on the page. Theme them from the palette.
+   */
+  ::selection {
+    background-color: #bbf7d0; /* Emerald Hairline */
+    color: #065f46;
+  }
+
+  html {
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--meta);
+  }
+
+  /*
+   * Every numeral in this product is a measurement someone compares against
+   * another measurement — a load, a macro, a count, a price. Lining tabular
+   * figures stop a refetching column from jittering and let a stacked column
+   * be read down rather than across.
+   */
+  body {
+    font-variant-numeric: tabular-nums;
+    caret-color: var(--primary-deep);
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+  }
 }
 
 @theme inline {
@@ -223,6 +389,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* The app window's corner — `rounded-window`. Exactly one element. */
+  --radius-window: 20px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -241,10 +409,21 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-danger-bg: var(--danger-bg);
-  --color-danger-fg: var(--danger-fg);
+
+  /* The six chip pairs, as `bg-ok-bg text-ok-fg` and so on. */
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-fg: var(--ok-fg);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
   --color-warn-bg: var(--warn-bg);
   --color-warn-fg: var(--warn-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-fg: var(--neutral-fg);
+  --color-base-bg: var(--base-bg);
+  --color-base-fg: var(--base-fg);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -256,10 +435,29 @@
   --color-primary-light-border: var(--primary-light-border);
   --color-text-secondary: var(--text-secondary);
   --color-surface-light: var(--surface-light);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-ground: var(--ground);
   --color-ground-aluno: var(--ground-aluno);
   --color-surface-dark: var(--surface-dark);
   --color-surface-dark-mid: var(--surface-dark-mid);
   --color-border-light: var(--border-light);
+  --color-border-strong: var(--border-strong);
+
+  /*
+   * The elevation vocabulary as utilities: `shadow-rest`, `shadow-raised`,
+   * `shadow-window`, `shadow-overlay`, `shadow-overlay-up`, `shadow-theatre`.
+   * These replaced 196 arbitrary `shadow-[...]` literals, which is what let the
+   * dark theme flatten elevation in one place instead of 196.
+   *
+   * Verify no literal has crept back:
+   *   grep -rn "shadow-\[" src --include=*.tsx
+   */
+  --shadow-rest: var(--elev-rest);
+  --shadow-raised: var(--elev-raised);
+  --shadow-window: var(--elev-window);
+  --shadow-overlay: var(--elev-overlay);
+  --shadow-overlay-up: var(--elev-overlay-up);
+  --shadow-theatre: var(--elev-theatre);
 
   --font-sans: var(--font-dm-sans);
   --font-heading: var(--font-space-grotesk);

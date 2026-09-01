@@ -33,16 +33,16 @@ export default function EditBaseFoodPage() {
       </h1>
 
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data && data.origin === "clinic" ? (
         // Clinic-owned foods are view-only for the admin — only base is editable.
-        <div className="mt-6 rounded-2xl border border-border bg-white p-6 text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-6 text-sm text-muted-foreground shadow-rest">
           Este alimento pertence à clínica{" "}
           <span className="font-medium text-foreground">{data.clinicName}</span>{" "}
           e não pode ser editado pela administração.
@@ -52,7 +52,7 @@ export default function EditBaseFoodPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Altere os dados do alimento base (compartilhado com todas as clínicas).
           </p>
-          <div className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
             <FoodForm
               mode="edit"
               food={data}

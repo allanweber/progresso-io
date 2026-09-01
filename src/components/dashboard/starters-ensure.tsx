@@ -41,7 +41,7 @@ export function StartersEnsure({ seeded }: { seeded: boolean }) {
   if (seeded || !ensure.isPending) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-body-dense font-medium text-foreground shadow-[0_8px_40px_rgba(15,23,42,0.15)]">
+    <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-body-dense font-medium text-foreground shadow-overlay">
       <Sparkles className="size-4 animate-pulse text-primary" />
       Preparando seus modelos de dieta e treino…
     </div>

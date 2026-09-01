@@ -142,15 +142,15 @@ export default function DietsListPage() {
       </p>
 
       {isLoading ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando dietas…
         </div>
       ) : isError ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Nenhuma dieta encontrada. Crie a primeira com “Nova dieta”.
         </div>
       ) : (
@@ -160,7 +160,7 @@ export default function DietsListPage() {
               <li key={d.id}>
                 <Link
                   href={`/coach/diets/${d.id}`}
-                  className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                  className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                 >
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <UtensilsCrossed className="size-5" />
@@ -188,13 +188,13 @@ export default function DietsListPage() {
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
                       <span>
-                        <span className="font-semibold text-blue-600">
+                        <span className="font-semibold text-info-fg">
                           {formatGrams(d.totalProtein)}
                         </span>{" "}
                         <span className="text-muted-foreground">Prot</span>
                       </span>
                       <span>
-                        <span className="font-semibold text-red-600">
+                        <span className="font-semibold text-destructive">
                           {formatGrams(d.totalCarbohydrate)}
                         </span>{" "}
                         <span className="text-muted-foreground">Carb</span>

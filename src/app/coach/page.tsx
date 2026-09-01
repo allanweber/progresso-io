@@ -119,7 +119,7 @@ function SectionCard({
       // The tiles above link here, and on a phone the piles sit thousands of
       // pixels apart. `scroll-mt` keeps the sticky header off the card title
       // when a tile lands the coach on it.
-      className="scroll-mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="scroll-mt-4 overflow-hidden rounded-2xl bg-card shadow-rest"
     >
       {/*
         At 390px the title and its aside fought over one line and both wrapped
@@ -271,7 +271,7 @@ function KpiTile({
       aria-atomic="true"
       // `relative` for the overlay link below. Hover answers on the border, per
       // the No-Lift Rule — the tile never rises.
-      className="relative rounded-2xl border border-border bg-card p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+      className="relative rounded-2xl bg-card p-4 shadow-rest transition-colors hover:border-primary"
     >
       <dt
         id={`kpi-label-${slug}`}
@@ -537,7 +537,7 @@ export default function CoachDashboardPage() {
         {header}
         <div
           role="alert"
-          className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+          className="mt-6 rounded-2xl bg-card p-6 shadow-rest"
         >
           <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-8 text-center">
             <AlertCircle className="size-8 text-destructive" aria-hidden />
@@ -576,7 +576,7 @@ export default function CoachDashboardPage() {
     return (
       <div className="mx-auto max-w-6xl">
         {header}
-        <div className="mt-6 rounded-2xl border border-border bg-card px-6 py-14 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-card px-6 py-14 text-center shadow-rest">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary-light">
             <UserPlus className="size-7 text-primary" aria-hidden />
           </div>

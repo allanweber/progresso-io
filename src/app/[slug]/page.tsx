@@ -56,11 +56,11 @@ export default async function ClinicPortalPage({ params }: Params) {
           <img
             src={clinicLogoUrl(b.slug)}
             alt={b.name}
-            className="mb-6 size-24 rounded-2xl object-cover shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="mb-6 size-24 rounded-2xl object-cover shadow-rest"
           />
         ) : (
           <div
-            className="mb-6 flex size-24 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="mb-6 flex size-24 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-rest"
             style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
           >
             {b.name.trim().charAt(0).toUpperCase()}

@@ -88,13 +88,13 @@ export function QuantityEditor({
 
   const macros: { label: string; value: string; className: string }[] = [
     { label: "kcal", value: scaled(food.energyKcal, g), className: "text-primary" },
-    { label: "Prot", value: scaled(food.protein, g, 1), className: "text-blue-600" },
-    { label: "Carb", value: scaled(food.carbohydrate, g, 1), className: "text-red-600" },
+    { label: "Prot", value: scaled(food.protein, g, 1), className: "text-info-fg" },
+    { label: "Carb", value: scaled(food.carbohydrate, g, 1), className: "text-destructive" },
     { label: "Gord", value: scaled(food.fat, g, 1), className: "text-amber-600" },
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="rounded-xl border border-border bg-white p-4 shadow-rest">
       {onBack && (
         <button
           type="button"

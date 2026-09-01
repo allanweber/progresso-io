@@ -140,11 +140,11 @@ export function ExerciseDetail({
       </Link>
 
       {isLoading ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando exercício…
         </div>
       ) : isError ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data ? (
@@ -308,7 +308,7 @@ export function ExerciseDetail({
 
           {/* Muscles */}
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+            <div className="rounded-2xl bg-white p-4 shadow-rest">
               <h2 className="text-sm font-semibold text-foreground">
                 Músculos primários
               </h2>
@@ -318,7 +318,7 @@ export function ExerciseDetail({
                   : "—"}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+            <div className="rounded-2xl bg-white p-4 shadow-rest">
               <h2 className="text-sm font-semibold text-foreground">
                 Músculos secundários
               </h2>
@@ -360,7 +360,7 @@ export function ExerciseDetail({
                       <li key={s.id}>
                         <Link
                           href={`${backHref}/${s.exerciseId}`}
-                          className="group flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                          className="group flex items-center gap-3 rounded-2xl bg-white p-3 shadow-rest transition-colors hover:border-primary"
                         >
                           <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
                             {src ? (
@@ -533,7 +533,7 @@ function SubstitutionsManager({
       </p>
 
       {adding && (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-4 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">{newLabel}</span>
             <button
@@ -606,7 +606,7 @@ function SubstitutionsManager({
             return (
               <li
                 key={s.id}
-                className="group relative flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+                className="group relative flex items-center gap-3 rounded-2xl bg-white p-3 shadow-rest"
               >
                 <Link
                   href={`${backHref}/${s.exerciseId}`}

@@ -64,7 +64,7 @@ function PlanCard({ plan }: { plan: Plan }) {
           {plan.price}
         </span>
         {plan.priceSuffix && (
-          <span className="text-sm text-[#94A3B8]">{plan.priceSuffix}</span>
+          <span className="text-sm text-meta">{plan.priceSuffix}</span>
         )}
       </div>
 
@@ -74,14 +74,14 @@ function PlanCard({ plan }: { plan: Plan }) {
             key={feature.label}
             className={cn(
               "flex items-center gap-2.5 text-sm",
-              plan.dark ? "text-[#94A3B8]" : "text-[#334155]",
-              !feature.included && "text-[#CBD5E1]",
+              plan.dark ? "text-[#A9A39A]" : "text-text-secondary",
+              !feature.included && "text-[#C4BFB8]",
             )}
           >
             <Check
               className={cn(
                 "size-4 flex-shrink-0",
-                feature.included ? "text-primary" : "text-[#CBD5E1]",
+                feature.included ? "text-primary" : "text-[#C4BFB8]",
               )}
               strokeWidth={2.5}
             />

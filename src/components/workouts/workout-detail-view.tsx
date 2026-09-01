@@ -191,7 +191,7 @@ function ExerciseRow({
         )}
         {/* Only a count indicator in the full view — the list is in the detail. */}
         {subCount > 0 && (
-          <div className="mt-1.5 inline-flex items-center gap-1 text-label font-medium text-amber-700">
+          <div className="mt-1.5 inline-flex items-center gap-1 text-label font-medium text-warn-fg">
             <Repeat className="size-3 shrink-0" />
             {subCount} {subCount === 1 ? "substituição" : "substituições"}
           </div>
@@ -242,7 +242,7 @@ export function WorkoutSessionsView({
   posture?: "reading";
 }) {
   const cardioCard = cardio ? (
-    <div className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-rest">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary-light text-primary">
         <HeartPulse className="size-4" />
       </span>
@@ -261,7 +261,7 @@ export function WorkoutSessionsView({
     return (
       <div className={cn("space-y-4", posture === "reading" && "posture-reading")}>
         {cardioCard}
-        <div className="rounded-2xl border border-border bg-white p-8 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-8 text-center text-body text-muted-foreground shadow-rest">
           Este treino ainda não tem fichas.
         </div>
       </div>
@@ -275,7 +275,7 @@ export function WorkoutSessionsView({
         return (
           <div
             key={session.id}
-            className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="overflow-hidden rounded-2xl bg-white shadow-rest"
           >
             <div className="flex items-center gap-2 border-b border-border bg-surface-light px-4 py-3">
               <span className="font-heading text-subtitle font-semibold text-foreground">
@@ -405,8 +405,8 @@ export function WorkoutExerciseDetail({
 
               {/* Coach's note for this exercise */}
               {exercise.note && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="mb-1 text-eyebrow font-semibold uppercase text-amber-700">
+                <div className="rounded-2xl border border-transparent bg-warn-bg p-4">
+                  <div className="mb-1 text-eyebrow font-semibold uppercase text-warn-fg">
                     Observação do treinador
                   </div>
                   <p className="text-body text-[#334155]">
@@ -503,7 +503,7 @@ export function WorkoutExerciseDetail({
                                 className="size-9 shrink-0 rounded-md object-cover"
                               />
                             ) : (
-                              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-light text-amber-700">
+                              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-light text-warn-fg">
                                 <Repeat className="size-4" aria-hidden />
                               </span>
                             )}
@@ -582,7 +582,7 @@ function SubstituteDetail({
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Repeat className="size-4 shrink-0 text-amber-700" aria-hidden />
+                <Repeat className="size-4 shrink-0 text-warn-fg" aria-hidden />
                 {sub.name}
               </DialogTitle>
             </DialogHeader>
@@ -595,8 +595,8 @@ function SubstituteDetail({
               />
 
               {sub.note && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="mb-1 text-eyebrow font-semibold uppercase text-amber-700">
+                <div className="rounded-2xl border border-transparent bg-warn-bg p-4">
+                  <div className="mb-1 text-eyebrow font-semibold uppercase text-warn-fg">
                     Por que substituir
                   </div>
                   <p className="text-body text-[#334155]">

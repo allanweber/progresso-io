@@ -26,7 +26,7 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="text-xs text-[#334155]">© 2025 Progresso IO</div>
+        <div className="text-xs text-text-secondary">© 2025 Progresso IO</div>
       </div>
     </footer>
   );

@@ -194,7 +194,7 @@ function AnamnesesMaintenance() {
       )}
 
       {/* Desktop table */}
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -253,7 +253,7 @@ function AnamnesesMaintenance() {
         {items.map((a) => (
           <li
             key={a.id}
-            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="rounded-2xl bg-white p-4 shadow-rest"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -400,7 +400,7 @@ function ClinicsMaintenance() {
       )}
 
       {/* Desktop table */}
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -470,7 +470,7 @@ function ClinicsMaintenance() {
         {clinics.map((c) => (
           <li
             key={c.id}
-            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="rounded-2xl bg-white p-4 shadow-rest"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -714,7 +714,7 @@ function TemplateMaintenance({
       )}
 
       {/* Desktop table */}
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -769,7 +769,7 @@ function TemplateMaintenance({
         {items.map((a) => (
           <li
             key={a.id}
-            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="rounded-2xl bg-white p-4 shadow-rest"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

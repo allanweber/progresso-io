@@ -469,7 +469,19 @@ test.describe("landing assets — aluno", () => {
  * Coach screens throughout: the coach is who pays for this. The aluno's phone
  * appears once, as the secondary image it is.
  */
-const FEATURE_VIEWPORT = { width: 1280, height: 900 };
+/**
+ * 1304, not 1280: the app shell insets itself by 12px on each side from `lg` up
+ * and floats as a rounded window on the Desk (DESIGN.md § The Window). The crop
+ * below runs from `main`'s left edge for exactly FEATURE_CROP.width, which used
+ * to end flush with the viewport's right edge — the frame pushed `main` 12px
+ * right and took 12px off the far side, so the crop overran by 24px.
+ *
+ * Widening the viewport by that same 24px restores the app's interior to the
+ * width these crops were composed against, and the crop again ends flush with
+ * the window's inner right edge. Do not "fix" this by shrinking FEATURE_CROP —
+ * that would silently re-frame all four feature shots.
+ */
+const FEATURE_VIEWPORT = { width: 1304, height: 900 };
 
 /**
  * One size for every feature crop, so the rows on the landing page share an

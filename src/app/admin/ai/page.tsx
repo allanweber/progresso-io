@@ -107,7 +107,7 @@ function Kpi({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="rounded-2xl bg-white p-4 shadow-rest">
       <div className="text-body-dense text-muted-foreground">{label}</div>
       <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
         {value}
@@ -158,7 +158,7 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
 
   return (
     <form
-      className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="overflow-hidden rounded-2xl bg-white shadow-rest"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -798,9 +798,9 @@ export default function AdminAiPage() {
 
       {/* An all-zero table means two different things; say which. */}
       {overview.data && !overview.data.configured && (
-        <div className="mt-5 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="mt-5 flex items-start gap-2.5 rounded-2xl border border-transparent bg-warn-bg px-4 py-3">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-          <p className="text-body-dense text-amber-800">
+          <p className="text-body-dense text-warn-fg">
             Nenhum provedor de IA configurado nesta instalação — o botão “Gerar
             com IA” está desativado para todos os coaches. Basta definir{" "}
             <code className="font-mono">LLM_API_KEY</code> com uma chave do
@@ -866,7 +866,7 @@ export default function AdminAiPage() {
             />
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-rest">
             <div className="border-b border-border px-4 py-3.5">
               <h2 className="font-heading text-subtitle font-semibold">
                 Uso de IA por tenant
@@ -929,14 +929,14 @@ export default function AdminAiPage() {
           {overview.data ? (
             <ModelSettingsForm settings={overview.data.settings} />
           ) : (
-            <div className="rounded-2xl border border-border bg-white px-4 py-9 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+            <div className="rounded-2xl bg-white px-4 py-9 text-center text-sm text-muted-foreground shadow-rest">
               {overview.isError
                 ? (overview.error as Error).message
                 : "Carregando…"}
             </div>
           )}
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-rest">
             <div className="border-b border-border px-4 py-3.5">
               <h2 className="font-heading text-subtitle font-semibold">
                 Uso por modelo
@@ -1014,7 +1014,7 @@ export default function AdminAiPage() {
             </Button>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+          <div className="mt-4 overflow-hidden rounded-2xl bg-white shadow-rest">
             {prices.isError ? (
               <p className="px-4 py-9 text-center text-sm text-destructive">
                 {(prices.error as Error).message}

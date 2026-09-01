@@ -153,7 +153,7 @@ export default async function AdminWhatsappSimulatorPage({
         do aluno, e as respostas do coach aparecem aqui.
       </p>
 
-      <div className="mt-6 flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:h-[calc(100dvh-14rem)] md:min-h-[28rem] md:flex-row">
+      <div className="mt-6 flex flex-col overflow-hidden rounded-2xl bg-white shadow-rest md:h-[calc(100dvh-14rem)] md:min-h-[28rem] md:flex-row">
         {/* Student list */}
         <aside
           className={`w-full flex-shrink-0 overflow-y-auto border-b border-border md:w-72 md:border-b-0 md:border-r ${

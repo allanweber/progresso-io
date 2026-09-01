@@ -367,15 +367,15 @@ export function ExerciseCatalog({
       </p>
 
       {isLoading ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando exercícios…
         </div>
       ) : isError ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Nenhum exercício encontrado com esses filtros.
         </div>
       ) : (
@@ -391,7 +391,7 @@ export function ExerciseCatalog({
                 <li key={ex.id}>
                   <Link
                     href={`${basePath}/${ex.id}`}
-                    className="group flex gap-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                    className="group flex gap-3 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                   >
                     <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-light text-muted-foreground">
                       {src ? (

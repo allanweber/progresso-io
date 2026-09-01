@@ -625,7 +625,7 @@ export function AiGenerateButton({
 
                   {/* Continuity is the default; the reset is the exception, and
                       it says what it costs before it is ticked. */}
-                  <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border px-3 py-2.5 has-[:checked]:border-amber-300 has-[:checked]:bg-amber-50">
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border px-3 py-2.5 has-[:checked]:border-amber-300 has-[:checked]:bg-warn-bg">
                       <input
                         type="checkbox"
                         className="mt-0.5 size-3.5"

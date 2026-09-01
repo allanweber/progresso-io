@@ -21,7 +21,7 @@ export default function NewBaseFoodPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         Cria um alimento no catálogo base, compartilhado com todas as clínicas.
       </p>
-      <div className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
         <FoodForm
           mode="create"
           apiBase="/api/admin/foods"

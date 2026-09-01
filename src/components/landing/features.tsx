@@ -55,7 +55,7 @@ export function Features() {
                   index % 2 === 0 ? "lg:order-1" : "lg:order-2",
                 )}
               >
-                <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_18px_44px_rgba(15,23,42,0.13)]">
+                <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-raised">
                   <Image
                     src={item.image}
                     alt={item.alt}

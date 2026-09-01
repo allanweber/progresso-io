@@ -138,15 +138,15 @@ export default function WorkoutsListPage() {
       </p>
 
       {isLoading ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando treinos…
         </div>
       ) : isError ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Nenhum treino encontrado. Crie o primeiro com “Novo treino”.
         </div>
       ) : (
@@ -156,7 +156,7 @@ export default function WorkoutsListPage() {
               <li key={w.id}>
                 <Link
                   href={`/coach/workouts/${w.id}`}
-                  className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                  className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                 >
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Dumbbell className="size-5" />

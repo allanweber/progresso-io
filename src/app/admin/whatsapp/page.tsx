@@ -22,7 +22,7 @@ import {
 /** KPI tile for the overview header. */
 function Kpi({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="rounded-2xl bg-white p-4 shadow-rest">
       <div className="text-body-dense text-muted-foreground">{label}</div>
       <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
         {value}
@@ -90,7 +90,7 @@ export default function AdminWhatsappPage() {
         <Kpi label="Clínicas" value={isLoading ? "…" : data?.tenants.length ?? 0} />
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-rest">
         <div className="border-b border-border px-4 py-3.5">
           <h2 className="font-heading text-subtitle font-semibold">
             Conexões WhatsApp por tenant

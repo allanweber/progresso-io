@@ -22,7 +22,7 @@ export default function NewFoodPage() {
         Cadastre um alimento próprio da sua clínica. Ele aparece na biblioteca
         com o selo “própria”, junto da tabela base.
       </p>
-      <div className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
         <FoodForm mode="create" />
       </div>
     </div>

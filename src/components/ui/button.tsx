@@ -16,8 +16,10 @@ const buttonVariants = cva(
           "bg-primary-deep text-primary-foreground shadow-sm hover:bg-primary-press",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        // 1.5px, not 1px: this is the workhorse secondary and a user aims at
+        // it. See DESIGN.md § The Thicker Stroke Rule.
         outline:
-          "border border-input bg-background text-text-secondary shadow-sm hover:border-primary hover:text-primary",
+          "border-[1.5px] border-input bg-background text-text-secondary shadow-sm hover:border-primary hover:text-primary",
         secondary:
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",

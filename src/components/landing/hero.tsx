@@ -67,7 +67,7 @@ export function Hero() {
       */}
       <div className="relative mx-auto mt-10 max-w-[1120px] lg:mt-16">
         {/* The coach's workspace: the product being bought. */}
-        <div className="hidden overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-[0_32px_80px_rgba(15,23,42,0.22)] lg:block">
+        <div className="hidden overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-theatre lg:block">
           <Image
             src="/landing/app-dashboard.png"
             alt="Painel do Progresso IO com a fila do dia: check-ins aguardando resposta, agenda e conversas de WhatsApp"
@@ -90,7 +90,7 @@ export function Hero() {
           ganha um app" is a selling point aimed at the coach, not the thing
           being sold.
         */}
-        <div className="absolute -bottom-16 -left-10 hidden w-[186px] overflow-hidden rounded-[26px] border-[6px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:block">
+        <div className="absolute -bottom-16 -left-10 hidden w-[186px] overflow-hidden rounded-[26px] border-[6px] border-surface-dark bg-surface-dark shadow-overlay lg:block">
           <Image
             src="/landing/app-portal.png"
             alt="O plano do aluno no celular, com porções em medidas caseiras e substituições"
@@ -117,7 +117,7 @@ export function Hero() {
           where the screenshot could have been near 1:1. Capping at 88vw keeps
           the margins on a narrow handset.
         */}
-        <div className="mx-auto w-[min(320px,88vw)] overflow-hidden rounded-[32px] border-[8px] border-surface-dark bg-surface-dark shadow-[0_24px_48px_rgba(15,23,42,0.3)] lg:hidden">
+        <div className="mx-auto w-[min(320px,88vw)] overflow-hidden rounded-[32px] border-[8px] border-surface-dark bg-surface-dark shadow-overlay lg:hidden">
           <Image
             src="/landing/app-coach-phone.png"
             alt="O painel do coach no celular, com a fila do dia e os check-ins aguardando resposta"

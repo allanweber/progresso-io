@@ -119,7 +119,7 @@ export function FoodComposition({
         ).map(([label, value, unit]) => (
           <div
             key={label}
-            className="rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+            className="rounded-2xl bg-white p-4 shadow-rest"
           >
             <div className="text-xs text-meta">{label}</div>
             <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -141,7 +141,7 @@ export function FoodComposition({
             {sections(food.nutrients).map((sec) => (
               <div
                 key={sec.kind}
-                className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+                className="overflow-hidden rounded-2xl bg-white shadow-rest"
               >
                 <div className="border-b border-border bg-surface-light px-4 py-2 text-xs font-semibold text-[#475569]">
                   {sec.label}

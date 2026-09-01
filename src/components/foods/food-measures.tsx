@@ -185,7 +185,7 @@ export function FoodMeasures({
       </div>
 
       {adding && (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-4 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">Nova medida</span>
             <button

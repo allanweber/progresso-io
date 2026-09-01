@@ -4,21 +4,46 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * The chip vocabulary. One shape — a fully rounded pill at `px-2.5 py-0.5`,
+ * 12px semibold, no border — and one construction: a pale wash carrying a
+ * darkened ink of the same hue. Every pair is verified at >=5:1 because chip
+ * text ships at 11-12px, where the pure pigment on its own wash lands near 3:1
+ * and fails the small-text floor.
+ *
+ * The border is gone on purpose. A wash plus a mid-tone edge plus dark ink is
+ * three signals for one fact; the wash alone reads faster in a fifty-row table
+ * and stops a column of chips from looking like a column of buttons.
+ *
+ * Hues are semantic, not decorative:
+ *   default  emerald — this thing is ALIVE (ativo, publicado, em dia)
+ *   ok       green   — a finished good outcome (concluído, entregue)
+ *   info     blue    — in flight, nothing wrong (processando, enviado)
+ *   warn     amber   — needs attention soon (vence em, pendente)
+ *   danger   red     — wrong now (vencida, atrasado, sem treino)
+ *   neutral  greige  — a fact with no state (a count, a type, arquivado)
+ *   base     indigo  — platform catalog data, not the clinic's own
+ *   clinic   emerald — the clinic's own catalog row
+ *   solid    emerald — an emphatic count on a pale ground
+ *   soft     emerald — the 10px uppercase eyebrow marker
+ */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border font-semibold transition-colors focus:outline-none",
+  "inline-flex items-center gap-1.5 rounded-full border-0 px-2.5 py-0.5 text-label font-semibold transition-colors focus:outline-none",
   {
     variants: {
       variant: {
-        default:
-          "border-primary-light-border bg-primary-light text-primary px-3.5 py-1 text-body-dense",
-        solid:
-          "border-transparent bg-primary-deep text-primary-foreground px-3 py-1 text-xs",
-        soft: "border-transparent bg-[#dcfce7] text-primary px-2.5 py-0.5 text-eyebrow uppercase tracking-[0.08em]",
-        // Small catalog chips (origin / type / count).
-        base: "border-transparent bg-[#EEF2FF] text-[#4338CA] px-2 py-0.5 text-xs",
-        clinic: "border-transparent bg-[#ECFDF5] text-[#047857] px-2 py-0.5 text-xs",
-        neutral: "border-transparent bg-[#F1F5F9] text-[#475569] px-2 py-0.5 text-xs",
-        warn: "border-transparent bg-[#FEF3C7] text-[#92400E] px-2 py-0.5 text-xs",
+        default: "bg-primary-light text-primary-deep",
+        ok: "bg-ok-bg text-ok-fg",
+        info: "bg-info-bg text-info-fg",
+        warn: "bg-warn-bg text-warn-fg",
+        danger: "bg-danger-bg text-danger-fg",
+        neutral: "bg-neutral-bg text-neutral-fg",
+        base: "bg-base-bg text-base-fg",
+        clinic: "bg-primary-light text-primary-deep",
+        // Deep Emerald, not Vital: white on #059669 is 3.77:1 and this ships at
+        // 12px. See DESIGN.md § The 18px Rule.
+        solid: "bg-primary-deep text-primary-foreground",
+        soft: "bg-primary-light px-2 text-eyebrow uppercase tracking-[0.08em] text-primary-deep",
       },
     },
     defaultVariants: {

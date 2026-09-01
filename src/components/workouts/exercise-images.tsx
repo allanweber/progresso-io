@@ -194,7 +194,7 @@ export function ExerciseImages({
                 src={src}
                 alt={name}
                 onError={() => onErr(src)}
-                className="aspect-video w-full bg-slate-900 object-cover"
+                className="aspect-video w-full bg-surface-dark object-cover"
               />
             </button>
           </div>

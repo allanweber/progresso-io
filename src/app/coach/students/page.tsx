@@ -246,15 +246,15 @@ export default function StudentsPage() {
       </div>
 
       {isLoading ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando alunos…
         </div>
       ) : isError ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           {students.length === 0
             ? "Nenhum aluno ainda. Adicione o primeiro para começar."
             : "Nenhum aluno neste filtro."}
@@ -271,7 +271,7 @@ export default function StudentsPage() {
                 <li key={s.id}>
                   <Link
                     href={`/coach/students/${s.id}`}
-                    className="block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                    className="block rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -328,7 +328,7 @@ export default function StudentsPage() {
           </ul>
 
           {/* Desktop: the full TanStack table. */}
-          <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] md:block">
+          <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((hg) => (

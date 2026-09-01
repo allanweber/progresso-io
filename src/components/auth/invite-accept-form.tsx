@@ -121,7 +121,7 @@ export function InviteAcceptForm({
           Verificando convite…
         </p>
       ) : check.isError ? (
-        <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-8 text-center shadow-rest">
           <h1 className="font-heading text-xl font-bold text-foreground">
             Não foi possível verificar o convite
           </h1>
@@ -139,7 +139,7 @@ export function InviteAcceptForm({
           </Button>
         </div>
       ) : invalidInvite ? (
-        <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-8 text-center shadow-rest">
           <h1 className="font-heading text-xl font-bold text-foreground">
             Convite inválido ou expirado
           </h1>
@@ -154,7 +154,7 @@ export function InviteAcceptForm({
           </Link>
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-white p-8 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-8 shadow-rest">
           <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-foreground">
             Ative seu acesso
           </h1>

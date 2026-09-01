@@ -404,7 +404,7 @@ function MessageList({
 function WhatsappUpsell() {
   return (
     <div className="p-6">
-      <div className="mt-6 rounded-2xl border border-border bg-white px-6 py-16 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-6 rounded-2xl bg-white px-6 py-16 text-center shadow-rest">
         <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary-light">
           <MessageCircle className="size-7 text-primary" />
         </div>

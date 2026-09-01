@@ -24,11 +24,11 @@ export default function EditAnamnesisPage() {
       </h1>
 
       {isLoading ? (
-        <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data ? (

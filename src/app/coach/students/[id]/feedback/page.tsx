@@ -103,7 +103,7 @@ function entryStyle(c: CheckinDto): EntryStyle {
     ? {
         title: "Avaliação presencial",
         tag: "presencial",
-        className: "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
+        className: "bg-amber-100 text-warn-fg dark:bg-amber-950/40",
       }
     : {
         // Tag "coach", not "online": the title already says how it happened, and
@@ -243,7 +243,7 @@ function TimelineCard({
       <button
         type="button"
         onClick={onOpen}
-        className="w-full rounded-2xl border border-border bg-white p-4 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary/40 dark:bg-card"
+        className="w-full rounded-2xl bg-white p-4 text-left shadow-rest transition-colors hover:border-primary/40 dark:bg-card"
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold">{style.title}</span>

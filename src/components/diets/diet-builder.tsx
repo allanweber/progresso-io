@@ -704,7 +704,7 @@ export function DietBuilder({
       </div>
 
       {recovered && (
-        <div className="mb-4 rounded-[10px] bg-amber-50 px-4 py-2.5 text-body-dense font-medium text-amber-700">
+        <div className="mb-4 rounded-[10px] bg-warn-bg px-4 py-2.5 text-body-dense font-medium text-warn-fg">
           Rascunho não salvo recuperado deste dispositivo.
         </div>
       )}
@@ -717,7 +717,7 @@ export function DietBuilder({
       {/* Student diet (adapter) is always an unpublished draft in the builder —
           warn that saving/editing alone doesn't reach the aluno, only Publicar. */}
       {adapter && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-body-dense text-amber-800">
+        <div className="mb-4 flex items-start gap-2.5 rounded-[10px] border border-transparent bg-warn-bg px-4 py-3 text-body-dense text-warn-fg">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
           <p>
             <span className="font-semibold">Só editar não basta.</span> Salvar
@@ -728,7 +728,7 @@ export function DietBuilder({
         </div>
       )}
 
-      <div className="space-y-4 rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="space-y-4 rounded-2xl bg-white p-5 shadow-rest">
         <form.Field name="name">
           {(field) => (
             <Field
@@ -823,16 +823,16 @@ export function DietBuilder({
 function TotalsBar({ label, totals }: { label: string; totals: Macro }) {
   const cells: { label: string; value: string; className: string }[] = [
     { label: "kcal", value: formatKcal(totals.energyKcal), className: "text-primary" },
-    { label: "Prot", value: formatGrams(totals.protein), className: "text-blue-600" },
+    { label: "Prot", value: formatGrams(totals.protein), className: "text-info-fg" },
     {
       label: "Carb",
       value: formatGrams(totals.carbohydrate),
-      className: "text-red-600",
+      className: "text-destructive",
     },
     { label: "Gord", value: formatGrams(totals.fat), className: "text-amber-600" },
   ];
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border bg-white px-5 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+    <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-white px-5 py-3 shadow-rest">
       <span className="text-sm font-semibold text-foreground">{label}</span>
       <div className="flex flex-1 flex-wrap justify-end gap-x-5 gap-y-1">
         {cells.map((c) => (
@@ -914,7 +914,7 @@ function SortableMeal({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="rounded-2xl bg-white shadow-rest"
     >
       <div className="flex items-start gap-2 border-b border-border p-4">
         <button
@@ -1088,13 +1088,13 @@ function SortableMeal({
               <span className="text-muted-foreground">kcal</span>
             </span>
             <span>
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-info-fg">
                 {formatGrams(totals.protein)}
               </span>{" "}
               <span className="text-muted-foreground">Prot</span>
             </span>
             <span>
-              <span className="font-semibold text-red-600">
+              <span className="font-semibold text-destructive">
                 {formatGrams(totals.carbohydrate)}
               </span>{" "}
               <span className="text-muted-foreground">Carb</span>
@@ -1330,7 +1330,7 @@ function SortableItem({
                     onClick={() => quickAddSuggestion(s.foodId, s.grams)}
                     disabled={addingSuggestion !== null}
                     title="Adicionar como equivalência"
-                    className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-caption font-medium text-amber-700 transition-colors hover:border-amber-400 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-full border border-transparent bg-warn-bg px-2 py-0.5 text-caption font-medium text-warn-fg transition-colors hover:border-amber-400 disabled:opacity-50"
                   >
                     {addingSuggestion === s.foodId ? (
                       <Loader2 className="size-3 animate-spin" />

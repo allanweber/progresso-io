@@ -83,7 +83,7 @@ export default function NewAnamnesisPage() {
       </p>
 
       {templates.isLoading ? (
-        <div className="mt-5 rounded-2xl border border-border bg-white p-10 text-center text-body text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-5 rounded-2xl bg-white p-10 text-center text-body text-muted-foreground shadow-rest">
           Carregando modelos…
         </div>
       ) : (
@@ -91,7 +91,7 @@ export default function NewAnamnesisPage() {
           {items.map((a) => (
             <li
               key={a.id}
-              className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:gap-4"
+              className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-rest sm:flex-row sm:items-center sm:gap-4"
             >
               <div className="min-w-0 flex-1">
                 <span className="block font-medium text-foreground">

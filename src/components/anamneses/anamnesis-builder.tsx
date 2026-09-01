@@ -445,7 +445,7 @@ export function AnamnesisBuilder({
       )}
 
       {/* Scalar shell */}
-      <div className="space-y-4 rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="space-y-4 rounded-2xl bg-white p-5 shadow-rest">
         <form.Field name="name">
           {(field) => (
             <Field
@@ -646,7 +646,7 @@ function SortableSection({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+      className="rounded-2xl bg-white shadow-rest"
     >
       <div className="flex items-start gap-2 border-b border-border p-4">
         <button

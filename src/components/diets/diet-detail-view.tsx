@@ -20,8 +20,8 @@ export function MacroSummary({
 }) {
   const cells = [
     { label: "kcal", value: formatKcal(totals.energyKcal), c: "text-primary" },
-    { label: "Prot", value: formatGrams(totals.protein), c: "text-blue-600" },
-    { label: "Carb", value: formatGrams(totals.carbohydrate), c: "text-red-600" },
+    { label: "Prot", value: formatGrams(totals.protein), c: "text-info-fg" },
+    { label: "Carb", value: formatGrams(totals.carbohydrate), c: "text-destructive" },
     { label: "Gord", value: formatGrams(totals.fat), c: "text-amber-600" },
   ];
   return (
@@ -70,7 +70,7 @@ function ItemRow({ item }: { item: DietItemDto }) {
           return (
             <div
               key={s.id}
-              className="mt-0.5 flex items-center gap-1 text-xs text-amber-700"
+              className="mt-0.5 flex items-center gap-1 text-xs text-warn-fg"
             >
               <span className="shrink-0">⇄</span>
               <span className="truncate">
@@ -87,7 +87,7 @@ function ItemRow({ item }: { item: DietItemDto }) {
           if (catalog.length === 0) return null;
           return (
             <div className="mt-0.5 truncate text-xs text-muted-foreground">
-              <span className="text-amber-700">⇄</span>{" "}
+              <span className="text-warn-fg">⇄</span>{" "}
               {catalog.map((s) => s.description.split(",")[0]).join(", ")}
             </div>
           );
@@ -113,7 +113,7 @@ function ItemRow({ item }: { item: DietItemDto }) {
 export function DietMealsView({ meals }: { meals: DietMealDto[] }) {
   if (meals.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-white p-8 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="rounded-2xl bg-white p-8 text-center text-sm text-muted-foreground shadow-rest">
         Esta dieta ainda não tem refeições.
       </div>
     );
@@ -123,7 +123,7 @@ export function DietMealsView({ meals }: { meals: DietMealDto[] }) {
       {meals.map((meal) => (
         <div
           key={meal.id}
-          className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+          className="overflow-hidden rounded-2xl bg-white shadow-rest"
         >
           <div className="flex items-center gap-2 border-b border-border bg-surface-light px-4 py-3">
             <span className="font-heading font-semibold text-foreground">

@@ -116,7 +116,7 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
   const centered =
     "flex min-h-screen items-center justify-center px-4 py-10";
   const shortCard =
-    "w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-8";
+    "w-full max-w-md rounded-2xl bg-white p-6 shadow-rest sm:p-8";
 
   if (state.isLoading) {
     return (
@@ -255,7 +255,7 @@ export function AnamnesisFillIsland({ token }: { token: string }) {
           el.focus({ preventScroll: true });
         }
       }}
-      className="mx-auto my-10 w-full max-w-2xl rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)] sm:p-8"
+      className="mx-auto my-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-rest sm:p-8"
     >
       <Logo />
       <h1 className="mt-6 font-heading text-headline font-bold text-foreground">

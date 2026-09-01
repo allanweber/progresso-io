@@ -267,7 +267,7 @@ export default function AdminAdminsPage() {
         pelo link. A remoção é permanente.
       </p>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-white shadow-rest">
         {list.isLoading ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             Carregando administradores…

@@ -53,7 +53,7 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "relative z-50 max-h-64 min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-xl border border-border bg-white p-1 shadow-[0_8px_40px_rgba(15,23,42,0.15)]",
+          "relative z-50 max-h-64 min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-xl border border-border bg-white p-1 shadow-overlay",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1 w-[var(--radix-select-trigger-width)]",
           className,

@@ -272,15 +272,15 @@ export default function AdminFoodsPage() {
       </p>
 
       {isLoading ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando alimentos…
         </div>
       ) : isError ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Nenhum alimento encontrado com esses filtros.
         </div>
       ) : (
@@ -291,7 +291,7 @@ export default function AdminFoodsPage() {
               <li key={f.id}>
                 <Link
                   href={`/admin/foods/${f.id}`}
-                  className="block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:border-primary"
+                  className="block rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="min-w-0 break-words font-medium text-foreground">
@@ -341,7 +341,7 @@ export default function AdminFoodsPage() {
           </ul>
 
           {/* Desktop: table. */}
-          <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] lg:block">
+          <div className="mt-3 hidden overflow-x-auto rounded-2xl bg-white shadow-rest lg:block">
             <Table className="table-fixed">
               <colgroup>
                 <col />

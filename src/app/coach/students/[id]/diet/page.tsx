@@ -290,11 +290,11 @@ export default function StudentDietPage() {
         />
       ) : draft ? (
         /* --- A first-ever diet still in draft (nothing published yet) ----- */
-        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl border border-transparent bg-warn-bg p-6 text-center shadow-rest">
           <p className="font-heading text-base font-semibold text-foreground">
             {draft.dietName}
           </p>
-          <p className="mt-1 text-body-dense text-amber-700">
+          <p className="mt-1 text-body-dense text-warn-fg">
             Rascunho não publicado — o aluno ainda não vê esta dieta. Publique
             para deixá-la ativa.
           </p>
@@ -321,7 +321,7 @@ export default function StudentDietPage() {
         </div>
       ) : (
         /* --- No diet yet ------------------------------------------------- */
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center shadow-rest">
           <p className="text-sm text-muted-foreground">
             Este aluno ainda não tem uma dieta.
           </p>
@@ -534,7 +534,7 @@ function CurrentView({
   return (
     <div className="mt-6 space-y-4">
       {/* Start a different diet */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-rest">
         <span className="text-sm font-medium text-foreground">Nova dieta:</span>
         <Button
           variant="outline"
@@ -600,8 +600,8 @@ function CurrentView({
       </div>
 
       {hasDraft && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-body-dense font-medium text-amber-700">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-transparent bg-warn-bg px-4 py-3">
+          <p className="text-body-dense font-medium text-warn-fg">
             {/* A generated draft is a *different* dieta with its own name, not
                 another version of this one — naming it is the only thing on
                 this screen that shows the generation produced anything. */}
@@ -622,21 +622,21 @@ function CurrentView({
       )}
 
       {current.notes && (
-        <p className="rounded-2xl border border-border bg-white px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-muted-foreground shadow-rest">
           {current.notes}
         </p>
       )}
 
       <MacroSummary
         totals={current.tree.totals}
-        className="rounded-2xl border border-border bg-white px-5 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+        className="rounded-2xl bg-white px-5 py-3 shadow-rest"
       />
 
       <DietMealsView meals={meals} />
 
       {/* History */}
       {(olderOfCurrent.length > 0 || pastDiets.length > 0) && (
-        <div className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-5 shadow-rest">
           <h3 className="font-heading text-base font-semibold text-foreground">
             Histórico
           </h3>

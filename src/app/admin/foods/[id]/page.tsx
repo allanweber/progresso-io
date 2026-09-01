@@ -76,11 +76,11 @@ export default function AdminFoodDetailPage() {
       </Link>
 
       {isLoading ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mt-4 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data ? (
@@ -311,7 +311,7 @@ function BaseSubstitutes({
       </div>
 
       {adding && (
-        <div className="mt-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-3 rounded-2xl bg-white p-4 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">
               Novo substituto base
@@ -429,7 +429,7 @@ function BaseSubstitutes({
           {food.substitutes.map((s) => (
             <li
               key={s.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)]"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-rest"
             >
               <Link
                 href={`/admin/foods/${s.foodId}`}

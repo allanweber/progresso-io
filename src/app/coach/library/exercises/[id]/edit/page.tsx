@@ -33,11 +33,11 @@ export default function EditExercisePage() {
       </h1>
 
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center text-sm text-destructive shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data && data.origin !== "clinic" ? (
@@ -45,7 +45,7 @@ export default function EditExercisePage() {
           Este é um exercício do catálogo base — somente leitura.
         </div>
       ) : data ? (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-6 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
           <ExerciseForm
             mode="edit"
             exercise={data}

@@ -2,12 +2,22 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * A sheet of paper on the desk. Structure comes from the shadow, not from a
+ * drawn rule: `shadow-rest` is a two-layer elevation (a tight contact shadow
+ * that seats the sheet, plus a wide diffuse one that gives it height), which is
+ * what lets the border go away without the panel dissolving into the ground.
+ *
+ * On night there is no light to fall, so `--elev-rest` degrades to a 1px inset
+ * ring in globals.css and the separation survives. That is the whole reason the
+ * elevation is a token rather than a literal.
+ */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "rounded-2xl border bg-card text-card-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]",
+        "rounded-2xl bg-card text-card-foreground shadow-rest",
         className,
       )}
       {...props}
@@ -39,7 +49,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-body-dense text-meta", className)}
       {...props}
     />
   );

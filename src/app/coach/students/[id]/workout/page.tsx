@@ -304,11 +304,11 @@ export default function StudentWorkoutPage() {
           onExerciseClick={(exercise, group) => setDetail({ exercise, group })}
         />
       ) : draft ? (
-        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl border border-transparent bg-warn-bg p-6 text-center shadow-rest">
           <p className="font-heading text-base font-semibold text-foreground">
             {draft.workoutName}
           </p>
-          <p className="mt-1 text-body-dense text-amber-700">
+          <p className="mt-1 text-body-dense text-warn-fg">
             Rascunho não publicado — o aluno ainda não vê este treino. Publique para
             deixá-lo ativo.
           </p>
@@ -334,7 +334,7 @@ export default function StudentWorkoutPage() {
           </div>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-border bg-white p-10 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="mt-6 rounded-2xl bg-white p-10 text-center shadow-rest">
           <p className="text-sm text-muted-foreground">
             Este aluno ainda não tem um treino.
           </p>
@@ -531,7 +531,7 @@ function CurrentView({
 
   return (
     <div className="mt-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-rest">
         <span className="text-sm font-medium text-foreground">Novo treino:</span>
         <Button variant="outline" size="sm" onClick={onNewBlank} disabled={busy || hasDraft}>
           <Plus className="size-4" />
@@ -587,8 +587,8 @@ function CurrentView({
       </div>
 
       {hasDraft && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-body-dense font-medium text-amber-700">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-transparent bg-warn-bg px-4 py-3">
+          <p className="text-body-dense font-medium text-warn-fg">
             {/* A generated draft is a *different* treino with its own name, not
                 another version of this one — naming it is the only thing on
                 this screen that shows the generation produced anything. */}
@@ -609,7 +609,7 @@ function CurrentView({
       )}
 
       {current.notes && (
-        <p className="rounded-2xl border border-border bg-white px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-muted-foreground shadow-rest">
           {current.notes}
         </p>
       )}
@@ -621,7 +621,7 @@ function CurrentView({
       />
 
       {(olderOfCurrent.length > 0 || pastWorkouts.length > 0) && (
-        <div className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)]">
+        <div className="rounded-2xl bg-white p-5 shadow-rest">
           <h3 className="font-heading text-base font-semibold text-foreground">
             Histórico
           </h3>

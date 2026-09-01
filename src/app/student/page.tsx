@@ -136,8 +136,8 @@ function macroRatio(m: DietMacrosDto): { color: string; pct: number }[] {
   const g = m.fat ?? 0;
   const tot = p + c + g || 1;
   return [
-    { color: "bg-blue-600", pct: (p / tot) * 100 },
-    { color: "bg-red-600", pct: (c / tot) * 100 },
+    { color: "bg-info-fg", pct: (p / tot) * 100 },
+    { color: "bg-destructive", pct: (c / tot) * 100 },
     { color: "bg-amber-600", pct: (g / tot) * 100 },
   ];
 }
@@ -260,7 +260,7 @@ export default function StudentPortalPage() {
         <div className="grid items-start gap-6 lg:grid-cols-[262px_1fr]">
           {/* Desktop sidebar */}
           <aside className="sticky top-[88px] hidden flex-col gap-4 lg:flex">
-            <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+            <div className="rounded-2xl bg-white p-5 text-center shadow-rest dark:bg-card">
               <div className="mx-auto mb-3 flex size-[68px] items-center justify-center rounded-full bg-primary text-headline font-semibold text-primary-foreground">
                 {p ? initials(p.name) : "…"}
               </div>
@@ -281,7 +281,7 @@ export default function StudentPortalPage() {
                 </span>
               ) : null}
             </div>
-            <nav className="flex flex-col gap-0.5 rounded-2xl bg-white p-2 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+            <nav className="flex flex-col gap-0.5 rounded-2xl bg-white p-2 shadow-rest dark:bg-card">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const active = t.id === tab;
@@ -292,7 +292,7 @@ export default function StudentPortalPage() {
                     className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-body font-medium transition-colors ${
                       active
                         ? "bg-primary-light font-semibold text-primary"
-                        : "text-slate-600 hover:bg-muted dark:text-muted-foreground"
+                        : "text-text-secondary hover:bg-muted dark:text-muted-foreground"
                     }`}
                   >
                     <Icon className="size-[19px]" />
@@ -406,7 +406,7 @@ function CheckinTab() {
         <h1 className="font-heading text-headline font-semibold tracking-tight">
           Check-in
         </h1>
-        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-rest dark:bg-card">
           <div className="flex size-14 items-center justify-center rounded-full bg-primary-light text-primary">
             <Check className="size-7" />
           </div>
@@ -450,7 +450,7 @@ function CheckinTab() {
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-rest dark:bg-card">
         {/* Weight */}
         <form.Field name="weightKg">
           {(field) => (
@@ -590,7 +590,7 @@ function EvolucaoTab() {
   }
   if (state.isError) {
     return (
-      <p className="mt-8 text-body text-red-600">
+      <p className="mt-8 text-body text-destructive">
         Não foi possível carregar sua evolução. Tente novamente.
       </p>
     );
@@ -627,7 +627,7 @@ function EvolucaoTab() {
 
       {/* Weight chart */}
       {weightSeries.length > 0 ? (
-        <div className="mt-5 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+        <div className="mt-5 rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="text-label text-muted-foreground">
@@ -643,7 +643,7 @@ function EvolucaoTab() {
                   "flex items-center gap-1 rounded-full px-2.5 py-1 text-body-dense font-semibold tabular-nums",
                   delta < 0
                     ? "bg-primary-light text-primary"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-950/40",
+                    : "bg-amber-100 text-warn-fg dark:bg-amber-950/40",
                 )}
               >
                 {delta < 0 ? (
@@ -666,7 +666,7 @@ function EvolucaoTab() {
       ) : null}
 
       {/* History */}
-      <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+      <div className="mt-4 rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
         <div className="mb-1 text-subtitle font-semibold">Histórico de check-ins</div>
         <div className="flex flex-col">
           {checkins.map((c) => (
@@ -721,7 +721,7 @@ function CheckinRow({
           ) : null}
           {checkin.author === "student" ? (
             isCheckinPending(checkin) ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-label font-semibold text-amber-700 dark:bg-amber-950/40">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-label font-semibold text-warn-fg dark:bg-amber-950/40">
                 <Clock className="size-3" /> aguardando resposta
               </span>
             ) : (
@@ -789,7 +789,7 @@ function CheckinDetailDialog({
         {detail.isPending && checkinId ? (
           <p className="text-body text-muted-foreground">Carregando…</p>
         ) : detail.isError ? (
-          <p className="text-body text-red-600">
+          <p className="text-body text-destructive">
             Não foi possível carregar este check-in.
           </p>
         ) : d ? (
@@ -812,7 +812,7 @@ function CheckinDetailDialog({
                 </p>
               </div>
             ) : d.author === "student" ? (
-              <div className="flex items-center gap-1.5 rounded-xl bg-amber-50 px-3.5 py-2.5 text-body-dense font-medium text-amber-700 dark:bg-amber-950/30">
+              <div className="flex items-center gap-1.5 rounded-xl bg-warn-bg px-3.5 py-2.5 text-body-dense font-medium text-warn-fg dark:bg-amber-950/30">
                 <Clock className="size-4" />
                 Aguardando resposta do seu coach.
               </div>
@@ -864,7 +864,7 @@ function DietTab() {
   }
   if (state.isError) {
     return (
-      <p className="mt-8 text-body text-red-600">
+      <p className="mt-8 text-body text-destructive">
         Não foi possível carregar sua dieta. Tente novamente.
       </p>
     );
@@ -932,7 +932,7 @@ function DietTab() {
           </div>
 
           {/* Total macros + ratio */}
-          <div className="mb-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+          <div className="mb-4 rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
             <MacroSummary totals={current.tree.totals} />
             <RatioBar macros={current.tree.totals} className="mt-3.5" />
           </div>
@@ -961,9 +961,9 @@ function DietTab() {
               <button
                 key={r.versionId}
                 onClick={() => setHistoryVersionId(r.versionId)}
-                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:bg-muted/40 dark:bg-card"
+                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-rest transition-colors hover:bg-muted/40 dark:bg-card"
               >
-                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-label font-bold tabular-nums text-white">
+                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-surface-dark-mid font-heading text-label font-bold tabular-nums text-white">
                   v{r.version}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1020,7 +1020,7 @@ function MealCard({
   onOpenFood: (item: TreeItem) => void;
 }) {
   return (
-    <div className="self-start overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+    <div className="self-start overflow-hidden rounded-2xl bg-white shadow-rest dark:bg-card">
       <div className="flex items-baseline gap-2.5 border-b border-[#EEF2F7] px-[18px] py-3.5 dark:border-border">
         <span className="font-heading text-subtitle font-semibold">
           {meal.name}
@@ -1042,7 +1042,7 @@ function MealCard({
                 {item.description}
               </div>
               {subCount(item) > 0 ? (
-                <div className="mt-1 inline-flex items-center gap-1 text-label font-medium text-amber-700">
+                <div className="mt-1 inline-flex items-center gap-1 text-label font-medium text-warn-fg">
                   <Repeat className="size-3 shrink-0" />
                   <span>
                     {subCount(item)}{" "}
@@ -1101,22 +1101,22 @@ function FoodDetailDialog({
           label: "Proteínas",
           value: formatGrams(item.macros.protein),
           unit: "",
-          color: "text-blue-600",
-          bg: "bg-blue-50 dark:bg-blue-950/40",
+          color: "text-info-fg",
+          bg: "bg-info-bg dark:bg-blue-950/40",
         },
         {
           label: "Carboidratos",
           value: formatGrams(item.macros.carbohydrate),
           unit: "",
-          color: "text-red-600",
-          bg: "bg-red-50 dark:bg-red-950/40",
+          color: "text-destructive",
+          bg: "bg-danger-bg dark:bg-red-950/40",
         },
         {
           label: "Gorduras",
           value: formatGrams(item.macros.fat),
           unit: "",
           color: "text-amber-600",
-          bg: "bg-amber-50 dark:bg-amber-950/40",
+          bg: "bg-warn-bg dark:bg-amber-950/40",
         },
       ]
     : [];
@@ -1163,7 +1163,7 @@ function FoodDetailDialog({
               ))}
             </div>
 
-            <div className="rounded-xl bg-white p-3.5 shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+            <div className="rounded-xl bg-white p-3.5 shadow-rest dark:bg-card">
               <div className="mb-2 text-label font-medium text-muted-foreground">
                 Distribuição de macros
               </div>
@@ -1178,8 +1178,8 @@ function FoodDetailDialog({
               </div>
               <div className="mt-2.5 flex flex-wrap gap-3.5 text-label font-semibold text-text-secondary">
                 {[
-                  { label: "Proteína", color: "bg-blue-600" },
-                  { label: "Carbo", color: "bg-red-600" },
+                  { label: "Proteína", color: "bg-info-fg" },
+                  { label: "Carbo", color: "bg-destructive" },
                   { label: "Gordura", color: "bg-amber-600" },
                 ].map((k) => (
                   <span key={k.label} className="inline-flex items-center gap-1.5">
@@ -1198,7 +1198,7 @@ function FoodDetailDialog({
                 <div className="mb-2 font-heading text-subtitle font-semibold">
                   Substituições equivalentes
                 </div>
-                <div className="overflow-hidden rounded-xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card">
+                <div className="overflow-hidden rounded-xl bg-white shadow-rest dark:bg-card">
                   {/* Coach-defined equivalences (already scaled, may use a measure). */}
                   {item.substitutes.map((s, si) => {
                     const sq = quantity(
@@ -1209,7 +1209,7 @@ function FoodDetailDialog({
                     return (
                       <div
                         key={`e${si}`}
-                        className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-amber-700 last:border-b-0 dark:border-border"
+                        className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-warn-fg last:border-b-0 dark:border-border"
                       >
                         <Repeat className="size-3.5 shrink-0" />
                         <span>
@@ -1222,7 +1222,7 @@ function FoodDetailDialog({
                   {catalogSubs(item).map((s) => (
                     <div
                       key={`c${s.foodId}`}
-                      className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-amber-700 last:border-b-0 dark:border-border"
+                      className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-warn-fg last:border-b-0 dark:border-border"
                     >
                       <Repeat className="size-3.5 shrink-0" />
                       <span>
@@ -1279,7 +1279,7 @@ function HistoryVersionDialog({
         {version.isPending && versionId ? (
           <p className="text-body text-muted-foreground">Carregando…</p>
         ) : version.isError ? (
-          <p className="text-body text-red-600">
+          <p className="text-body text-destructive">
             Não foi possível carregar esta versão.
           </p>
         ) : version.data ? (
@@ -1287,7 +1287,7 @@ function HistoryVersionDialog({
             {version.data.tree.meals.map((meal, mi) => (
               <div
                 key={mi}
-                className="overflow-hidden rounded-xl bg-white shadow-[0_1px_8px_rgba(15,23,42,0.05)] dark:bg-card"
+                className="overflow-hidden rounded-xl bg-white shadow-rest dark:bg-card"
               >
                 <div className="border-b border-[#EEF2F7] px-4 py-3 font-heading text-subtitle font-semibold dark:border-border">
                   {meal.name}
@@ -1351,7 +1351,7 @@ function WorkoutTab() {
   }
   if (state.isError) {
     return (
-      <p className="mt-8 text-body text-red-600">
+      <p className="mt-8 text-body text-destructive">
         Não foi possível carregar seu treino. Tente novamente.
       </p>
     );
@@ -1438,9 +1438,9 @@ function WorkoutTab() {
               <button
                 key={r.versionId}
                 onClick={() => setHistoryVersionId(r.versionId)}
-                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-[0_1px_8px_rgba(15,23,42,0.05)] transition-colors hover:bg-muted/40 dark:bg-card"
+                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-rest transition-colors hover:bg-muted/40 dark:bg-card"
               >
-                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-slate-800 font-heading text-label font-bold tabular-nums text-white">
+                <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-surface-dark-mid font-heading text-label font-bold tabular-nums text-white">
                   v{r.version}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1508,7 +1508,7 @@ function WorkoutHistoryDialog({
         {version.isPending && versionId ? (
           <p className="text-body text-muted-foreground">Carregando…</p>
         ) : version.isError ? (
-          <p className="text-body text-red-600">
+          <p className="text-body text-destructive">
             Não foi possível carregar esta versão.
           </p>
         ) : version.data ? (
