@@ -392,9 +392,17 @@ export function DashboardShell({
         `min-h-screen` on both layers rather than `h-screen` + inner scroll: the
         page keeps ordinary document scrolling, so the window grows with a
         fifty-row roster instead of trapping it in a nested scroller.
+
+        The frame clips with `overflow-clip`, NOT `overflow-hidden`: `hidden`
+        makes this box a scrollport, and a scrollport is what every
+        `position: sticky` descendant sticks to. Since the box never scrolls
+        (the document does), sticky elements inside it stopped sticking
+        entirely — the workout builder's `Salvar treino` bar scrolled off the
+        top of a long treino. `clip` clips the rounded corners exactly the same
+        way without establishing a scrollport, so sticky keeps working.
       */}
       <div className="min-h-screen bg-ground lg:p-3 print:block print:min-h-0 print:bg-white print:p-0">
-        <div className="flex min-h-screen bg-card lg:min-h-[calc(100vh-1.5rem)] lg:overflow-hidden lg:rounded-window lg:shadow-window print:block print:min-h-0 print:rounded-none print:shadow-none">
+        <div className="flex min-h-screen bg-card lg:min-h-[calc(100vh-1.5rem)] lg:overflow-clip lg:rounded-window lg:shadow-window print:block print:min-h-0 print:rounded-none print:shadow-none">
         {/* Ten rail links stood between a keyboard user and the content on every
             page. Landmarks technically satisfy 2.4.1; this is the affordance
             people actually reach for. */}

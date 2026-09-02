@@ -64,7 +64,8 @@ test.describe("setup guide · first run", () => {
     await expect(page).toHaveURL(/\/login/);
     await page.getByLabel(/E-mail/).fill(email);
     await page.getByLabel("Senha").fill(password);
-    await page.getByRole("button", { name: /Entrar/ }).click();
+    // `exact`: the login screen also carries "Entrar com Google".
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
 
     // --- The guide starts on its own — no link was clicked to get here. ---
     await expect(page).toHaveURL(/\/onboarding/);
@@ -205,7 +206,8 @@ test.describe("setup guide · first run", () => {
 
     await page.getByLabel(/E-mail/).fill(email);
     await page.getByLabel("Senha").fill(password);
-    await page.getByRole("button", { name: /Entrar/ }).click();
+    // `exact`: the login screen also carries "Entrar com Google".
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
 
     await expect(page).toHaveURL(/\/onboarding/);
     await page.getByRole("button", { name: "Pular e ir para o painel" }).click();
@@ -257,7 +259,10 @@ test.describe("setup guide · re-run", () => {
       .first();
     await expect(imported).toHaveAttribute("aria-checked", "true");
     await expect(imported).toHaveAttribute("aria-disabled", "true");
-    await imported.click();
+    // `force` because Playwright refuses to click an `aria-disabled` element,
+    // and refusing is not the assertion this line wants: the point is that the
+    // click reaches the row and still changes nothing.
+    await imported.click({ force: true });
     await expect(imported).toHaveAttribute("aria-checked", "true");
 
     // The seeded clinic holds every starter, so there is nothing left to toggle:
@@ -298,7 +303,20 @@ test.describe("setup guide · re-run", () => {
     await expect(
       page.getByRole("heading", { name: "Como você acompanha seus alunos" }),
     ).toBeVisible();
-    await page.getByRole("radio", { name: /Mensal/ }).click();
+    // Pick a frequency the clinic does NOT already have. Hard-coding "Mensal"
+    // tied this test to the seeded value, and `settings.spec.ts` saves over it
+    // — it sets this same clinic to Mensal. Running in parallel, that left
+    // nothing to overwrite here and no confirmation to assert.
+    let target = "";
+    for (const label of ["Semanal", "Quinzenal", "Mensal"]) {
+      const radio = page.getByRole("radio", { name: new RegExp(label) });
+      if ((await radio.getAttribute("aria-checked")) !== "true") {
+        target = label;
+        break;
+      }
+    }
+    expect(target, "uma frequência diferente da atual").toBeTruthy();
+    await page.getByRole("radio", { name: new RegExp(target) }).click();
     await page.getByRole("button", { name: "Continuar" }).click();
 
     const dialog = page.getByRole("dialog");
@@ -306,7 +324,7 @@ test.describe("setup guide · re-run", () => {
       dialog.getByRole("heading", { name: "Confirmar alterações" }),
     ).toBeVisible();
     await expect(dialog.getByText(/Frequência de check-in/)).toBeVisible();
-    await expect(dialog.getByText(/Mensal/)).toBeVisible();
+    await expect(dialog.getByText(new RegExp(target))).toBeVisible();
 
     await page.screenshot({
       path: "test-results/screens/onboarding-rerun-confirm-desktop.png",

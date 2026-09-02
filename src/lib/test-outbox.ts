@@ -28,7 +28,21 @@ export type OutboxMessage = {
   at: string;
 };
 
-const store: OutboxMessage[] = [];
+/**
+ * The store lives on `globalThis`, not in a module-level `const`, because Next
+ * compiles server actions and route handlers into SEPARATE module graphs (the
+ * `react-server` layer vs. the route layer). A module-scoped array therefore
+ * gives each layer its OWN outbox: the sign-up verification OTP is sent from a
+ * server action and would land in the RSC copy, while `GET /api/test/outbox`
+ * reads the route copy and reports an empty mailbox — which is exactly how the
+ * setup-guide spec failed, with the server log showing the OTP was sent.
+ * One array on the global object is shared by every layer in the process.
+ */
+const globalStore = globalThis as typeof globalThis & {
+  __progressoTestOutbox?: OutboxMessage[];
+};
+
+const store: OutboxMessage[] = (globalStore.__progressoTestOutbox ??= []);
 
 /** Records a message when the outbox is enabled; a no-op otherwise. */
 export function captureOutbox(message: Omit<OutboxMessage, "at">): void {

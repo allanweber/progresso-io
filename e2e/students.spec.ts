@@ -130,7 +130,15 @@ test.describe("student management", () => {
       await alunoPage.getByLabel("Senha", { exact: true }).fill("alunosenha123");
       await alunoPage.getByLabel("Confirmar senha").fill("alunosenha123");
       await alunoPage.getByRole("button", { name: "Ativar acesso" }).click();
-      await alunoPage.waitForURL(/\/login\?activated=1/);
+      // The invite lands on the clinic's OWN portal (…/<slug>/invite/accept),
+      // so activation returns the aluno to that clinic's branded login — never
+      // the canonical /login, which would drop them out of the address they
+      // were invited to. Read the slug off the invite rather than hard-coding
+      // the seeded one.
+      const slug = new URL(invite.url!).pathname.split("/")[1];
+      await alunoPage.waitForURL(
+        new RegExp(`/${slug}/entrar\\?activated=1`),
+      );
     } finally {
       await alunoContext.close();
     }
