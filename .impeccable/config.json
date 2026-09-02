@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "16px",
+        "files": [
+          "src/components/emails/anamnesis-email.tsx"
+        ],
+        "createdAt": "2026-09-02T07:55:38.919Z",
+        "reason": "E-mail HTML: React Email inline styles cannot reference the app type ramp; value copied verbatim from the existing invite-email.tsx"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "20px",
+        "files": [
+          "src/components/emails/anamnesis-email.tsx"
+        ],
+        "createdAt": "2026-09-02T07:55:38.989Z",
+        "reason": "E-mail HTML: React Email inline styles cannot reference the app type ramp; value copied verbatim from the existing invite-email.tsx"
+      }
+    ]
+  }
+}

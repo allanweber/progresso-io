@@ -1,6 +1,8 @@
 import { aliasedTable, and, eq } from "drizzle-orm";
 
 import { schema } from "@/db";
+import { canUseBrandedPortal } from "@/lib/clinic-settings";
+import { effectivePlanOf } from "@/lib/plans";
 import type {
   StudentDietHistoryDto,
   StudentDietPublishedDto,
@@ -62,6 +64,10 @@ export async function getMyProfile(
       clinicName: schema.clinic.name,
       feedbackFrequency: schema.clinic.feedbackFrequency,
       feedbackPreferredDay: schema.clinic.feedbackPreferredDay,
+      logoKey: schema.clinic.logoKey,
+      plan: schema.clinic.plan,
+      intendedPlan: schema.clinic.intendedPlan,
+      trialEndsAt: schema.clinic.trialEndsAt,
     })
     .from(schema.students)
     .innerJoin(schema.clinic, eq(schema.clinic.id, schema.students.clinicId))
@@ -78,6 +84,12 @@ export async function getMyProfile(
     firstName: row.firstName,
     coachName: row.coachName,
     clinicName: row.clinicName,
+    // The same gate the public portal applies, so a clinic's own aluno and a
+    // visitor to its microsite are never told different things about whether it
+    // is branded.
+    clinicHasLogo:
+      row.logoKey !== null &&
+      canUseBrandedPortal(effectivePlanOf(row, new Date())),
     goal: row.goal,
     feedbackFrequency: row.feedbackFrequency,
     feedbackPreferredDay: row.feedbackPreferredDay,

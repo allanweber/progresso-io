@@ -5,7 +5,8 @@ import { validateAnswers } from "@/lib/anamneses";
 import { phonesMatch } from "@/lib/phone";
 import { fillSubmitSchema, type FillPageState } from "@/lib/student-anamneses";
 import { z } from "@/lib/validation";
-import { notifications, studentAnamneses } from "@/server/dal";
+import { clinics, notifications, studentAnamneses } from "@/server/dal";
+import { sendPortalInviteOnAnamnesisFilled } from "@/server/onboarding";
 import { recordFailure, tooManyAttempts } from "@/server/anamnesis-fill-attempts";
 import { apiError, readJson, validationError } from "@/server/api";
 import { logger, withRoute } from "@/server/observability";
@@ -105,6 +106,22 @@ export const POST = withRoute("anamneseFill.submit", async (request) => {
       anamnesisName: result.anamnesisName,
     },
   });
+
+  // …and hand the aluno their platform access, which is what they were told to
+  // expect: the anamnese is the gate, and clearing it opens the portal. This
+  // route is public (the fill token is the credential), so there is no session to
+  // derive a tenant from — the context is built from the clinic's owner, exactly
+  // as the reminder cron does it. Best-effort and once-only: a delivery hiccup
+  // must never turn a successfully submitted questionnaire into an error.
+  const owner = await clinics.getClinicOwner(db, result.clinicId);
+  if (owner) {
+    const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
+    await sendPortalInviteOnAnamnesisFilled(
+      { db, clinicId: result.clinicId, userId: owner, role: "coach" },
+      result.studentId,
+      base,
+    );
+  }
 
   logger.info("anamnesis.filled", { studentId: result.studentId });
   return NextResponse.json({ ok: true });

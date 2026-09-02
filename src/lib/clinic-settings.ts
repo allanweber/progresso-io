@@ -233,6 +233,71 @@ export function canUseBrandedPortal(plan: Plan): boolean {
   return BRANDED_PORTAL_PLANS.includes(plan);
 }
 
+/** A stored accent is only usable if it is still a literal `#RRGGBB`. */
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * The CSS custom properties that repaint a branded portal page in the clinic's
+ * accent.
+ *
+ * Set on the page root, these override the app's primary token for that subtree
+ * only — so every `bg-primary`, `text-primary`, `border-primary` and focus ring
+ * *inside* takes the clinic's colour, including components nobody thought to
+ * pass an accent to: the sign-in form's button, the invite-accept CTA, the
+ * anamnese fill form. Painting elements one at a time with an inline
+ * `backgroundColor` is what left the accent applying to a headline and a logo
+ * square while every actual control stayed Progresso green.
+ *
+ * The darker and lighter steps come from `color-mix` rather than a colour
+ * library: the ramp is exactly the one the design tokens describe (hover and
+ * press are the accent walked toward black; the tint is it walked toward white),
+ * and the browser derives it with no bytes shipped.
+ *
+ * Returns undefined when there is no usable accent, so the caller passes no
+ * `style` at all and the page keeps the default palette. The value is re-checked
+ * against `#RRGGBB` here even though the settings schema enforces it on write —
+ * this string goes straight into a style attribute, and a row written before that
+ * validation existed must not be the thing that finds out.
+ */
+export function accentThemeVars(
+  accent: string | null,
+): Record<string, string> | undefined {
+  if (!accent || !HEX_COLOR.test(accent)) return undefined;
+  return {
+    "--primary": accent,
+    "--primary-hover": `color-mix(in srgb, ${accent} 86%, black)`,
+    "--primary-deep": `color-mix(in srgb, ${accent} 86%, black)`,
+    "--primary-press": `color-mix(in srgb, ${accent} 72%, black)`,
+    "--primary-light": `color-mix(in srgb, ${accent} 8%, white)`,
+    "--primary-light-border": `color-mix(in srgb, ${accent} 30%, white)`,
+    "--ring": accent,
+  };
+}
+
+/**
+ * The path prefix every link a coach sends a student should carry.
+ *
+ * A clinic with a published Portal do aluno owns an address its students
+ * recognise, and an invite that drops them on a bare `progresso.io` page throws
+ * that away at the one moment branding matters most — first contact. So when the
+ * portal resolves, links go under it (`/studio-forja/invite/accept?token=…`);
+ * otherwise they stay on the canonical unbranded routes.
+ *
+ * The gate is deliberately the SAME condition `getPublicClinicBySlug` applies —
+ * slug set AND the effective plan allows branding — because a prefix the public
+ * route would refuse to serve is a 404 mailed to a student. Callers pass the
+ * clinic's effective plan (`effectivePlanOf`), so a trialing clinic brands its
+ * links just as it brands its portal.
+ */
+export function portalPathPrefix(clinic: {
+  portalSubdomain: string | null;
+  effectivePlan: Plan;
+}): string {
+  return clinic.portalSubdomain && canUseBrandedPortal(clinic.effectivePlan)
+    ? `/${clinic.portalSubdomain}`
+    : "";
+}
+
 /**
  * The public branding a clinic microsite + branded login render. No PII — only
  * the clinic's own public-facing profile. Served for a slug that belongs to a

@@ -5,6 +5,7 @@ import { AtSign, Globe, MessageCircle } from "lucide-react";
 
 import { db } from "@/db";
 import {
+  accentThemeVars,
   clinicLogoUrl,
   instagramUrl,
   whatsappUrl,
@@ -41,14 +42,13 @@ export default async function ClinicPortalPage({ params }: Params) {
   const b = await loadBranding(slug);
   if (!b) notFound();
 
-  const accent = b.accentColor ?? undefined;
   const wa = whatsappUrl(b.whatsapp);
   const ig = instagramUrl(b.instagram);
 
   return (
     <main
       className="flex min-h-screen flex-col bg-surface-light"
-      style={accent ? ({ ["--brand"]: accent } as React.CSSProperties) : undefined}
+      style={accentThemeVars(b.accentColor) as React.CSSProperties | undefined}
     >
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         {b.hasLogo ? (
@@ -60,8 +60,7 @@ export default async function ClinicPortalPage({ params }: Params) {
           />
         ) : (
           <div
-            className="mb-6 flex size-24 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-rest"
-            style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
+            className="mb-6 flex size-24 items-center justify-center rounded-2xl bg-primary text-3xl font-bold text-white shadow-rest"
           >
             {b.name.trim().charAt(0).toUpperCase()}
           </div>
@@ -71,12 +70,7 @@ export default async function ClinicPortalPage({ params }: Params) {
           {b.name}
         </h1>
         {b.headline && (
-          <p
-            className="mt-3 text-lg font-medium"
-            style={{ color: accent ?? "var(--color-primary, #059669)" }}
-          >
-            {b.headline}
-          </p>
+          <p className="mt-3 text-lg font-medium text-primary">{b.headline}</p>
         )}
         {b.description && (
           <p className="mt-4 max-w-prose whitespace-pre-line text-subtitle leading-relaxed text-muted-foreground">
@@ -86,8 +80,7 @@ export default async function ClinicPortalPage({ params }: Params) {
 
         <Link
           href={`/${b.slug}/entrar`}
-          className="mt-8 inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
-          style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
+          className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
         >
           Área do aluno
         </Link>

@@ -62,9 +62,16 @@ const INVITE_CONFIG: Record<
 export function InviteAcceptForm({
   token,
   kind = "student",
+  loginPath = "/login",
 }: {
   token: string;
   kind?: InviteKind;
+  /**
+   * Where to send the newly-activated account to sign in. Defaults to the
+   * canonical `/login`; a branded portal passes its own `/<slug>/entrar` so an
+   * aluno who arrived through their clinic's address never leaves it.
+   */
+  loginPath?: string;
 }) {
   const config = INVITE_CONFIG[kind];
   const check = useQuery({
@@ -86,9 +93,9 @@ export function InviteAcceptForm({
       }),
     onSuccess: () => {
       // Activating the account never signs the user in (no session, no forged
-      // cookie) — send them to /login to sign in themselves, mirroring the
-      // e-mail OTP flow.
-      window.location.assign("/login?activated=1");
+      // cookie) — send them to sign in themselves, mirroring the e-mail OTP
+      // flow. `loginPath` keeps a branded activation inside its own portal.
+      window.location.assign(`${loginPath}?activated=1`);
     },
   });
 

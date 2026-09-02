@@ -14,7 +14,7 @@ import {
 } from "@/server/api";
 import { logger } from "@/server/observability";
 import { withCoach } from "@/server/guard";
-import { sendAnamnesisInvite } from "@/server/onboarding";
+import { sendAnamnesisInvite, sendPortalInvite } from "@/server/onboarding";
 
 /**
  * Students collection. The roster reads this via TanStack Query; the merged
@@ -89,13 +89,18 @@ export const POST = withCoach("students.register", async (request, ctx) => {
     if (!assign.ok) return apiError("Anamnese selecionada não encontrada.", 422);
   }
 
-  // Online students with an anamnese are invited to fill it now (WhatsApp only —
-  // skipped on the free plan); offline students aren't. Portal access follows on
-  // first publish.
+  // Registering an online student always starts a conversation, on BOTH channels
+  // (e-mail + WhatsApp): with an anamnese, the questionnaire goes first and
+  // portal access follows when they submit it; without one, there is nothing to
+  // wait for, so the access link goes out now. Holding it back was what left an
+  // online aluno registered and never contacted. Offline students get neither —
+  // they don't log in.
   let sent = false;
-  if (data.modality === "online" && data.anamnesisId) {
+  if (data.modality === "online") {
     const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
-    const result = await sendAnamnesisInvite(ctx, created.id, base);
+    const result = data.anamnesisId
+      ? await sendAnamnesisInvite(ctx, created.id, base)
+      : await sendPortalInvite(ctx, created.id, base);
     sent = result.ok;
   }
 

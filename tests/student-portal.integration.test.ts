@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
@@ -170,11 +170,38 @@ describe("student portal DAL (aluno-facing, read-only)", () => {
       firstName: "Ana",
       coachName: "Thiago Corrêa",
       clinicName: "Studio Forja",
+      // No logo on this clinic, so the portal keeps the Progresso mark.
+      clinicHasLogo: false,
       goal: "hipertrofia",
       // The clinic's check-in cadence (defaults from the migration).
       feedbackFrequency: "semanal",
       feedbackPreferredDay: "monday",
     });
+  });
+
+  /**
+   * The portal wears the clinic's mark only when the clinic is entitled to a
+   * branded portal — the same gate the public microsite applies, so an aluno and
+   * a visitor are never told different things about whether it is branded.
+   */
+  it("reports the clinic's logo only on a plan that may brand the portal", async () => {
+    await db
+      .update(schema.clinic)
+      .set({ logoKey: "clinics/logo.png", plan: "clinica", trialEndsAt: null })
+      .where(eq(schema.clinic.id, alunoCtxA.clinicId));
+    expect((await studentPortal.getMyProfile(alunoCtxA))!.clinicHasLogo).toBe(true);
+
+    await db
+      .update(schema.clinic)
+      .set({ plan: "free", trialEndsAt: null })
+      .where(eq(schema.clinic.id, alunoCtxA.clinicId));
+    expect((await studentPortal.getMyProfile(alunoCtxA))!.clinicHasLogo).toBe(false);
+
+    await db
+      .update(schema.clinic)
+      .set({ logoKey: null, plan: "clinica" })
+      .where(eq(schema.clinic.id, alunoCtxA.clinicId));
+    expect((await studentPortal.getMyProfile(alunoCtxA))!.clinicHasLogo).toBe(false);
   });
 
   it("returns the active published diet + history, and NEVER a draft", async () => {

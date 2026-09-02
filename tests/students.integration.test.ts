@@ -16,7 +16,9 @@ import { seedClinicAnamneses } from "@/server/dal/anamneses";
 import {
   sendAnamnesisInvite,
   sendPortalInvite,
+  sendPortalInviteOnAnamnesisFilled,
   sendPortalInviteOnFirstPrescription,
+  studentLinkBase,
 } from "@/server/onboarding";
 
 import { clearTrial, createTestDb, type TestDb } from "./pglite";
@@ -321,6 +323,25 @@ describe("onboarding: anamnese invite vs portal access", () => {
     expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
   });
 
+  it("still sends the anamnese when the clinic has no WhatsApp", async () => {
+    // The link used to go out over WhatsApp only, gated on a paid plan — so a
+    // free clinic registered an aluno and contacted them on no channel at all.
+    // E-mail is unconditional now, and the send reports success.
+    await db
+      .update(schema.clinic)
+      .set({ plan: "free", trialEndsAt: null })
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    try {
+      const student = await onlineStudentWithAnamnesis("free-clinic@example.com");
+      expect(await sendAnamnesisInvite(ctx, student.id, base)).toEqual({ ok: true });
+    } finally {
+      await db
+        .update(schema.clinic)
+        .set({ plan: "clinica" })
+        .where(eq(schema.clinic.id, ctx.clinicId));
+    }
+  });
+
   it("the first prescription sends the portal invite exactly once", async () => {
     const student = await onlineStudentWithAnamnesis("first-publish@example.com");
     expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
@@ -352,6 +373,100 @@ describe("onboarding: anamnese invite vs portal access", () => {
     });
     await sendPortalInviteOnFirstPrescription(ctx, student.id, base);
     expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
+  });
+
+  /**
+   * Every link a coach sends a student lands under the clinic's own address when
+   * it publishes one. First contact is when a student should see their coach's
+   * brand, not ours — and the branded routes exist precisely to receive these.
+   */
+  describe("links under the Portal do aluno", () => {
+    async function setPortal(slug: string | null, plan: schema.Plan) {
+      await db
+        .update(schema.clinic)
+        .set({ portalSubdomain: slug, plan, trialEndsAt: null })
+        .where(eq(schema.clinic.id, ctx.clinicId));
+    }
+
+    it("builds every student link under the portal when one is published", async () => {
+      await setPortal("studio-forja", "clinica");
+      expect(await studentLinkBase(ctx, base)).toBe(`${base}/studio-forja`);
+    });
+
+    it("falls back to the canonical routes when no portal is published", async () => {
+      await setPortal(null, "clinica");
+      expect(await studentLinkBase(ctx, base)).toBe(base);
+    });
+
+    it("falls back when the plan can no longer publish the portal", async () => {
+      // The slug stays on the row — reserved for when they pay again — but a
+      // link pointing at a dark portal would be a 404 in a student's inbox.
+      await setPortal("studio-forja", "free");
+      expect(await studentLinkBase(ctx, base)).toBe(base);
+    });
+
+    it("brands links throughout the sign-up trial", async () => {
+      // Stored as free, trialing Clínica: the portal is live, so its links are
+      // branded — the same effective-plan answer the public route gives.
+      await db
+        .update(schema.clinic)
+        .set({
+          portalSubdomain: "studio-forja",
+          plan: "free",
+          intendedPlan: "clinica",
+          trialEndsAt: new Date(Date.now() + 86_400_000),
+        })
+        .where(eq(schema.clinic.id, ctx.clinicId));
+      expect(await studentLinkBase(ctx, base)).toBe(`${base}/studio-forja`);
+
+      await setPortal(null, "clinica");
+    });
+  });
+
+  /**
+   * The second half of the "anamnese first, then access" flow: submitting the
+   * questionnaire is what opens the platform. The public fill route has no
+   * session, so it builds a clinic-owner context — this asserts that path mints
+   * the invitation, and mints it only once.
+   */
+  describe("portal access when the anamnese is filled", () => {
+    it("invites the aluno once they submit", async () => {
+      const student = await onlineStudentWithAnamnesis("filled-then-invited@example.com");
+      expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
+
+      await sendPortalInviteOnAnamnesisFilled(ctx, student.id, base);
+      expect(await invitations.hasInvitation(ctx, student.id)).toBe(true);
+    });
+
+    it("does not mint a second invite when a prescription follows", async () => {
+      // The two triggers race by nature — an aluno can submit while the coach
+      // publishes their first plan — and only one invitation may result.
+      const student = await onlineStudentWithAnamnesis("no-double-invite@example.com");
+      await sendPortalInviteOnAnamnesisFilled(ctx, student.id, base);
+      await sendPortalInviteOnFirstPrescription(ctx, student.id, base);
+
+      const rows = await db
+        .select({ id: schema.invitation.id })
+        .from(schema.invitation)
+        .where(
+          and(
+            eq(schema.invitation.clinicId, ctx.clinicId),
+            eq(schema.invitation.studentId, student.id),
+          ),
+        );
+      expect(rows).toHaveLength(1);
+    });
+
+    it("never invites an offline student", async () => {
+      const student = await studentsDal.createStudent(ctx, {
+        firstName: "Offline",
+        lastName: "Filled",
+        phone: "1197000001",
+        modality: "in_person",
+      });
+      await sendPortalInviteOnAnamnesisFilled(ctx, student.id, base);
+      expect(await invitations.hasInvitation(ctx, student.id)).toBe(false);
+    });
   });
 
   it("the manual portal invite is skipped once the aluno has activated", async () => {

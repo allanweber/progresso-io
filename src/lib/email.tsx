@@ -8,6 +8,10 @@ import {
   AdminInviteEmail,
 } from "@/components/emails/admin-invite-email";
 import {
+  ANAMNESIS_EMAIL_SUBJECT,
+  AnamnesisEmail,
+} from "@/components/emails/anamnesis-email";
+import {
   COACH_INVITE_EMAIL_SUBJECT,
   CoachInviteEmail,
 } from "@/components/emails/coach-invite-email";
@@ -143,6 +147,69 @@ export async function sendInviteEmail({
 }
 
 export type SendInvite = typeof sendInviteEmail;
+
+type SendAnamnesisArgs = {
+  email: string;
+  clinicName: string;
+  firstName: string;
+  fillUrl: string;
+};
+
+/**
+ * Sends an online student their anamnese link by e-mail.
+ *
+ * The same link also goes out over WhatsApp, and both matter: WhatsApp is where
+ * a student actually reads things, while e-mail is the copy that survives, that a
+ * free clinic still has (WhatsApp is a paid channel), and that can be found again
+ * a week later. This used to be WhatsApp-only, which meant a free clinic's newly
+ * registered aluno was never contacted at all.
+ *
+ * Falls back to a console log when Resend isn't configured (local dev), and
+ * always records the fill URL in the test outbox so e2e can drive the flow.
+ */
+export async function sendAnamnesisEmail({
+  email,
+  clinicName,
+  firstName,
+  fillUrl,
+}: SendAnamnesisArgs): Promise<void> {
+  captureOutbox({
+    to: email,
+    subject: ANAMNESIS_EMAIL_SUBJECT,
+    kind: "anamnesis_fill",
+    url: fillUrl,
+  });
+
+  if (!resend) {
+    console.info(`[email:dev] anamnese for ${email}: ${fillUrl}`);
+    return;
+  }
+
+  const element = (
+    <AnamnesisEmail
+      clinicName={clinicName}
+      firstName={firstName}
+      fillUrl={fillUrl}
+    />
+  );
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: ANAMNESIS_EMAIL_SUBJECT,
+      html,
+      text,
+    });
+    logger.info("email.sent", { template: "anamnesis" });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "anamnesis" });
+    throw error;
+  }
+}
 
 type SendAdminInviteArgs = {
   email: string;

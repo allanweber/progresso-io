@@ -200,12 +200,33 @@ export default function StudentPortalPage() {
 
   return (
     <div className="posture-reading min-h-screen bg-ground-aluno text-foreground dark:bg-background">
-      {/* Desktop top bar */}
+      {/* Desktop top bar. A branded clinic's aluno sees THEIR coach's mark and
+          name here, not ours — the portal is the clinic's front door, and the
+          Progresso wordmark beside a clinic name only ever read as clutter. An
+          unbranded clinic keeps the original chrome exactly. */}
       <header className="hidden h-[60px] items-center gap-3.5 border-b border-border bg-white px-8 lg:flex dark:bg-card">
-        <Logo size={30} />
-        <span className="font-heading text-subtitle font-semibold">Progresso</span>
+        {p?.clinicHasLogo ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/api/student/clinic/logo"
+              alt={p.clinicName}
+              className="size-[30px] rounded-lg object-cover"
+            />
+            <span className="font-heading text-subtitle font-semibold">
+              {p.clinicName}
+            </span>
+          </>
+        ) : (
+          <>
+            <Logo size={30} />
+            <span className="font-heading text-subtitle font-semibold">
+              Progresso
+            </span>
+          </>
+        )}
         <div className="flex-1" />
-        {p?.clinicName ? (
+        {p?.clinicName && !p.clinicHasLogo ? (
           <span className="text-body text-muted-foreground">{p.clinicName}</span>
         ) : null}
         <div className="flex size-[34px] items-center justify-center rounded-full bg-primary text-body-dense font-semibold text-primary-foreground">

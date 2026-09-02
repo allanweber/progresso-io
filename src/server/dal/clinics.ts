@@ -66,6 +66,26 @@ export async function attachUserToClinic(
     .where(eq(schema.user.id, userId));
 }
 
+/**
+ * The owner of a clinic, by clinic id and a raw DB handle.
+ *
+ * For the paths that must act inside a tenant without a session to derive one
+ * from — the public anamnese-fill route handing a student their portal access,
+ * the reminder cron — the clinic owner is who the resulting messages are
+ * attributed to. There is no chicken-and-egg here: the clinic id comes from a
+ * row the caller already authenticated by token, never from client input.
+ */
+export async function getClinicOwner(
+  db: DB,
+  clinicId: string,
+): Promise<string | null> {
+  const [row] = await db
+    .select({ ownerUserId: schema.clinic.ownerUserId })
+    .from(schema.clinic)
+    .where(eq(schema.clinic.id, clinicId));
+  return row?.ownerUserId ?? null;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Tenant-scoped                                                             */
 /* -------------------------------------------------------------------------- */

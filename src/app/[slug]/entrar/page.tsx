@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { db } from "@/db";
 import {
+  accentThemeVars,
   clinicLogoUrl,
   type ClinicPublicBrandingDto,
 } from "@/lib/clinic-settings";
@@ -40,17 +41,18 @@ export default async function ClinicLoginPage({
   if (!b) notFound();
 
   const { reset, error, verified, activated } = await searchParams;
-  const accent = b.accentColor ?? undefined;
 
   return (
+    // The accent is set as the primary token for this subtree, so the sign-in
+    // form's own button and focus ring take the clinic's colour too — they used
+    // to stay Progresso green beside a fully branded panel.
     <div
       className="flex min-h-screen flex-col md:flex-row"
-      style={accent ? ({ ["--brand"]: accent } as React.CSSProperties) : undefined}
+      style={accentThemeVars(b.accentColor) as React.CSSProperties | undefined}
     >
       {/* Branded panel — the clinic's identity. */}
       <div
-        className="flex flex-col items-center justify-center gap-4 px-6 py-12 text-center text-white md:w-2/5"
-        style={{ backgroundColor: accent ?? "var(--color-primary, #059669)" }}
+        className="flex flex-col items-center justify-center gap-4 bg-primary px-6 py-12 text-center text-white md:w-2/5"
       >
         {b.hasLogo ? (
           // eslint-disable-next-line @next/next/no-img-element

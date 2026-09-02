@@ -25,6 +25,12 @@ export type AlunoProfileDto = {
   coachName: string | null;
   /** The clinic (tenant) the aluno belongs to. */
   clinicName: string;
+  /**
+   * Whether the portal should wear the clinic's logo in place of the Progresso
+   * mark. Already gated on the plan by the server — a free clinic reads false
+   * even if a logo is on the row, exactly as the public portal does.
+   */
+  clinicHasLogo: boolean;
   /** The training goal (objetivo), or null if unset — the badge is hidden then. */
   goal: string | null;
   /** The clinic's check-in cadence (set by the coach in Configurações). */
