@@ -127,6 +127,15 @@ export default defineConfig({
       },
     },
     {
+      // The setup guide. Its first-run tests sign up a brand-new coach (the only
+      // honest way to assert "the guide starts after sign-up"), so the project
+      // carries no session; the re-run describe opts into the seeded coach's.
+      name: "onboarding",
+      testMatch: /onboarding\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], launchOptions },
+    },
+    {
       // The portfolio tour. Each describe sets its own storageState — the tour
       // crosses all three roles, which one project-level session cannot.
       name: "portfolio",

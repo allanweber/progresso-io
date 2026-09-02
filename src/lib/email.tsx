@@ -56,6 +56,15 @@ export async function renderOtpEmail(
  * flow stays usable without a real e-mail provider.
  */
 export async function sendOtpEmail({ email, otp, type }: SendOtpArgs): Promise<void> {
+  // Captured for e2e (env-gated, never in production): the sign-up flow the
+  // setup-guide spec drives ends at an OTP that exists nowhere else readable.
+  captureOutbox({
+    to: email,
+    subject: `Código de ${type}`,
+    kind: "otp",
+    code: otp,
+  });
+
   if (!resend) {
     console.info(`[email:dev] OTP for ${email} (${type}): ${otp}`);
     return;

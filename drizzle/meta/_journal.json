@@ -281,6 +281,13 @@
       "when": 1787917344848,
       "tag": "0039_workout_cardio",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788263364481,
+      "tag": "0040_clinic_onboarding",
+      "breakpoints": true
     }
   ]
 }

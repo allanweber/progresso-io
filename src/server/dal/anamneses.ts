@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import type { Database } from "@/db";
 import { schema } from "@/db";
@@ -328,26 +328,51 @@ export async function deleteAnamnesis(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Copies the curated starter anamneses into a newly-created clinic. A bootstrap
- * operation (like `createClinicForOwner`): it runs at clinic creation, before
- * there is a session/`TenantContext`, so it takes a raw DB handle. Idempotent —
- * a clinic that already has anamneses is left untouched, so it is safe to call
- * from the seed against an existing dev clinic.
+ * Copies the curated starter anamneses into a clinic. A bootstrap operation
+ * (like `createClinicForOwner`): it can run before there is a
+ * session/`TenantContext`, so it takes a raw DB handle.
+ *
+ * `keys` selects which starters to copy — the setup guide passes the coach's
+ * picks; omitting it means all of them (the seed's behaviour, and what skipping
+ * the guide does).
+ *
+ * Idempotent **per starter**, matched on `source_key`, so the guide can be
+ * re-run later to add the ones that were skipped the first time without
+ * duplicating what is already there. It used to bail whenever the clinic had any
+ * anamnesis at all, which made a second, additive pass impossible — and would
+ * have silently done nothing for every coach who came back to the guide.
  */
 export async function seedClinicAnamneses(
   db: Database,
   clinicId: string,
   coachId: string | null,
+  keys?: readonly string[],
 ): Promise<number> {
-  const [existing] = await db
-    .select({ id: schema.anamnesis.id })
+  const wanted =
+    keys === undefined
+      ? STARTER_ANAMNESES
+      : STARTER_ANAMNESES.filter((t) => keys.includes(t.key));
+  if (wanted.length === 0) return 0;
+
+  const existing = await db
+    .select({ sourceKey: schema.anamnesis.sourceKey })
     .from(schema.anamnesis)
-    .where(eq(schema.anamnesis.clinicId, clinicId))
-    .limit(1);
-  if (existing) return 0;
+    .where(
+      and(
+        eq(schema.anamnesis.clinicId, clinicId),
+        inArray(
+          schema.anamnesis.sourceKey,
+          wanted.map((t) => t.key),
+        ),
+      ),
+    );
+  const have = new Set(existing.map((e) => e.sourceKey));
+
+  const missing = wanted.filter((t) => !have.has(t.key));
+  if (missing.length === 0) return 0;
 
   await db.insert(schema.anamnesis).values(
-    STARTER_ANAMNESES.map((t) => ({
+    missing.map((t) => ({
       clinicId,
       coachId,
       sourceKey: t.key, // provenance: seeded from the system starter set
@@ -358,5 +383,22 @@ export async function seedClinicAnamneses(
       sections: t.sections,
     })),
   );
-  return STARTER_ANAMNESES.length;
+  return missing.length;
+}
+
+/** The starter `source_key`s this clinic already holds (any subset of them). */
+export async function listSeededAnamnesisKeys(
+  db: Database,
+  clinicId: string,
+): Promise<string[]> {
+  const rows = await db
+    .select({ sourceKey: schema.anamnesis.sourceKey })
+    .from(schema.anamnesis)
+    .where(
+      and(
+        eq(schema.anamnesis.clinicId, clinicId),
+        isNotNull(schema.anamnesis.sourceKey),
+      ),
+    );
+  return rows.flatMap((r) => (r.sourceKey ? [r.sourceKey] : []));
 }

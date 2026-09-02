@@ -6,6 +6,7 @@ import {
   clinicSettingsSchema,
 } from "@/lib/clinic-settings";
 import type { Clinic } from "@/db/schema";
+import { effectivePlanOf } from "@/lib/plans";
 import { clinics } from "@/server/dal";
 import { withCoach } from "@/server/guard";
 import {
@@ -40,9 +41,10 @@ export const PUT = withCoach("coach.settings.update", async (request, ctx) => {
   const clinic = await clinics.getClinic(ctx);
   if (!clinic) return notFound("Clínica não encontrada.");
 
-  // The branded portal (custom slug + branding) is a paid-plan feature. Free
-  // clinics can still save name + feedback prefs, but not any branding value.
-  if (!canUseBrandedPortal(clinic.plan)) {
+  // The branded portal (custom slug + branding) is a paid-plan feature; a running
+  // trial counts as paid, so the setup guide's Portal step can actually save.
+  // Free clinics can still save name + feedback prefs, but not any branding value.
+  if (!canUseBrandedPortal(effectivePlanOf(clinic, new Date()))) {
     const wantsBranding = Boolean(
       data.portalSubdomain ||
         data.headline ||
@@ -89,5 +91,7 @@ function toDto(c: Clinic): ClinicSettingsDto {
     feedbackPreferredDay: c.feedbackPreferredDay,
     feedbackWhatsappReminder: c.feedbackWhatsappReminder,
     plan: c.plan,
+    brandedPortal: canUseBrandedPortal(effectivePlanOf(c, new Date())),
+    onboardingCompletedAt: c.onboardingCompletedAt?.toISOString() ?? null,
   };
 }

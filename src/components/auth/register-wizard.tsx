@@ -10,6 +10,7 @@ import { AuthDivider } from "@/components/auth/auth-divider";
 import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/auth/form-error";
 import { GoogleButton } from "@/components/auth/google-button";
+import { StepIndicator } from "@/components/ui/step-indicator";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { SIGNUP_PLANS } from "@/lib/plans";
 
@@ -31,7 +32,7 @@ export function RegisterWizard() {
 
   return (
     <>
-      <StepIndicator current={step} />
+      <StepIndicator labels={steps} current={step} className="mb-9" />
 
       <div className="w-full max-w-[460px] rounded-2xl bg-white px-10 py-9 shadow-rest">
         {step === 1 && (
@@ -54,50 +55,6 @@ export function RegisterWizard() {
         )}
       </div>
     </>
-  );
-}
-
-function StepIndicator({ current }: { current: number }) {
-  return (
-    <div className="mb-9 flex items-center">
-      {steps.map((label, i) => {
-        const index = i + 1;
-        const done = current > index;
-        const active = current >= index;
-        return (
-          <div key={label} className="flex items-center">
-            <div className="flex flex-col items-center gap-1">
-              <span
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full text-xs font-bold",
-                  active
-                    ? "bg-primary text-white"
-                    : "border-2 border-border bg-white text-meta",
-                )}
-              >
-                {done ? <Check className="size-3.5" strokeWidth={3} /> : index}
-              </span>
-              <span
-                className={cn(
-                  "text-eyebrow font-semibold",
-                  active ? "text-primary" : "text-meta",
-                )}
-              >
-                {label}
-              </span>
-            </div>
-            {index < steps.length && (
-              <span
-                className={cn(
-                  "mb-3.5 h-0.5 w-12",
-                  current > index ? "bg-primary" : "bg-border",
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
   );
 }
 

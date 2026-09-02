@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { Plan } from "@/db/schema";
@@ -10,6 +10,7 @@ import {
   TRIAL_PLAN,
   isTrialActive,
   resolveAiGenerations,
+  trialPlanFor,
 } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
@@ -20,8 +21,9 @@ import type { TenantContext } from "@/server/tenant";
  * returned is still derived from the session, never from client input.
  *
  * **Trial.** A clinic on `free` with `trial_ends_at` in the future resolves to
- * {@link TRIAL_PLAN} (Solo) limits — the cap goes to 50 so a coach can move a
- * real roster in during the trial. The stored `plan` is never mutated, so
+ * the limits of the plan it picked at sign-up (`trialPlanFor(intended_plan)`:
+ * Clínica for a Clínica pick, Solo for everyone else) — the student cap goes to
+ * at least 50 so a coach can move a real roster in during the trial. The stored `plan` is never mutated, so
  * expiry is a pure date comparison that stays correct even if no cron ever
  * runs, and `clinic_plan_change` keeps auditing only real plan changes.
  * Expiry is **non-destructive**: the cap drops back to 3 but the student cap is
@@ -45,7 +47,7 @@ export type PlanLimits = {
   aiGenerations: number | null;
   /** The clinic's stored plan — what it actually pays for. */
   plan: Plan;
-  /** The plan these limits came from: `TRIAL_PLAN` while a trial is running. */
+  /** The plan these limits came from: the trial's while a trial is running. */
   effectivePlan: Plan;
   /** Whether a trial is running right now (free plan + future `trialEndsAt`). */
   trialActive: boolean;
@@ -81,6 +83,8 @@ export const getPlanLimits = cache(async function getPlanLimits(
     .select({
       plan: schema.clinic.plan,
       trialEndsAt: schema.clinic.trialEndsAt,
+      // The sign-up pick decides WHICH plan the trial grants (see `trialPlanFor`).
+      intendedPlan: schema.clinic.intendedPlan,
       // Presence markers for the two joined limit rows. The boolean
       // capabilities are NOT NULL, so a null there already means "no row";
       // `aiGenerations` is nullable on purpose (Enterprise = unlimited), so a
@@ -111,13 +115,21 @@ export const getPlanLimits = cache(async function getPlanLimits(
     .leftJoin(schema.planLimit, eq(schema.planLimit.plan, schema.clinic.plan))
     // The trial plan's limits ride along on every lookup so the branch below is
     // a plain choice between two already-loaded rows — one query either way.
-    .leftJoin(trialLimit, eq(trialLimit.plan, TRIAL_PLAN))
+    // Which trial plan that is depends on the clinic's sign-up pick, so the join
+    // condition mirrors `trialPlanFor` in SQL rather than joining a constant.
+    .leftJoin(
+      trialLimit,
+      eq(
+        trialLimit.plan,
+        sql`case when ${schema.clinic.intendedPlan} = 'clinica' then 'clinica' else ${TRIAL_PLAN} end`,
+      ),
+    )
     .where(eq(schema.clinic.id, ctx.clinicId));
 
   const plan = row?.plan ?? "free";
   const trialEndsAt = row?.trialEndsAt ?? null;
   const trialActive = isTrialActive(plan, trialEndsAt, new Date());
-  const effectivePlan = trialActive ? TRIAL_PLAN : plan;
+  const effectivePlan = trialActive ? trialPlanFor(row?.intendedPlan ?? null) : plan;
 
   // The plan_limit row the caps come from: the trial plan's while a trial runs,
   // the clinic's own otherwise. Per-clinic overrides still win over both — an

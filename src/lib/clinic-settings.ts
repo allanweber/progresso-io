@@ -177,7 +177,42 @@ export type ClinicSettingsDto = {
   feedbackPreferredDay: Weekday;
   feedbackWhatsappReminder: boolean;
   plan: Plan;
+  /**
+   * Whether this clinic may publish a branded portal **right now** — the server's
+   * answer, already accounting for a running trial (a trialing clinic is still
+   * stored as `free`, so the client cannot derive this from `plan`). The PUT
+   * enforces the same gate; this only decides what the form offers.
+   */
+  brandedPortal: boolean;
+  /**
+   * When the setup guide was finished or skipped, ISO — null while it is still
+   * owed. Settings uses it to label its "Refazer guia" card.
+   */
+  onboardingCompletedAt: string | null;
 };
+
+/**
+ * A curated set of modern accent tones (Tailwind 600-ish) offered as swatches,
+ * so the coach picks a tasteful brand color without the raw OS color dialog. A
+ * custom picker still covers anything off-palette.
+ *
+ * Shared by the two places that ask for it — the settings screen and the setup
+ * guide's Portal step — so the same twelve swatches appear in both.
+ */
+export const ACCENT_PRESETS = [
+  "#16a34a", // green
+  "#059669", // emerald
+  "#0d9488", // teal
+  "#0ea5e9", // sky
+  "#2563eb", // blue
+  "#4f46e5", // indigo
+  "#7c3aed", // violet
+  "#db2777", // pink
+  "#e11d48", // rose
+  "#ea580c", // orange
+  "#d97706", // amber
+  "#0f172a", // slate
+] as const;
 
 /** Plans allowed to publish a branded portal (a custom slug + branding). */
 export const BRANDED_PORTAL_PLANS: readonly Plan[] = [
@@ -186,7 +221,14 @@ export const BRANDED_PORTAL_PLANS: readonly Plan[] = [
   "enterprise",
 ];
 
-/** Whether a plan may publish a branded portal (free is excluded). */
+/**
+ * Whether a plan may publish a branded portal (free is excluded).
+ *
+ * Takes the clinic's **effective** plan (`effectivePlanOf`), not its stored one:
+ * a clinic in its trial is stored as `free` while genuinely holding Solo (or
+ * Clínica) capabilities, and gating on the stored plan is what made the setup
+ * guide's Portal step offer something the API would then refuse.
+ */
 export function canUseBrandedPortal(plan: Plan): boolean {
   return BRANDED_PORTAL_PLANS.includes(plan);
 }

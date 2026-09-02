@@ -362,6 +362,15 @@ export const clinic = pgTable(
     // seed (see `ensureClinicStarters`); set to the completion time once all
     // starters are in. Read before seeding, so the run happens exactly once.
     startersSeededAt: timestamp("starters_seeded_at"),
+    // When the coach finished (or skipped) the setup guide at /onboarding. NULL
+    // means the guide is still owed: the coach layout redirects every /coach/*
+    // path to it until this is stamped. Stamped on skip too — a coach who said
+    // no is never asked twice; the re-run entry point in Configurações is the
+    // way back in. Clinic-scoped (not per-user) because every step the guide
+    // writes — starters, feedback prefs, team, portal — is clinic-wide, and the
+    // team/portal steps are owner-only anyway; a coach who joins by invite lands
+    // straight on the dashboard.
+    onboardingCompletedAt: timestamp("onboarding_completed_at"),
     // End of the 14-day trial granted at sign-up. While this is in the future
     // AND `plan` is still `free`, the clinic resolves to **Solo** limits — see
     // `getPlanLimits`. The trial is deliberately NOT a `plan` value: keeping the

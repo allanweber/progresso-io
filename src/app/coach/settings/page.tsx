@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, FileText, Trash2, UserPlus, X } from "lucide-react";
@@ -34,7 +35,7 @@ import {
 } from "@/lib/coaches";
 import type { FeedbackFrequency, Weekday } from "@/db/schema";
 import {
-  canUseBrandedPortal,
+  ACCENT_PRESETS,
   clinicLogoUrl,
   clinicSettingsSchema,
   type ClinicSettingsDto,
@@ -70,26 +71,6 @@ import { cn } from "@/lib/utils";
  * than its absence does, and one of them contradicted the Pix flow the billing
  * banner already offers.
  */
-
-/**
- * A curated set of modern accent tones (Tailwind 600-ish) offered as swatches,
- * so the coach picks a tasteful brand color without the raw OS color dialog. A
- * custom picker still covers anything off-palette.
- */
-const ACCENT_PRESETS = [
-  "#16a34a", // green
-  "#059669", // emerald
-  "#0d9488", // teal
-  "#0ea5e9", // sky
-  "#2563eb", // blue
-  "#4f46e5", // indigo
-  "#7c3aed", // violet
-  "#db2777", // pink
-  "#e11d48", // rose
-  "#ea580c", // orange
-  "#d97706", // amber
-  "#0f172a", // slate
-] as const;
 
 /** Card chrome with a titled header, shared by every settings section. */
 function SettingsCard({
@@ -733,7 +714,10 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
   }, [isDirty]);
 
   const plan = PLAN_META[initial.plan];
-  const branded = canUseBrandedPortal(initial.plan);
+  // Trial-aware, and decided by the server: a clinic in its trial is stored as
+  // `free` while genuinely holding Solo/Clínica capabilities, so the plan string
+  // on this DTO cannot answer this.
+  const branded = initial.brandedPortal;
   const logoUploadError =
     logoUpload.error instanceof Error ? logoUpload.error.message : undefined;
 
@@ -1196,6 +1180,18 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
 
           {/* Faturas — read-only ledger kept by the platform admin */}
           <CoachInvoicesCard />
+
+          {/* The way back into the setup guide. An action, not a setting, which
+              is why it sits in this column rather than inside a form card. */}
+          <SettingsCard title="Guia de configuração">
+            <p className="text-body-dense text-muted-foreground">
+              Refaça o guia inicial para importar mais modelos ou rever suas
+              preferências. Ele nunca apaga o que já está na sua biblioteca.
+            </p>
+            <Button asChild variant="secondary" className="mt-4">
+              <Link href="/onboarding">Refazer guia</Link>
+            </Button>
+          </SettingsCard>
         </div>
       </div>
 

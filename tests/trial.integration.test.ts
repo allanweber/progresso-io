@@ -52,10 +52,16 @@ beforeAll(async () => {
 
   await db.delete(schema.planLimit);
   await db.insert(schema.planLimit).values([
-    { plan: "free", maxStudents: 3, whatsapp: false, calendar: false },
-    { plan: "solo", maxStudents: 50, whatsapp: true, calendar: true },
-    { plan: "clinica", maxStudents: 100, whatsapp: true, calendar: true },
-    { plan: "enterprise", maxStudents: null, whatsapp: true, calendar: true },
+    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, calendar: false },
+    { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, calendar: true },
+    { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, calendar: true },
+    {
+      plan: "enterprise",
+      maxStudents: null,
+      maxCoaches: null,
+      whatsapp: true,
+      calendar: true,
+    },
   ]);
 
   await auth.api.signUpEmail({
@@ -77,6 +83,54 @@ beforeEach(async () => {
   // Back to the state sign-up leaves behind: free plan, live trial.
   await setPlan("free");
   await setTrial(inDays(14));
+});
+
+/** The plan the coach picked in the sign-up wizard (recorded, never granted). */
+async function setIntendedPlan(plan: schema.Plan | null) {
+  await db
+    .update(schema.clinic)
+    .set({ intendedPlan: plan })
+    .where(eq(schema.clinic.id, ctx.clinicId));
+}
+
+describe("trial → the picked plan's limits", () => {
+  /**
+   * A Clínica sign-up trials Clínica. Without this the two things that plan
+   * exists for — a second coach and a branded portal — are refused for the whole
+   * evaluation window, and the setup guide's Clínica steps would offer settings
+   * the API then rejects with a 403.
+   */
+  it("gives a Clínica pick the Clínica caps, still stored as free", async () => {
+    await setIntendedPlan("clinica");
+    const limits = await plans.getPlanLimits(ctx);
+
+    expect(limits.trialActive).toBe(true);
+    expect(limits.effectivePlan).toBe("clinica");
+    expect(limits.maxStudents).toBe(100);
+    expect(limits.maxCoaches).toBe(3);
+    // The stored plan is untouched — the trial is a date, not a grant.
+    expect(limits.plan).toBe("free");
+  });
+
+  it("drops back to the stored plan when a Clínica trial expires", async () => {
+    await setIntendedPlan("clinica");
+    await setTrial(inDays(-1));
+    const limits = await plans.getPlanLimits(ctx);
+
+    expect(limits.trialActive).toBe(false);
+    expect(limits.effectivePlan).toBe("free");
+    expect(limits.maxCoaches).toBe(1);
+  });
+
+  it("still trials Solo for a Free or Solo pick", async () => {
+    // Nobody trials *less* than they did before the pick was honoured.
+    for (const pick of ["free", "solo", null] as const) {
+      await setIntendedPlan(pick);
+      const limits = await plans.getPlanLimits(ctx);
+      expect(limits.effectivePlan).toBe(TRIAL_PLAN);
+      expect(limits.maxCoaches).toBe(1);
+    }
+  });
 });
 
 describe("trial → Solo limits", () => {

@@ -89,15 +89,49 @@ export const PLAN_DEFAULT_AI_GENERATIONS: Record<Plan, number | null> = {
 };
 
 /**
- * Trial: length, and the plan whose limits a trialing clinic gets.
+ * Trial: length, and the **default** plan whose limits a trialing clinic gets.
  *
  * Advertised at `/register` as "14 dias grátis, sem cartão", so these two must
- * stay in step with that copy. The trial grants **Solo** (not Clínica): it is
- * the conversion target, its feature set is what a solo coach evaluates, and
- * trialing the top tier would make the drop at expiry feel worse.
+ * stay in step with that copy. Solo is the conversion target and the floor every
+ * trial gets; a coach who explicitly picked Clínica at sign-up trials Clínica
+ * instead — see {@link trialPlanFor}, which is what the limits lookup resolves.
  */
 export const TRIAL_DAYS = 14;
 export const TRIAL_PLAN = "solo" satisfies Plan;
+
+/**
+ * The plan a trialing clinic is granted, given the plan it picked at sign-up
+ * (`clinic.intended_plan`).
+ *
+ * A coach who picked **Clínica** trials Clínica — otherwise the two things that
+ * plan is bought for (a shared team and a branded Portal do aluno) would be
+ * invisible for the whole evaluation window, including in the setup guide that
+ * offers to configure them. Everyone else trials {@link TRIAL_PLAN} (Solo), the
+ * conversion target, which is also what a Free pick got before this existed —
+ * so no sign-up ever trials *less* than it used to.
+ *
+ * Never returns `enterprise`: it isn't self-selectable at sign-up, and an
+ * unknown/absent intent falls back to Solo.
+ */
+export function trialPlanFor(intendedPlan: Plan | null): Plan {
+  return intendedPlan === "clinica" ? "clinica" : TRIAL_PLAN;
+}
+
+/**
+ * The plan whose capabilities a clinic actually has right now: the trial's while
+ * one is running, the clinic's own otherwise. The single definition of
+ * "effective plan" — the limits lookup, the AI sweep and every branded-portal
+ * gate resolve it identically, so a coach can never be told they have a feature
+ * on one screen and refused it on another.
+ */
+export function effectivePlanOf(
+  clinic: { plan: Plan; intendedPlan: Plan | null; trialEndsAt: Date | null },
+  now: Date,
+): Plan {
+  return isTrialActive(clinic.plan, clinic.trialEndsAt, now)
+    ? trialPlanFor(clinic.intendedPlan)
+    : clinic.plan;
+}
 
 /**
  * A trial applies only to a clinic still on `free`, and only until it ends.

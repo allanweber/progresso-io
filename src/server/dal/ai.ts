@@ -4,7 +4,7 @@ import type { AiGenerationKind, Plan } from "@/db/schema";
 import type { DB } from "@/db";
 import { schema } from "@/db";
 import type { LlmCall, LlmUsage } from "@/lib/llm-provider";
-import { TRIAL_PLAN, isTrialActive, resolveAiGenerations } from "@/lib/plans";
+import { effectivePlanOf, resolveAiGenerations } from "@/lib/plans";
 import { costMicroUsd, priceAt } from "@/lib/provider-prices";
 import type { TenantContext } from "@/server/tenant";
 
@@ -503,6 +503,8 @@ export async function getAdminAiOverview(
       name: schema.clinic.name,
       plan: schema.clinic.plan,
       trialEndsAt: schema.clinic.trialEndsAt,
+      // Which plan a trial grants depends on the sign-up pick (`trialPlanFor`).
+      intendedPlan: schema.clinic.intendedPlan,
       override: schema.clinic.aiGenerationsOverride,
     })
     .from(schema.clinic);
@@ -661,8 +663,7 @@ export async function getAdminAiOverview(
 
   const tenants = clinics
     .map((c) => {
-      const trialActive = isTrialActive(c.plan, c.trialEndsAt, now);
-      const effectivePlan = trialActive ? TRIAL_PLAN : c.plan;
+      const effectivePlan = effectivePlanOf(c, now);
       const limitRow = limitByPlan.get(effectivePlan);
       return {
         clinicId: c.id,

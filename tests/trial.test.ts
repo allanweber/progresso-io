@@ -4,6 +4,8 @@ import {
   formatTrialDaysLeft,
   TRIAL_DAYS,
   TRIAL_PLAN,
+  effectivePlanOf,
+  trialPlanFor,
   trialDaysLeft,
   trialEndsAtFrom,
 } from "@/lib/plans";
@@ -67,5 +69,58 @@ describe("formatTrialDaysLeft", () => {
 describe("TRIAL_PLAN", () => {
   it("is Solo — the conversion target, not the top tier", () => {
     expect(TRIAL_PLAN).toBe("solo");
+  });
+});
+
+describe("trialPlanFor", () => {
+  it("trials Clínica for a coach who picked Clínica", () => {
+    // Otherwise the two features that plan is bought for — a shared team and a
+    // branded portal — are invisible for the whole 14 days, including in the
+    // setup guide that offers to configure them.
+    expect(trialPlanFor("clinica")).toBe("clinica");
+  });
+
+  it("trials Solo for every other pick, and for no pick at all", () => {
+    expect(trialPlanFor("solo")).toBe("solo");
+    expect(trialPlanFor("free")).toBe("solo");
+    expect(trialPlanFor(null)).toBe("solo");
+    // Enterprise is not self-selectable at sign-up; if one ever lands here it
+    // must not hand out Enterprise limits.
+    expect(trialPlanFor("enterprise")).toBe("solo");
+  });
+});
+
+describe("effectivePlanOf", () => {
+  const now = new Date("2026-03-01T12:00:00Z");
+  const future = new Date("2026-03-10T12:00:00Z");
+  const past = new Date("2026-02-20T12:00:00Z");
+
+  it("grants the picked plan while the trial runs", () => {
+    expect(
+      effectivePlanOf(
+        { plan: "free", intendedPlan: "clinica", trialEndsAt: future },
+        now,
+      ),
+    ).toBe("clinica");
+  });
+
+  it("falls back to the stored plan once the trial is spent", () => {
+    expect(
+      effectivePlanOf(
+        { plan: "free", intendedPlan: "clinica", trialEndsAt: past },
+        now,
+      ),
+    ).toBe("free");
+  });
+
+  it("ignores the trial for a clinic that actually pays", () => {
+    // A trial only applies while the plan is still free, so a paying clinic's
+    // leftover deadline can never downgrade OR upgrade it.
+    expect(
+      effectivePlanOf(
+        { plan: "solo", intendedPlan: "clinica", trialEndsAt: future },
+        now,
+      ),
+    ).toBe("solo");
   });
 });

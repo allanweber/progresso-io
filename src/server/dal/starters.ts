@@ -1,7 +1,10 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { type DB, type Database, schema } from "@/db";
-import { seedClinicAnamneses } from "@/server/dal/anamneses";
+import {
+  listSeededAnamnesisKeys,
+  seedClinicAnamneses,
+} from "@/server/dal/anamneses";
 import type { DietMealInput } from "@/server/dal/diets";
 import type { WorkoutSessionInput } from "@/server/dal/workouts";
 import { STARTER_DIETS, type StarterDiet } from "@/server/diets/starter-templates";
@@ -225,72 +228,178 @@ async function insertMissingWorkouts(
 /*  ensureClinicStarters — the one-shot background seed (first sign-in)         */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Which starters to import. An omitted (or `undefined`) domain means **all** of
+ * it — that is what skipping the setup guide does, and what the dev seed and the
+ * clinic bootstrap have always done. An empty array means "none of this domain",
+ * which is a coach who unticked everything, not a missing field.
+ */
+export type StarterSelection = {
+  diets?: readonly string[];
+  workouts?: readonly string[];
+  anamneses?: readonly string[];
+};
+
 export type EnsureStartersResult = {
-  /** True when this call performed the seed; false when it was already done. */
+  /** True when this call stamped the flag (i.e. it was the clinic's first import). */
   seeded: boolean;
   startersSeededAt: Date | null;
+  /** The `source_key`s actually inserted by this call, per domain. */
+  imported: { diets: string[]; workouts: string[]; anamneses: string[] };
 };
 
 /**
- * Seeds a clinic's starter anamneses + diets + workouts exactly once, in one
- * transaction, then stamps `clinic.starters_seeded_at`. Guaranteed to run at most
- * once per clinic:
+ * Imports a clinic's starter anamneses + diets + workouts, in one transaction,
+ * and stamps `clinic.starters_seeded_at` the first time it runs.
  *
- * 1. Fast path — reads `starters_seeded_at`; if set, returns immediately (no
- *    lock, no work). This is the steady-state path every sign-in after the first.
- * 2. Claim — takes a transaction-scoped Postgres advisory lock keyed by the
- *    clinic id, so concurrent first-load calls for the same clinic serialize
- *    (and different clinics never contend).
- * 3. Double-check — re-reads the flag inside the lock; a caller that queued
- *    behind the winner sees it set and no-ops.
- * 4. Seed + flag — seeds all three domains and sets the flag in the SAME
- *    transaction, so a crash rolls everything back (flag stays null) and the next
- *    call redoes it; the per-domain inserts are idempotent regardless.
+ * This is the **only** path that puts starters into a clinic: the setup guide
+ * calls it with the coach's selection when they finish the Modelos step, and
+ * with nothing selected-out when they skip. It used to fire unconditionally from
+ * the coach layout on first sign-in, which imported all 30 templates before the
+ * coach could be asked which they wanted.
  *
- * Returns `{ seeded: false }` when the clinic is unknown or already seeded.
+ * Safe to call repeatedly, which is what makes the guide re-runnable:
+ *
+ * 1. Claim — a transaction-scoped Postgres advisory lock keyed by the clinic id,
+ *    so concurrent callers for the same clinic serialize (and different clinics
+ *    never contend).
+ * 2. Import — every domain inserts only what the clinic is **missing**, matched
+ *    on `source_key`, so a re-run adds the newly-ticked templates and leaves the
+ *    existing ones (which the coach may have edited) untouched. It is strictly
+ *    additive: unticking something here never deletes it.
+ * 3. Flag — `starters_seeded_at` is stamped in the SAME transaction, only if it
+ *    was still null, so a crash rolls everything back and the next call redoes
+ *    it. The flag records that the clinic has been through this once; it no
+ *    longer means "has all 30".
+ *
+ * Returns `seeded: false` with empty imports when the clinic is unknown.
  */
 export async function ensureClinicStarters(
   db: DB,
   clinicId: string,
   coachId: string | null,
+  selection?: StarterSelection,
 ): Promise<EnsureStartersResult> {
-  // 1. Fast path — no work once seeded.
+  const empty = { diets: [], workouts: [], anamneses: [] };
+
   const [current] = await db
     .select({ at: schema.clinic.startersSeededAt })
     .from(schema.clinic)
     .where(eq(schema.clinic.id, clinicId));
-  if (!current) return { seeded: false, startersSeededAt: null };
-  if (current.at) return { seeded: false, startersSeededAt: current.at };
+  if (!current) return { seeded: false, startersSeededAt: null, imported: empty };
+
+  const wantedDiets = pickStarters(STARTER_DIETS, selection?.diets);
+  const wantedWorkouts = pickStarters(STARTER_WORKOUTS, selection?.workouts);
 
   const result = await db.transaction(async (tx) => {
-    // 2. Claim the clinic — serialize concurrent first-load callers.
+    // 1. Claim the clinic — serialize concurrent callers.
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`clinic-starters:${clinicId}`})::bigint)`,
     );
 
-    // 3. Double-check inside the lock — a queued caller no-ops here.
+    // Re-read the flag inside the lock so two callers can't both stamp it.
     const [row] = await tx
       .select({ at: schema.clinic.startersSeededAt })
       .from(schema.clinic)
       .where(eq(schema.clinic.id, clinicId));
-    if (!row) return { seeded: false, at: null as Date | null };
-    if (row.at) return { seeded: false, at: row.at };
+    if (!row) return { seeded: false, at: null as Date | null, imported: empty };
 
-    // 4. Seed all three domains + stamp the flag, atomically.
+    // 2. Import what's missing, in every domain.
     const resolver = await loadStarterResolver(tx);
-    await seedClinicAnamneses(tx, clinicId, coachId);
-    await insertMissingDiets(tx, clinicId, coachId, resolver, STARTER_DIETS);
-    await insertMissingWorkouts(tx, clinicId, coachId, resolver, STARTER_WORKOUTS);
+    const anamnesisKeys =
+      selection?.anamneses === undefined
+        ? undefined
+        : [...selection.anamneses];
+    const anamnesesBefore = await listSeededAnamnesisKeys(tx, clinicId);
+    await seedClinicAnamneses(tx, clinicId, coachId, anamnesisKeys);
+    const anamnesesAfter = await listSeededAnamnesisKeys(tx, clinicId);
+    const seededAnamneses = anamnesesAfter.filter(
+      (k) => !anamnesesBefore.includes(k),
+    );
 
-    const now = new Date();
-    await tx
-      .update(schema.clinic)
-      .set({ startersSeededAt: now, updatedAt: new Date() })
-      .where(eq(schema.clinic.id, clinicId));
-    return { seeded: true, at: now };
+    const diets = await insertMissingDiets(
+      tx,
+      clinicId,
+      coachId,
+      resolver,
+      wantedDiets,
+    );
+    const workouts = await insertMissingWorkouts(
+      tx,
+      clinicId,
+      coachId,
+      resolver,
+      wantedWorkouts,
+    );
+
+    // 3. Stamp the flag on the first pass only.
+    let at = row.at;
+    let seeded = false;
+    if (!at) {
+      at = new Date();
+      seeded = true;
+      await tx
+        .update(schema.clinic)
+        .set({ startersSeededAt: at, updatedAt: new Date() })
+        .where(eq(schema.clinic.id, clinicId));
+    }
+
+    return {
+      seeded,
+      at,
+      imported: {
+        diets: diets.imported,
+        workouts: workouts.imported,
+        anamneses: seededAnamneses,
+      },
+    };
   });
 
-  return { seeded: result.seeded, startersSeededAt: result.at };
+  return {
+    seeded: result.seeded,
+    startersSeededAt: result.at,
+    imported: result.imported,
+  };
+}
+
+/** `all` when no keys were given, else the starters whose key was ticked. */
+function pickStarters<T extends { key: string }>(
+  all: T[],
+  keys: readonly string[] | undefined,
+): T[] {
+  return keys === undefined ? all : all.filter((s) => keys.includes(s.key));
+}
+
+/**
+ * The starter `source_key`s a clinic already holds, per domain. The setup guide
+ * reads this to render an already-imported template as ticked and disabled
+ * ("já na sua biblioteca") rather than offering to import it twice.
+ */
+export async function listClinicStarterKeys(
+  db: DB,
+  clinicId: string,
+): Promise<{ diets: string[]; workouts: string[]; anamneses: string[] }> {
+  const [diets, workouts, anamneses] = await Promise.all([
+    db
+      .select({ sourceKey: schema.diet.sourceKey })
+      .from(schema.diet)
+      .where(
+        and(eq(schema.diet.clinicId, clinicId), isNotNull(schema.diet.sourceKey)),
+      ),
+    db
+      .select({ sourceKey: schema.workout.sourceKey })
+      .from(schema.workout)
+      .where(
+        and(
+          eq(schema.workout.clinicId, clinicId),
+          isNotNull(schema.workout.sourceKey),
+        ),
+      ),
+    listSeededAnamnesisKeys(db, clinicId),
+  ]);
+  const keys = (rows: { sourceKey: string | null }[]) =>
+    rows.flatMap((r) => (r.sourceKey ? [r.sourceKey] : []));
+  return { diets: keys(diets), workouts: keys(workouts), anamneses };
 }
 
 /* -------------------------------------------------------------------------- */

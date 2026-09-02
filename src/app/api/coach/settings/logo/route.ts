@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { canUseBrandedPortal } from "@/lib/clinic-settings";
+import { effectivePlanOf } from "@/lib/plans";
 import { clinics } from "@/server/dal";
 import { apiError, forbidden } from "@/server/api";
 import { withCoach } from "@/server/guard";
@@ -15,7 +16,7 @@ import { receiveClinicLogo } from "@/server/r2";
 export const POST = withCoach("coach.settings.logo", async (request, ctx) => {
   const clinic = await clinics.getClinic(ctx);
   if (!clinic) return forbidden();
-  if (!canUseBrandedPortal(clinic.plan)) {
+  if (!canUseBrandedPortal(effectivePlanOf(clinic, new Date()))) {
     return apiError(
       "O portal personalizado está disponível apenas nos planos pagos.",
       403,

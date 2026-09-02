@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { type DB, schema } from "@/db";
 import type { Clinic, Plan } from "@/db/schema";
@@ -8,7 +8,7 @@ import {
   type ClinicSettingsDto,
   type ClinicSettingsValues,
 } from "@/lib/clinic-settings";
-import { trialEndsAtFrom } from "@/lib/plans";
+import { effectivePlanOf, trialEndsAtFrom } from "@/lib/plans";
 import type { TenantContext } from "@/server/tenant";
 
 /* -------------------------------------------------------------------------- */
@@ -102,6 +102,8 @@ export async function getClinicSettings(
     feedbackPreferredDay: clinic.feedbackPreferredDay,
     feedbackWhatsappReminder: clinic.feedbackWhatsappReminder,
     plan: clinic.plan,
+    brandedPortal: canUseBrandedPortal(effectivePlanOf(clinic, new Date())),
+    onboardingCompletedAt: clinic.onboardingCompletedAt?.toISOString() ?? null,
   };
 }
 
@@ -161,6 +163,35 @@ export async function updateClinicSettings(
 }
 
 /**
+ * Marks the setup guide as done for this clinic — on finish and on skip alike.
+ *
+ * Stamps only the first time: the column records when the clinic first got
+ * through the guide, and a re-run months later must not rewrite that. Returns
+ * the effective timestamp either way, so the caller never has to re-read.
+ */
+export async function completeOnboarding(ctx: TenantContext): Promise<Date> {
+  const now = new Date();
+  const [updated] = await ctx.db
+    .update(schema.clinic)
+    .set({ onboardingCompletedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(schema.clinic.id, ctx.clinicId),
+        isNull(schema.clinic.onboardingCompletedAt),
+      ),
+    )
+    .returning({ at: schema.clinic.onboardingCompletedAt });
+  if (updated?.at) return updated.at;
+
+  // Already stamped (a re-run, or a double-submit) — report the original.
+  const [row] = await ctx.db
+    .select({ at: schema.clinic.onboardingCompletedAt })
+    .from(schema.clinic)
+    .where(eq(schema.clinic.id, ctx.clinicId));
+  return row?.at ?? now;
+}
+
+/**
  * Persists the clinic's logo storage key (tenant-scoped). Called by the logo
  * upload route after the file is stored; the raw key never leaves the server.
  */
@@ -194,6 +225,8 @@ export async function getPublicClinicBySlug(
       name: schema.clinic.name,
       slug: schema.clinic.portalSubdomain,
       plan: schema.clinic.plan,
+      intendedPlan: schema.clinic.intendedPlan,
+      trialEndsAt: schema.clinic.trialEndsAt,
       logoKey: schema.clinic.logoKey,
       headline: schema.clinic.headline,
       description: schema.clinic.description,
@@ -205,8 +238,10 @@ export async function getPublicClinicBySlug(
     .from(schema.clinic)
     .where(eq(schema.clinic.portalSubdomain, slug))
     .limit(1);
-  // No row, or the clinic downgraded off a paid plan → the portal is unpublished.
-  if (!c || !c.slug || !canUseBrandedPortal(c.plan)) return null;
+  // No row, or the clinic downgraded off a paid plan (a running trial counts as
+  // paid) → the portal is unpublished.
+  if (!c || !c.slug || !canUseBrandedPortal(effectivePlanOf(c, new Date())))
+    return null;
   return {
     slug: c.slug,
     name: c.name,
@@ -230,10 +265,15 @@ export async function getPublicLogoKeyBySlug(
   slug: string,
 ): Promise<string | null> {
   const [c] = await db
-    .select({ logoKey: schema.clinic.logoKey, plan: schema.clinic.plan })
+    .select({
+      logoKey: schema.clinic.logoKey,
+      plan: schema.clinic.plan,
+      intendedPlan: schema.clinic.intendedPlan,
+      trialEndsAt: schema.clinic.trialEndsAt,
+    })
     .from(schema.clinic)
     .where(eq(schema.clinic.portalSubdomain, slug))
     .limit(1);
-  if (!c || !canUseBrandedPortal(c.plan)) return null;
+  if (!c || !canUseBrandedPortal(effectivePlanOf(c, new Date()))) return null;
   return c.logoKey;
 }

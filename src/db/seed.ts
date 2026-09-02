@@ -718,6 +718,10 @@ async function seed() {
       instagram: "@studioforja",
       siteUrl: "https://studioforja.com.br",
       accentColor: "#7c3aed",
+      // An established clinic, so the setup guide is behind it: without this the
+      // demo coach (and every e2e spec using their session) would be redirected
+      // out of /coach into /onboarding on the next sign-in.
+      onboardingCompletedAt: new Date(),
     })
     .where(eq(schema.clinic.id, coachClinic.id));
 
@@ -797,10 +801,10 @@ async function seed() {
   await seedAlunoWorkout(db, schema, studentWorkouts, coachCtx, studentId);
   await seedAlunoCheckins(db, schema, coachClinic.id, studentId, aluno.id, coach.id);
 
-  // The clinic's own starter templates — anamneses + diets + workouts — the same
-  // one-shot background seed a real clinic gets on the coach's first sign-in.
-  // Seeded here so local/e2e data is ready without a sign-in. Idempotent and
-  // flag-guarded (sets clinic.starters_seeded_at).
+  // The clinic's own starter templates — anamneses + diets + workouts. A real
+  // clinic imports these from the setup guide (the coach picks which); the demo
+  // clinic takes all of them, which is what skipping the guide does. Seeded here
+  // so local/e2e data is ready without a sign-in. Idempotent per template.
   const { ensureClinicStarters } = await import("@/server/dal/starters");
   const starters = await ensureClinicStarters(db, coachClinic.id, coach.id);
   if (starters.seeded) {

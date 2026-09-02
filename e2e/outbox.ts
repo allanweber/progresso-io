@@ -31,6 +31,8 @@ export type OutboxMessage = {
   subject: string;
   kind: string;
   url?: string;
+  /** The one-time code, for `kind: "otp"` messages. */
+  code?: string;
   at: string;
 };
 

@@ -106,6 +106,14 @@ describe("clinic settings", () => {
   });
 });
 
+/** Spends the trial every sign-up grants, leaving a genuinely free clinic. */
+async function clearTrial(ctx: TenantContext) {
+  await h
+    .update(schema.clinic)
+    .set({ trialEndsAt: null })
+    .where(eq(schema.clinic.id, ctx.clinicId));
+}
+
 describe("public branded portal", () => {
   const branding = {
     headline: "Olá",
@@ -127,7 +135,8 @@ describe("public branded portal", () => {
       ...branding,
     });
 
-    // Free plan (the sign-up default) → the portal is not published.
+    // Free plan with the sign-up trial spent → the portal is not published.
+    await clearTrial(ctx);
     expect(await clinics.getPublicClinicBySlug(h, "brand-a")).toBeNull();
 
     // Upgrade to a paid plan → it resolves, with only public branding fields.
@@ -162,8 +171,42 @@ describe("public branded portal", () => {
 
     await h
       .update(schema.clinic)
-      .set({ plan: "free" })
+      .set({ plan: "free", trialEndsAt: null })
       .where(eq(schema.clinic.id, ctx.clinicId));
     expect(await clinics.getPublicClinicBySlug(h, "brand-b")).toBeNull();
+  });
+
+  /**
+   * The portal gate reads the **effective** plan, so a clinic still inside its
+   * 14-day trial publishes: the setup guide offers the Portal step during the
+   * trial, and a step that saved a slug the public route then refused to serve
+   * would be a lie. Expiry takes the portal down again — but the slug stays on
+   * the row, reserved, so paying later restores the same address.
+   */
+  it("publishes during the sign-up trial and stops when it expires", async () => {
+    const ctx = await coachContext("brand-c@example.com", "Brand C");
+    await clinics.updateClinicSettings(ctx, {
+      name: "Brand C",
+      portalSubdomain: "brand-c",
+      ...branding,
+    });
+
+    // Stored plan is still `free` — the trial granted from sign-up is what
+    // resolves here.
+    const [row] = await h
+      .select({ plan: schema.clinic.plan, trialEndsAt: schema.clinic.trialEndsAt })
+      .from(schema.clinic)
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    expect(row.plan).toBe("free");
+    expect(row.trialEndsAt).not.toBeNull();
+    expect(await clinics.getPublicClinicBySlug(h, "brand-c")).not.toBeNull();
+
+    // Trial over → dark, but the slug is still theirs.
+    await h
+      .update(schema.clinic)
+      .set({ trialEndsAt: new Date(Date.now() - 86_400_000) })
+      .where(eq(schema.clinic.id, ctx.clinicId));
+    expect(await clinics.getPublicClinicBySlug(h, "brand-c")).toBeNull();
+    expect((await clinics.getClinicSettings(ctx))!.portalSubdomain).toBe("brand-c");
   });
 });
