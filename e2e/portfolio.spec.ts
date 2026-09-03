@@ -14,16 +14,40 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
  * and the aluno opens their plan on a phone — a portfolio that only shows one
  * of those is hiding half the work.
  *
- * Output: `portfolio/images/<name>-{desktop,mobile}.png`.
+ * Output: `portfolio/images/<name>-{desktop,mobile}.png`, plus the landing
+ * page's shots in `public/landing` — but only when asked (see WRITE_SHOTS).
  */
 
 const COACH_STORAGE = "e2e/.auth/coach.json";
 const ALUNO_STORAGE = "e2e/.auth/aluno.json";
 const ADMIN_STORAGE = "e2e/.auth/admin.json";
 
+/**
+ * Whether this run actually writes the images.
+ *
+ * Off by default, and the tour still runs: every assertion here is real
+ * coverage of a real surface, so a plain `pnpm test:e2e` keeps all of it. What
+ * it no longer does is rewrite 51 tracked PNGs. A re-capture is never
+ * byte-identical — the seeded data moves (relative dates, counts) and
+ * antialiasing differs shot to shot — so every full run used to leave the whole
+ * of `portfolio/images` and `public/landing` modified in git, and the landing
+ * shots came back at their raw 2x weight (255 kB against the 79 kB committed)
+ * until `landing:optimize` was remembered.
+ *
+ * Regenerate them deliberately with `pnpm test:e2e:shots`, which sets this and
+ * runs the optimizer afterwards.
+ */
+const WRITE_SHOTS = process.env.E2E_SHOTS === "1";
+
 const OUT = "portfolio/images";
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
+
+/** `page.screenshot`, but only on a run that was asked for images. */
+async function capture(page: Page, options: Parameters<Page["screenshot"]>[0]) {
+  if (!WRITE_SHOTS) return;
+  await page.screenshot(options);
+}
 
 /**
  * Photographs the current page at both viewports.
@@ -42,13 +66,13 @@ async function shoot(page: Page, name: string, desktop = DESKTOP) {
   // stamps every `position: fixed` element — the portal's bottom tab bar — into
   // the middle of the page, which is an artifact of the screenshot and not
   // something any aluno sees. What a phone shows is one screen.
-  await page.screenshot({ path: `${OUT}/${name}-mobile.png` });
+  await capture(page, { path: `${OUT}/${name}-mobile.png` });
 
   await page.setViewportSize(desktop);
   await page.waitForTimeout(250);
   await loadLazyImages(page);
   await flattenStickyChrome(page);
-  await page.screenshot({ path: `${OUT}/${name}-desktop.png`, fullPage: true });
+  await capture(page, { path: `${OUT}/${name}-desktop.png`, fullPage: true });
 }
 
 /**
@@ -422,7 +446,7 @@ test.describe("landing assets — coach", () => {
     // Queues with real counts in them — the thing the hero is claiming.
     await expect(page.getByRole("heading", { name: "Sua fila de hoje" })).toBeVisible();
     await hideTenantBanner(page);
-    await page.screenshot({ path: `${LANDING_OUT}/app-dashboard.png` });
+    await capture(page, { path: `${LANDING_OUT}/app-dashboard.png` });
   });
 
   test("the second shot is a real plan with real food and real macros", async ({
@@ -435,7 +459,7 @@ test.describe("landing assets — coach", () => {
     await expect(page.getByText("Arroz, tipo 1, cozido").first()).toBeVisible();
     await expect(page.getByText(/kcal/).first()).toBeVisible();
     await hideTenantBanner(page);
-    await page.screenshot({ path: `${LANDING_OUT}/app-diet.png` });
+    await capture(page, { path: `${LANDING_OUT}/app-diet.png` });
   });
 });
 
@@ -453,7 +477,7 @@ test.describe("landing assets — aluno", () => {
     await expect(page.getByText("Carregando…")).toHaveCount(0);
     await expect(page.getByText(/rascunho/i)).toHaveCount(0);
     await expect(page.getByText(/kcal/).first()).toBeVisible();
-    await page.screenshot({ path: `${LANDING_OUT}/app-portal.png` });
+    await capture(page, { path: `${LANDING_OUT}/app-portal.png` });
   });
 });
 
@@ -574,7 +598,7 @@ async function shootRegion(
     viewport.width,
   );
 
-  await page.screenshot({
+  await capture(page, {
     path: `${LANDING_OUT}/${name}.png`,
     clip: { x, y, width: size.width, height: size.height },
   });
@@ -662,6 +686,6 @@ test.describe("landing assets — coach on a phone", () => {
     // Below `lg` the hero cannot show a 1440px window, and the answer is NOT to
     // fall back to the aluno's app: the coach is the buyer. Their own dashboard
     // at phone width is both legible and the right thing to be selling.
-    await page.screenshot({ path: `${LANDING_OUT}/app-coach-phone.png` });
+    await capture(page, { path: `${LANDING_OUT}/app-coach-phone.png` });
   });
 });

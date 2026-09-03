@@ -103,6 +103,40 @@ describe("sign-up + account confirmation (coach)", () => {
   });
 });
 
+describe("remember me", () => {
+  /** The Set-Cookie line for the session token, from a signed-in response. */
+  function sessionCookie(res: Response): string {
+    return res.headers
+      .getSetCookie()
+      .find((c) => c.startsWith("better-auth.session_token="))!;
+  }
+
+  it("keeps a remembered sign-in for 90 days", async () => {
+    const res = await auth.api.signInEmail({
+      body: { email: coachEmail, password, rememberMe: true },
+      asResponse: true,
+    });
+
+    // The cookie outlives the browser — that is the whole feature. 90 days,
+    // and every later request through a route handler pushes it back out.
+    const maxAge = Number(/Max-Age=(\d+)/.exec(sessionCookie(res))?.[1]);
+    expect(maxAge).toBe(60 * 60 * 24 * 90);
+  });
+
+  it("makes an unremembered sign-in die with the browser session", async () => {
+    const res = await auth.api.signInEmail({
+      body: { email: coachEmail, password, rememberMe: false },
+      asResponse: true,
+    });
+
+    // No Max-Age and no Expires: the browser drops it when it closes, which is
+    // what someone signing in on a borrowed phone is asking for.
+    const cookie = sessionCookie(res);
+    expect(cookie).not.toMatch(/Max-Age=/);
+    expect(cookie).not.toMatch(/Expires=/);
+  });
+});
+
 describe("password reset via OTP", () => {
   const newPassword = "novaSenha456";
 

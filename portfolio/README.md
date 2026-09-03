@@ -257,11 +257,14 @@ Every screen at both viewports, in `images/`:
 ## Reproducing these screenshots
 
 ```bash
-npm run test:e2e -- --project=portfolio
-npm run landing:optimize
+pnpm test:e2e:shots
 ```
 
-The first boots a throwaway PostgreSQL, migrates and seeds it, builds the
-production bundle, runs the 30-test tour, and writes both `portfolio/images/`
-(this document) and `public/landing/` (the marketing page's product imagery,
-shot at 2× for retina). The second downscales the latter.
+It boots a throwaway PostgreSQL, migrates and seeds it, builds the production
+bundle, runs the 30-test tour, writes both `portfolio/images/` (this document)
+and `public/landing/` (the marketing page's product imagery, shot at 2× for
+retina), then downscales the latter with `landing:optimize`.
+
+Writing the images is what that script opts into (`E2E_SHOTS=1`). An ordinary
+`pnpm test:e2e` still runs the whole tour and every assertion in it — it just
+doesn't re-shoot 51 tracked PNGs that no re-capture reproduces byte for byte.

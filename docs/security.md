@@ -188,7 +188,20 @@ can't be used as a standing self-elevation vector. Test:
 ### L-5 — Auth defaults not pinned → **fixed**
 
 `src/lib/auth.ts` now pins `trustedOrigins` (canonical prod origin), an explicit
-7-day `session` policy, and `advanced.useSecureCookies` in production.
+`session` policy, and `advanced.useSecureCookies` in production.
+
+**Session lifetime (deliberate, revisit if the threat model changes).** A
+remembered sign-in — "Continuar conectado", checked by default — lasts **90
+days**, renewed on use (`updateAge` 1 day), which is a product decision: coaches
+and alunos open this from a phone that never closes its browser, and a login
+prompt is the app failing them. The controls that make that acceptable: the
+cookie is `httpOnly` + `sameSite=lax` + `Secure` in production, so it is not
+readable from JS and does not ride cross-site; the session is a DB row, so
+signing out (or deleting the user) kills it everywhere immediately rather than
+waiting for an expiry; and anyone on a shared device can uncheck the box, which
+issues the same session as a **browser-session cookie** with no expiry of its
+own — gone when the window closes, never renewed. Sign-in with Google is always
+remembered: the OAuth redirect carries no such flag.
 
 ### L-6 — In-memory limiters don't scale across instances → **accepted, documented**
 

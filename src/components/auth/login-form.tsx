@@ -91,7 +91,24 @@ export function LoginForm({
             required
             error={state?.fieldErrors?.password}
           />
-          <div className="text-right">
+          {/* Both halves of "I'd rather not type this again" on one line: stay
+              signed in, or recover the password you can't remember. Checked by
+              default — the coach checking a treino between appointments is the
+              normal case, and a login prompt is the app forgetting them. */}
+          <div className="flex items-center justify-between gap-3">
+            <label
+              htmlFor="rememberMe"
+              className="flex cursor-pointer items-center gap-2 text-body-dense text-text-secondary"
+            >
+              <input
+                id="rememberMe"
+                name="rememberMe"
+                type="checkbox"
+                defaultChecked
+                className="size-4 accent-primary"
+              />
+              Continuar conectado
+            </label>
             <Link
               href="/forgot-password"
               className="text-body-dense text-primary hover:underline"

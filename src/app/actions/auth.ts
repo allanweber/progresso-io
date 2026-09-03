@@ -67,6 +67,11 @@ const signUpSchema = z.object({
 const signInSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Informe sua senha."),
+  // "Continuar conectado". A checkbox sends "on" when ticked and nothing at
+  // all when not, so absence IS the answer — anything else is treated as
+  // unticked rather than rejected, since a malformed value must never be the
+  // reason someone can't sign in.
+  rememberMe: z.literal("on").optional(),
 });
 
 const verifySchema = z.object({ email: emailSchema, otp: otpSchema });
@@ -159,6 +164,10 @@ export const signIn = withAction(
     const parsed = parseForm(signInSchema, formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
     const { email, password } = parsed.data;
+    // Remembered (the default): a 90-day cookie, renewed on use. Not
+    // remembered: a browser-session cookie that dies with the window — the
+    // point of the box for someone on a shared or borrowed device.
+    const rememberMe = parsed.data.rememberMe === "on";
 
     // Throttle password brute force per IP.
     if (!hit(`signin:${await clientIp()}`, 10, MINUTE)) return TOO_MANY;
@@ -166,7 +175,7 @@ export const signIn = withAction(
     let role: string | null | undefined;
     try {
       const result = await auth.api.signInEmail({
-        body: { email, password },
+        body: { email, password, rememberMe },
         headers: await headers(),
       });
       role = result.user?.role;
@@ -180,7 +189,7 @@ export const signIn = withAction(
       return authError(error);
     }
 
-    logger.info("auth.signin.ok", { role: role ?? undefined });
+    logger.info("auth.signin.ok", { role: role ?? undefined, rememberMe });
     redirect(homePathForRole(role));
   },
 );

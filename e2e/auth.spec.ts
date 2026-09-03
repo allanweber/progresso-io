@@ -122,3 +122,54 @@ test.describe("OTP entry", () => {
     ).toBeVisible();
   });
 });
+
+/**
+ * "Continuar conectado" — the box is what stands between a coach and typing
+ * their password every week, so what's asserted here is the *cookie*, not the
+ * checkbox: ticked, the session outlives the browser; unticked, it dies with
+ * it. Signs in as the seeded coach, the same account auth.setup.ts uses.
+ */
+test.describe("continuar conectado", () => {
+  /** The Better Auth session cookie, whatever prefix the origin gives it. */
+  async function sessionCookie(context: import("@playwright/test").BrowserContext) {
+    const cookies = await context.cookies();
+    return cookies.find((c) => c.name.includes("session_token"));
+  }
+
+  async function signIn(page: import("@playwright/test").Page, remember: boolean) {
+    await page.goto("/login");
+    const box = page.getByRole("checkbox", { name: "Continuar conectado" });
+    // Checked by default: staying signed in is the normal case.
+    await expect(box).toBeChecked();
+    if (!remember) await box.uncheck();
+
+    await page.getByLabel("E-mail").fill("coach@progresso.io");
+    await page.getByLabel("Senha").fill("progresso123");
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await page.waitForURL("**/coach");
+  }
+
+  test("keeps the session for months when checked", async ({ page, context }) => {
+    await signIn(page, true);
+
+    const cookie = await sessionCookie(context);
+    // Playwright reports a browser-session cookie as expires === -1, so a real
+    // expiry is itself the assertion — plus it has to be months out, not days.
+    expect(cookie?.expires).toBeGreaterThan(0);
+    const daysLeft = (cookie!.expires * 1000 - Date.now()) / 86_400_000;
+    expect(daysLeft).toBeGreaterThan(80);
+  });
+
+  test("ends the session with the browser when unchecked", async ({
+    page,
+    context,
+  }) => {
+    await signIn(page, false);
+
+    // Signed in for now…
+    await expect(page).toHaveURL(/\/coach$/);
+    // …but on a cookie the browser throws away when it closes.
+    const cookie = await sessionCookie(context);
+    expect(cookie?.expires).toBe(-1);
+  });
+});

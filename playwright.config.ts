@@ -19,7 +19,8 @@ const ADMIN_STORAGE = "e2e/.auth/admin.json";
 
 /**
  * E2E is split in three projects:
- * - `public`  — auth UI + marketing pages, unauthenticated (no DB writes).
+ * - `public`  — auth UI + marketing pages, unauthenticated (no tenant-data
+ *               writes; the remember-me specs do sign the seeded coach in).
  * - `setup`   — logs the seeded coach in once and saves the session.
  * - `coach`   — authenticated student-management flows, reusing that session.
  *

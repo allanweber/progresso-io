@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "node scripts/e2e.mjs",
     "test:e2e:direct": "playwright test",
+    "test:e2e:shots": "E2E_SHOTS=1 node scripts/e2e.mjs --project=portfolio && pnpm landing:optimize",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

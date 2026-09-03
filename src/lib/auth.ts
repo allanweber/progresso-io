@@ -24,6 +24,30 @@ import { attachUserToClinic, createClinicForOwner } from "@/server/dal/clinics";
 const OTP_EXPIRES_IN = 60 * 10;
 
 /**
+ * How long a remembered sign-in lasts, in seconds.
+ *
+ * Long on purpose. A coach opens this between appointments on a phone that
+ * never closes its browser, and an aluno opens it twice a week to log a
+ * check-in — for both, a login prompt is the app failing at the one thing it
+ * had to remember. Ninety days, renewed on use (see UPDATE_AGE), means someone
+ * who shows up even once a quarter never signs in again.
+ *
+ * "Renewed on use" is not free with Next: Better Auth deliberately SKIPS the
+ * refresh during a Server Component render, where cookies cannot be written
+ * (see the RSC check in better-auth/integrations/next-js). It renews inside
+ * route handlers and server actions — which, since every page reads its data
+ * through `/api/*` (AGENTS.md), is every visit anyway.
+ */
+const SESSION_EXPIRES_IN = 60 * 60 * 24 * 90;
+
+/**
+ * How often that 90 days is pushed back out to a full 90, at most. Daily: one
+ * extra session UPDATE per user per day buys a window that only a genuinely
+ * absent user can reach the end of.
+ */
+const SESSION_UPDATE_AGE = 60 * 60 * 24;
+
+/**
  * Set for the async context of a token-based account activation (aluno invite /
  * admin invite accept). Those flows create the login with `signUpEmail` and
  * then force `emailVerified: true` themselves — the invite token already proves
@@ -132,9 +156,14 @@ export function createAuth({
     ...(process.env.BETTER_AUTH_URL
       ? { trustedOrigins: [process.env.BETTER_AUTH_URL] }
       : {}),
+    // A remembered session (the default — "Continuar conectado" is checked)
+    // gets a cookie that lives this long and is renewed on use. Signing in with
+    // the box UNchecked passes `rememberMe: false`, and Better Auth then issues
+    // the same session as a browser-session cookie with no expiry of its own,
+    // which dies with the window and is never renewed.
     session: {
-      expiresIn: 60 * 60 * 24 * 7, // 7-day session
-      updateAge: 60 * 60 * 24, // refresh the token at most once a day
+      expiresIn: SESSION_EXPIRES_IN,
+      updateAge: SESSION_UPDATE_AGE,
     },
     advanced: {
       useSecureCookies: process.env.NODE_ENV === "production" && !localOrigin,
