@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
+import { useModalHistory } from "@/lib/modal-history";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,9 +11,25 @@ import { cn } from "@/lib/utils";
  * but anchored to an edge instead of centered. Used for the mobile navigation
  * drawer, which gets a proper focus trap, Escape-to-close and scroll lock for
  * free. Kept minimal: only the left/right sides we actually use.
+ *
+ * Like Dialog, the Root is wrapped so Back closes the drawer rather than
+ * leaving the page — on a phone that drawer IS the navigation, and backing out
+ * of it to the previous screen was never what anyone meant.
  */
 
-const Sheet = DialogPrimitive.Root;
+function Sheet({
+  open,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  useModalHistory(open === true && typeof onOpenChange === "function", () =>
+    onOpenChange?.(false),
+  );
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />
+  );
+}
+
 const SheetTrigger = DialogPrimitive.Trigger;
 const SheetClose = DialogPrimitive.Close;
 

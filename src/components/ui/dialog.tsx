@@ -4,9 +4,31 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
+import { useModalHistory } from "@/lib/modal-history";
 import { cn } from "@/lib/utils";
 
-const Dialog = DialogPrimitive.Root;
+/**
+ * Wraps Radix's Root only to give every modal the same Back behaviour: while it
+ * is open, Back (the phone's gesture, the browser's button, Alt+←) closes the
+ * modal instead of unwinding the router. See `useModalHistory`.
+ *
+ * It needs the modal to be controlled — which every one of ours is. An
+ * uncontrolled `<Dialog defaultOpen>` still renders exactly as before, it just
+ * gets no Back handling, since there'd be no way to close it.
+ */
+function Dialog({
+  open,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  useModalHistory(open === true && typeof onOpenChange === "function", () =>
+    onOpenChange?.(false),
+  );
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />
+  );
+}
+
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogClose = DialogPrimitive.Close;
 

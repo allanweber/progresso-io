@@ -169,3 +169,90 @@ test.describe("mobile navigation", () => {
     await expect(page).toHaveURL(/\/coach\/students/);
   });
 });
+
+/**
+ * Back is how a phone dismisses anything covering the screen. It used to unwind
+ * the router instead, so backing out of a modal cost the coach the page behind
+ * it — see `useModalHistory` in src/lib/modal-history.ts.
+ */
+test.describe("voltar no celular fecha o modal", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  // The cookie banner is a fixed bottom bar that covers the form's submit
+  // button on a 390px screen. Pre-accept it, as the dashboard spec does.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem("progresso-cookie-consent", "accepted"),
+    );
+  });
+
+  test("fecha o menu lateral sem sair da página", async ({ page }) => {
+    await page.goto("/coach");
+    await page.goto("/coach/students");
+
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    const drawer = page.getByRole("dialog", { name: "Menu de navegação" });
+    await expect(drawer).toBeVisible();
+
+    await page.goBack();
+
+    await expect(drawer).toBeHidden();
+    // The drawer ate the Back press; the roster is still on screen.
+    await expect(page).toHaveURL(/\/coach\/students$/);
+    await expect(
+      page.getByRole("heading", { name: "Alunos", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("um link do menu navega uma vez, e voltar desfaz uma vez", async ({
+    page,
+  }) => {
+    await page.goto("/coach");
+
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    const drawer = page.getByRole("dialog", { name: "Menu de navegação" });
+    await drawer.getByRole("link", { name: "Alunos" }).click();
+
+    // The drawer gives its history entry back *before* the router pushes, so
+    // the tap moves (it used to land on an entry about to be popped, and read
+    // as a dead link)…
+    await expect(page).toHaveURL(/\/coach\/students$/);
+    await expect(drawer).toBeHidden();
+
+    // …and leaves no spare entry behind: one Back, one step.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/coach$/);
+  });
+
+  test("fecha um modal sem sair da tela do aluno", async ({ page }) => {
+    await page.goto("/coach/students/new");
+    await page.getByLabel("Nome", { exact: true }).fill("Voltar");
+    await page.getByLabel("Sobrenome").fill("Teste");
+    await page.getByLabel("WhatsApp").fill(uniquePhone());
+    await page.getByLabel("E-mail", { exact: true }).fill(uniqueEmail("voltar"));
+    await page.getByRole("button", { name: "Enviar convite" }).click();
+    await page.waitForURL(/\/coach\/students\/[0-9a-f-]{36}$/);
+    const studentUrl = page.url();
+
+    // The anamnese card offers the same picker either way — "Atribuir" when the
+    // aluno has none yet, "Trocar template" when the invite already assigned one.
+    await page
+      .getByRole("button", { name: /Atribuir anamnese|Trocar template/ })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    await page.goBack();
+
+    await expect(dialog).toBeHidden();
+    // Without this, Back would have returned to /coach/students/new.
+    expect(page.url()).toBe(studentUrl);
+    await expect(
+      page.getByRole("heading", { name: "Anamnese" }),
+    ).toBeVisible();
+
+    // And with the modal gone, Back is the ordinary one again.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/coach\/students\/new$/);
+  });
+});

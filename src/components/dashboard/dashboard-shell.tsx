@@ -27,6 +27,7 @@ import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { clearAiMemory } from "@/lib/ai-generate-memory";
 import { apiFetch } from "@/lib/api-client";
+import { afterModalCloses } from "@/lib/modal-history";
 // Deliberately from @/lib/format, NOT @/lib/billing: this shell renders on every
 // coach + admin page, and billing pulls in zod, which would land in all of them.
 import { countPt, formatBRL, formatDateBR } from "@/lib/format";
@@ -303,8 +304,24 @@ export function DashboardShell({
     return href === activeHref;
   }
 
-  /** Nav links, shared by the desktop rail and the mobile drawer. */
-  function navLinks(onNavigate?: () => void) {
+  /**
+   * Tapping a drawer link both closes the drawer and moves. Both want the
+   * history stack — the drawer gives back the entry that makes Back close it
+   * instead of leaving the page (see `useModalHistory`), and the router pushes
+   * the new route — so they are sequenced rather than fired together. Left to
+   * race, the router's entry was the one popped and the tap did nothing.
+   */
+  function closeDrawerAnd(href: string) {
+    afterModalCloses(() => router.push(href));
+    setNavOpen(false);
+  }
+
+  /**
+   * Nav links, shared by the desktop rail and the mobile drawer. The drawer
+   * passes `onNavigate` and takes the navigation over (see `closeDrawerAnd`):
+   * it has to close itself and move, and those two cannot run in either order.
+   */
+  function navLinks(onNavigate?: (href: string) => void) {
     return groups.map((group, gi) => (
       <div key={group.title ?? "_"} className={gi === 0 ? undefined : "mt-5"}>
         {group.title ? (
@@ -329,7 +346,20 @@ export function DashboardShell({
               <Link
                 key={href}
                 href={href}
-                onClick={onNavigate}
+                onClick={(event) => {
+                  // Modified clicks (open in a new tab) stay the browser's.
+                  if (
+                    !onNavigate ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
+                  event.preventDefault();
+                  onNavigate(href);
+                }}
                 aria-current={active ? "page" : undefined}
                 className={
                   active
@@ -433,7 +463,16 @@ export function DashboardShell({
         <SheetContent side="left" className="md:hidden">
           <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
           <div className="mb-8 flex items-center justify-between">
-            <Link href={home} onClick={() => setNavOpen(false)}>
+            <Link
+              href={home}
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                  return;
+                }
+                event.preventDefault();
+                closeDrawerAnd(home);
+              }}
+            >
               <Logo />
             </Link>
             <SheetClose
@@ -444,7 +483,7 @@ export function DashboardShell({
             </SheetClose>
           </div>
           <nav aria-label="Navegação principal" className="flex flex-col text-body">
-            {navLinks(() => setNavOpen(false))}
+            {navLinks(closeDrawerAnd)}
           </nav>
         </SheetContent>
 
