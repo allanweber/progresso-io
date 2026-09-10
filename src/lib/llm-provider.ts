@@ -57,6 +57,23 @@ export type LlmJsonRequest = {
   schemaName: string;
   /** JSON Schema the response must satisfy. Enforced again by zod on our side. */
   schema: Record<string, unknown>;
+  /**
+   * Images to send with the `user` turn, as `data:` URIs — the check-in photos,
+   * for the evaluation. Absent for every other kind, and absent means the
+   * request goes out in exactly the shape it always did.
+   *
+   * **Data URIs, not links.** The photos are private objects behind our own
+   * authenticated route; a URL we handed a provider would either 404 for it or
+   * have to be made public, and neither is acceptable for a photograph of an
+   * aluno's body.
+   *
+   * **These are the one uncacheable part of any prompt.** A catalog prefix is
+   * byte-identical across every clinic; a photo is unique to one person on one
+   * day. Nothing about the caching discipline in `catalog.ts` transfers here —
+   * which is why the evaluation's system prompt is kept short instead of being
+   * padded into a shared prefix that could never hit.
+   */
+  images?: string[];
 };
 
 /**
@@ -195,9 +212,32 @@ export function llmEnv(): LlmEnv | null {
   };
 }
 
-/** Whether a real provider is configured — checked before spending a credit. */
+/**
+ * Whether the install can actually generate — checked before spending a credit.
+ *
+ * True for the stub as well as for a real key: the stub exists so the end-to-end
+ * suite can drive the whole accept/discard flow, and a gate that refused it
+ * would leave exactly the paths the stub was added to cover untested.
+ */
 export function isLlmConfigured(): boolean {
-  return llmEnv() !== null;
+  return stubEnabled() || llmEnv() !== null;
+}
+
+/**
+ * `LLM_PROVIDER=stub` swaps the model for canned, schema-valid answers.
+ *
+ * **This is a test seam, not a feature.** It exists because the `dev` provider
+ * refuses, which left every path *after* a successful generation — the draft,
+ * the evaluation card, accepting it, the note it writes — unreachable from the
+ * end-to-end suite. Screenshots of a button that cannot be pressed are not a
+ * deliverable, and the accept flow is the whole of the evaluation feature.
+ *
+ * Read per call, so `scripts/e2e.mjs` can set it for the suite's server and
+ * nothing else. **Never set it in production**: it would answer every coach with
+ * the same fixture, silently and at full confidence.
+ */
+function stubEnabled(): boolean {
+  return (process.env.LLM_PROVIDER ?? "").trim().toLowerCase() === "stub";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -323,6 +363,109 @@ const devProvider: LlmProvider = {
   },
 };
 
+/**
+ * Canned answers, one per schema, valid against the JSON Schema each route
+ * declares and against the zod that re-checks it.
+ *
+ * The catalog indices are `1` and `2` deliberately: the catalog block is built
+ * from platform base rows and is never empty in a seeded install, so the two
+ * lowest indices always resolve. Anything higher would make the fixture depend
+ * on how many exercises the seed happens to carry.
+ */
+function stubAnswer(schemaName: string): unknown {
+  switch (schemaName) {
+    case "avaliacao":
+      return {
+        bodyFatPct: 18.4,
+        confidence: "media",
+        unavailable: null,
+        verdict: "ajustar",
+        summary:
+          "Perda de gordura consistente, com manutenção de massa magra desde o último check-in.",
+        evolution:
+          "Peso caiu 1,2 kg e a cintura reduziu 2 cm; as fotos mostram menos volume abdominal.",
+        diet: "Manter as calorias por mais duas semanas antes de reduzir de novo; a proteína está adequada para o peso atual.",
+        workout:
+          "Aumentar o volume de costas em uma série por exercício; o resto do programa segue.",
+      };
+    case "treino":
+      return {
+        name: "Treino de teste",
+        notes: null,
+        sessions: [
+          {
+            name: "Treino A",
+            exercises: [
+              { exercise: 1, sets: 3, reps: [12, 10, 8], rest: 60, note: null },
+              { exercise: 2, sets: 3, reps: [12], rest: 60, note: null },
+            ],
+          },
+        ],
+      };
+    case "dieta":
+      return {
+        name: "Dieta de teste",
+        notes: null,
+        meals: [
+          {
+            name: "Café da manhã",
+            time: "08:00",
+            items: [{ food: 1, grams: 100, measures: null }],
+          },
+          {
+            name: "Almoço",
+            time: "12:00",
+            items: [{ food: 2, grams: 150, measures: null }],
+          },
+        ],
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * The end-to-end stub: always succeeds, never leaves the process.
+ *
+ * It reports zero tokens and a null cost rather than inventing plausible
+ * figures — the audit row should say "this call cost nothing" because it
+ * genuinely didn't, and a fabricated cost would poison the one table the
+ * platform uses to price the feature.
+ */
+function buildStubProvider(models: LlmModels): LlmProvider {
+  return {
+    name: "stub",
+    canGenerate: true,
+    model: models.model,
+    async generateJson(request) {
+      const json = stubAnswer(request.schemaName);
+      logger.warn("llm.stub", {
+        schema: request.schemaName,
+        images: request.images?.length ?? 0,
+      });
+      if (json === null) {
+        return {
+          ok: false,
+          reason: "invalid_json",
+          message: `O provedor de teste não conhece o schema "${request.schemaName}".`,
+        };
+      }
+      return {
+        ok: true,
+        json,
+        usage: {
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          cacheWriteTokens: 0,
+          outputTokens: 0,
+          reportedCostMicroUsd: null,
+        },
+        call: { model: models.model, upstreamProvider: null, requestId: null },
+      };
+    },
+  };
+}
+
 /** The request body, split out so a test can assert on it without a network. */
 export function buildRequestBody(
   models: LlmModels,
@@ -370,9 +513,33 @@ export function buildRequestBody(
       // The catalog rides in `system`, first, so it forms the cacheable prefix;
       // the per-aluno payload is last and never cached.
       { role: "system", content: request.system },
-      { role: "user", content: request.user },
+      { role: "user", content: userContent(request) },
     ],
   };
+}
+
+/**
+ * The user turn: a plain string, or OpenAI-style content parts when the request
+ * carries images.
+ *
+ * The string form is kept for the imageless case rather than always sending a
+ * one-element `[{type:"text"}]` array, because every host accepts a string and
+ * not every cheap host handles the array shape identically — and treino/dieta,
+ * which are the overwhelming majority of calls, have no reason to find out.
+ *
+ * **Text first, images after.** The task and the aluno's data have to be read
+ * before the photographs mean anything; a model handed four bodies and then a
+ * question tends to describe what it saw rather than answer what was asked.
+ */
+function userContent(
+  request: LlmJsonRequest,
+): string | { type: string; [k: string]: unknown }[] {
+  const images = request.images ?? [];
+  if (images.length === 0) return request.user;
+  return [
+    { type: "text", text: request.user },
+    ...images.map((url) => ({ type: "image_url", image_url: { url } })),
+  ];
 }
 
 /** The shape we read back. Everything optional — providers differ in what they say. */
@@ -618,6 +785,10 @@ function buildHttpProvider(env: LlmEnv, models: LlmModels): LlmProvider {
  * To switch the feature off without changing anything else, unset `LLM_API_KEY`.
  */
 export function getLlmProvider(models: LlmModels): LlmProvider {
+  // Checked first, and deliberately ahead of the key: the e2e server inherits a
+  // developer's `.env`, so a real key can be present even when the suite must
+  // never reach a paid provider.
+  if (stubEnabled()) return buildStubProvider(models);
   const env = llmEnv();
   return env ? buildHttpProvider(env, models) : devProvider;
 }

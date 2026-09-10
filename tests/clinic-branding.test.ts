@@ -27,6 +27,7 @@ function base(over: Record<string, unknown> = {}) {
     feedbackFrequency: "semanal",
     feedbackPreferredDay: "monday",
     feedbackWhatsappReminder: true,
+    assessmentPreset: "completa",
     ...over,
   };
 }

@@ -1,4 +1,8 @@
 import type { FeedbackFrequency, Plan, Weekday } from "@/db/schema";
+import {
+  ASSESSMENT_PRESETS,
+  type AssessmentPreset,
+} from "@/lib/checkin-assessment";
 import { z } from "@/lib/validation";
 
 /**
@@ -152,6 +156,13 @@ export const clinicSettingsSchema = z.object({
   feedbackFrequency: z.enum(FEEDBACK_FREQUENCY_VALUES),
   feedbackPreferredDay: z.enum(WEEKDAY_VALUES),
   feedbackWhatsappReminder: z.boolean(),
+  /**
+   * The avaliação física form this clinic sees by default. A clinic that runs
+   * the full protocol runs it for everyone; the alternative is 22 numeric
+   * inputs on every check-in review, which is the form coaches were skipping.
+   * Still overridable per assessment.
+   */
+  assessmentPreset: z.enum(ASSESSMENT_PRESETS),
 });
 
 export type ClinicSettingsInput = z.input<typeof clinicSettingsSchema>;
@@ -176,6 +187,7 @@ export type ClinicSettingsDto = {
   feedbackFrequency: FeedbackFrequency;
   feedbackPreferredDay: Weekday;
   feedbackWhatsappReminder: boolean;
+  assessmentPreset: AssessmentPreset;
   plan: Plan;
   /**
    * Whether this clinic may publish a branded portal **right now** — the server's

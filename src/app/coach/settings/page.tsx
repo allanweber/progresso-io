@@ -45,6 +45,12 @@ import {
   WEEKDAY_VALUES,
 } from "@/lib/clinic-settings";
 import {
+  ASSESSMENT_PRESET_LABELS,
+  ASSESSMENT_PRESETS,
+  presetSupportsSkinfoldBodyFat,
+  type AssessmentPreset,
+} from "@/lib/checkin-assessment";
+import {
   formatBRL,
   formatCompetencia,
   formatDateBR,
@@ -618,6 +624,7 @@ type SettingsFormValues = {
   feedbackFrequency: FeedbackFrequency;
   feedbackPreferredDay: Weekday;
   feedbackWhatsappReminder: boolean;
+  assessmentPreset: AssessmentPreset;
 };
 
 function toValues(dto: ClinicSettingsDto): SettingsFormValues {
@@ -633,6 +640,7 @@ function toValues(dto: ClinicSettingsDto): SettingsFormValues {
     feedbackFrequency: dto.feedbackFrequency,
     feedbackPreferredDay: dto.feedbackPreferredDay,
     feedbackWhatsappReminder: dto.feedbackWhatsappReminder,
+    assessmentPreset: dto.assessmentPreset,
   };
 }
 
@@ -1145,6 +1153,45 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                     </div>
                   );
                 }}
+              </form.Field>
+
+              <form.Field name="assessmentPreset">
+                {(field) => (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="assessmentPreset">
+                      Avaliação física padrão
+                    </Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) =>
+                        field.handleChange(v as AssessmentPreset)
+                      }
+                    >
+                      <SelectTrigger
+                        id="assessmentPreset"
+                        onBlur={field.handleBlur}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSESSMENT_PRESETS.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {ASSESSMENT_PRESET_LABELS[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* The trade-off is worth stating where the choice is made:
+                        only the 7-fold protocol produces a calculated body-fat
+                        percentage, and a coach who picks a shorter form should
+                        know they are choosing a photo estimate. */}
+                    <p className="text-xs text-muted-foreground">
+                      {presetSupportsSkinfoldBodyFat(field.state.value)
+                        ? "Com as 7 dobras, a % de gordura é calculada (Jackson-Pollock)."
+                        : "Sem as 7 dobras, a % de gordura é estimada pelas fotos na avaliação com IA."}
+                    </p>
+                  </div>
+                )}
               </form.Field>
             </div>
           </SettingsCard>

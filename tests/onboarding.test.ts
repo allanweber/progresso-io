@@ -29,6 +29,7 @@ const settings: ClinicSettingsDto = {
   feedbackFrequency: "semanal",
   feedbackPreferredDay: "monday",
   feedbackWhatsappReminder: true,
+  assessmentPreset: "completa",
   plan: "clinica",
   brandedPortal: true,
   onboardingCompletedAt: null,

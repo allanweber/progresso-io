@@ -35,6 +35,8 @@ vi.mock("@/server/dal", () => ({
       email: "ana@example.com",
       phone: "5511999990000",
       goal: null,
+      sex: null,
+      birthDate: null,
       status: "active",
       modality: "online",
       coachId: "user-coach",
@@ -87,6 +89,8 @@ const online = {
   email: "ana@example.com",
   phone: "11999990000",
   goal: "",
+  sex: "",
+  birthDate: "",
   anamnesisId: "",
   modality: "online",
 };
@@ -129,6 +133,8 @@ describe("registering a student", () => {
       email: "",
       phone: "11988880000",
       goal: "",
+      sex: "",
+      birthDate: "",
       anamnesisId: "",
       modality: "in_person",
     });

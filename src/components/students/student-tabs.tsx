@@ -4,8 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * The Dados / Dieta tab bar shown on a student's profile. Reused by both tab
- * pages so they share one control; the active tab is derived from the path.
+ * The tab bar shown on a student's profile. Reused by every tab page so they
+ * share one control; the active tab is derived from the path.
+ *
+ * Notas is coach-only, like everything under /coach — but worth naming here,
+ * because it is the one tab whose contents must never reach the aluno's portal.
  */
 export function StudentTabs({ studentId }: { studentId: string }) {
   const pathname = usePathname();
@@ -32,9 +35,14 @@ export function StudentTabs({ studentId }: { studentId: string }) {
       label: "Evolução",
       active: pathname.startsWith(`${base}/evolution`),
     },
+    {
+      href: `${base}/notes`,
+      label: "Notas",
+      active: pathname.startsWith(`${base}/notes`),
+    },
   ];
   return (
-    // Five tabs overflow narrow widths — scroll horizontally instead of
+    // Six tabs overflow narrow widths — scroll horizontally instead of
     // wrapping/clipping, and keep each label on a single line.
     <div className="overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <nav className="-mb-px flex gap-1" aria-label="Seções do aluno">

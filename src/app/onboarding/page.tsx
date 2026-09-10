@@ -93,6 +93,10 @@ function settingsPayload(dto: ClinicSettingsDto, values: GuideValues) {
     feedbackFrequency: values.feedbackFrequency,
     feedbackPreferredDay: values.feedbackPreferredDay,
     feedbackWhatsappReminder: values.feedbackWhatsappReminder,
+    // Not a step the guide asks about — passed straight through so the PUT gets
+    // the full payload it validates, and so finishing the guide never rewrites
+    // a preset the coach picked in Configurações.
+    assessmentPreset: dto.assessmentPreset,
   };
 }
 

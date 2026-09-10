@@ -120,6 +120,7 @@ export async function getClinicSettings(
     hasLogo: clinic.logoKey !== null,
     feedbackFrequency: clinic.feedbackFrequency,
     feedbackPreferredDay: clinic.feedbackPreferredDay,
+    assessmentPreset: clinic.assessmentPreset,
     feedbackWhatsappReminder: clinic.feedbackWhatsappReminder,
     plan: clinic.plan,
     brandedPortal: canUseBrandedPortal(effectivePlanOf(clinic, new Date())),
@@ -174,6 +175,7 @@ export async function updateClinicSettings(
       accentColor: values.accentColor,
       feedbackFrequency: values.feedbackFrequency,
       feedbackPreferredDay: values.feedbackPreferredDay,
+      assessmentPreset: values.assessmentPreset,
       feedbackWhatsappReminder: values.feedbackWhatsappReminder,
       updatedAt: new Date(),
     })

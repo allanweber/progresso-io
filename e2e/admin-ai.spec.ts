@@ -9,11 +9,22 @@ import { expect, test } from "@playwright/test";
  * That mix is deliberate: it is exactly the set of cases the screen has to
  * render honestly, and the assertions below check each.
  *
+ * The seed is not the only writer, though: the `ai` and `evaluation` projects
+ * run concurrently against this same clinic and genuinely generate against the
+ * stub, so the clinic's generation COUNT is not a fixed number here. The token
+ * and cost figures are — the stub burns no tokens and reports no cost — so the
+ * counts are asserted as the invariant they are really about (a failure is
+ * never billed) and everything measured is still asserted to the digit.
+ *
  * The seed also enters a price for the demo model, so the Custo column shows a
  * real figure rather than dashes.
  *
- * The e2e environment has no LLM configured, so the "not configured" banner is
- * asserted too — an all-zero table would otherwise be ambiguous.
+ * The suite pins `LLM_PROVIDER=stub` (see scripts/e2e.mjs), so the install
+ * counts as configured and the "nenhum provedor" banner must NOT be there: that
+ * banner tells the admin the Gerar-com-IA button is dead for every coach, and
+ * with the stub answering it is very much alive. Its presence is asserted
+ * against here for exactly that reason — a banner that appears anyway would be
+ * telling the admin the opposite of what the platform is doing.
  *
  * The demo clinic's row is found by its "corrigida" marker, **not** by name: the
  * `coach` project runs concurrently and `settings.spec.ts` renames that clinic
@@ -31,11 +42,12 @@ test.describe("admin ai overview", () => {
       page.getByRole("heading", { name: "IA", exact: true }),
     ).toBeVisible();
 
-    // No provider configured in e2e → the banner has to say so, otherwise an
-    // empty table reads as "nobody used it".
+    // A provider IS configured (the stub), so the banner that claims otherwise
+    // must stay away — it would be telling the admin the button is disabled for
+    // every coach while the coach specs are pressing it.
     await expect(
       page.getByText(/Nenhum provedor de IA configurado/),
-    ).toBeVisible();
+    ).toBeHidden();
 
     // KPI header.
     await expect(page.getByText("Gerações no mês")).toBeVisible();
@@ -47,11 +59,24 @@ test.describe("admin ai overview", () => {
     const row = page.getByRole("row").filter({ hasText: "corrigida" });
     await expect(row).toHaveCount(1);
 
-    // 3 of the seed's 4 rows are billed — the failed one is free, which is the
-    // whole point of settling failures as `failed` rather than `succeeded`.
-    await expect(row).toContainText("3 / 25");
-    // 1 failure, shown next to the 2 successes.
-    await expect(row).toContainText("2");
+    // A failure is free. The billed count is exactly the number of successes,
+    // whatever the concurrent generating specs have added to it — and the seed's
+    // failed row is in there, so there is always something that could have been
+    // counted wrongly. "Gerações" is `usadas / limite`, "OK / falhas" is
+    // `sucessos / falhas (n corrigidas)`.
+    const cells = row.getByRole("cell");
+    const [used, limit] = (await cells.nth(2).innerText())
+      .split("/")
+      .map((part) => part.trim());
+    const [succeeded, failed] = (await cells.nth(3).innerText())
+      .split("/")
+      .map((part) => part.trim());
+    expect(limit).toBe("25");
+    expect(used, "billed generations must equal successes").toBe(succeeded);
+    expect(
+      Number.parseInt(failed, 10),
+      "the seed's failed generation is still on the row",
+    ).toBeGreaterThanOrEqual(1);
 
     // Cache hit rate: 31.200 of 49.210 input tokens came back cached → 63%.
     // Asserting the exact figure is the point — a plausible-looking wrong

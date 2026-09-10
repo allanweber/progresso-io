@@ -28,9 +28,18 @@ import type {
   StudentAnamnesisStatus,
 } from "@/lib/student-anamneses";
 import type {
+  AssessmentPreset,
+  BodyFatSource,
   CheckinCircumferences,
   CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
+import type { AiEvaluationPayload } from "@/lib/ai-evaluation";
+
+// Re-exported as types so `@/db/schema` stays the one place a server module has
+// to import from. The VALUES deliberately are not re-exported: they live in the
+// client-safe lib, and pulling them through here would drag drizzle's table
+// definitions into a browser bundle.
+export type { AssessmentPreset, BodyFatSource } from "@/lib/checkin-assessment";
 import type { NotificationData, NotificationType } from "@/lib/notifications";
 import type { DietStructure } from "@/lib/student-diets";
 import type {
@@ -64,11 +73,16 @@ export const PLANS = ["free", "solo", "clinica", "enterprise"] as const;
 export type Plan = (typeof PLANS)[number];
 
 /**
- * What the AI program generator can draft. One generation produces exactly one
- * of these and costs exactly one credit — a workout and a diet for the same
- * aluno are two generations, because they are two model calls.
+ * What the AI can produce. One generation produces exactly one of these and
+ * costs exactly one credit — a workout and a diet for the same aluno are two
+ * generations, because they are two model calls.
+ *
+ * `evaluation` is the check-in read (body composition + advice to the coach).
+ * It is the same credit and the same audit row as a program draft, but not the
+ * same *call*: it carries photos, so it is the one kind with no cacheable
+ * catalog prefix and the one kind that needs a multimodal model.
  */
-export const AI_GENERATION_KINDS = ["workout", "diet"] as const;
+export const AI_GENERATION_KINDS = ["workout", "diet", "evaluation"] as const;
 export type AiGenerationKind = (typeof AI_GENERATION_KINDS)[number];
 
 /**
@@ -124,6 +138,17 @@ export type StudentStatus = (typeof STUDENT_STATUSES)[number];
  */
 export const MODALITIES = ["online", "in_person"] as const;
 export type Modality = (typeof MODALITIES)[number];
+
+/**
+ * Biological sex, as the body-composition equations mean it.
+ *
+ * Two values, and deliberately not an identity field: it exists on the student
+ * row for exactly one purpose, which is choosing between the male and female
+ * Jackson-Pollock polynomials. Nullable everywhere — an unknown sex costs the
+ * skinfold path and nothing else.
+ */
+export const SEXES = ["masculino", "feminino"] as const;
+export type Sex = (typeof SEXES)[number];
 
 /**
  * Whether a catalog entry is a single food/ingredient or a composite dish.
@@ -347,6 +372,15 @@ export const clinic = pgTable(
     feedbackWhatsappReminder: boolean("feedback_whatsapp_reminder")
       .default(true)
       .notNull(),
+    // Which measurement protocol this clinic's avaliação física form offers by
+    // default. A clinic that runs the full protocol runs it for everyone, and
+    // the alternative — 22 numeric inputs on every check-in review — is the
+    // form coaches were skipping. Overridable per assessment; the value chosen
+    // is stored on the row so a historic assessment renders as it was taken.
+    assessmentPreset: text("assessment_preset")
+      .$type<AssessmentPreset>()
+      .default("completa")
+      .notNull(),
     // Per-clinic capability overrides, set by a platform admin on the clinic
     // detail page. NULL = inherit the plan default (`plan_limit`); a value takes
     // precedence over the plan for THIS clinic only. Lets a single clinic get a
@@ -428,6 +462,18 @@ export const students = pgTable(
     email: text("email"),
     phone: text("phone"),
     goal: text("goal"),
+    // Biological sex and birth date. Both nullable, and both exist for the same
+    // reason: the Jackson-Pollock skinfold equations are sex-specific and take
+    // age as a term, so without them a full 7-fold assessment cannot be turned
+    // into a body-fat percentage and the AI evaluation falls back to estimating
+    // from the photos (see src/lib/body-composition.ts).
+    //
+    // A DATE rather than an age: an age typed into an anamnese is wrong twelve
+    // months later, and the whole point of the column is that the arithmetic
+    // stays right without anyone revisiting it. Every pre-existing aluno is
+    // null, which the ladder already handles.
+    sex: text("sex").$type<Sex>(),
+    birthDate: date("birth_date", { mode: "string" }),
     status: text("status").$type<StudentStatus>().default("active").notNull(),
     modality: text("modality").$type<Modality>().default("online").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1846,6 +1892,7 @@ export const CHECKIN_POSES = [
 ] as const;
 export type CheckinPose = (typeof CHECKIN_POSES)[number];
 
+
 export const studentCheckin = pgTable(
   "student_checkin",
   {
@@ -1949,6 +1996,14 @@ export const checkinAssessment = pgTable(
       .default({})
       .notNull(),
     bodyFatPct: doublePrecision("body_fat_pct"),
+    // Where that percentage came from — see {@link BODY_FAT_SOURCES}. NULL when
+    // there is no percentage, and on every row written before this existed:
+    // those predate the distinction and must not be labelled as if they didn't.
+    bodyFatSource: text("body_fat_source").$type<BodyFatSource>(),
+    // The form preset this assessment was taken with. NULL on pre-existing rows
+    // — they were taken with the flat all-sites form, which is what
+    // `personalizada` now means, but they were not *chosen* as such.
+    protocol: text("protocol").$type<AssessmentPreset>(),
     // The coach who recorded it; NULL if that user is later deleted.
     recordedByUserId: text("recorded_by_user_id").references(() => user.id, {
       onDelete: "set null",
@@ -2040,6 +2095,218 @@ export const studentCheckinPhotoRelations = relations(
     }),
   }),
 );
+
+/* -------------------------------------------------------------------------- */
+/*  AI check-in evaluation (avaliação com IA)                                  */
+/*                                                                            */
+/*  The model's read of ONE check-in, held as a draft until the coach decides   */
+/*  on it. Body composition + advice written TO THE COACH — never to the aluno, */
+/*  and never on any portal route. See docs/ai-evaluation.md.                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Lifecycle of a draft evaluation.
+ *
+ * - `pending`   — generated, waiting on the coach. Exactly one per check-in;
+ *   regenerating overwrites it rather than accumulating drafts.
+ * - `accepted`  — the coach took it: the body fat landed on the assessment and
+ *   a note was written.
+ * - `discarded` — the coach rejected it. The row stays, because the credit was
+ *   spent and "the coach threw this one away" is the single most useful signal
+ *   there is about whether the feature is any good.
+ */
+export const EVALUATION_STATUSES = ["pending", "accepted", "discarded"] as const;
+export type EvaluationStatus = (typeof EVALUATION_STATUSES)[number];
+
+/** How sure the model is of a *visual* body-fat estimate. */
+export const EVALUATION_CONFIDENCES = ["baixa", "media", "alta"] as const;
+export type EvaluationConfidence = (typeof EVALUATION_CONFIDENCES)[number];
+
+/** The model's overall call on the current programme. */
+export const EVALUATION_VERDICTS = ["manter", "ajustar", "reavaliar"] as const;
+export type EvaluationVerdict = (typeof EVALUATION_VERDICTS)[number];
+
+/**
+ * One check-in's draft evaluation.
+ *
+ * **Persisted rather than held in the client.** A vision call takes seconds and
+ * costs a credit; losing it to a tab switch is how a coach learns not to press
+ * the button. One row per check-in (unique), overwritten on regenerate.
+ *
+ * **`payload` is the model's answer, verbatim and immutable.** What the coach
+ * edits before accepting goes on the *note*, not here — so the record of what
+ * the model actually said survives the coach rewriting it, which is the only
+ * version an audit would ever care about.
+ */
+export const checkinEvaluation = pgTable(
+  "checkin_evaluation",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    // One per check-in, and gone with it.
+    checkinId: uuid("checkin_id")
+      .notNull()
+      .references(() => studentCheckin.id, { onDelete: "cascade" }),
+    // Denormalized so a student's evaluations are readable without the join.
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    // The audit/billing row this came from. NULL only if that row is ever
+    // pruned; the evaluation itself is the coach's record and outlives it.
+    aiGenerationId: uuid("ai_generation_id").references(() => aiGeneration.id, {
+      onDelete: "set null",
+    }),
+    status: text("status")
+      .$type<EvaluationStatus>()
+      .default("pending")
+      .notNull(),
+    /** The model's answer as returned, validated by zod before it lands here. */
+    payload: jsonb("payload").$type<AiEvaluationPayload>().notNull(),
+    /**
+     * The body-fat percentage AS DELIVERED — which is not always what the model
+     * said. When all seven folds, the sex and the age are present the server
+     * computes it and overwrites the model's guess, because a caliper reading
+     * beats a look at a photograph every time. NULL is a real answer: neither
+     * folds nor usable photos.
+     */
+    bodyFatPct: doublePrecision("body_fat_pct"),
+    bodyFatSource: text("body_fat_source").$type<BodyFatSource>(),
+    // Only meaningful next to a visual estimate; NULL when the number came from
+    // the folds, where confidence is not the model's to have.
+    confidence: text("confidence").$type<EvaluationConfidence>(),
+    // Who accepted or discarded it, and when. Both NULL while `pending`.
+    decidedByUserId: text("decided_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("checkin_evaluation_clinic_idx").on(t.clinicId),
+    index("checkin_evaluation_student_idx").on(t.studentId),
+    unique("checkin_evaluation_checkin_uq").on(t.checkinId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
+/*  Student notes (coach-only)                                                 */
+/*                                                                            */
+/*  The coach's own record on an aluno: what they noticed, what they decided,   */
+/*  and every AI evaluation they accepted. Clinic-scoped like everything else,  */
+/*  so coaches in the same clinic share them — but NEVER served by any          */
+/*  /api/student/* portal route. That separation is the whole guarantee.        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Where a note came from.
+ *
+ * - `manual`        — the coach wrote it.
+ * - `ai_evaluation` — an accepted AI evaluation. Carries `payload`, and renders
+ *   as a card above the coach's (possibly edited) words.
+ */
+export const NOTE_SOURCES = ["manual", "ai_evaluation"] as const;
+export type NoteSource = (typeof NOTE_SOURCES)[number];
+
+/**
+ * Whether the coach took the AI's words as written. Recorded because "accepted
+ * verbatim" and "accepted after rewriting half of it" are very different votes
+ * on the model's output, and only one of them is visible in the note body.
+ */
+export const NOTE_ACCEPTANCES = ["accepted", "accepted_edited"] as const;
+export type NoteAcceptance = (typeof NOTE_ACCEPTANCES)[number];
+
+export const studentNote = pgTable(
+  "student_note",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Tenant key — every query MUST filter by this.
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinic.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    // The check-in this note is about, when it is about one. An AI note always
+    // has it; a manual note usually does not. `set null` rather than cascade —
+    // deleting a check-in must not silently delete the coach's conclusions
+    // about it.
+    checkinId: uuid("checkin_id").references(() => studentCheckin.id, {
+      onDelete: "set null",
+    }),
+    source: text("source").$type<NoteSource>().default("manual").notNull(),
+    // The readable note. For an AI note this starts as the model's advice and
+    // is whatever the coach chose to save.
+    body: text("body").notNull(),
+    // The accepted evaluation, verbatim, kept even when `body` is rewritten.
+    // NULL on manual notes — same table, same timeline, one nullable column.
+    payload: jsonb("payload").$type<AiEvaluationPayload>(),
+    acceptance: text("acceptance").$type<NoteAcceptance>(),
+    /**
+     * The body-fat percentage **as accepted**, which is not necessarily the one
+     * inside `payload` — the coach can edit it before saving.
+     *
+     * Stored on the note rather than read back from the draft or the assessment,
+     * because both of those can move afterwards: regenerating replaces the
+     * draft, and a coach can revise the assessment by hand. A note is a record
+     * of what someone concluded on a day, and a record that silently changes is
+     * not one.
+     */
+    bodyFatPct: doublePrecision("body_fat_pct"),
+    // Who wrote it. NULL if that coach is later deleted — the note is the
+    // clinic's record and stays on the aluno's timeline regardless.
+    authorUserId: text("author_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_note_clinic_idx").on(t.clinicId),
+    // The timeline query: this aluno's notes, newest first.
+    index("student_note_student_created_idx").on(t.studentId, t.createdAt),
+  ],
+);
+
+export const checkinEvaluationRelations = relations(
+  checkinEvaluation,
+  ({ one }) => ({
+    clinic: one(clinic, {
+      fields: [checkinEvaluation.clinicId],
+      references: [clinic.id],
+    }),
+    checkin: one(studentCheckin, {
+      fields: [checkinEvaluation.checkinId],
+      references: [studentCheckin.id],
+    }),
+    student: one(students, {
+      fields: [checkinEvaluation.studentId],
+      references: [students.id],
+    }),
+  }),
+);
+
+export const studentNoteRelations = relations(studentNote, ({ one }) => ({
+  clinic: one(clinic, {
+    fields: [studentNote.clinicId],
+    references: [clinic.id],
+  }),
+  student: one(students, {
+    fields: [studentNote.studentId],
+    references: [students.id],
+  }),
+  checkin: one(studentCheckin, {
+    fields: [studentNote.checkinId],
+    references: [studentCheckin.id],
+  }),
+  author: one(user, {
+    fields: [studentNote.authorUserId],
+    references: [user.id],
+  }),
+}));
 
 /* -------------------------------------------------------------------------- */
 /*  Calendar / Agenda (coach scheduling)                                       */
@@ -2424,6 +2691,19 @@ export const aiSettings = pgTable("ai_settings", {
   /** Provider model slug, e.g. `qwen/qwen3.7-flash:floor`. */
   model: text("model").notNull(),
   /**
+   * The model used for the check-in **evaluation**, which sends photographs.
+   *
+   * A second slug rather than a second setting screen, and a second slug rather
+   * than reusing `model`: the program generator's model is chosen for cheap
+   * pt-BR JSON over a text catalog and need not be multimodal at all, while this
+   * one must see. Keeping them apart means the cheap text model stays cheap.
+   *
+   * NULL means "use `model`" — correct for an install whose chosen model happens
+   * to be multimodal, and the only sane default for an existing row.
+   */
+  visionModel: text("vision_model"),
+  visionFallbackModels: text("vision_fallback_models").array().notNull().default([]),
+  /**
    * Tried in order when the primary errors, rate-limits or disappears. Empty is
    * a legal, meaningful value — "no fallbacks" — and is why the column defaults
    * to an empty array rather than being nullable.
@@ -2554,6 +2834,10 @@ export type StudentCheckinPhoto = typeof studentCheckinPhoto.$inferSelect;
 export type NewStudentCheckinPhoto = typeof studentCheckinPhoto.$inferInsert;
 export type CheckinAssessment = typeof checkinAssessment.$inferSelect;
 export type NewCheckinAssessment = typeof checkinAssessment.$inferInsert;
+export type CheckinEvaluation = typeof checkinEvaluation.$inferSelect;
+export type NewCheckinEvaluation = typeof checkinEvaluation.$inferInsert;
+export type StudentNote = typeof studentNote.$inferSelect;
+export type NewStudentNote = typeof studentNote.$inferInsert;
 export type CalendarEvent = typeof calendarEvent.$inferSelect;
 export type NewCalendarEvent = typeof calendarEvent.$inferInsert;
 export type WhatsappConversation = typeof whatsappConversation.$inferSelect;

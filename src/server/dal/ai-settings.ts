@@ -5,6 +5,8 @@ import { schema } from "@/db";
 import {
   DEFAULT_AI_FALLBACK_MODELS,
   DEFAULT_AI_MODEL,
+  DEFAULT_AI_VISION_FALLBACK_MODELS,
+  DEFAULT_AI_VISION_MODEL,
   type AiSettingsDto,
   type AiSettingsValues,
 } from "@/lib/ai-settings";
@@ -35,6 +37,8 @@ export async function getAiSettings(db: DB): Promise<AiSettingsDto> {
     return {
       model: DEFAULT_AI_MODEL,
       fallbackModels: DEFAULT_AI_FALLBACK_MODELS,
+      visionModel: DEFAULT_AI_VISION_MODEL,
+      visionFallbackModels: DEFAULT_AI_VISION_FALLBACK_MODELS,
       // Says the values are ours, not a choice someone made — the screen tells
       // an admin whether they are looking at a decision or at a default.
       customized: false,
@@ -44,6 +48,11 @@ export async function getAiSettings(db: DB): Promise<AiSettingsDto> {
   return {
     model: row.model,
     fallbackModels: row.fallbackModels,
+    // A row saved before the evaluation existed has no vision slug; falling back
+    // to the text model is the honest reading of "nobody has chosen one", and it
+    // is also what an install with one multimodal model actually wants.
+    visionModel: row.visionModel ?? row.model,
+    visionFallbackModels: row.visionFallbackModels,
     customized: true,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -66,12 +75,16 @@ export async function updateAiSettings(
       singleton: true,
       model: values.model,
       fallbackModels: values.fallbackModels,
+      visionModel: values.visionModel,
+      visionFallbackModels: values.visionFallbackModels,
     })
     .onConflictDoUpdate({
       target: schema.aiSettings.singleton,
       set: {
         model: values.model,
         fallbackModels: values.fallbackModels,
+        visionModel: values.visionModel,
+        visionFallbackModels: values.visionFallbackModels,
         updatedAt: new Date(),
       },
     })
@@ -80,6 +93,8 @@ export async function updateAiSettings(
   return {
     model: row.model,
     fallbackModels: row.fallbackModels,
+    visionModel: row.visionModel ?? row.model,
+    visionFallbackModels: row.visionFallbackModels,
     customized: true,
     updatedAt: row.updatedAt.toISOString(),
   };

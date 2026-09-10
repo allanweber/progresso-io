@@ -60,6 +60,7 @@ describe("clinic settings", () => {
       feedbackFrequency: "mensal",
       feedbackPreferredDay: "friday",
       feedbackWhatsappReminder: false,
+      assessmentPreset: "completa" as const,
     });
 
     const after = await clinics.getClinicSettings(ctx);
@@ -69,6 +70,7 @@ describe("clinic settings", () => {
       feedbackFrequency: "mensal",
       feedbackPreferredDay: "friday",
       feedbackWhatsappReminder: false,
+      assessmentPreset: "completa" as const,
       // The update never touches the plan (chosen at sign-up).
       plan: originalPlan,
     });
@@ -90,6 +92,7 @@ describe("clinic settings", () => {
       feedbackFrequency: "semanal",
       feedbackPreferredDay: "monday",
       feedbackWhatsappReminder: true,
+      assessmentPreset: "completa" as const,
     });
 
     // B's write did not leak into C's clinic.
@@ -125,6 +128,7 @@ describe("public branded portal", () => {
     feedbackFrequency: "semanal" as const,
     feedbackPreferredDay: "monday" as const,
     feedbackWhatsappReminder: true,
+    assessmentPreset: "completa" as const,
   };
 
   it("resolves branding only for a paid clinic with a slug set", async () => {

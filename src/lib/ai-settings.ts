@@ -31,10 +31,39 @@ export const DEFAULT_AI_FALLBACK_MODELS = [
   "meta-llama/llama-3.1-8b-instruct:floor",
 ];
 
+/**
+ * The default model for the check-in evaluation, which sends photos.
+ *
+ * **Today this is the same slug as {@link DEFAULT_AI_MODEL}**, because that
+ * model happens to accept images (`input_modalities: ["text","image","video"]`)
+ * and is the cheapest thing on the list that does. It stays a *separate
+ * setting* regardless: the text default is chosen for cheap structured pt-BR
+ * over a catalog and the next cheap slug that wins that comparison may well be
+ * text-only, at which point these two have to be able to diverge without a
+ * deploy.
+ *
+ * The fallback is deliberately a different family in a different jurisdiction —
+ * same reasoning as the text fallback — and it is the one of the two that
+ * advertises real `structured_outputs` support, so a primary that starts
+ * ignoring the schema degrades to one that does not.
+ *
+ * **Verify a slug before trusting it** — `curl https://openrouter.ai/api/v1/models`.
+ * This constant was wrong once already: `qwen/qwen3.7-vl:floor` was a guess at a
+ * vision variant that does not exist, and OpenRouter answered every evaluation
+ * with `400 … is not a valid model ID`.
+ */
+export const DEFAULT_AI_VISION_MODEL = "qwen/qwen3.7-flash:floor";
+export const DEFAULT_AI_VISION_FALLBACK_MODELS = [
+  "google/gemini-2.5-flash-lite:floor",
+];
+
 /** The settings as the admin screen reads them. */
 export type AiSettingsDto = {
   model: string;
   fallbackModels: string[];
+  /** The multimodal model used for check-in evaluations. */
+  visionModel: string;
+  visionFallbackModels: string[];
   /** Whether an admin has ever saved — false means these are the defaults. */
   customized: boolean;
   updatedAt: string | null;
@@ -60,6 +89,19 @@ const modelSlug = z
 
 export const aiSettingsSchema = z.object({
   model: modelSlug,
+  /**
+   * The evaluation's model. Required in the form even though the column is
+   * nullable: an admin looking at this screen should see which model reads the
+   * photos, not an empty box that silently means "the other one".
+   */
+  visionModel: modelSlug,
+  visionFallbackModels: z
+    .array(modelSlug)
+    .max(5, "No máximo 5 alternativas.")
+    .refine(
+      (list) => new Set(list).size === list.length,
+      "Há alternativas repetidas.",
+    ),
   /**
    * Tried in order when the primary errors, rate-limits or disappears. An empty
    * list is a real choice ("no fallbacks"), so it is accepted rather than

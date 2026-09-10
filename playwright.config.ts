@@ -118,6 +118,19 @@ export default defineConfig({
       },
     },
     {
+      // The AI evaluation of a check-in, plus Notas do aluno. Its own project so
+      // it never shares a worker with the generator specs — both drive the stub
+      // provider against the same seeded aluno.
+      name: "evaluation",
+      testMatch: /evaluation\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions,
+        storageState: COACH_STORAGE,
+      },
+    },
+    {
       name: "ai",
       testMatch: /ai-generator\.spec\.ts/,
       dependencies: ["setup"],

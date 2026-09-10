@@ -25,7 +25,11 @@ import {
   PhotoLightbox,
   type LightboxPhoto,
 } from "@/components/checkins/photo-lightbox";
-import { WeightChart } from "@/components/checkins/weight-chart";
+import {
+  BodyFatChart,
+  WeightChart,
+  type BodyFatPoint,
+} from "@/components/checkins/weight-chart";
 import {
   CIRCUMFERENCE_LABELS,
   CIRCUMFERENCE_SITES,
@@ -175,6 +179,21 @@ export default function StudentEvolutionPage() {
   const deltaW =
     firstW !== undefined && lastW !== undefined ? lastW - firstW : undefined;
 
+  // Only the assessments that actually carry a percentage. `bodyFatSource`
+  // rides along so the chart can tell a caliper reading from an estimate.
+  const bodyFatSeries: BodyFatPoint[] = assessments
+    .filter((a) => a.bodyFatPct !== null)
+    .map((a) => ({
+      date: a.date,
+      bodyFatPct: a.bodyFatPct as number,
+      source: a.bodyFatSource,
+    }));
+  const bodyFatDelta =
+    bodyFatSeries.length > 1
+      ? bodyFatSeries[bodyFatSeries.length - 1].bodyFatPct -
+        bodyFatSeries[0].bodyFatPct
+      : undefined;
+
   const measureRows = buildMeasureRows(assessments);
   const firstAssessment = assessments[0];
   const lastAssessment = assessments[assessments.length - 1];
@@ -283,6 +302,37 @@ export default function StudentEvolutionPage() {
                 ) : null}
               </div>
               <WeightChart series={weightSeries} />
+            </div>
+          ) : null}
+
+          {/* % de gordura — its own chart rather than a second line on the
+              weight one: the two share no scale, and the readings are sparser
+              (only the check-ins that carried an assessment or an accepted
+              evaluation have one). */}
+          {bodyFatSeries.length > 0 ? (
+            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-heading text-subtitle font-semibold">
+                  % de gordura
+                </h2>
+                {bodyFatDelta !== undefined ? (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 text-body-dense font-semibold",
+                      bodyFatDelta < 0 ? "text-emerald-600" : "text-amber-600",
+                    )}
+                  >
+                    {bodyFatDelta < 0 ? (
+                      <TrendingDown className="size-4" />
+                    ) : (
+                      <TrendingUp className="size-4" />
+                    )}
+                    {bodyFatDelta < 0 ? "−" : "+"}
+                    {formatCheckinWeight(Math.abs(bodyFatDelta))} p.p.
+                  </span>
+                ) : null}
+              </div>
+              <BodyFatChart series={bodyFatSeries} />
             </div>
           ) : null}
 

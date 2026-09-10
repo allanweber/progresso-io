@@ -118,6 +118,105 @@ function Kpi({
 }
 
 /**
+ * The fallback-slug list: an "Adicionar" button, one input per alternative, and
+ * a warning when the list is empty.
+ *
+ * Extracted because there are now two of them — text and vision — and they must
+ * behave identically down to where the per-item error renders. That error
+ * placement is the non-obvious part: a bad slug fails validation at
+ * `<name>[i]`, and an array-level message never sees it, so without the inline
+ * error "Adicionar" then "Salvar" is a silent no-op.
+ */
+function FallbackModelsField({
+  form,
+  name,
+  placeholder,
+  emptyWarning,
+}: {
+  // The form instance, whose generic parameters are internal to TanStack Form
+  // and not worth restating here — this component only ever receives the one
+  // form declared below it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: any;
+  name: "fallbackModels" | "visionFallbackModels";
+  placeholder: string;
+  emptyWarning: string;
+}) {
+  return (
+    <form.Field name={name} mode="array">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      {(field: any) => (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label>Alternativas</Label>
+              <p className="text-xs text-muted-foreground">
+                Tentadas em ordem quando o principal falha, atinge o limite de
+                uso ou é descontinuado.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => field.pushValue("")}
+            >
+              <Plus className="size-4" />
+              Adicionar
+            </Button>
+          </div>
+          {field.state.value.length === 0 ? (
+            <p className="text-body-dense text-amber-600">{emptyWarning}</p>
+          ) : (
+            <ul className="space-y-2">
+              {field.state.value.map((_: string, i: number) => (
+                <li key={i} className="flex items-start gap-2">
+                  <form.Field name={`${name}[${i}]`}>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {(sub: any) => (
+                      <div className="flex-1">
+                        <Input
+                          className="w-full font-mono"
+                          placeholder={placeholder}
+                          aria-label={`Alternativa ${i + 1}`}
+                          aria-invalid={fieldError(sub) ? true : undefined}
+                          value={sub.state.value}
+                          onBlur={sub.handleBlur}
+                          onChange={(e) => sub.handleChange(e.target.value)}
+                        />
+                        {fieldError(sub) && (
+                          <p className="mt-1 text-body-dense text-destructive">
+                            {fieldError(sub)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </form.Field>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Remover alternativa ${i + 1}`}
+                    onClick={() => field.removeValue(i)}
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {fieldError(field) && (
+            <p className="text-body-dense text-destructive">
+              {fieldError(field)}
+            </p>
+          )}
+        </div>
+      )}
+    </form.Field>
+  );
+}
+
+/**
  * The model settings form — a `"use client"` island only in the sense that it is
  * a separate component: it exists because TanStack Form reads `defaultValues`
  * once, at mount, so the fields have to be created *after* the saved settings
@@ -142,6 +241,8 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
     defaultValues: {
       model: settings.model,
       fallbackModels: settings.fallbackModels,
+      visionModel: settings.visionModel,
+      visionFallbackModels: settings.visionFallbackModels,
     } satisfies AiSettingsInput,
     validators: { onChange: aiSettingsSchema },
     onSubmit: async ({ value }) => {
@@ -206,82 +307,55 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
           )}
         </form.Field>
 
-        <form.Field name="fallbackModels" mode="array">
-          {(field) => (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <Label>Alternativas</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Tentadas em ordem quando o principal falha, atinge o limite
-                    de uso ou é descontinuado.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => field.pushValue("")}
-                >
-                  <Plus className="size-4" />
-                  Adicionar
-                </Button>
+        <FallbackModelsField
+          form={form}
+          name="fallbackModels"
+          placeholder="meta-llama/llama-3.1-8b-instruct:floor"
+          emptyWarning="Nenhuma alternativa — se o modelo principal sair do ar, a geração falha até alguém editar este campo."
+        />
+
+        <div className="border-t border-border pt-4">
+          <form.Field name="visionModel">
+            {(field) => (
+              <div>
+                <Field
+                  id="ai-vision-model"
+                  label="Modelo da avaliação (lê as fotos)"
+                  className="font-mono"
+                  placeholder="qwen/qwen3.7-flash:floor"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  error={fieldError(field) ?? serverErrors?.visionModel}
+                />
+                {/* The one thing an admin can get wrong here that produces no
+                    error message anywhere: a text-only slug simply ignores the
+                    images and answers from the numbers, which reads as "the AI
+                    is bad at reading photos" rather than "it never saw them". */}
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Precisa ser <strong>multimodal</strong>. Um modelo só de texto
+                  não falha — ele responde ignorando as fotos, o que é pior.
+                </p>
+                {field.state.value.trim() !== "" &&
+                  !isFloored(field.state.value) && (
+                    <p className="mt-1.5 text-xs text-amber-600">
+                      Sem <code className="font-mono">:floor</code> — o
+                      roteamento não vai buscar o host mais barato.
+                    </p>
+                  )}
               </div>
-              {field.state.value.length === 0 ? (
-                <p className="text-body-dense text-amber-600">
-                  Nenhuma alternativa — se o modelo principal sair do ar, a
-                  geração falha até alguém editar este campo.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {field.state.value.map((_: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <form.Field name={`fallbackModels[${i}]`}>
-                        {(sub) => (
-                          // The error has to render HERE, on the item: a bad
-                          // slug fails validation at `fallbackModels[i]`, and
-                          // the array-level message below never sees it. Without
-                          // this, "Adicionar" then "Salvar" is a silent no-op —
-                          // submit refuses and nothing on screen says why.
-                          <div className="flex-1">
-                            <Input
-                              className="w-full font-mono"
-                              placeholder="meta-llama/llama-3.1-8b-instruct:floor"
-                              aria-label={`Alternativa ${i + 1}`}
-                              aria-invalid={fieldError(sub) ? true : undefined}
-                              value={sub.state.value}
-                              onBlur={sub.handleBlur}
-                              onChange={(e) => sub.handleChange(e.target.value)}
-                            />
-                            {fieldError(sub) && (
-                              <p className="mt-1 text-body-dense text-destructive">
-                                {fieldError(sub)}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </form.Field>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Remover alternativa ${i + 1}`}
-                        onClick={() => field.removeValue(i)}
-                      >
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {fieldError(field) && (
-                <p className="text-body-dense text-destructive">
-                  {fieldError(field)}
-                </p>
-              )}
-            </div>
-          )}
-        </form.Field>
+            )}
+          </form.Field>
+
+          <div className="mt-4">
+            <FallbackModelsField
+              form={form}
+              name="visionFallbackModels"
+              placeholder="google/gemini-2.5-flash-lite:floor"
+              emptyWarning="Nenhuma alternativa — se o modelo de visão sair do ar, a avaliação falha até alguém editar este campo."
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">

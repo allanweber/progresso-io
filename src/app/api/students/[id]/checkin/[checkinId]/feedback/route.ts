@@ -43,6 +43,7 @@ export const POST = withCoach<Params>(
             circumferences: parsed.data.assessment.circumferences,
             skinfolds: parsed.data.assessment.skinfolds,
             bodyFatPct: parsed.data.assessment.bodyFatPct,
+            protocol: parsed.data.assessment.protocol,
           }
         : null;
 

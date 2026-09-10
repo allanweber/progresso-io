@@ -4,19 +4,37 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
  * The AI program generator's entry point, on the seeded coach's session and the
  * real DB (see scripts/e2e.mjs).
  *
- * No LLM is configured in the e2e environment and none should be — a spec must
- * not depend on a paid third party being reachable, and a model's output isn't
- * assertable anyway. What IS assertable, and what these tests cover, is
- * everything around the call: the gate that decides whether a coach may press
- * the button, the questions each dialog asks — treino and dieta ask different
- * ones — and the fact that an unconfigured install refuses in plain PT-BR
- * instead of failing opaquely.
+ * No paid provider is reachable from here and none should be: the suite pins
+ * `LLM_PROVIDER=stub` (see scripts/e2e.mjs), which answers with a fixed fixture
+ * and never leaves the process. So the model's words are not what these tests
+ * assert — everything around the call is: the gate that decides whether a coach
+ * may press the button, the questions each dialog asks (treino and dieta ask
+ * different ones), and what a coach is left holding afterwards, which is an
+ * unpublished draft.
  *
- * The generation itself is covered by `tests/ai-generator.integration.test.ts`
- * against a fake provider.
+ * **Every generating test works on an aluno it created itself.** Generating
+ * WRITES a draft, the suite is fullyParallel, and pointed at the seeded Ana this
+ * project rewrote the diet `portfolio.spec.ts` photographs while that spec was
+ * reading it. `alunoWithAnamnesis` below is the fix, and it also makes the
+ * assertions honest: a fresh aluno has nothing published, so the draft notice is
+ * the screen rather than a line buried under a published program.
+ *
+ * The prompt assembly and the salvage/rebalance passes are covered by
+ * `tests/ai-generator.integration.test.ts` against a fake provider.
  */
 
 type StudentList = { students: { id: string; firstName: string }[] };
+
+type Question = {
+  key: string;
+  type: "short_text" | "long_text" | "boolean";
+  mask?: "date" | "integer" | "decimal" | "pressure";
+  min?: number;
+  max?: number;
+};
+type AnamnesisSnapshot = {
+  anamnesis: { sections: { questions: Question[] }[] } | null;
+};
 
 async function anaId(request: APIRequestContext): Promise<string> {
   const { students } = (await (
@@ -27,24 +45,96 @@ async function anaId(request: APIRequestContext): Promise<string> {
   return ana!.id;
 }
 
+/** A number the question will accept, whatever bounds it declares. */
+function inBounds(value: number, q: Question): number {
+  if (q.min != null && value < q.min) return q.min;
+  if (q.max != null && value > q.max) return q.max;
+  return value;
+}
+
+/** A plausible answer for one question, shaped by its mask. */
+function answerFor(q: Question): string | boolean {
+  if (q.type === "boolean") return false;
+  switch (q.mask) {
+    case "date":
+      return "01/05/1990";
+    case "pressure":
+      return "120/80";
+    case "integer":
+      return String(inBounds(30, q));
+    case "decimal":
+      return String(inBounds(71.4, q)).replace(".", ",");
+    default:
+      return "Sem particularidades.";
+  }
+}
+
+/**
+ * A brand-new aluno with a completed anamnese — nothing published, nothing
+ * shared with another spec.
+ *
+ * The anamnese is answered rather than merely stamped: `peso_atual` is what
+ * turns "alta proteína" into grams on the dieta side, so an aluno filled with
+ * `{}` would exercise a path no real coach reaches.
+ */
+async function alunoWithAnamnesis(
+  request: APIRequestContext,
+  tag: string,
+): Promise<string> {
+  const { items } = (await (
+    await request.get("/api/anamneses?pageSize=100")
+  ).json()) as { items: { id: string }[] };
+  expect(items[0], "a seeded anamnese template").toBeTruthy();
+
+  const unique = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const created = await request.post("/api/students", {
+    data: {
+      firstName: "IA",
+      lastName: tag,
+      // Offline: this aluno exists to be generated for, and an online one would
+      // fire a WhatsApp anamnese invite nobody is going to answer.
+      modality: "in_person",
+      email: `ia-${unique}@example.com`,
+      phone: "",
+      goal: "hipertrofia",
+      anamnesisId: items[0].id,
+    },
+  });
+  expect(created.ok(), await created.text()).toBeTruthy();
+  const { student } = (await created.json()) as { student: { id: string } };
+
+  const snapshot = (await (
+    await request.get(`/api/students/${student.id}/anamnesis`)
+  ).json()) as AnamnesisSnapshot;
+  expect(snapshot.anamnesis, "the assigned anamnese snapshot").toBeTruthy();
+  const answers: Record<string, string | boolean> = {};
+  for (const section of snapshot.anamnesis!.sections) {
+    for (const q of section.questions) answers[q.key] = answerFor(q);
+  }
+  // The coach filling it in is what completes an offline aluno's anamnese —
+  // the same PUT the profile screen uses — and completed is the gate the
+  // generator checks.
+  const filled = await request.put(`/api/students/${student.id}/anamnesis`, {
+    data: { answers },
+  });
+  expect(filled.ok(), await filled.text()).toBeTruthy();
+
+  return student.id;
+}
+
 test.describe("ai program generator", () => {
-  test("offers the generator on Treino, asks only the treino questions, refuses without a provider (desktop + mobile)", async ({
+  test("offers the generator on Treino, asks only the treino questions, and drafts one (desktop + mobile)", async ({
     page,
     request,
   }) => {
-    await page.goto(`/coach/students/${await anaId(request)}/workout`);
+    const student = await alunoWithAnamnesis(request, "Treino");
+    const workoutUrl = `/coach/students/${student}/workout`;
+    await page.goto(workoutUrl);
 
     const trigger = page.getByRole("button", { name: "Gerar treino com IA" });
+    const replace = page.getByRole("button", { name: "Substituir rascunho" });
     await expect(trigger).toBeEnabled();
     await trigger.click();
-
-    // Ana already has a published workout, so the first screen is the overwrite
-    // gate — it must name what is lost, not just ask "tem certeza?".
-    const replace = page.getByRole("button", { name: "Substituir rascunho" });
-    if (await replace.isVisible()) {
-      await expect(page.getByText(/substitui o rascunho atual/)).toBeVisible();
-      await replace.click();
-    }
 
     // The treino form, per docs/ai-generator.md — and *only* it. Dietary
     // restrictions belong to the dieta dialog; the workout prompt's rules never
@@ -79,13 +169,33 @@ test.describe("ai program generator", () => {
       fullPage: true,
     });
 
-    // No LLM configured → a named refusal in PT-BR, inside the dialog.
+    // The suite runs against the stub provider (see scripts/e2e.mjs), so this
+    // generates for real. That is the whole point of the stub — the paths AFTER
+    // a successful generation used to be unreachable from here.
     await submit.click();
-    await expect(
-      page.getByText("A geração por IA ainda não está configurada nesta instalação."),
-    ).toBeVisible();
+    await expect(page.getByLabel("Objetivo")).toBeHidden();
 
+    // The coach lands IN the treino that was written, not on a notice about it:
+    // the builder opens on the draft, already named by the generation.
+    await expect(page.getByLabel("Nome do treino")).toHaveValue(
+      "Treino de teste",
+      { timeout: 20000 },
+    );
+
+    // And it is a draft, not a publish: the aluno still sees nothing. A reload
+    // proves the draft was persisted rather than only held in the builder.
+    await page.reload();
+    await expect(page.getByText(/Rascunho não publicado/)).toBeVisible({
+      timeout: 20000,
+    });
+
+    // Mobile — the dialog is the thing worth photographing, so reopen it. With
+    // a draft on the aluno now, this is also where the overwrite gate is real:
+    // it has to name what is lost, not just ask "tem certeza?".
     await page.setViewportSize({ width: 390, height: 844 });
+    await trigger.click();
+    await expect(page.getByText(/substitui o rascunho atual/)).toBeVisible();
+    await replace.click();
     await expect(page.getByLabel("Objetivo")).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-ai-generator-mobile.png",
@@ -97,8 +207,9 @@ test.describe("ai program generator", () => {
     page,
     request,
   }) => {
-    const student = await anaId(request);
-    await page.goto(`/coach/students/${student}/workout`);
+    const student = await alunoWithAnamnesis(request, "Memoria");
+    const workoutUrl = `/coach/students/${student}/workout`;
+    await page.goto(workoutUrl);
 
     const trigger = page.getByRole("button", { name: "Gerar treino com IA" });
     const replace = page.getByRole("button", { name: "Substituir rascunho" });
@@ -109,15 +220,15 @@ test.describe("ai program generator", () => {
     await page.getByLabel("Objetivo").fill("força máxima no agachamento");
     await page.getByText("Halteres").click();
     await page.getByLabel("Dias por semana").fill("5");
-    // No provider in e2e, so this refuses — which is the harder case on purpose:
-    // the answers must survive a generation that did NOT succeed, or the retry
-    // starts from a blank form.
+    // The answers are remembered on submit, so they have to survive the dialog
+    // closing on success — a coach who regenerates starts from what they asked
+    // for last time, not from a blank form.
     await submit.click();
-    await expect(
-      page.getByText("A geração por IA ainda não está configurada nesta instalação."),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Cancelar" }).click();
+    await expect(page.getByLabel("Objetivo")).toBeHidden();
 
+    // A successful generation opens the builder on the new draft; step back out
+    // of it, because the trigger lives on the page underneath.
+    await page.goto(workoutUrl);
     await trigger.click();
     if (await replace.isVisible()) await replace.click();
     await expect(page.getByLabel("Objetivo")).toHaveValue(
@@ -138,17 +249,11 @@ test.describe("ai program generator", () => {
 
     // The other aluno is untouched — these are answers about a person, and
     // leaking them across alunos would be worse than not remembering at all.
-    const { students } = (await (
-      await request.get("/api/students")
-    ).json()) as StudentList;
-    const outro = students.find((s) => s.id !== student);
-    expect(outro, "a second seeded aluno").toBeTruthy();
-    await page.goto(`/coach/students/${outro!.id}/workout`);
-    if (await trigger.isEnabled()) {
-      await trigger.click();
-      if (await replace.isVisible()) await replace.click();
-      await expect(page.getByLabel("Dias por semana")).toHaveValue("3");
-    }
+    // Read-only on Ana: the dialog is opened and abandoned, never submitted.
+    await page.goto(`/coach/students/${await anaId(request)}/workout`);
+    await trigger.click();
+    if (await replace.isVisible()) await replace.click();
+    await expect(page.getByLabel("Dias por semana")).toHaveValue("3");
   });
 
   test("a student with no anamnese gets the button disabled with the reason, never hidden", async ({
@@ -187,13 +292,14 @@ test.describe("ai program generator", () => {
     page,
     request,
   }) => {
-    await page.goto(`/coach/students/${await anaId(request)}/diet`);
+    const student = await alunoWithAnamnesis(request, "Dieta");
+    const dietUrl = `/coach/students/${student}/diet`;
+    await page.goto(dietUrl);
 
     const trigger = page.getByRole("button", { name: "Gerar dieta com IA" });
+    const replace = page.getByRole("button", { name: "Substituir rascunho" });
     await expect(trigger).toBeEnabled();
     await trigger.click();
-
-    const replace = page.getByRole("button", { name: "Substituir rascunho" });
     if (await replace.isVisible()) await replace.click();
 
     // The dieta form — and none of the treino's answers.
@@ -303,13 +409,24 @@ test.describe("ai program generator", () => {
       fullPage: true,
     });
 
-    // Same refusal path as Treino: no provider configured in e2e.
+    // Same path as Treino: the stub generates, the builder opens on the dieta it
+    // wrote, and a reload shows it is still only a draft.
     await submit.click();
-    await expect(
-      page.getByText("A geração por IA ainda não está configurada nesta instalação."),
-    ).toBeVisible();
+    await expect(page.getByLabel("Objetivo")).toBeHidden();
+    await expect(page.getByLabel("Nome da dieta")).toHaveValue("Dieta de teste", {
+      timeout: 20000,
+    });
+    await page.reload();
+    await expect(page.getByText(/Rascunho não publicado/)).toBeVisible({
+      timeout: 20000,
+    });
 
+    // Mobile: the dialog again, reopened past the overwrite gate the draft above
+    // now puts in front of it.
     await page.setViewportSize({ width: 390, height: 844 });
+    await trigger.click();
+    await expect(page.getByText(/substitui o rascunho atual/)).toBeVisible();
+    await replace.click();
     await expect(page.getByLabel("Objetivo")).toBeVisible();
     await page.screenshot({
       path: "test-results/screens/coach-ai-generator-diet-mobile.png",

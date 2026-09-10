@@ -169,7 +169,12 @@ export async function startGeneration(
     kind: AiGenerationKind;
     provider: string;
     model: string;
-    catalogHash: string;
+    /**
+     * Null for kinds with no catalog — the evaluation, which sends photos and
+     * has no cacheable prefix at all. Null rather than the hash of an empty
+     * string, which would read as a cache key that could hit.
+     */
+    catalogHash: string | null;
     anamnesisSnapshotId: string | null;
   },
 ): Promise<string> {

@@ -142,15 +142,22 @@ try {
     //
     // Empty rather than deleted, for the same reason as the two below.
     RESEND_API_KEY: "",
-    // The AI generator is pinned OFF, and it has to be pinned rather than
+    // The real provider is pinned OFF, and it has to be pinned rather than
     // merely left unset: the standalone server loads `.env` from the repo at
     // runtime, so a developer's real key reaches the suite even though the
-    // shell never exported it. The specs assert the "Nenhum provedor de IA
-    // configurado" copy, so an inherited key turns them red — and a green run
-    // would be worse, since it would mean e2e was calling a paid provider.
-    // Empty beats deleting: `llmEnv()` trims, and `@next/env` only fills in a
-    // key that is *absent* from process.env, so "" survives the .env load.
+    // shell never exported it — and a green run against a paid provider would
+    // be worse than a red one. Empty beats deleting: `llmEnv()` trims, and
+    // `@next/env` only fills in a key that is *absent* from process.env, so ""
+    // survives the .env load.
     LLM_API_KEY: "",
+    // …and the STUB provider is pinned ON. The `dev` provider refuses, which
+    // left every path after a successful generation — the draft, the evaluation
+    // card, accepting it, the note it writes — unreachable from this suite. The
+    // stub answers with a fixed, schema-valid fixture and never leaves the
+    // process, so the specs drive the real flow at zero cost and with no
+    // network. The unconfigured refusal is covered in `tests/` instead, where it
+    // does not need a browser. NEVER set this outside the suite.
+    LLM_PROVIDER: "stub",
     // Turnstile is pinned OFF for the same reason, and it has to be: the widget
     // is a real Cloudflare challenge, and headless Chromium does not solve one.
     // With a developer's keys inherited from `.env`, every genuine contact-form

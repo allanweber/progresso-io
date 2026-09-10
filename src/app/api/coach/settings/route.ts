@@ -90,6 +90,7 @@ function toDto(c: Clinic): ClinicSettingsDto {
     feedbackFrequency: c.feedbackFrequency,
     feedbackPreferredDay: c.feedbackPreferredDay,
     feedbackWhatsappReminder: c.feedbackWhatsappReminder,
+    assessmentPreset: c.assessmentPreset,
     plan: c.plan,
     brandedPortal: canUseBrandedPortal(effectivePlanOf(c, new Date())),
     onboardingCompletedAt: c.onboardingCompletedAt?.toISOString() ?? null,

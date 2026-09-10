@@ -288,6 +288,13 @@
       "when": 1788263364481,
       "tag": "0040_clinic_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788946648035,
+      "tag": "0041_outgoing_magik",
+      "breakpoints": true
     }
   ]
 }

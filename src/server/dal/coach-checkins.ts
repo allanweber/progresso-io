@@ -3,6 +3,8 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { schema } from "@/db";
 import type { CheckinPose } from "@/db/schema";
 import type {
+  AssessmentPreset,
+  BodyFatSource,
   CheckinCircumferences,
   CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
@@ -63,6 +65,15 @@ export type AssessmentWriteInput = {
   circumferences: CheckinCircumferences;
   skinfolds: CheckinSkinfolds;
   bodyFatPct: number | null;
+  /**
+   * How the coach arrived at that percentage. Optional because the answer for
+   * every hand-filled assessment is the same one — the coach typed it — and the
+   * upsert fills that in. Only the AI accept path has something else to say
+   * (`skinfolds` or `estimate`).
+   */
+  bodyFatSource?: BodyFatSource | null;
+  /** The form preset it was filled with, or null for a custom set of sites. */
+  protocol?: AssessmentPreset | null;
 } | null;
 
 /** Inserts or replaces the one assessment of a check-in (unique per check-in). */
@@ -77,6 +88,13 @@ async function upsertAssessment(
 ): Promise<void> {
   const { assessment } = args;
   if (!assessment) return;
+  // No percentage, no source: the column says where a number came from, and
+  // there is no number. Otherwise the caller's answer stands, and a caller that
+  // has nothing to say means the coach typed it in themselves.
+  const source =
+    assessment.bodyFatPct === null
+      ? null
+      : (assessment.bodyFatSource ?? "manual");
   await ctx.db
     .insert(schema.checkinAssessment)
     .values({
@@ -87,6 +105,8 @@ async function upsertAssessment(
       circumferences: assessment.circumferences,
       skinfolds: assessment.skinfolds,
       bodyFatPct: assessment.bodyFatPct,
+      bodyFatSource: source,
+      protocol: assessment.protocol ?? null,
       recordedByUserId: ctx.userId,
     })
     .onConflictDoUpdate({
@@ -96,9 +116,70 @@ async function upsertAssessment(
         circumferences: assessment.circumferences,
         skinfolds: assessment.skinfolds,
         bodyFatPct: assessment.bodyFatPct,
+        bodyFatSource: source,
+        protocol: assessment.protocol ?? null,
         recordedByUserId: ctx.userId,
       },
     });
+}
+
+/**
+ * Writes just the body-fat percentage onto a check-in's assessment, creating
+ * the assessment row when there isn't one.
+ *
+ * This is the accept path of the AI evaluation, and it is separate from
+ * {@link submitFeedback} for a reason: that one replaces the whole assessment
+ * from a form, so routing the accept through it would wipe the circumferences
+ * and folds a coach had already measured. Here the measurements are untouched —
+ * the only thing the evaluation settles is the percentage and where it came
+ * from.
+ *
+ * Returns false when the check-in is not this clinic's or not this student's.
+ */
+export async function setAssessmentBodyFat(
+  ctx: TenantContext,
+  studentId: string,
+  checkinId: string,
+  values: { bodyFatPct: number; bodyFatSource: BodyFatSource },
+): Promise<boolean> {
+  const [checkin] = await ctx.db
+    .select({ date: schema.studentCheckin.date })
+    .from(schema.studentCheckin)
+    .where(
+      and(
+        eq(schema.studentCheckin.id, checkinId),
+        eq(schema.studentCheckin.studentId, studentId),
+        eq(schema.studentCheckin.clinicId, ctx.clinicId),
+      ),
+    )
+    .limit(1);
+  if (!checkin) return false;
+
+  await ctx.db
+    .insert(schema.checkinAssessment)
+    .values({
+      clinicId: ctx.clinicId,
+      checkinId,
+      studentId,
+      // A coach who never opened the measures form still gets an assessment
+      // dated to the check-in — the percentage has to hang off something, and
+      // the day it describes is the check-in's own.
+      assessedAt: checkin.date,
+      bodyFatPct: values.bodyFatPct,
+      bodyFatSource: values.bodyFatSource,
+      recordedByUserId: ctx.userId,
+    })
+    .onConflictDoUpdate({
+      target: schema.checkinAssessment.checkinId,
+      // Only these three. `circumferences`, `skinfolds` and `protocol` are the
+      // coach's measurements and are not this write's business.
+      set: {
+        bodyFatPct: values.bodyFatPct,
+        bodyFatSource: values.bodyFatSource,
+        recordedByUserId: ctx.userId,
+      },
+    });
+  return true;
 }
 
 /**
@@ -198,6 +279,8 @@ export async function getStudentCheckin(
       circumferences: schema.checkinAssessment.circumferences,
       skinfolds: schema.checkinAssessment.skinfolds,
       bodyFatPct: schema.checkinAssessment.bodyFatPct,
+      bodyFatSource: schema.checkinAssessment.bodyFatSource,
+      protocol: schema.checkinAssessment.protocol,
     })
     .from(schema.checkinAssessment)
     .where(
@@ -774,6 +857,8 @@ export async function getStudentEvolution(
       circumferences: schema.checkinAssessment.circumferences,
       skinfolds: schema.checkinAssessment.skinfolds,
       bodyFatPct: schema.checkinAssessment.bodyFatPct,
+      bodyFatSource: schema.checkinAssessment.bodyFatSource,
+      protocol: schema.checkinAssessment.protocol,
     })
     .from(schema.checkinAssessment)
     .where(
@@ -789,6 +874,10 @@ export async function getStudentEvolution(
     circumferences: r.circumferences ?? {},
     skinfolds: r.skinfolds ?? {},
     bodyFatPct: r.bodyFatPct,
+    // Carried onto the chart so a caliper reading and a photo estimate can be
+    // drawn differently. A % de gordura trend that silently mixes the two is a
+    // trend a coach would be right to distrust.
+    bodyFatSource: r.bodyFatSource,
   }));
 
   // Check-ins with photos, oldest → newest (for the comparison).

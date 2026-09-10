@@ -21,6 +21,8 @@ import {
   aiSettingsSchema,
   DEFAULT_AI_FALLBACK_MODELS,
   DEFAULT_AI_MODEL,
+  DEFAULT_AI_VISION_FALLBACK_MODELS,
+  DEFAULT_AI_VISION_MODEL,
   isFloored,
 } from "@/lib/ai-settings";
 import { costBasis, formatCostBasis } from "@/lib/ai-programs";
@@ -39,6 +41,7 @@ import { addUsage, zeroUsage } from "@/server/ai/generate";
 const LLM_KEYS = [
   "LLM_API_KEY",
   "LLM_BASE_URL",
+  "LLM_PROVIDER",
   "LLM_DEBUG_PROMPTS",
   "LLM_DEBUG_PROMPTS_DIR",
 ] as const;
@@ -115,6 +118,8 @@ describe("default models", () => {
       aiSettingsSchema.safeParse({
         model: DEFAULT_AI_MODEL,
         fallbackModels: DEFAULT_AI_FALLBACK_MODELS,
+        visionModel: DEFAULT_AI_VISION_MODEL,
+        visionFallbackModels: DEFAULT_AI_VISION_FALLBACK_MODELS,
       }).success,
     ).toBe(true);
   });
@@ -122,7 +127,14 @@ describe("default models", () => {
 
 describe("aiSettingsSchema", () => {
   const parse = (model: string, fallbackModels: string[] = []) =>
-    aiSettingsSchema.safeParse({ model, fallbackModels });
+    aiSettingsSchema.safeParse({
+      model,
+      fallbackModels,
+      // The vision pair is validated by the same slug rule; these cases are
+      // about the primary, so they hold it constant.
+      visionModel: DEFAULT_AI_VISION_MODEL,
+      visionFallbackModels: [],
+    });
 
   it("accepts a vendor/model slug, with or without a variant", () => {
     expect(parse("qwen/qwen3.7-flash").success).toBe(true);
@@ -149,6 +161,82 @@ describe("aiSettingsSchema", () => {
     const result = parse("  qwen/qwen3.7-flash:floor  ");
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.model).toBe("qwen/qwen3.7-flash:floor");
+  });
+});
+
+describe("buildRequestBody — the user turn", () => {
+  it("sends a plain string when there are no images", () => {
+    // The overwhelming majority of calls are treino/dieta, and every host
+    // accepts a string. Wrapping them in content parts would make them find out
+    // whether it also accepts the array shape.
+    const body = buildRequestBody(models, request) as {
+      messages: { role: string; content: unknown }[];
+    };
+    expect(body.messages[1].content).toBe("aluno");
+  });
+
+  it("sends content parts with the text FIRST when images ride along", () => {
+    // Text first is not cosmetic: a model handed four bodies and then a question
+    // describes what it saw instead of answering what was asked.
+    const body = buildRequestBody(models, {
+      ...request,
+      images: ["data:image/jpeg;base64,AAA", "data:image/jpeg;base64,BBB"],
+    }) as { messages: { role: string; content: unknown }[] };
+    expect(body.messages[1].content).toEqual([
+      { type: "text", text: "aluno" },
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,AAA" } },
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,BBB" } },
+    ]);
+  });
+
+  it("treats an empty image list as no images at all", () => {
+    const body = buildRequestBody(models, { ...request, images: [] }) as {
+      messages: { content: unknown }[];
+    };
+    expect(body.messages[1].content).toBe("aluno");
+  });
+});
+
+describe("the stub provider", () => {
+  it("is off unless asked for, so production can never reach it", () => {
+    expect(getLlmProvider(models).canGenerate).toBe(false);
+    expect(getLlmProvider(models).name).toBe("dev");
+  });
+
+  it("generates a schema-valid answer for every kind e2e drives", async () => {
+    process.env.LLM_PROVIDER = "stub";
+    const provider = getLlmProvider(models);
+    expect(provider.name).toBe("stub");
+    // It must satisfy the gate too, or the paths it exists to cover stay
+    // unreachable: `not_configured` short-circuits before anything else.
+    expect(isLlmConfigured()).toBe(true);
+
+    for (const schemaName of ["avaliacao", "treino", "dieta"]) {
+      const result = await provider.generateJson({ ...request, schemaName });
+      expect(result.ok, schemaName).toBe(true);
+    }
+  });
+
+  it("reports zero tokens and NO cost rather than inventing figures", async () => {
+    process.env.LLM_PROVIDER = "stub";
+    const result = await getLlmProvider(models).generateJson({
+      ...request,
+      schemaName: "avaliacao",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.usage.outputTokens).toBe(0);
+    // A fabricated cost would poison the one table the platform prices from.
+    expect(result.usage.reportedCostMicroUsd).toBeNull();
+  });
+
+  it("fails loudly on a schema it does not know", async () => {
+    process.env.LLM_PROVIDER = "stub";
+    const result = await getLlmProvider(models).generateJson({
+      ...request,
+      schemaName: "inventado",
+    });
+    expect(result.ok).toBe(false);
   });
 });
 

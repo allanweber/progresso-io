@@ -1,6 +1,7 @@
 import type { CheckinAuthor, CheckinPose, Modality } from "@/db/schema";
 import {
   assessmentSchema,
+  type BodyFatSource,
   type CheckinAssessmentDto,
   type CheckinCircumferences,
   type CheckinSkinfolds,
@@ -291,6 +292,13 @@ export type AssessmentPointDto = {
   circumferences: CheckinCircumferences;
   skinfolds: CheckinSkinfolds;
   bodyFatPct: number | null;
+  /**
+   * Where that percentage came from, so the chart can draw a caliper reading
+   * and a photo estimate differently. Null on assessments taken before the
+   * distinction existed — which the legend renders as "origem não registrada"
+   * rather than quietly assuming one.
+   */
+  bodyFatSource: BodyFatSource | null;
 };
 
 /** A check-in that carries photos — for the comparable before/after photos. */

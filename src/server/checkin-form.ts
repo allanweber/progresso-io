@@ -103,6 +103,7 @@ export async function parseCoachCheckinForm(
         circumferences: parsedAssessment.data.circumferences,
         skinfolds: parsedAssessment.data.skinfolds,
         bodyFatPct: parsedAssessment.data.bodyFatPct,
+        protocol: parsedAssessment.data.protocol,
       }
     : null;
 

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,14 +17,19 @@ import {
 } from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { formatPhone } from "@/lib/phone";
-import type { Modality } from "@/db/schema";
+import type { Modality, Sex } from "@/db/schema";
 import { fieldError } from "@/lib/form";
 import {
   MODALITY_LABELS,
   MODALITY_VALUES,
+  SEX_LABELS,
+  SEX_VALUES,
   studentFormSchema,
   type StudentDto,
 } from "@/lib/students";
+
+/** Radix Select forbids an empty item value, so "no answer" needs a stand-in. */
+const NOT_INFORMED = "__none__";
 
 /**
  * The one form used for both creating and editing a student (per the "one form"
@@ -38,6 +44,11 @@ type StudentFormValues = {
   email: string;
   phone: string;
   goal: string;
+  // "" is the third state — "não informado" — which the schema turns into null.
+  // A select with no empty option would force every coach to assign a sex to
+  // an aluno they never asked, for a calculation they may never run.
+  sex: Sex | "";
+  birthDate: string;
   modality: Modality;
 };
 
@@ -47,6 +58,8 @@ const EMPTY: StudentFormValues = {
   email: "",
   phone: "",
   goal: "",
+  sex: "",
+  birthDate: "",
   modality: "online",
 };
 
@@ -60,6 +73,8 @@ function toValues(student: StudentDto): StudentFormValues {
     // round-trips — normalizePhone parses this back to the same canonical form.
     phone: formatPhone(student.phone),
     goal: student.goal ?? "",
+    sex: student.sex ?? "",
+    birthDate: student.birthDate ?? "",
     modality: student.modality,
   };
 }
@@ -207,6 +222,59 @@ export function StudentForm({
           )}
         </form.Field>
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <form.Field name="sex">
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label htmlFor="sex">Sexo (opcional)</Label>
+              <Select
+                value={field.state.value === "" ? NOT_INFORMED : field.state.value}
+                onValueChange={(v) =>
+                  field.handleChange(v === NOT_INFORMED ? "" : (v as Sex))
+                }
+              >
+                <SelectTrigger id="sex" onBlur={field.handleBlur}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Radix rejects "" as an item value, so the empty state
+                      travels under a sentinel and is mapped back on the way
+                      out — the stored value is still null. */}
+                  <SelectItem value={NOT_INFORMED}>Não informado</SelectItem>
+                  {SEX_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {SEX_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="birthDate">
+          {(field) => (
+            <DateInput
+              id="birthDate"
+              label="Nascimento (opcional)"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(v) => field.handleChange(v)}
+              error={fieldError(field, serverErrors?.birthDate)}
+            />
+          )}
+        </form.Field>
+      </div>
+
+      {/* Sex and birth date are what turn a 7-fold avaliação into a body-fat
+          percentage (Jackson-Pollock is sex-specific and takes age). Said here
+          rather than left implicit, because a coach who skips them will get a
+          photo estimate later with no explanation of why. */}
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Usados no cálculo de % de gordura por dobras cutâneas. Sem eles, a
+        avaliação estima pelas fotos.
+      </p>
 
       <form.Field name="goal">
         {(field) => (

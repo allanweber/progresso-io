@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  acceptsAbsentProfile,
   isAtStudentLimit,
   makeStudentRegistrationSchema,
   toStudentDto,
@@ -40,7 +41,9 @@ export const POST = withCoach("students.register", async (request, ctx) => {
   // The online WhatsApp/e-mail requirement is conditional on the plan: free
   // clinics have no WhatsApp, so an online student needs neither identifier.
   const hasWhatsapp = await plans.canUseWhatsapp(ctx);
-  const parsed = makeStudentRegistrationSchema(hasWhatsapp).safeParse(body.data);
+  const parsed = acceptsAbsentProfile(
+    makeStudentRegistrationSchema(hasWhatsapp),
+  ).safeParse(body.data);
   if (!parsed.success) return validationError(parsed.error);
   const data = parsed.data;
 
@@ -74,6 +77,8 @@ export const POST = withCoach("students.register", async (request, ctx) => {
     email: data.email,
     phone: data.phone,
     goal: data.goal,
+    sex: data.sex,
+    birthDate: data.birthDate,
     modality: data.modality,
     coachId: ctx.role === "coach" ? ctx.userId : null,
   });

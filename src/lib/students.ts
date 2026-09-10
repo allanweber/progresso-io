@@ -1,4 +1,4 @@
-import type { Modality, StudentStatus } from "@/db/schema";
+import type { Modality, Sex, StudentStatus } from "@/db/schema";
 import { z } from "@/lib/validation";
 import { normalizePhone } from "@/lib/phone";
 
@@ -12,6 +12,12 @@ import { normalizePhone } from "@/lib/phone";
 
 export const MODALITY_VALUES = ["online", "in_person"] as const satisfies readonly Modality[];
 export const STATUS_VALUES = ["active", "inactive", "archived"] as const satisfies readonly StudentStatus[];
+export const SEX_VALUES = ["masculino", "feminino"] as const satisfies readonly Sex[];
+
+export const SEX_LABELS: Record<Sex, string> = {
+  masculino: "Masculino",
+  feminino: "Feminino",
+};
 
 export const MODALITY_LABELS: Record<Modality, string> = {
   online: "Online",
@@ -135,6 +141,15 @@ export type StudentDto = {
   email: string | null;
   phone: string | null;
   goal: string | null;
+  /**
+   * Biological sex and birth date. Both optional, and both here for one reason:
+   * the Jackson-Pollock skinfold equations are sex-specific and take age as a
+   * term, so a full 7-fold avaliação can only be turned into a body-fat
+   * percentage when they are known (see @/lib/body-composition). Without them
+   * the AI evaluation estimates from the photos instead.
+   */
+  sex: Sex | null;
+  birthDate: string | null;
   status: StudentStatus;
   modality: Modality;
   createdAt: string;
@@ -210,6 +225,30 @@ const studentBaseObject = z.object({
   email: optionalEmailSchema,
   phone: phoneSchema,
   goal: optionalText(200, "Objetivo muito longo."),
+  // Both optional: an existing roster has neither, and a coach who does not run
+  // skinfold assessments never needs them. Blank is a real answer, not an error.
+  // Required *keys* all the same, because the forms hold every key and TanStack
+  // Form's validator must accept exactly the value type the form holds — see
+  // `acceptsAbsentProfile` for the API's laxer door.
+  sex: z
+    .union([z.enum(SEX_VALUES), z.literal("")])
+    .transform((v) => (v === "" ? null : v)),
+  birthDate: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .refine(
+      (v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v),
+      "Informe uma data válida.",
+    )
+    .refine((v) => {
+      if (v === null) return true;
+      const year = Number(v.slice(0, 4));
+      // A plausible living person. Catches the classic two-digit-year paste
+      // ("0090-05-01") that would otherwise produce a 1900-year-old aluno and a
+      // body-fat equation applied far outside where it was fitted.
+      return year >= 1900 && year <= new Date().getFullYear();
+    }, "Informe uma data válida."),
   modality: z.enum(MODALITY_VALUES),
 });
 
@@ -242,6 +281,28 @@ function requireOnlineContact(requireContact: boolean) {
       });
     }
   };
+}
+
+/**
+ * Wraps a student schema so `sex` and `birthDate` may be **absent** from the
+ * payload, not merely blank.
+ *
+ * Both fields are optional by design, and a schema that still demanded the keys
+ * would break every caller written before they existed — a JSON body without
+ * them is not a malformed request, it is a coach who never filled them in. The
+ * forms are unaffected: they hold every key already, and their validator has to
+ * keep the exact value type they hold, which is why the base object cannot use
+ * `.default()` for this.
+ *
+ * Missing and `null` both mean "não informado", so both become the empty string
+ * the schema already knows how to read.
+ */
+export function acceptsAbsentProfile<T extends z.ZodType>(schema: T) {
+  return z.preprocess((raw) => {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return raw;
+    const body = raw as Record<string, unknown>;
+    return { ...body, sex: body.sex ?? "", birthDate: body.birthDate ?? "" };
+  }, schema);
 }
 
 /**

@@ -1109,6 +1109,8 @@ describe("ai_settings", () => {
     const saved = await aiSettings.updateAiSettings(h, {
       model: "openai/gpt-oss-20b:floor",
       fallbackModels: ["mistralai/mistral-nemo:floor"],
+      visionModel: "a/vision:floor",
+      visionFallbackModels: [],
     });
     expect(saved.customized).toBe(true);
 
@@ -1123,10 +1125,14 @@ describe("ai_settings", () => {
     await aiSettings.updateAiSettings(h, {
       model: "a/one:floor",
       fallbackModels: [],
+      visionModel: "a/vision:floor",
+      visionFallbackModels: [],
     });
     await aiSettings.updateAiSettings(h, {
       model: "a/two:floor",
       fallbackModels: ["b/three"],
+      visionModel: "a/vision:floor",
+      visionFallbackModels: [],
     });
 
     const rows = await h.select().from(schema.aiSettings);
@@ -1140,6 +1146,8 @@ describe("ai_settings", () => {
     await aiSettings.updateAiSettings(h, {
       model: "a/one:floor",
       fallbackModels: [],
+      visionModel: "a/vision:floor",
+      visionFallbackModels: [],
     });
     // "No fallbacks" is a real decision. Silently re-adding the defaults would
     // route generations to a model an admin deliberately removed.

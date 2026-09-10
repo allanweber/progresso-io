@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gt, isNull, ne } from "drizzle-orm";
 
 import { type Database, schema } from "@/db";
-import type { Modality, Student, StudentStatus } from "@/db/schema";
+import type { Modality, Sex, Student, StudentStatus } from "@/db/schema";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -17,6 +17,8 @@ export type StudentInput = {
   email?: string | null;
   phone?: string | null;
   goal?: string | null;
+  sex?: Sex | null;
+  birthDate?: string | null;
   modality?: Modality;
   status?: StudentStatus;
   coachId?: string | null;
@@ -486,6 +488,8 @@ export async function createStudent(
       email: input.email ?? null,
       phone: input.phone ?? null,
       goal: input.goal ?? null,
+      sex: input.sex ?? null,
+      birthDate: input.birthDate ?? null,
       modality: input.modality ?? "online",
       status: input.status ?? "active",
       coachId: input.coachId ?? null,
@@ -509,6 +513,8 @@ export async function updateStudent(
   if (input.email !== undefined) patch.email = input.email;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.goal !== undefined) patch.goal = input.goal;
+  if (input.sex !== undefined) patch.sex = input.sex;
+  if (input.birthDate !== undefined) patch.birthDate = input.birthDate;
   if (input.modality !== undefined) patch.modality = input.modality;
   if (input.status !== undefined) patch.status = input.status;
   if (input.coachId !== undefined) patch.coachId = input.coachId;

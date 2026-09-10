@@ -217,3 +217,95 @@ export function workoutIndices(plan: WorkoutPlan): number[] {
 export function dietIndices(plan: DietPlan): number[] {
   return plan.meals.flatMap((m) => m.items.map((i) => i.food));
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Check-in evaluation                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The evaluation contract — the model's read of one check-in.
+ *
+ * Two things here are unlike the program schemas above, and both are the point:
+ *
+ * - **`bodyFatPct` is nullable, and the model is told it may use that.** Photos
+ *   arrive clothed, dark, cropped. A number invented off a winter coat is worse
+ *   than no number, because the coach may write it into a client's record.
+ *   `unavailable` carries the reason so the UI can say why rather than showing
+ *   an empty field.
+ * - **The advice is prose, not directives.** No kcal deltas, no g/kg. Numeric
+ *   prescriptions are arithmetic, and arithmetic is the thing this codebase has
+ *   already learned not to ask a model for (`rebalance.ts`). Prose to a coach
+ *   who then decides is also the only shape that keeps a human in the loop.
+ *
+ * `evolution` is separate from `summary` so it can come back empty on a first
+ * check-in instead of inventing a comparison with a previous one that does not
+ * exist.
+ */
+export const evaluationSchema = z.object({
+  bodyFatPct: z.number().min(3).max(65).nullable(),
+  confidence: z.enum(["baixa", "media", "alta"]).nullable(),
+  unavailable: z.string().trim().max(300).nullable(),
+  verdict: z.enum(["manter", "ajustar", "reavaliar"]),
+  summary: z.string().trim().min(1).max(400),
+  evolution: z.string().trim().max(1200),
+  diet: z.string().trim().max(1500),
+  workout: z.string().trim().max(1500),
+});
+
+export type EvaluationAnswer = z.infer<typeof evaluationSchema>;
+
+export const EVALUATION_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "bodyFatPct",
+    "confidence",
+    "unavailable",
+    "verdict",
+    "summary",
+    "evolution",
+    "diet",
+    "workout",
+  ],
+  properties: {
+    bodyFatPct: {
+      type: ["number", "null"],
+      description:
+        "Percentual de gordura corporal estimado a partir das fotos. Use null se as fotos não permitirem estimar.",
+    },
+    confidence: {
+      type: ["string", "null"],
+      enum: ["baixa", "media", "alta", null],
+      description: "Sua confiança na estimativa. null quando não houver estimativa.",
+    },
+    unavailable: {
+      type: ["string", "null"],
+      description:
+        "Motivo curto, em português, quando bodyFatPct for null. Caso contrário, null.",
+    },
+    verdict: {
+      type: "string",
+      enum: ["manter", "ajustar", "reavaliar"],
+      description:
+        "manter = o programa está funcionando; ajustar = vale mexer na dieta ou no treino; reavaliar = algo não fecha.",
+    },
+    summary: {
+      type: "string",
+      description: "Uma frase resumindo o check-in, para o coach.",
+    },
+    evolution: {
+      type: "string",
+      description:
+        "O que mudou desde o check-in anterior. String vazia se não houver check-in anterior.",
+    },
+    diet: {
+      type: "string",
+      description:
+        "Orientação ao COACH sobre a dieta. Sem números de calorias ou macros.",
+    },
+    workout: {
+      type: "string",
+      description: "Orientação ao COACH sobre o treino.",
+    },
+  },
+} as const;

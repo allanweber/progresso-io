@@ -20,12 +20,19 @@ export function toAssessmentDto(row: {
   circumferences: CheckinAssessmentDto["circumferences"];
   skinfolds: CheckinAssessmentDto["skinfolds"];
   bodyFatPct: number | null;
+  bodyFatSource: CheckinAssessmentDto["bodyFatSource"];
+  protocol: CheckinAssessmentDto["protocol"];
 }): CheckinAssessmentDto {
   return {
     assessedAt: row.assessedAt,
     circumferences: row.circumferences ?? {},
     skinfolds: row.skinfolds ?? {},
     bodyFatPct: row.bodyFatPct,
+    // Both null on every row written before the AI evaluation existed. That is
+    // the honest answer: those assessments were taken with the flat form and
+    // nobody recorded where their percentage came from.
+    bodyFatSource: row.bodyFatSource,
+    protocol: row.protocol,
   };
 }
 
@@ -493,6 +500,8 @@ export async function getMyCheckin(
       circumferences: schema.checkinAssessment.circumferences,
       skinfolds: schema.checkinAssessment.skinfolds,
       bodyFatPct: schema.checkinAssessment.bodyFatPct,
+      bodyFatSource: schema.checkinAssessment.bodyFatSource,
+      protocol: schema.checkinAssessment.protocol,
     })
     .from(schema.checkinAssessment)
     .where(

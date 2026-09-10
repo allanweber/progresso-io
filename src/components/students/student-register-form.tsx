@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ApiError, apiFetch } from "@/lib/api-client";
-import type { Modality } from "@/db/schema";
+import type { Modality, Sex } from "@/db/schema";
 import { fieldError } from "@/lib/form";
 import {
   ANAMNESIS_OBJECTIVE_LABELS,
@@ -25,7 +26,12 @@ import {
   type AnamnesisListResponse,
 } from "@/lib/anamneses";
 import type { PlanUsageDto } from "@/lib/plans";
-import { makeStudentRegistrationSchema, type StudentDto } from "@/lib/students";
+import {
+  makeStudentRegistrationSchema,
+  SEX_LABELS,
+  SEX_VALUES,
+  type StudentDto,
+} from "@/lib/students";
 
 /**
  * The merged "Convidar novo aluno" screen. One action: it creates the student,
@@ -47,9 +53,15 @@ type RegisterValues = {
   phone: string;
   email: string;
   goal: string;
+  // "" is the third state — "não informado" — which the schema turns into null.
+  sex: Sex | "";
+  birthDate: string;
   modality: Modality;
   anamnesisId: string;
 };
+
+/** Radix Select forbids an empty item value, so "no answer" needs a stand-in. */
+const NOT_INFORMED = "__none__";
 
 const EMPTY: RegisterValues = {
   firstName: "",
@@ -57,6 +69,8 @@ const EMPTY: RegisterValues = {
   phone: "",
   email: "",
   goal: "",
+  sex: "",
+  birthDate: "",
   modality: "online",
   anamnesisId: "",
 };
@@ -261,6 +275,56 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
           </div>
         )}
       </form.Field>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <form.Field name="sex">
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label htmlFor="sex">Sexo (opcional)</Label>
+              <Select
+                value={field.state.value === "" ? NOT_INFORMED : field.state.value}
+                onValueChange={(v) =>
+                  field.handleChange(v === NOT_INFORMED ? "" : (v as Sex))
+                }
+              >
+                <SelectTrigger id="sex" onBlur={field.handleBlur}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Radix rejects "" as an item value, so "no answer" travels
+                      under a sentinel and is mapped back out. */}
+                  <SelectItem value={NOT_INFORMED}>Não informado</SelectItem>
+                  {SEX_VALUES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {SEX_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="birthDate">
+          {(field) => (
+            <DateInput
+              id="birthDate"
+              label="Nascimento (opcional)"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(v) => field.handleChange(v)}
+              error={fieldError(field, serverErrors?.birthDate)}
+            />
+          )}
+        </form.Field>
+      </div>
+
+      {/* Both feed the skinfold body-fat calculation, which is sex-specific and
+          takes age. Cheap to ask at intake, and a nuisance to chase later. */}
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Usados no cálculo de % de gordura por dobras cutâneas. Sem eles, a
+        avaliação com IA estima pelas fotos.
+      </p>
 
       <form.Field name="goal">
         {(field) => (

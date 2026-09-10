@@ -14,6 +14,7 @@ import {
   Pencil,
   Plus,
   Ruler,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { DateInput } from "@/components/ui/date-input";
 import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -55,6 +57,20 @@ import {
   uploadCheckinForm,
   usePhotoSlots,
 } from "@/components/checkins/photo-upload";
+import {
+  bodyFatSourceLabel,
+  defaultNoteBody,
+  EVALUATION_VERDICT_HINTS,
+  EVALUATION_VERDICT_LABELS,
+  type AiEvaluationDto,
+  type AiEvaluationRunDto,
+} from "@/lib/ai-evaluation";
+import { formatAiUsage } from "@/lib/ai-programs";
+import { round1 } from "@/lib/body-composition";
+import type { PlanUsageDto } from "@/lib/plans";
+import type { StudentAnamnesisDto } from "@/lib/student-anamneses";
+import type { AssessmentPreset } from "@/lib/checkin-assessment";
+import type { ClinicSettingsDto } from "@/lib/clinic-settings";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { todayYmd } from "@/lib/calendar";
 import { fieldError } from "@/lib/form";
@@ -387,6 +403,8 @@ function ReviewDialog({
 
             {d.assessment ? <AssessmentView assessment={d.assessment} /> : null}
 
+            <EvaluationSection key={`ai-${d.id}`} studentId={studentId} detail={d} />
+
             <PlanSnapshotView diet={d.diet} workout={d.workout} />
 
             {/* Keyed by the check-in id so the form (re)initializes from this
@@ -425,6 +443,491 @@ function ReviewDialog({
 }
 
 /**
+ * The clinic's default avaliação preset, so a new assessment opens on the form
+ * the clinic actually uses instead of all 21 inputs.
+ *
+ * A hook rather than a prop threaded through three dialogs: TanStack Query
+ * dedupes by key, so the three call sites share one request, and it is the same
+ * key the Configurações screen writes — saving a new default there updates
+ * these without a reload.
+ */
+function useDefaultPreset(): AssessmentPreset {
+  const settings = useQuery({
+    queryKey: ["coach-settings"],
+    queryFn: () => apiFetch<ClinicSettingsDto>("/api/coach/settings"),
+  });
+  return settings.data?.assessmentPreset ?? "completa";
+}
+
+/**
+ * "Avaliar com IA" — the model's read of this check-in, and the coach's decision
+ * on it.
+ *
+ * Three things here are deliberate and easy to erode:
+ *
+ * - **The draft is server-side.** A vision call takes seconds and costs a
+ *   credit; losing it to a closed dialog is how a coach learns not to press the
+ *   button. Reopening the check-in shows the same pending draft.
+ * - **% de gordura and massa magra are coupled.** Editing either recomputes the
+ *   other, so the pair can never be saved contradicting itself. Only the fat
+ *   percentage is sent — the lean figure is its complement by definition.
+ * - **Accepting writes a coach-only note, and nothing else the aluno can see.**
+ *   The advice is addressed to the coach; the student-facing feedback box below
+ *   is untouched on purpose.
+ */
+/**
+ * "Avaliar com IA" — the model's read of this check-in, and the coach's decision
+ * on it.
+ *
+ * **It lives in its own modal**, not inline in the review dialog. The review
+ * dialog is already a dense screen — photos, measures, plan snapshot, the
+ * feedback the aluno will read — and the evaluation is a separate act with its
+ * own decision at the end of it. Inline, the two competed: the coach could not
+ * tell which textarea the aluno receives and which one only they see. A modal
+ * makes that boundary physical. (Nested dialogs are an established pattern
+ * here — the photo lightbox stacks over this same review dialog.)
+ *
+ * Three things are deliberate and easy to erode:
+ *
+ * - **The draft is server-side.** A vision call takes seconds and costs a
+ *   credit; losing it to a closed dialog is how a coach learns not to press the
+ *   button. Reopening the check-in shows the same pending draft.
+ * - **% de gordura and massa magra are coupled.** Editing either recomputes the
+ *   other, so the pair can never be saved contradicting itself. Only the fat
+ *   percentage is sent — the lean figure is its complement by definition.
+ * - **Accepting writes a coach-only note, and nothing else the aluno can see.**
+ *   The advice is addressed to the coach; the student-facing feedback box in the
+ *   review dialog is untouched on purpose.
+ */
+function EvaluationSection({
+  studentId,
+  detail,
+}: {
+  studentId: string;
+  detail: CheckinDetailDto;
+}) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  /**
+   * The step shown before a NEW generation: usage limits, an optional steer for
+   * this run, and the button that actually spends the credit. Skipped when a
+   * draft already exists — opening then shows the draft directly, and "Gerar de
+   * novo" is what brings this step back so the coach can adjust the steer.
+   */
+  const [composing, setComposing] = useState(false);
+  const [instructions, setInstructions] = useState("");
+
+  const evaluation = useQuery({
+    queryKey: ["coach-checkin-evaluation", studentId, detail.id],
+    queryFn: () =>
+      apiFetch<{ evaluation: AiEvaluationDto | null }>(
+        `/api/students/${studentId}/checkin/${detail.id}/evaluation`,
+      ).then((r) => r.evaluation),
+  });
+  const usage = useQuery({
+    queryKey: ["coach-plan-usage"],
+    queryFn: () => apiFetch<PlanUsageDto>("/api/coach/plan-usage"),
+  });
+  const anamnesis = useQuery({
+    queryKey: ["student-anamnesis", studentId],
+    queryFn: () =>
+      apiFetch<{ anamnesis: StudentAnamnesisDto | null }>(
+        `/api/students/${studentId}/anamnesis`,
+      ).then((r) => r.anamnesis),
+  });
+
+  const draft =
+    evaluation.data && evaluation.data.status === "pending"
+      ? evaluation.data
+      : null;
+
+  // Seeded from the draft, then owned by the coach. Adjusting state during
+  // render rather than in an effect — the same pattern `DateInput` uses when a
+  // value arrives from outside.
+  const [seed, setSeed] = useState<string | null>(null);
+  const [bodyFat, setBodyFat] = useState("");
+  const [lean, setLean] = useState("");
+  const [body, setBody] = useState("");
+  if (draft && draft.id !== seed) {
+    setSeed(draft.id);
+    setBodyFat(draft.bodyFatPct === null ? "" : formatCheckinWeight(draft.bodyFatPct));
+    setLean(draft.leanMassPct === null ? "" : formatCheckinWeight(draft.leanMassPct));
+    setBody(defaultNoteBody(draft.payload));
+  }
+
+  /** Keeps the pair adding to 100. A blank on either side blanks both. */
+  function setPair(next: string, from: "fat" | "lean") {
+    const parsed = Number(next.trim().replace(",", "."));
+    const valid = next.trim() !== "" && Number.isFinite(parsed);
+    if (from === "fat") {
+      setBodyFat(next);
+      setLean(valid ? formatCheckinWeight(round1(100 - parsed)) : "");
+    } else {
+      setLean(next);
+      setBodyFat(valid ? formatCheckinWeight(round1(100 - parsed)) : "");
+    }
+  }
+
+  const run = useMutation({
+    mutationFn: () =>
+      apiFetch<AiEvaluationRunDto>(
+        `/api/students/${studentId}/checkin/${detail.id}/evaluation`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            instructions: instructions.trim() === "" ? null : instructions.trim(),
+          }),
+          // `apiFetch`'s 15s default is sized for ordinary CRUD and is far too
+          // short here: this call uploads four photos to a vision model and the
+          // server gives the provider 90s. Measured runs land at 9-10s, which is
+          // close enough to 15s that a slower model or a busier host would have
+          // the browser abort while the server finishes — spending the credit
+          // and showing the coach a timeout. Same fix, same reason, as the
+          // program generator (`ai-generate-button.tsx`).
+          signal: AbortSignal.timeout(120_000),
+        },
+      ),
+    onSuccess: (result) => {
+      queryClient.setQueryData(
+        ["coach-checkin-evaluation", studentId, detail.id],
+        result.evaluation,
+      );
+      // The credit is spent whether or not the coach keeps the answer.
+      queryClient.invalidateQueries({ queryKey: ["coach-plan-usage"] });
+      setComposing(false);
+    },
+    onError: (e) =>
+      setError(e instanceof ApiError ? e.message : "Não foi possível avaliar."),
+  });
+
+  const accept = useMutation({
+    mutationFn: () =>
+      apiFetch(
+        `/api/students/${studentId}/checkin/${detail.id}/evaluation/accept`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            bodyFatPct: bodyFat.trim() === "" ? null : Number(bodyFat.replace(",", ".")),
+            body,
+          }),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["coach-checkin-evaluation", studentId, detail.id],
+      });
+      // The accepted percentage lands on the assessment and on the chart, and
+      // the note appears on the Notas tab — all three are now stale.
+      queryClient.invalidateQueries({
+        queryKey: ["coach-checkin", studentId, detail.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["coach-evolution", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["student-notes", studentId] });
+      close();
+    },
+    onError: (e) =>
+      setError(e instanceof ApiError ? e.message : "Não foi possível salvar."),
+  });
+
+  const discard = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/students/${studentId}/checkin/${detail.id}/evaluation`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["coach-checkin-evaluation", studentId, detail.id],
+      });
+      close();
+    },
+    onError: (e) =>
+      setError(e instanceof ApiError ? e.message : "Não foi possível descartar."),
+  });
+
+  function close() {
+    setOpen(false);
+    setError(null);
+    setComposing(false);
+    setInstructions("");
+  }
+
+  function evaluate() {
+    setError(null);
+    run.mutate();
+  }
+
+  const used = usage.data?.ai.used ?? 0;
+  const limit = usage.data?.ai.limit ?? null;
+  // Disabled WITH the reason, never hidden: a missing anamnese is the most
+  // common blocker and also the thing the coach can fix in one click, so hiding
+  // the button would hide the fix.
+  const blocked =
+    anamnesis.data?.status !== "completed"
+      ? "Este aluno precisa de uma anamnese preenchida."
+      : limit !== null && used >= limit
+        ? "Você já usou todas as gerações de IA deste mês."
+        : null;
+
+  const busy = run.isPending;
+  const sourceLabel = draft
+    ? bodyFatSourceLabel(draft.bodyFatSource, draft.confidence)
+    : null;
+
+  return (
+    <>
+      <section className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3.5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 shrink-0 text-primary" />
+            <h3 className="font-heading text-body font-semibold">
+              Avaliação com IA
+            </h3>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {blocked ??
+              (draft
+                ? "Avaliação pendente — aceite ou descarte."
+                : `Lê peso, medidas, fotos e histórico. ${formatAiUsage(used, limit)}.`)}
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy || anamnesis.isLoading || (!draft && blocked !== null)}
+          onClick={() => {
+            setOpen(true);
+            // With no draft there is nothing to show but the form (usage,
+            // steer, the button that spends the credit) — "Gerar de novo" is
+            // what brings this same step back once a draft exists.
+            if (!draft) setComposing(true);
+          }}
+        >
+          {busy ? "Avaliando…" : draft ? "Ver avaliação" : "Avaliar com IA"}
+        </Button>
+      </section>
+
+      <Dialog open={open} onOpenChange={(o) => !o && close()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-heading text-lg">
+              <Sparkles className="size-4 text-primary" />
+              Avaliação com IA
+            </DialogTitle>
+            <p className="text-body-dense text-muted-foreground">
+              {formatCheckinDate(detail.date)}
+              {detail.weightKg !== null
+                ? ` · ${formatCheckinWeight(detail.weightKg)} kg`
+                : ""}
+            </p>
+          </DialogHeader>
+
+          {busy ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Lendo o check-in e as fotos…
+            </p>
+          ) : composing ? (
+            <div className="flex flex-col gap-3">
+              {/* Regenerating replaces the draft, so it says so up front — same
+                  rule the program generator follows for an existing draft. */}
+              {draft && (
+                <p className="rounded-lg bg-muted/40 px-3 py-2 text-body-dense text-muted-foreground">
+                  Isso substitui a avaliação pendente.
+                </p>
+              )}
+
+              <div className="space-y-1">
+                <Label
+                  htmlFor="eval-instructions"
+                  className="text-caption font-medium text-muted-foreground"
+                >
+                  Instruções extras (opcional)
+                </Label>
+                <Textarea
+                  id="eval-instructions"
+                  rows={4}
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  maxLength={500}
+                  placeholder="Ex.: focar na evolução da cintura, aluno relatou dor no ombro…"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lida pela IA só nesta avaliação — não vira nota nem é o que o
+                  aluno recebe.
+                </p>
+              </div>
+
+              {/* The limit the server itself will check before spending a
+                  credit — shown here, not just on the trigger, because this is
+                  where the coach decides whether to press the button. */}
+              <p className="text-body-dense text-muted-foreground">
+                {formatAiUsage(used, limit)}.
+              </p>
+              {blocked && (
+                <p className="text-body-dense text-destructive">{blocked}</p>
+              )}
+              {error && (
+                <p className="text-body-dense text-destructive">{error}</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={blocked !== null}
+                  onClick={evaluate}
+                >
+                  <Sparkles className="size-4" />
+                  Avaliar com IA
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={close}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : draft ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-caption font-semibold text-primary">
+                  {EVALUATION_VERDICT_LABELS[draft.payload.verdict]}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {EVALUATION_VERDICT_HINTS[draft.payload.verdict]}
+                </span>
+              </div>
+
+              <p className="text-body-dense text-foreground">
+                {draft.payload.summary}
+              </p>
+
+              {draft.bodyFatPct === null ? (
+                /* An honest "I could not tell" — never a number invented to
+                   fill the field. The reason is the model's own words. */
+                <p className="rounded-lg bg-muted/40 px-3 py-2 text-body-dense text-muted-foreground">
+                  Sem % de gordura:{" "}
+                  {draft.payload.unavailable ?? "não foi possível estimar."}
+                </p>
+              ) : (
+                <div>
+                  <div className="grid grid-cols-2 gap-3 sm:max-w-[320px]">
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="eval-bf"
+                        className="text-caption font-medium text-muted-foreground"
+                      >
+                        % de gordura
+                      </Label>
+                      <Input
+                        id="eval-bf"
+                        inputMode="decimal"
+                        value={bodyFat}
+                        onChange={(e) => setPair(e.target.value, "fat")}
+                        className="h-9 px-2.5 text-body-dense"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="eval-lean"
+                        className="text-caption font-medium text-muted-foreground"
+                      >
+                        Massa magra %
+                      </Label>
+                      <Input
+                        id="eval-lean"
+                        inputMode="decimal"
+                        value={lean}
+                        onChange={(e) => setPair(e.target.value, "lean")}
+                        className="h-9 px-2.5 text-body-dense"
+                      />
+                    </div>
+                  </div>
+                  {sourceLabel && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      Origem: {sourceLabel}.
+                      {draft.leanMassKg !== null
+                        ? ` Massa magra ${formatCheckinWeight(draft.leanMassKg)} kg.`
+                        : ""}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label
+                  htmlFor="eval-body"
+                  className="text-caption font-medium text-muted-foreground"
+                >
+                  Nota (só o coach vê)
+                </Label>
+                <Textarea
+                  id="eval-body"
+                  rows={8}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                />
+                {/* The one thing a coach might assume and must not: this text is
+                    theirs, and the aluno never receives it. */}
+                <p className="text-xs text-muted-foreground">
+                  Salva em Notas do aluno. O aluno não vê esta nota nem esta
+                  avaliação.
+                </p>
+              </div>
+
+              {error && (
+                <p className="text-body-dense text-destructive">{error}</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={accept.isPending || body.trim() === ""}
+                  onClick={() => {
+                    setError(null);
+                    accept.mutate();
+                  }}
+                >
+                  <Check className="size-4" />
+                  {accept.isPending ? "Salvando…" : "Aceitar e salvar nota"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={discard.isPending}
+                  onClick={() => discard.mutate()}
+                >
+                  Descartar
+                </Button>
+                {/* Back to the instructions step — the same one a first-ever
+                    generation goes through, with the pending draft named as
+                    what gets replaced. */}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setError(null);
+                    setComposing(true);
+                  }}
+                >
+                  Gerar de novo
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nenhuma avaliação pendente.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/**
  * Edits an existing check-in: date, weight, note, measures and photos — the
  * whole entry, whether the aluno submitted it or the coach logged it. A coach
  * owns the clinical record: a weight typed with the decimal in the wrong place,
@@ -448,10 +951,11 @@ function EditCheckinForm({
   const queryClient = useQueryClient();
   const basePath = `/api/students/${studentId}/checkin/${detail.id}/photo`;
   const { photos, pick, remove, reset: resetPhotos } = usePhotoSlots();
+  const preset = useDefaultPreset();
   const [assessment, setAssessment] = useState<AssessmentFormValues>(() =>
     detail.assessment
       ? assessmentFormFromDto(detail.assessment)
-      : emptyAssessmentForm(),
+      : emptyAssessmentForm(preset),
   );
   const [showAssessment, setShowAssessment] = useState(
     detail.assessment !== null,
@@ -855,10 +1359,11 @@ function ReviewForm({
 }) {
   const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState(detail.feedback ?? "");
+  const preset = useDefaultPreset();
   const [assessment, setAssessment] = useState<AssessmentFormValues>(() =>
     detail.assessment
       ? assessmentFormFromDto(detail.assessment)
-      : emptyAssessmentForm(),
+      : emptyAssessmentForm(preset),
   );
   const [showAssessment, setShowAssessment] = useState(detail.assessment !== null);
 
@@ -973,8 +1478,9 @@ function ManualCheckinDialog({
 }) {
   const queryClient = useQueryClient();
   const { photos, pick, remove, reset: resetPhotos } = usePhotoSlots();
+  const preset = useDefaultPreset();
   const [assessment, setAssessment] = useState<AssessmentFormValues>(
-    emptyAssessmentForm(),
+    emptyAssessmentForm(preset),
   );
   const [showAssessment, setShowAssessment] = useState(false);
   const [progress, setProgress] = useState(0);

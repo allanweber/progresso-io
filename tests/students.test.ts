@@ -21,8 +21,47 @@ describe("studentFormSchema", () => {
     email: "ANA@Email.com ",
     phone: "",
     goal: "",
+    // Both blank, which is the honest default: an aluno whose sex and birth date
+    // nobody asked for. The schema turns them into null.
+    sex: "" as const,
+    birthDate: "",
     modality: "in_person",
   };
+
+  it("turns a blank sex and birth date into null, not into an error", () => {
+    // Most of an existing roster has neither, and a coach who never runs
+    // skinfold assessments never needs them. Blank is a real answer.
+    const result = studentFormSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sex).toBeNull();
+      expect(result.data.birthDate).toBeNull();
+    }
+  });
+
+  it("keeps a sex and a birth date when they are given", () => {
+    const result = studentFormSchema.safeParse({
+      ...valid,
+      sex: "feminino",
+      birthDate: "1990-03-14",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sex).toBe("feminino");
+      expect(result.data.birthDate).toBe("1990-03-14");
+    }
+  });
+
+  it("rejects a birth date that would break the body-fat equation", () => {
+    // The classic two-digit-year paste. Left alone it produces a 1900-year-old
+    // aluno and a Jackson-Pollock result applied far outside its fitted range.
+    expect(
+      studentFormSchema.safeParse({ ...valid, birthDate: "0090-05-01" }).success,
+    ).toBe(false);
+    expect(
+      studentFormSchema.safeParse({ ...valid, birthDate: "14/03/1990" }).success,
+    ).toBe(false);
+  });
 
   it("accepts a valid student and normalizes the e-mail", () => {
     const result = studentFormSchema.safeParse(valid);
@@ -145,6 +184,8 @@ describe("makeStudentRegistrationSchema — plan-aware + optional anamnese", () 
     email: "",
     phone: "",
     goal: "",
+    sex: "" as const,
+    birthDate: "",
     modality: "online" as const,
     anamnesisId: "",
   };

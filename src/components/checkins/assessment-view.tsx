@@ -1,5 +1,6 @@
 "use client";
 
+import { BODY_FAT_SOURCE_LABELS } from "@/lib/ai-evaluation";
 import {
   CIRCUMFERENCE_LABELS,
   CIRCUMFERENCE_SITES,
@@ -35,8 +36,18 @@ export function AssessmentView({
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-foreground">Avaliação</span>
         {assessment.bodyFatPct !== null ? (
-          <span className="rounded-full bg-primary-light px-2 py-0.5 text-caption font-semibold text-primary">
-            {formatCheckinWeight(assessment.bodyFatPct)}% de gordura
+          <span className="flex flex-wrap items-center justify-end gap-1.5">
+            <span className="rounded-full bg-primary-light px-2 py-0.5 text-caption font-semibold text-primary">
+              {formatCheckinWeight(assessment.bodyFatPct)}% de gordura
+            </span>
+            {/* Where the number came from, wherever the number appears. A
+                caliper reading and a model's look at four photos are different
+                classes of fact and must never render alike. */}
+            {assessment.bodyFatSource !== null ? (
+              <span className="text-caption text-muted-foreground">
+                {BODY_FAT_SOURCE_LABELS[assessment.bodyFatSource]}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </div>
