@@ -237,7 +237,7 @@ export default function StudentEvolutionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       <Link
         href="/coach/students"
         className="text-body-dense text-meta transition-colors hover:text-primary"
