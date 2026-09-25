@@ -1,3 +1,5 @@
+import fs from "node:fs";
+
 import { expect, test } from "@playwright/test";
 
 /**
@@ -11,6 +13,9 @@ import { expect, test } from "@playwright/test";
  * and mobile screenshots fall out of those assertions (see the screenshots rule
  * in AGENTS.md).
  */
+
+const ALUNO_STORAGE = "e2e/.auth/aluno.json";
+const POSE_FIXTURE = "e2e/fixtures/pose.png";
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -37,7 +42,35 @@ test.beforeEach(async ({ page }) => {
 test.describe("coach dashboard", () => {
   test("counts each backlog in a tile and lists it in its own card", async ({
     page,
+    browser,
   }) => {
+    // The "Check-ins aguardando resposta" card needs a deterministic
+    // aluno-submitted, unanswered check-in. The seed gives Ana exactly one, but
+    // the suite is fullyParallel and feedback.spec.ts's review test consumes
+    // it — so this submits a fresh one via the API instead of relying on the
+    // shared seeded one still being pending when this test reads the dashboard.
+    const alunoContext = await browser.newContext({ storageState: ALUNO_STORAGE });
+    const photo = fs.readFileSync(POSE_FIXTURE);
+    const checkinRes = await alunoContext.request.post("/api/student/checkin", {
+      multipart: {
+        weightKg: "70,0",
+        frente: { name: "frente.png", mimeType: "image/png", buffer: photo },
+        costas: { name: "costas.png", mimeType: "image/png", buffer: photo },
+        lado_esquerdo: {
+          name: "lado_esquerdo.png",
+          mimeType: "image/png",
+          buffer: photo,
+        },
+        lado_direito: {
+          name: "lado_direito.png",
+          mimeType: "image/png",
+          buffer: photo,
+        },
+      },
+    });
+    expect(checkinRes.ok(), await checkinRes.text()).toBeTruthy();
+    await alunoContext.close();
+
     // A fresh online student with no diet/workout is a deterministic row in the
     // "Sem treino ou dieta" card and a deterministic +1 on its tile.
     const first = `Semplano${Date.now().toString().slice(-6)}`;

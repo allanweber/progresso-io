@@ -411,7 +411,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
           const sendsInvite = modality === "online" && hasWhatsapp;
           return (
             <div className="flex items-center gap-3 pt-1">
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || templates.isLoading}>
                 {mutation.isPending
                   ? "Salvando…"
                   : sendsInvite

@@ -211,18 +211,20 @@ export function AiGenerateButton({
     setFromScratch(false);
     if (kind === "workout") {
       const saved = readAiWorkoutMemory(studentId);
+      // A remembered blank objective still yields to the aluno's recorded
+      // goal: the prefill is the better answer, and an empty required field
+      // is not worth "restoring". This runs even with nothing saved — the
+      // component can mount before the aluno's goal has loaded, so the click
+      // that opens the dialog is the first reliable moment to read it.
+      setObjective(saved?.objective || defaultObjective?.trim() || "");
       if (!saved) return;
-      // A remembered blank objective still yields to the aluno's recorded goal:
-      // the prefill is the better answer, and an empty required field is not
-      // worth "restoring".
-      setObjective(saved.objective || defaultObjective?.trim() || "");
       setEquipment(saved.equipment);
       setDaysPerWeek(saved.daysPerWeek);
       return;
     }
     const saved = readAiDietMemory(studentId);
+    setObjective(saved?.objective || defaultObjective?.trim() || "");
     if (!saved) return;
-    setObjective(saved.objective || defaultObjective?.trim() || "");
     setRestrictions(saved.restrictions);
     setMeals(saved.meals);
     setMealsPerDayRaw(saved.mealsPerDayRaw);
