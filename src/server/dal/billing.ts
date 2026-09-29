@@ -1,7 +1,12 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte, sql } from "drizzle-orm";
 
 import { type DB, schema } from "@/db";
-import type { Invoice, InvoiceLineItem, Plan } from "@/db/schema";
+import type {
+  Invoice,
+  InvoiceLineItem,
+  InvoiceReminderChannel,
+  Plan,
+} from "@/db/schema";
 import {
   invoiceTotals,
   isOverdue,
@@ -453,4 +458,77 @@ export async function requestSubscription(
   );
   if (!invoice) return { error: "unpriced" };
   return { invoice, created: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Scheduled fatura-due reminders (cross-tenant — see                         */
+/*  src/server/billing-reminders.ts, the caller; no TenantContext exists yet   */
+/*  when a session-less cron walks every clinic)                               */
+/* -------------------------------------------------------------------------- */
+
+/** A pending invoice due on a reminder date — just enough to message about it. */
+export type ReminderCandidate = {
+  id: string;
+  clinicId: string;
+  number: number;
+  dueDate: string;
+};
+
+/**
+ * Pending invoices whose `dueDate` falls at or before `windowEnd` (due within
+ * the reminder window — including already-overdue ones) that have **not**
+ * yet received a reminder for `today`. Once an invoice enters the window it
+ * stays a candidate every day the cron runs, with no upper bound on how
+ * overdue — the daily nudge continues until it's paid or canceled. The
+ * `invoice_reminder` table (unique on `invoiceId, reminderDate`) is the
+ * idempotency guard, checked here rather than trusted to the caller — a
+ * second cron run the same day must be a no-op.
+ */
+export async function listInvoicesDueForReminder(
+  db: DB,
+  today: string,
+  windowEnd: string,
+): Promise<ReminderCandidate[]> {
+  const rows = await db
+    .select({
+      id: schema.invoice.id,
+      clinicId: schema.invoice.clinicId,
+      number: schema.invoice.number,
+      dueDate: schema.invoice.dueDate,
+    })
+    .from(schema.invoice)
+    .where(
+      and(
+        eq(schema.invoice.status, "pending"),
+        lte(schema.invoice.dueDate, windowEnd),
+      ),
+    );
+  if (rows.length === 0) return [];
+
+  const reminded = await db
+    .select({ invoiceId: schema.invoiceReminder.invoiceId })
+    .from(schema.invoiceReminder)
+    .where(
+      and(
+        eq(schema.invoiceReminder.reminderDate, today),
+        inArray(
+          schema.invoiceReminder.invoiceId,
+          rows.map((r) => r.id),
+        ),
+      ),
+    );
+  const remindedIds = new Set(reminded.map((r) => r.invoiceId));
+  return rows.filter((r) => !remindedIds.has(r.id));
+}
+
+/** Records that a fatura-due reminder went out today — the idempotency write. */
+export async function recordInvoiceReminderSent(
+  db: DB,
+  invoiceId: string,
+  today: string,
+  channel: InvoiceReminderChannel,
+): Promise<void> {
+  await db
+    .insert(schema.invoiceReminder)
+    .values({ invoiceId, reminderDate: today, channel });
 }

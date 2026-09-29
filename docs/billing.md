@@ -107,6 +107,20 @@ and the e-mail still sent, the panel just shows no code. See `.env.example`.
 > failure available. It becomes automatic in Phase 2, when the gateway webhook
 > makes payment state authoritative.
 
+## Proactive reminder (issue #99)
+
+The in-app banner only reaches a coach who opens the app — exactly what
+someone about to churn doesn't do. `runInvoiceReminders`
+(`src/server/billing-reminders.ts`), driven by the same daily
+`POST /api/cron/whatsapp-reminders` cron as the check-in reminder, messages
+the **coach** directly starting **3 days before the due date**, then **every
+day** the cron runs — through the due date and for as long as the invoice
+stays unpaid afterwards — until it's marked paid or canceled. WhatsApp when
+the plan + a saved `clinic.whatsapp` number allow it, **e-mail with the
+fatura PDF attached** otherwise (Free plan, or a paid clinic that never
+filled the number in). Idempotent per (invoice, calendar day) via the
+`invoice_reminder` table — see `docs/whatsapp.md` for the full mechanics.
+
 ## Data (migration `0023`)
 
 - **`invoice`** — one row per invoice: a platform-wide sequential `number`,
@@ -119,6 +133,9 @@ and the e-mail still sent, the panel just shows no code. See `.env.example`.
   `position`), cascade-deleted with the invoice.
 - **`clinic_plan_change`** — the plan audit trail (`from_plan`, `to_plan`,
   `changed_by`, `note`, `created_at`).
+- **`invoice_reminder`** (migration `0042`) — idempotency + audit trail for the
+  proactive reminder above: one row per `(invoice_id, step)` once sent, with
+  which `channel` fired.
 
 Money is BRL **cents** (integers) everywhere. An invoice is **overdue** when it
 is still `pending` and its `due_date` is before today — a derived flag, not a

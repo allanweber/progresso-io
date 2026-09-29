@@ -20,6 +20,24 @@
         ],
         "createdAt": "2026-09-02T07:55:38.989Z",
         "reason": "E-mail HTML: React Email inline styles cannot reference the app type ramp; value copied verbatim from the existing invite-email.tsx"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "16px",
+        "files": [
+          "src/components/emails/invoice-due-email.tsx"
+        ],
+        "createdAt": "2026-09-25T12:48:17.326Z",
+        "reason": "matches existing email components (anamnesis-email.tsx etc.) — inline-styled HTML e-mails can't use the app's design tokens"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "20px",
+        "files": [
+          "src/components/emails/invoice-due-email.tsx"
+        ],
+        "createdAt": "2026-09-25T12:48:17.384Z",
+        "reason": "matches existing email components (anamnesis-email.tsx etc.) — inline-styled HTML e-mails can't use the app's design tokens"
       }
     ]
   }

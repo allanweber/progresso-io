@@ -295,6 +295,13 @@
       "when": 1788946648035,
       "tag": "0041_outgoing_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790667997270,
+      "tag": "0042_purple_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }
