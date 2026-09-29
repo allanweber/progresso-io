@@ -594,6 +594,37 @@ export const invoiceLineItem = pgTable(
   (t) => [index("invoice_line_item_invoice_idx").on(t.invoiceId)],
 );
 
+export const INVOICE_REMINDER_CHANNELS = ["whatsapp", "email"] as const;
+export type InvoiceReminderChannel = (typeof INVOICE_REMINDER_CHANNELS)[number];
+
+/**
+ * Idempotency + audit trail for the scheduled fatura-due reminder (issue #99):
+ * one row per (invoice, calendar day) once a reminder's gone out for it, so the
+ * daily cron can't double-message on a retry or a same-day re-run. There's no
+ * fixed step — once a pending invoice enters its window (due within 3 days),
+ * it gets reminded every day the cron runs until it's paid or canceled.
+ * `channel` records which one actually fired (WhatsApp when the clinic's plan +
+ * number allow it, e-mail otherwise).
+ */
+export const invoiceReminder = pgTable(
+  "invoice_reminder",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoice.id, { onDelete: "cascade" }),
+    reminderDate: date("reminder_date").notNull(),
+    channel: text("channel").$type<InvoiceReminderChannel>().notNull(),
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("invoice_reminder_invoice_date_uq").on(
+      t.invoiceId,
+      t.reminderDate,
+    ),
+  ],
+);
+
 /**
  * Audit trail of a clinic's plan changes (who moved it from → to, when, why).
  * Written whenever an admin changes `clinic.plan`; shown on the admin clinic

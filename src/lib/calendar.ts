@@ -213,6 +213,12 @@ export function addDays(ymd: string, days: number): string {
   return noonUtcToYmd(d);
 }
 
+/** Whole days from `a` to `b` (`b - a`); positive when `b` is in the future. */
+export function daysBetween(a: string, b: string): number {
+  const ms = ymdToNoonUtc(b).getTime() - ymdToNoonUtc(a).getTime();
+  return Math.round(ms / 86_400_000);
+}
+
 /** Weekday of a `YYYY-MM-DD`: 0 = Sunday … 6 = Saturday. */
 export function weekdayOf(ymd: string): number {
   return ymdToNoonUtc(ymd).getUTCDay();

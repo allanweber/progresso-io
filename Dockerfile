@@ -102,6 +102,22 @@ COPY drizzle ./drizzle
 COPY scripts ./scripts
 CMD ["node", "scripts/migrate.mjs"]
 
+# ---- Cron ----
+# Triggers POST /api/cron/whatsapp-reminders daily. Separate from `runner` so
+# that image stays exactly what Next.js needs.
+FROM node:${NODE_VERSION} AS cron
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends cron curl tzdata \
+  && rm -rf /var/lib/apt/lists/*
+ENV TZ=America/Sao_Paulo
+COPY scripts/whatsapp-reminders-cron.sh /usr/local/bin/whatsapp-reminders-cron.sh
+COPY scripts/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
+RUN chmod +x /usr/local/bin/whatsapp-reminders-cron.sh /usr/local/bin/cron-entrypoint.sh \
+  && printf '%s\n' \
+    "0 9 * * * /usr/local/bin/whatsapp-reminders-cron.sh >> /proc/1/fd/1 2>> /proc/1/fd/2" \
+    | crontab -
+ENTRYPOINT ["/usr/local/bin/cron-entrypoint.sh"]
+
 # ---- Runner ----
 FROM node:${NODE_VERSION} AS runner
 WORKDIR /app

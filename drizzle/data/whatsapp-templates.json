@@ -38,5 +38,10 @@
     "key": "anamnesis_reminder",
     "title": "Lembrete de anamnese",
     "body": "Oi {nome}! Faltou preencher sua anamnese. 📝 Leva 5 minutinhos: {link}"
+  },
+  {
+    "key": "invoice_due",
+    "title": "Fatura a vencer",
+    "body": "Oi {nome}! Sua fatura do Progresso IO {periodo}. 💳 Veja os detalhes e pague por aqui: {link}"
   }
 ]

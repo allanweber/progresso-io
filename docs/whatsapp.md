@@ -129,7 +129,7 @@ clinic send for `key`?", so the coach composer and every automation agree:
 
 Both are clinic-scoped: a clinic never sees or sends another clinic's override.
 
-### The base catalog (seven templates)
+### The base catalog (eight templates)
 
 The base set is authored as data in `drizzle/data/whatsapp-templates.json` and
 loaded by `@/server/whatsapp/base-templates` (`BASE_WHATSAPP_TEMPLATES`) for the
@@ -148,6 +148,7 @@ quinzena / do mês"), and `{link}`:
 | `anamnesis_welcome` | student registration — friendly welcome + fill invite |
 | `anamnesis_reminder`| composer-only (nudge a still-pending anamnese)  |
 | `session_confirm`   | composer-only (session confirmation)            |
+| `invoice_due`        | scheduled fatura-due reminder (daily, within 3 days of due) |
 
 ### Sending a template to a student (`sendTemplateToStudent`)
 
@@ -189,6 +190,28 @@ The messages a clinic sends on its own behalf, all through the resolver above
   secret: `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret`). With no
   `CRON_SECRET` set it only runs under the dev flag (`WHATSAPP_ALLOW_SIMULATE=1`)
   so it stays triggerable in testing; in production without a secret it refuses.
+  In production the actual daily trigger is the `cron` service in
+  `docker-compose.yml` (`Dockerfile`'s `cron` build target) — a small
+  cron+curl container on the private `progresso` network that `POST`s this
+  route once a day. Nothing called this route automatically before that
+  service existed; it's not optional infrastructure.
+
+- **Fatura-due reminder** — `runInvoiceReminders(appUrl, db?, today?)` in
+  `src/server/billing-reminders.ts` (issue #99). Unlike every automation above,
+  this one messages the **coach about their own subscription**, not a clinic
+  messaging a student, so it lives outside `whatsapp-automations.ts`. No fixed
+  steps: a pending invoice enters the window once `invoice.dueDate` is within
+  3 days, and from then on it's reminded **every day** the cron runs — before
+  the due date, on it, and for as long as it stays unpaid afterwards — until an
+  admin marks it paid or canceled. Per invoice, the channel is **WhatsApp**
+  when the clinic's plan includes it (`plans.canUseWhatsapp`) and it has a
+  usable number in `clinic.whatsapp` (Settings → Portal — gated to the same
+  `solo+` tier, so a Free clinic can't even set it), **e-mail** otherwise
+  (`sendInvoiceDueEmail`, with the fatura PDF attached). Idempotent per
+  **(invoice, calendar day)** via the `invoice_reminder` table, not the
+  message-window heuristic the check-in reminder uses — the email path writes
+  no `whatsapp_message` row at all. Triggered by the same
+  `POST /api/cron/whatsapp-reminders` cron.
 
 ## Inbound: real webhook + the shared ingest path
 
@@ -317,10 +340,16 @@ without a manual refresh.
 - Automations: `src/server/whatsapp-automations.ts` (`notifyCheckinFeedback` /
   `notifyDietPublished` / `notifyWorkoutPublished` in-request helpers +
   `runCheckinReminders` scheduled job); welcome wired in `src/server/onboarding.ts`.
+  The fatura-due reminder (`runInvoiceReminders`) is separate:
+  `src/server/billing-reminders.ts` (+ `invoice_reminder` table/migration
+  `0042_purple_wilson_fisk`, `billing.listInvoicesDueForReminder` /
+  `recordInvoiceReminderSent` in `src/server/dal/billing.ts`,
+  `src/components/emails/invoice-due-email.tsx` +
+  `sendInvoiceDueEmail` for the e-mail fallback).
 - API: `coach/whatsapp` (+`[id]`), `whatsapp/webhook`,
   `whatsapp/dev/simulate-inbound`, `admin/whatsapp`, `cron/whatsapp-reminders`
-  (secret-guarded); `coach/dashboard` + the check-in/diet/workout routes extended
-  to fire template automations.
+  (secret-guarded; also drives `runInvoiceReminders`); `coach/dashboard` + the
+  check-in/diet/workout routes extended to fire template automations.
 - UI: `/coach/whatsapp` page + gated nav item, the dashboard "WhatsApp
   aguardando" widget, `/admin/whatsapp` page + admin nav item.
 - Tests: `tests/whatsapp.test.ts` (window/template/schema units),
@@ -328,4 +357,8 @@ without a manual refresh.
   approval, base+clinic resolution, `sendTemplateToStudent`, scheduled reminders,
   tenant isolation, read state, admin overview),
   `e2e/whatsapp.spec.ts` + `e2e/admin-whatsapp.spec.ts` (both viewports +
-  screenshots).
+  screenshots). The fatura-due reminder has its own suites:
+  `tests/billing-reminders.integration.test.ts` (channel selection, the
+  within-3-days daily window, idempotency, paid/canceled exclusion) and
+  `tests/cron-whatsapp-reminders-route.test.ts` (the route itself — auth gate,
+  that one POST drives both scheduled jobs, results merged in the response).

@@ -20,6 +20,10 @@ import {
   InviteEmail,
 } from "@/components/emails/invite-email";
 import {
+  INVOICE_DUE_EMAIL_SUBJECT,
+  InvoiceDueEmail,
+} from "@/components/emails/invoice-due-email";
+import {
   OTP_EMAIL_COPY,
   OtpEmail,
   type OtpEmailType,
@@ -429,5 +433,77 @@ export async function sendSubscriptionRequestEmail({
       err: error,
       template: "subscription_request",
     });
+  }
+}
+
+type SendInvoiceDueArgs = {
+  email: string;
+  firstName: string;
+  duePhrase: string;
+  amount: string;
+  invoiceLabel: string;
+  appUrl: string;
+  /** The fatura PDF (`renderInvoicePdf`), attached so it's readable without login. */
+  pdf: Buffer;
+  pdfFilename: string;
+};
+
+/**
+ * The fatura-due reminder e-mail (issue #99) — the channel used whenever a
+ * clinic can't get the WhatsApp reminder (Free plan, or a paid clinic with no
+ * WhatsApp number saved in Settings). Attaches the fatura PDF and links back
+ * to the dashboard, where the existing billing banner + "Assinar" flow live.
+ *
+ * Never throws: this is a best-effort nudge fired from the daily cron
+ * (`runInvoiceReminders`) — one bad send must not stop the rest of the run.
+ * Falls back to a console log when Resend isn't configured (local dev).
+ */
+export async function sendInvoiceDueEmail({
+  email,
+  firstName,
+  duePhrase,
+  amount,
+  invoiceLabel,
+  appUrl,
+  pdf,
+  pdfFilename,
+}: SendInvoiceDueArgs): Promise<void> {
+  captureOutbox({
+    to: email,
+    subject: INVOICE_DUE_EMAIL_SUBJECT,
+    kind: "invoice_due",
+    url: appUrl,
+  });
+
+  if (!resend) {
+    console.info(`[email:dev] fatura ${invoiceLabel} ${duePhrase} for ${email}`);
+    return;
+  }
+
+  const element = (
+    <InvoiceDueEmail
+      firstName={firstName}
+      duePhrase={duePhrase}
+      amount={amount}
+      invoiceLabel={invoiceLabel}
+      appUrl={appUrl}
+    />
+  );
+  const [html, text] = await Promise.all([
+    render(element),
+    render(element, { plainText: true }),
+  ]);
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: INVOICE_DUE_EMAIL_SUBJECT,
+      html,
+      text,
+      attachments: [{ filename: pdfFilename, content: pdf }],
+    });
+    logger.info("email.sent", { template: "invoice_due" });
+  } catch (error) {
+    logger.error("email.send_failed", { err: error, template: "invoice_due" });
   }
 }

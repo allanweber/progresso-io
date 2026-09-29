@@ -52,6 +52,7 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - DATABASE_URL=${DATABASE_URL}
+      - CRON_SECRET=${CRON_SECRET}
       # Observability: console logs to stdout (Docker/Dokploy captures the
       # stream). debug|info|warn|error, defaults to info in production.
       - LOG_LEVEL=${LOG_LEVEL:-info}
@@ -115,6 +116,22 @@ services:
       # progresso: reach the Cloudflare tunnel. dokploy-network: reach the DB.
       - progresso
       - dokploy-network
+
+  # Daily trigger for /api/cron/whatsapp-reminders. See docs/whatsapp.md.
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: cron
+    restart: unless-stopped
+    environment:
+      - APP_URL=http://app:3000
+      - CRON_SECRET=${CRON_SECRET}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - progresso
 
   cloudflared:
     # Pinned (not `:latest`) so deploys are reproducible and a surprise upstream
