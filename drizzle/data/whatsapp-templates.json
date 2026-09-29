@@ -43,5 +43,15 @@
     "key": "invoice_due",
     "title": "Fatura a vencer",
     "body": "Oi {nome}! Sua fatura do Progresso IO {periodo}. 💳 Veja os detalhes e pague por aqui: {link}"
+  },
+  {
+    "key": "checkin_overdue",
+    "title": "Check-in atrasado",
+    "body": "Oi {nome}! Seu check-in {periodo} já passou do prazo. Bora colocar em dia? 📋"
+  },
+  {
+    "key": "student_inactive",
+    "title": "Aluno inativo",
+    "body": "Oi {nome}, faz um tempo que não vejo seu check-in por aqui. Tudo bem com você? Me conta como você está 💬"
   }
 ]

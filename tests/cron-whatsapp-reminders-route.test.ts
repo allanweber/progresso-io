@@ -2,12 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Route-wiring tests for the daily cron entry point. Both scheduled jobs are
- * mocked out — their own behavior is covered by
- * `tests/whatsapp.integration.test.ts` (`runCheckinReminders`) and
- * `tests/billing-reminders.integration.test.ts` (`runInvoiceReminders`). What
- * this file pins is the ROUTE: the shared-secret auth gate, that a single POST
- * drives both jobs, and that both results land in the response body.
+ * Route-wiring tests for the daily cron entry point. All three scheduled jobs
+ * are mocked out — their own behavior is covered by their own test files.
  */
 
 const runCheckinReminders = vi.fn(async () => ({
@@ -23,12 +19,21 @@ const runInvoiceReminders = vi.fn<(appUrl: string) => Promise<{
   whatsappSent: 1,
   emailSent: 0,
 }));
+const runStudentInactivityNudges = vi.fn(async () => ({
+  clinicsProcessed: 1,
+  overdueNudgesSent: 1,
+  inactiveNudgesSent: 0,
+  coachAlertsSent: 0,
+}));
 
 vi.mock("@/server/whatsapp-automations", () => ({
   runCheckinReminders: () => runCheckinReminders(),
 }));
 vi.mock("@/server/billing-reminders", () => ({
   runInvoiceReminders: (appUrl: string) => runInvoiceReminders(appUrl),
+}));
+vi.mock("@/server/student-nudges", () => ({
+  runStudentInactivityNudges: () => runStudentInactivityNudges(),
 }));
 
 import * as route from "@/app/api/cron/whatsapp-reminders/route";
@@ -45,6 +50,7 @@ const previousSimulate = process.env.WHATSAPP_ALLOW_SIMULATE;
 beforeEach(() => {
   runCheckinReminders.mockClear();
   runInvoiceReminders.mockClear();
+  runStudentInactivityNudges.mockClear();
   delete process.env.CRON_SECRET;
   delete process.env.WHATSAPP_ALLOW_SIMULATE;
 });
@@ -73,6 +79,7 @@ describe("POST /api/cron/whatsapp-reminders", () => {
     expect(res.status).toBe(200);
     expect(runCheckinReminders).toHaveBeenCalledTimes(1);
     expect(runInvoiceReminders).toHaveBeenCalledTimes(1);
+    expect(runStudentInactivityNudges).toHaveBeenCalledTimes(1);
   });
 
   it("rejects a wrong bearer token when a secret is configured", async () => {
@@ -99,11 +106,18 @@ describe("POST /api/cron/whatsapp-reminders", () => {
     await expect(res.json()).resolves.toEqual({
       checkins: { clinicsProcessed: 1, remindersSent: 2 },
       invoices: { invoicesProcessed: 1, whatsappSent: 1, emailSent: 0 },
+      nudges: {
+        clinicsProcessed: 1,
+        overdueNudgesSent: 1,
+        inactiveNudgesSent: 0,
+        coachAlertsSent: 0,
+      },
     });
     expect(runCheckinReminders).toHaveBeenCalledTimes(1);
     // The invoice job gets the request's own origin (no explicit APP_URL
     // input), so the "Assinar" link it builds resolves back to this deploy.
     expect(runInvoiceReminders).toHaveBeenCalledWith("http://localhost");
+    expect(runStudentInactivityNudges).toHaveBeenCalledTimes(1);
   });
 
   it("also accepts the x-cron-secret header", async () => {

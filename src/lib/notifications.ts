@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = [
   "anamnesis_completed",
   "checkin_submitted",
   "whatsapp_received",
+  "student_checkin_inactive",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -43,11 +44,18 @@ export type WhatsappReceivedData = {
   preview: string;
 };
 
+export type StudentCheckinInactiveData = {
+  studentId: string;
+  studentName: string;
+  daysSinceLastCheckin: number;
+};
+
 /** The payload union (keyed by the row's `type`). */
 export type NotificationData =
   | AnamnesisCompletedData
   | CheckinSubmittedData
-  | WhatsappReceivedData;
+  | WhatsappReceivedData
+  | StudentCheckinInactiveData;
 
 /** A notification row as the bell reads it, plus this coach's read flag. */
 export type NotificationDto = {
@@ -76,6 +84,10 @@ export function notificationTitle(n: {
       return `${(n.data as CheckinSubmittedData).studentName} enviou um check-in`;
     case "whatsapp_received":
       return `${(n.data as WhatsappReceivedData).contactName} enviou uma mensagem no WhatsApp`;
+    case "student_checkin_inactive": {
+      const d = n.data as StudentCheckinInactiveData;
+      return `${d.studentName} sumiu — sem check-in há ${d.daysSinceLastCheckin} dias`;
+    }
     default:
       return "Nova notificação";
   }
@@ -93,6 +105,8 @@ export function notificationHref(n: {
       return `/coach/students/${(n.data as CheckinSubmittedData).studentId}/feedback`;
     case "whatsapp_received":
       return "/coach/whatsapp";
+    case "student_checkin_inactive":
+      return `/coach/students/${(n.data as StudentCheckinInactiveData).studentId}`;
     default:
       return "/coach";
   }
