@@ -19,9 +19,10 @@
 // `code` is the source id (e.g. "3_4_Sit-Up"); it doubles as the image folder.
 //
 // Run: pnpm db:transform-exercises
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";
+import { EXERCISEDB_PTBR_FILE, MATCHES_FILE } from "./lib/exercisedb-vocab.mjs";
 
 const SRC = join(process.cwd(), "drizzle", "data", "exercises-src");
 const A_FILE = join(SRC, "free-exercise-db.json");
@@ -62,7 +63,13 @@ const seen = {
 
 let missingTranslation = 0;
 
-const exercises = aRows.map((en) => {
+const matches = existsSync(MATCHES_FILE) ? JSON.parse(readFileSync(MATCHES_FILE, "utf8")).matches : [];
+const openGymIdByCode = new Map(matches.filter((m) => m.code).map((m) => [m.code, m.openGymId]));
+const exerciseDb = existsSync(EXERCISEDB_PTBR_FILE)
+  ? JSON.parse(readFileSync(EXERCISEDB_PTBR_FILE, "utf8")).exercises
+  : [];
+
+const freeDbExercises = aRows.map((en) => {
   const pt = byId.get(en.id);
   if (!pt) missingTranslation++;
 
@@ -95,8 +102,36 @@ const exercises = aRows.map((en) => {
     secondaryMuscles,
     // Image keys are identical across A and B ("<id>/0.jpg"); take A's.
     images: en.images ?? [],
+    openGymId: openGymIdByCode.get(en.id) ?? null,
+    source: "free-exercise-db",
   };
 });
+
+const exerciseDbExercises = exerciseDb.map((e) => {
+  seen.category.add(e.category);
+  seen.level.add(e.level);
+  if (e.force) seen.force.add(e.force);
+  if (e.mechanic) seen.mechanic.add(e.mechanic);
+  if (e.equipment) seen.equipment.add(e.equipment);
+  [...e.primaryMuscles, ...e.secondaryMuscles].forEach((m) => seen.muscles.add(m));
+  return {
+    code: `exercisedb-${e.id}`,
+    name: e.name,
+    instructions: e.instructions,
+    category: e.category,
+    level: e.level,
+    force: e.force,
+    mechanic: e.mechanic,
+    equipment: e.equipment,
+    primaryMuscles: e.primaryMuscles,
+    secondaryMuscles: e.secondaryMuscles,
+    images: [],
+    openGymId: e.id,
+    source: "exercisedb",
+  };
+});
+
+const exercises = [...freeDbExercises, ...exerciseDbExercises];
 
 const lines = exercises.map((o) => JSON.stringify(o)).join("\n");
 writeFileSync(OUT, gzipSync(Buffer.from(lines, "utf8")));
@@ -104,6 +139,7 @@ writeFileSync(OUT, gzipSync(Buffer.from(lines, "utf8")));
 const sorted = (set) => [...set].sort();
 console.log(`✓ Exercise catalog written: ${OUT}`);
 console.log(`  ${exercises.length} exercises · ${missingTranslation} without a PT-BR row`);
+console.log(`  ${openGymIdByCode.size} matched to openGym · ${exerciseDbExercises.length} new from ExerciseDB`);
 console.log(`  categories : ${sorted(seen.category).join(", ")}`);
 console.log(`  levels     : ${sorted(seen.level).join(", ")}`);
 console.log(`  forces     : ${sorted(seen.force).join(", ")}`);

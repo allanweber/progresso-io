@@ -11,11 +11,18 @@ import type {
 import {
   normalizeReps,
   resolveSets,
+  type WorkoutDetailDto,
   type WorkoutExerciseDto,
   type WorkoutExerciseSubstituteDto,
   type WorkoutReps,
 } from "@/lib/workouts";
 import type { WorkoutTechnique } from "@/lib/workout-techniques";
+import { todayYmd } from "@/lib/calendar";
+import {
+  buildOpenGymPlan,
+  type OpenGymExerciseInfo,
+  type OpenGymExportResponse,
+} from "@/lib/opengym-plan";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -269,4 +276,46 @@ export function referencedExerciseIds(refs: ExercisePrescription[]): string[] {
     for (const cs of r.customSubstitutes) ids.add(cs.exerciseId);
   }
   return [...ids];
+}
+
+export async function exportToOpenGym(
+  ctx: TenantContext,
+  workout: Pick<WorkoutDetailDto, "name" | "notes" | "cardio" | "sessions">,
+  now: Date,
+): Promise<OpenGymExportResponse> {
+  const ids = new Set<string>();
+  for (const s of workout.sessions) {
+    for (const e of s.exercises) {
+      ids.add(e.exerciseId);
+      for (const sub of e.substitutes) ids.add(sub.exerciseId);
+    }
+  }
+
+  const e = schema.exercise;
+  const rows = ids.size
+    ? await ctx.db
+        .select({
+          id: e.id,
+          openGymId: e.openGymId,
+          name: e.name,
+          description: e.description,
+          category: e.category,
+          equipment: e.equipment,
+          primaryMuscles: e.primaryMuscles,
+          secondaryMuscles: e.secondaryMuscles,
+          instructions: e.instructions,
+        })
+        .from(e)
+        .where(
+          and(
+            inArray(e.id, [...ids]),
+            or(isNull(e.clinicId), eq(e.clinicId, ctx.clinicId)),
+          ),
+        )
+    : [];
+  const exercises = new Map<string, OpenGymExerciseInfo>(
+    rows.map(({ id, ...info }) => [id, info]),
+  );
+
+  return buildOpenGymPlan(workout, exercises, todayYmd(now));
 }

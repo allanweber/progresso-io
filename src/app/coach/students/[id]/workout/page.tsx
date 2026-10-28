@@ -24,6 +24,7 @@ import {
   type WorkoutBuilderPayload,
 } from "@/components/workouts/workout-builder";
 import { AiGenerateButton } from "@/components/ai/ai-generate-button";
+import { OpenGymExportButton } from "@/components/workouts/opengym-export-button";
 import { StudentTabs } from "@/components/students/student-tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -583,6 +584,10 @@ function CurrentView({
             <FileText className="size-4" />
             Salvar como modelo
           </Button>
+          <OpenGymExportButton
+            size="default"
+            url={`/api/students/${studentId}/workout/versions/${current.versionId}/export/opengym`}
+          />
         </div>
       </div>
 
@@ -804,9 +809,14 @@ function VersionView({
           {data.workoutName} · v{data.version}
         </DialogTitle>
       </DialogHeader>
-      <p className="text-body-dense text-muted-foreground">
-        Publicada em {fmtDate(data.publishedAt)}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-body-dense text-muted-foreground">
+          Publicada em {fmtDate(data.publishedAt)}
+        </p>
+        <OpenGymExportButton
+          url={`/api/students/${studentId}/workout/versions/${versionId}/export/opengym`}
+        />
+      </div>
       {data.notes && (
         <p className="rounded-xl border border-border bg-surface-light/40 px-4 py-2.5 text-sm text-muted-foreground">
           {data.notes}

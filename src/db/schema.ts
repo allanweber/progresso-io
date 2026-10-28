@@ -966,6 +966,7 @@ export const exercise = pgTable(
     // Relative image keys ("<code>/0.jpg"); resolved to a URL at render time.
     images: text("images").array().notNull().default([]),
     source: text("source").notNull().default("free-exercise-db"),
+    openGymId: text("opengym_id").unique(),
     // NULL = shared base; set = this clinic's private custom exercise.
     clinicId: uuid("clinic_id").references(() => clinic.id, {
       onDelete: "cascade",
