@@ -58,6 +58,7 @@ export function ExerciseSearch({
 }) {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
+  const [openGymOnly, setOpenGymOnly] = useState(false);
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -72,10 +73,12 @@ export function ExerciseSearch({
 
   const enabled = search.length >= 2;
   const { data, isFetching } = useQuery({
-    queryKey: ["exercise-picker", search],
+    queryKey: ["exercise-picker", search, openGymOnly],
     queryFn: () =>
       apiFetch<ExerciseListResponse>(
-        `/api/exercises?search=${encodeURIComponent(search)}&pageSize=8`,
+        `/api/exercises?search=${encodeURIComponent(search)}&pageSize=8${
+          openGymOnly ? "&openGym=1" : ""
+        }`,
       ),
     enabled,
     placeholderData: keepPreviousData,
@@ -134,6 +137,19 @@ export function ExerciseSearch({
           </button>
         )}
       </div>
+
+      <label className="mt-2 flex cursor-pointer items-center gap-2 px-1 text-label text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={openGymOnly}
+          onChange={(e) => {
+            setOpenGymOnly(e.target.checked);
+            setActive(0);
+          }}
+          className="size-4 shrink-0 accent-primary"
+        />
+        Somente exercícios com equivalente no openGym
+      </label>
 
       {enabled && (
         <div className="mt-2 overflow-hidden">

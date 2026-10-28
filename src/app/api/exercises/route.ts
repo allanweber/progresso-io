@@ -23,6 +23,7 @@ export const GET = withCoach("exercises.list", async (request, ctx) => {
     level: p.get("level") || undefined,
     equipment: p.get("equipment") || undefined,
     muscle: p.get("muscle") || undefined,
+    openGym: p.get("openGym") || undefined,
     page: p.get("page") || undefined,
     pageSize: p.get("pageSize") || undefined,
   });
@@ -35,6 +36,7 @@ export const GET = withCoach("exercises.list", async (request, ctx) => {
     level: q.level,
     equipment: q.equipment,
     muscle: q.muscle,
+    openGymOnly: q.openGym === "1",
     page: q.page,
     pageSize: q.pageSize,
   });

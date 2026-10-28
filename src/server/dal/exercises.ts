@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import { schema } from "@/db";
 import type {
@@ -48,6 +48,7 @@ export type ExerciseListParams = {
   equipment?: ExerciseEquipment;
   /** Restrict to exercises that target this muscle (primary or secondary). */
   muscle?: Muscle;
+  openGymOnly?: boolean;
   page?: number;
   pageSize?: number;
 };
@@ -80,6 +81,7 @@ function listWhere(ctx: TenantContext, params: ExerciseListParams) {
         or ${params.muscle} = any(${schema.exercise.secondaryMuscles}))`,
     );
   }
+  if (params.openGymOnly) conds.push(isNotNull(schema.exercise.openGymId));
   const term = params.search?.trim();
   if (term) {
     // Each whitespace token must appear in the (already unaccented) search_text,

@@ -222,6 +222,7 @@ export const exerciseListQuerySchema = z.object({
   level: z.enum(LEVEL_VALUES).optional(),
   equipment: z.enum(EQUIPMENT_VALUES).optional(),
   muscle: z.enum(MUSCLE_VALUES).optional(),
+  openGym: z.literal("1").optional(),
   page: z.coerce.number().int().min(1).max(100_000).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });
