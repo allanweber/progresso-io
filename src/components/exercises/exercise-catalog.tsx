@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Dumbbell, Search } from "lucide-react";
 
+import { ExerciseMuscleMap } from "@/components/exercises/exercise-muscle-map";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -392,15 +393,17 @@ export function ExerciseCatalog({
           </Select>
         )}
       </div>
-      <label className="flex h-10 cursor-pointer items-center gap-2 text-sm text-foreground">
-        <input
-          type="checkbox"
-          checked={openGymOnly}
-          onChange={(e) => setOpenGymOnly(e.target.checked)}
-          className="size-4 shrink-0 accent-primary"
-        />
-        Somente com equivalente no openGym
-      </label>
+      {!admin && (
+        <label className="flex h-10 cursor-pointer items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={openGymOnly}
+            onChange={(e) => setOpenGymOnly(e.target.checked)}
+            className="size-4 shrink-0 accent-primary"
+          />
+          Somente com equivalente no openGym
+        </label>
+      )}
 
       <p className="mt-4 text-xs text-muted-foreground">
         {total.toLocaleString("pt-BR")} exercícios
@@ -435,7 +438,9 @@ export function ExerciseCatalog({
                     className="group flex h-full gap-3 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                   >
                     <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-light text-muted-foreground">
-                      {src ? (
+                      {!src && ex.primaryMuscles.length > 0 ? (
+                        <ExerciseMuscleMap primary={ex.primaryMuscles} className="size-full" />
+                      ) : src ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={src}

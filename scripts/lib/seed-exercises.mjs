@@ -27,8 +27,8 @@ export async function seedExerciseCatalog(query, exercises) {
       const rows = await query(
         `insert into exercise (
           code, name, search_text, category, level, force, mechanic, equipment,
-          primary_muscles, secondary_muscles, instructions, images, source, opengym_id
-        ) values ($1, $2, unaccent(lower($2)), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          primary_muscles, secondary_muscles, instructions, images, image_credits, source, opengym_id
+        ) values ($1, $2, unaccent(lower($2)), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         on conflict (code) do nothing
         returning id`,
         [
@@ -43,6 +43,7 @@ export async function seedExerciseCatalog(query, exercises) {
           e.secondaryMuscles,
           e.instructions,
           e.images,
+          JSON.stringify(e.imageCredits ?? {}),
           e.source ?? "free-exercise-db",
           openGymId,
         ],

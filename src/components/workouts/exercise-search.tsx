@@ -178,6 +178,7 @@ export function ExerciseSearch({
                     exerciseId={f.id}
                     name={f.name}
                     thumbnail={f.thumbnail}
+                    primaryMuscles={f.primaryMuscles}
                     className="size-9 rounded-md"
                   />
                   <button

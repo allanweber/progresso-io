@@ -10,6 +10,14 @@ import { z } from "@/lib/validation";
 
 export type ExerciseOrigin = "base" | "clinic";
 
+export type ExerciseImageCredit = {
+  author: string;
+  license: string;
+  licenseUrl: string;
+  sourceUrl: string;
+  aiGenerated: boolean;
+};
+
 export type ExerciseCategory =
   | "strength"
   | "stretching"
@@ -353,6 +361,7 @@ export type ExerciseDetailDto = {
   secondaryMuscles: Muscle[];
   instructions: string[];
   images: string[];
+  imageCredits: Record<string, ExerciseImageCredit>;
   origin: ExerciseOrigin;
   archived: boolean;
   substitutes: ExerciseSubstituteDto[];

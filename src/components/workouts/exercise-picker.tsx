@@ -98,6 +98,7 @@ export function ExercisePicker({
           exerciseId={selected.id}
           name={selected.name}
           thumbnail={selected.thumbnail}
+          primaryMuscles={selected.primaryMuscles}
           className="size-11 rounded-lg"
         />
         <div className="min-w-0">

@@ -28,6 +28,7 @@ const SRC = join(process.cwd(), "drizzle", "data", "exercises-src");
 const A_FILE = join(SRC, "free-exercise-db.json");
 const B_FILE = join(SRC, "exercicios-ptbr-full.json");
 const OUT = join(process.cwd(), "drizzle", "data", "exercises-catalog.ndjson.gz");
+const WGER_IMAGES_FILE = join(process.cwd(), "drizzle", "data", "wger-images.json");
 
 /** snake_case slug for an enum value: "olympic weightlifting" → "olympic_weightlifting". */
 function slug(value) {
@@ -68,6 +69,9 @@ const openGymIdByCode = new Map(matches.filter((m) => m.code).map((m) => [m.code
 const exerciseDb = existsSync(EXERCISEDB_PTBR_FILE)
   ? JSON.parse(readFileSync(EXERCISEDB_PTBR_FILE, "utf8")).exercises
   : [];
+const wgerImages = existsSync(WGER_IMAGES_FILE)
+  ? JSON.parse(readFileSync(WGER_IMAGES_FILE, "utf8"))
+  : {};
 
 const freeDbExercises = aRows.map((en) => {
   const pt = byId.get(en.id);
@@ -102,12 +106,15 @@ const freeDbExercises = aRows.map((en) => {
     secondaryMuscles,
     // Image keys are identical across A and B ("<id>/0.jpg"); take A's.
     images: en.images ?? [],
+    imageCredits: {},
     openGymId: openGymIdByCode.get(en.id) ?? null,
     source: "free-exercise-db",
   };
 });
 
 const exerciseDbExercises = exerciseDb.map((e) => {
+  const code = `exercisedb-${e.id}`;
+  const wger = wgerImages[code] ?? [];
   seen.category.add(e.category);
   seen.level.add(e.level);
   if (e.force) seen.force.add(e.force);
@@ -115,7 +122,7 @@ const exerciseDbExercises = exerciseDb.map((e) => {
   if (e.equipment) seen.equipment.add(e.equipment);
   [...e.primaryMuscles, ...e.secondaryMuscles].forEach((m) => seen.muscles.add(m));
   return {
-    code: `exercisedb-${e.id}`,
+    code,
     name: e.name,
     instructions: e.instructions,
     category: e.category,
@@ -125,7 +132,8 @@ const exerciseDbExercises = exerciseDb.map((e) => {
     equipment: e.equipment,
     primaryMuscles: e.primaryMuscles,
     secondaryMuscles: e.secondaryMuscles,
-    images: [],
+    images: wger.map((i) => i.key),
+    imageCredits: Object.fromEntries(wger.map((i) => [i.key, i.credit])),
     openGymId: e.id,
     source: "exercisedb",
   };
@@ -140,6 +148,7 @@ const sorted = (set) => [...set].sort();
 console.log(`✓ Exercise catalog written: ${OUT}`);
 console.log(`  ${exercises.length} exercises · ${missingTranslation} without a PT-BR row`);
 console.log(`  ${openGymIdByCode.size} matched to openGym · ${exerciseDbExercises.length} new from ExerciseDB`);
+console.log(`  ${Object.keys(wgerImages).length} ExerciseDB exercises illustrated by wger images`);
 console.log(`  categories : ${sorted(seen.category).join(", ")}`);
 console.log(`  levels     : ${sorted(seen.level).join(", ")}`);
 console.log(`  forces     : ${sorted(seen.force).join(", ")}`);

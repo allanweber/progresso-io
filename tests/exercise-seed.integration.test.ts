@@ -84,8 +84,8 @@ describe("incremental exercise seed on an already-seeded database", () => {
     });
   });
 
-  it("stores the new exercises as image-less exercisedb rows with their openGym id", async () => {
-    const fresh = catalog.find((e) => e.source === "exercisedb") as Row;
+  it("stores the new exercises as exercisedb rows with their openGym id", async () => {
+    const fresh = catalog.find((e) => e.source === "exercisedb" && (e.images as string[]).length === 0) as Row;
     const [row] = await query(
       "select name, source, images, opengym_id, search_text from exercise where code = $1",
       [fresh.code],
@@ -97,6 +97,14 @@ describe("incremental exercise seed on an already-seeded database", () => {
       opengym_id: fresh.openGymId,
     });
     expect(row.search_text).not.toMatch(/[A-ZÀ-ÿ]/);
+  });
+
+  it("stores the wger images of an illustrated exercise with their credits", async () => {
+    const illustrated = catalog.find((e) => (e.images as string[]).length > 0 && e.source === "exercisedb") as Row;
+    const [row] = await query("select images, image_credits from exercise where code = $1", [
+      illustrated.code,
+    ]);
+    expect(row).toEqual({ images: illustrated.images, image_credits: illustrated.imageCredits });
   });
 
   it("adds the missing substitution edges", async () => {

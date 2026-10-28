@@ -1,0 +1,368 @@
+[
+ {
+  "openGymId": "0039",
+  "name": "barbell front chest squat",
+  "wgerExerciseId": 257,
+  "wgerName": "Front Squats"
+ },
+ {
+  "openGymId": "0041",
+  "name": "barbell front raise",
+  "wgerExerciseId": 256,
+  "wgerName": "Front Raises"
+ },
+ {
+  "openGymId": "0077",
+  "name": "barbell rear lunge v. 2",
+  "wgerExerciseId": 1830,
+  "wgerName": "Barbell Step Back Lunge"
+ },
+ {
+  "openGymId": "0078",
+  "name": "barbell rear lunge",
+  "wgerExerciseId": 1830,
+  "wgerName": "Barbell Step Back Lunge"
+ },
+ {
+  "openGymId": "0110",
+  "name": "barbell standing reverse grip curl",
+  "wgerExerciseId": 1290,
+  "wgerName": "Reverse Grip Barbell Curls"
+ },
+ {
+  "openGymId": "0180",
+  "name": "cable low seated row",
+  "wgerExerciseId": 1117,
+  "wgerName": "Seated Cable Row"
+ },
+ {
+  "openGymId": "0189",
+  "name": "cable one arm bent over row",
+  "wgerExerciseId": 1186,
+  "wgerName": "One Arm Bent Row"
+ },
+ {
+  "openGymId": "0192",
+  "name": "cable one arm lateral raise",
+  "wgerExerciseId": 1378,
+  "wgerName": "Cable Lateral Raises (Single Arm)"
+ },
+ {
+  "openGymId": "0199",
+  "name": "cable pushdown (straight arm) v. 2",
+  "wgerExerciseId": 1726,
+  "wgerName": "Straight-Arm Pulldown (Cable)"
+ },
+ {
+  "openGymId": "0228",
+  "name": "cable standing hip extension",
+  "wgerExerciseId": 1131,
+  "wgerName": "Cable glute extension"
+ },
+ {
+  "openGymId": "0274",
+  "name": "crunch floor",
+  "wgerExerciseId": 167,
+  "wgerName": "Crunches"
+ },
+ {
+  "openGymId": "0312",
+  "name": "dumbbell hammer curl v. 2",
+  "wgerExerciseId": 272,
+  "wgerName": "Hammer Curls"
+ },
+ {
+  "openGymId": "0360",
+  "name": "dumbbell one arm shoulder press v. 2",
+  "wgerExerciseId": 1968,
+  "wgerName": "Single-arm dumbbell shoulder press"
+ },
+ {
+  "openGymId": "0375",
+  "name": "dumbbell pullover",
+  "wgerExerciseId": 161,
+  "wgerName": "Cross-Bench Dumbbell Pullovers"
+ },
+ {
+  "openGymId": "0377",
+  "name": "dumbbell rear delt row_shoulder",
+  "wgerExerciseId": 1227,
+  "wgerName": "Dumbbell rear delt row"
+ },
+ {
+  "openGymId": "0416",
+  "name": "dumbbell standing biceps curl",
+  "wgerExerciseId": 92,
+  "wgerName": "Biceps Curls With Dumbbell"
+ },
+ {
+  "openGymId": "0488",
+  "name": "hyperextension (on bench)",
+  "wgerExerciseId": 301,
+  "wgerName": "Hyperextensions"
+ },
+ {
+  "openGymId": "0497",
+  "name": "inverted row v. 2",
+  "wgerExerciseId": 1198,
+  "wgerName": "Inverted Rows"
+ },
+ {
+  "openGymId": "0549",
+  "name": "kettlebell swing",
+  "wgerExerciseId": 960,
+  "wgerName": "Kettlebell Swing"
+ },
+ {
+  "openGymId": "0573",
+  "name": "lever back extension",
+  "wgerExerciseId": 1143,
+  "wgerName": "Seated Back Extension Machine"
+ },
+ {
+  "openGymId": "0576",
+  "name": "lever chest press",
+  "wgerExerciseId": 129,
+  "wgerName": "Chest Press"
+ },
+ {
+  "openGymId": "0584",
+  "name": "lever lateral raise",
+  "wgerExerciseId": 1744,
+  "wgerName": "Machine Side Lateral Raises"
+ },
+ {
+  "openGymId": "0596",
+  "name": "lever seated fly",
+  "wgerExerciseId": 926,
+  "wgerName": "Machine chest fly"
+ },
+ {
+  "openGymId": "0597",
+  "name": "lever seated hip abduction",
+  "wgerExerciseId": 1748,
+  "wgerName": "Machine Hip Abduction"
+ },
+ {
+  "openGymId": "0598",
+  "name": "lever seated hip adduction",
+  "wgerExerciseId": 12,
+  "wgerName": "Seated Hip Adduction"
+ },
+ {
+  "openGymId": "0634",
+  "name": "negative crunch",
+  "wgerExerciseId": 427,
+  "wgerName": "Negative Crunches"
+ },
+ {
+  "openGymId": "0651",
+  "name": "pull up (neutral grip)",
+  "wgerExerciseId": 1738,
+  "wgerName": "Neutral-grip pull-ups or TRX rows"
+ },
+ {
+  "openGymId": "0813",
+  "name": "triceps dip (between benches)",
+  "wgerExerciseId": 197,
+  "wgerName": "Dips Between Two Benches"
+ },
+ {
+  "openGymId": "0815",
+  "name": "triceps dips floor",
+  "wgerExerciseId": 1000,
+  "wgerName": "Floor dips"
+ },
+ {
+  "openGymId": "0832",
+  "name": "weighted crunch",
+  "wgerExerciseId": 1648,
+  "wgerName": "Weighted Crunch"
+ },
+ {
+  "openGymId": "0846",
+  "name": "weighted russian twist",
+  "wgerExerciseId": 1193,
+  "wgerName": "Russian Twist"
+ },
+ {
+  "openGymId": "0857",
+  "name": "wheel rollerout",
+  "wgerExerciseId": 1573,
+  "wgerName": "Ab wheel"
+ },
+ {
+  "openGymId": "0865",
+  "name": "lying leg-hip raise",
+  "wgerExerciseId": 377,
+  "wgerName": "Leg Raises, Lying"
+ },
+ {
+  "openGymId": "0868",
+  "name": "cable curl",
+  "wgerExerciseId": 95,
+  "wgerName": "Biceps Curl With Cable"
+ },
+ {
+  "openGymId": "0869",
+  "name": "lever shoulder press v. 2",
+  "wgerExerciseId": 543,
+  "wgerName": "Shoulder Press, on Machine"
+ },
+ {
+  "openGymId": "1273",
+  "name": "clap push up",
+  "wgerExerciseId": 1554,
+  "wgerName": "Clap Push-UP"
+ },
+ {
+  "openGymId": "1350",
+  "name": "lever seated row",
+  "wgerExerciseId": 1725,
+  "wgerName": "Seated Row (Machine)"
+ },
+ {
+  "openGymId": "1379",
+  "name": "dumbbell seated calf raise",
+  "wgerExerciseId": 1620,
+  "wgerName": "Seated Dumbbell Calf Raise"
+ },
+ {
+  "openGymId": "1407",
+  "name": "calf push stretch with hands against wall",
+  "wgerExerciseId": 1876,
+  "wgerName": "Supported Calf Stretch"
+ },
+ {
+  "openGymId": "1430",
+  "name": "chest dip (on dip-pull-up cage)",
+  "wgerExerciseId": 194,
+  "wgerName": "Dips"
+ },
+ {
+  "openGymId": "1459",
+  "name": "dumbbell romanian deadlift",
+  "wgerExerciseId": 1652,
+  "wgerName": "Dumbbell Romanian Deadlift"
+ },
+ {
+  "openGymId": "1461",
+  "name": "barbell full squat (back pov)",
+  "wgerExerciseId": 1801,
+  "wgerName": "Barbell Full Squat"
+ },
+ {
+  "openGymId": "1462",
+  "name": "barbell full squat (side pov)",
+  "wgerExerciseId": 1801,
+  "wgerName": "Barbell Full Squat"
+ },
+ {
+  "openGymId": "1463",
+  "name": "sled 45° leg press (side pov)",
+  "wgerExerciseId": 371,
+  "wgerName": "Leg Press"
+ },
+ {
+  "openGymId": "1464",
+  "name": "sled 45в° leg press (back pov)",
+  "wgerExerciseId": 371,
+  "wgerName": "Leg Press"
+ },
+ {
+  "openGymId": "1631",
+  "name": "cable concentration curl",
+  "wgerExerciseId": 1109,
+  "wgerName": "Cable Concentration Curl"
+ },
+ {
+  "openGymId": "1688",
+  "name": "lunge with twist",
+  "wgerExerciseId": 1868,
+  "wgerName": "Lunge with Twist Stretch"
+ },
+ {
+  "openGymId": "1757",
+  "name": "dumbbell single leg deadlift",
+  "wgerExerciseId": 1736,
+  "wgerName": "Single-Leg Deadlift with Dumbbell"
+ },
+ {
+  "openGymId": "1759",
+  "name": "single leg squat (pistol) male",
+  "wgerExerciseId": 456,
+  "wgerName": "Pistol Squat"
+ },
+ {
+  "openGymId": "1760",
+  "name": "dumbbell goblet squat",
+  "wgerExerciseId": 203,
+  "wgerName": "Dumbbell Goblet Squat"
+ },
+ {
+  "openGymId": "1764",
+  "name": "hanging leg hip raise",
+  "wgerExerciseId": 979,
+  "wgerName": "Leg raises pull up bar"
+ },
+ {
+  "openGymId": "1765",
+  "name": "dumbbell upright row (back pov)",
+  "wgerExerciseId": 694,
+  "wgerName": "Upright Row w/ Dumbbells"
+ },
+ {
+  "openGymId": "2188",
+  "name": "dumbbell seated triceps extension",
+  "wgerExerciseId": 1336,
+  "wgerName": "Triceps Overhead (Dumbbell)"
+ },
+ {
+  "openGymId": "2292",
+  "name": "dumbbell rear delt raise",
+  "wgerExerciseId": 487,
+  "wgerName": "Rear Delt Raises"
+ },
+ {
+  "openGymId": "2318",
+  "name": "lever shoulder press v. 3",
+  "wgerExerciseId": 543,
+  "wgerName": "Shoulder Press, on Machine"
+ },
+ {
+  "openGymId": "2371",
+  "name": "weighted russian twist v. 2",
+  "wgerExerciseId": 1193,
+  "wgerName": "Russian Twist"
+ },
+ {
+  "openGymId": "3013",
+  "name": "low glute bridge on floor",
+  "wgerExerciseId": 265,
+  "wgerName": "Glute Bridge"
+ },
+ {
+  "openGymId": "3145",
+  "name": "push-up plus",
+  "wgerExerciseId": 2681,
+  "wgerName": "Scapular Pushups"
+ },
+ {
+  "openGymId": "3281",
+  "name": "smith full squat",
+  "wgerExerciseId": 1747,
+  "wgerName": "Smith machine squat"
+ },
+ {
+  "openGymId": "3699",
+  "name": "shoulder tap",
+  "wgerExerciseId": 1091,
+  "wgerName": "Plank Shoulder Taps"
+ },
+ {
+  "openGymId": "3888",
+  "name": "dumbbell one arm snatch",
+  "wgerExerciseId": 1947,
+  "wgerName": "dumbbell snatch"
+ }
+]

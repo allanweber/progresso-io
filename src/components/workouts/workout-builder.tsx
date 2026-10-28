@@ -75,7 +75,7 @@ import {
 } from "@/components/workouts/number-field";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
-import { CATEGORY_LABELS } from "@/lib/exercises";
+import { CATEGORY_LABELS, type Muscle } from "@/lib/exercises";
 import {
   SESSION_FOCUS_SUGGESTIONS,
   SESSION_POSITION_SUGGESTIONS,
@@ -108,6 +108,7 @@ type ExerciseDraft = {
   code: string | null;
   category: string;
   thumbnail: string | null;
+  primaryMuscles: Muscle[];
   sets: number;
   reps: WorkoutReps;
   load: string;
@@ -213,6 +214,7 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
         code: x.code,
         category: x.category ? CATEGORY_LABELS[x.category] : "",
         thumbnail: x.images[0] ?? null,
+        primaryMuscles: x.primaryMuscles,
         sets: x.sets,
         reps: x.reps,
         load: x.load ?? "",
@@ -1075,6 +1077,7 @@ const SortableSession = memo(function SortableSession({
         code: picked.code,
         category: CATEGORY_LABELS[picked.category],
         thumbnail: picked.thumbnail,
+        primaryMuscles: picked.primaryMuscles,
         sets: prescription.sets,
         reps: prescription.reps,
         load: prescription.load,
@@ -1479,6 +1482,7 @@ const SortableExercise = memo(function SortableExercise({
           exerciseId={exercise.exerciseId}
           name={exercise.name}
           thumbnail={exercise.thumbnail}
+          primaryMuscles={exercise.primaryMuscles}
           className="size-9 rounded-md"
         />
         {/* One control opens the editor, not two. A separate pencil button did

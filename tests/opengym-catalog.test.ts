@@ -26,6 +26,7 @@ type CatalogRow = {
   primaryMuscles: string[];
   secondaryMuscles: string[];
   images: string[];
+  imageCredits: Record<string, { author: string; license: string; licenseUrl: string; sourceUrl: string }>;
   openGymId?: string | null;
   source: string;
 };
@@ -98,12 +99,19 @@ describe("seed catalog", () => {
   });
 
   it.each(exercisedbRows.map((e) => [e.code, e] as const))(
-    "%s is a complete, media-free PT-BR exercise",
+    "%s is a complete PT-BR exercise whose images are all credited wger images",
     (_code, e) => {
       expect(e.name.trim()).not.toBe("");
       expect(e.instructions.length).toBeGreaterThan(0);
       expect(e.instructions.every((s) => s.trim() !== "")).toBe(true);
-      expect(e.images).toEqual([]);
+      expect(e.images.length).toBeLessThanOrEqual(2);
+      expect(Object.keys(e.imageCredits).sort()).toEqual([...e.images].sort());
+      for (const key of e.images) {
+        expect(key.startsWith(`${e.code}/`), key).toBe(true);
+        expect(e.imageCredits[key].sourceUrl).toMatch(/^https:\/\/wger\.de\/exercise\/\d+\/view\/$/);
+        expect(e.imageCredits[key].license).toMatch(/^CC/);
+        expect(e.imageCredits[key].author.trim()).not.toBe("");
+      }
       expect(EXERCISE_CATEGORIES).toContain(e.category);
       expect(EXERCISE_LEVELS).toContain(e.level);
       if (e.force !== null) expect(EXERCISE_FORCES).toContain(e.force);
@@ -115,6 +123,38 @@ describe("seed catalog", () => {
       }
     },
   );
+});
+
+describe("wger images", () => {
+  const wger = JSON.parse(readFileSync(data("wger-images.json"), "utf8")) as Record<
+    string,
+    { key: string; url: string }[]
+  >;
+  const wgerMatches = JSON.parse(readFileSync(data("wger-matches.json"), "utf8")) as {
+    openGymId: string;
+  }[];
+
+  it("illustrate only image-less ExerciseDB exercises, one wger exercise each", () => {
+    const ids = wgerMatches.map((m) => m.openGymId);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) {
+      expect(byCode.get(`exercisedb-${id}`)?.source, id).toBe("exercisedb");
+    }
+    expect(Object.keys(wger).sort()).toEqual(ids.map((id) => `exercisedb-${id}`).sort());
+  });
+
+  it("land on the catalog rows they were matched to", () => {
+    for (const [code, images] of Object.entries(wger)) {
+      expect(byCode.get(code)?.images).toEqual(images.map((i) => i.key));
+      for (const i of images) expect(i.url).toMatch(/^https:\/\/wger\.de\/media\//);
+    }
+  });
+
+  it("leave free-exercise-db exercises uncredited", () => {
+    for (const e of catalog.filter((r) => r.source === "free-exercise-db")) {
+      expect(e.imageCredits, e.code).toEqual({});
+    }
+  });
 });
 
 describe("exercise substitutions", () => {

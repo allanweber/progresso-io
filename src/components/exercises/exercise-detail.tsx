@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 
+import { ExerciseMuscleMap } from "@/components/exercises/exercise-muscle-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,6 +129,14 @@ export function ExerciseDetail({
   const gallery = (data?.images ?? [])
     .map((key) => exerciseImageUrl(key))
     .filter((url): url is string => Boolean(url));
+  const credits = [
+    ...new Map(
+      (data?.images ?? []).flatMap((key) => {
+        const credit = data?.imageCredits?.[key];
+        return credit ? [[`${credit.author}|${credit.license}|${credit.aiGenerated}`, credit]] : [];
+      }),
+    ).values(),
+  ];
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -297,6 +306,35 @@ export function ExerciseDetail({
                   </button>
                 ))}
               </div>
+              {credits.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Imagens:{" "}
+                  {credits.map((c, i) => (
+                    <span key={i}>
+                      {i > 0 && "; "}
+                      {c.author}
+                      {c.aiGenerated && " (gerada por IA)"},{" "}
+                      <a
+                        href={c.licenseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-foreground"
+                      >
+                        {c.license}
+                      </a>
+                      , via{" "}
+                      <a
+                        href={c.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-foreground"
+                      >
+                        wger.de
+                      </a>
+                    </span>
+                  ))}
+                </p>
+              )}
               <ExerciseImageLightbox
                 images={gallery}
                 name={data.name}
@@ -304,6 +342,29 @@ export function ExerciseDetail({
                 onIndexChange={setZoomed}
               />
             </>
+          )}
+
+          {gallery.length === 0 && data.primaryMuscles.length > 0 && (
+            <div className="mt-6">
+              <ExerciseMuscleMap
+                primary={data.primaryMuscles}
+                secondary={data.secondaryMuscles}
+                both
+                className="aspect-[4/3] rounded-2xl sm:aspect-[2/1]"
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2.5 rounded-full bg-primary" aria-hidden />
+                  Músculo principal
+                </span>
+                {data.secondaryMuscles.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-full bg-primary/35" aria-hidden />
+                    Músculo secundário
+                  </span>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Muscles */}

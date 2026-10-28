@@ -1,0 +1,1 @@
+ALTER TABLE "exercise" ADD COLUMN "image_credits" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -43,6 +43,23 @@ not covered by its MIT licence and is never fetched or stored here. See
 
 Steps 2 and 3 resume where they stopped and need `LLM_API_KEY`.
 
+## wger images (ExerciseDB exercises)
+
+61 ExerciseDB exercises are illustrated with images from [wger](https://wger.de),
+licensed CC-BY-SA 3.0/4.0 (attribution + share-alike; a few are AI-generated and
+flagged so). Each image keeps its original file, and its author, licence and wger
+page are stored in `exercise.image_credits` and shown under the exercise's images.
+
+1. `../wger-matches.json` — hand-reviewed pairs of an image-less ExerciseDB
+   exercise and the wger exercise that is the same movement. Only exact
+   equivalents are listed; a variant (other equipment, grip or stance) is not.
+2. `pnpm db:fetch-wger-images` — reads the wger API and writes
+   `../wger-images.json` (up to 2 images per exercise: key, source URL, credit).
+3. `pnpm db:transform-exercises` — puts those keys and credits on the rows.
+
+`pnpm db:fetch-exercise-images` and the R2 upload take each wger key from its
+wger URL and every other key from free-exercise-db.
+
 ```
 MIT License
 
