@@ -28,6 +28,7 @@ async function addExercise(e: {
   images?: string[];
   clinicId?: string | null;
   archived?: boolean;
+  openGymId?: string | null;
 }) {
   const [row] = await db
     .insert(schema.exercise)
@@ -46,6 +47,7 @@ async function addExercise(e: {
       images: e.images ?? [],
       clinicId: e.clinicId ?? null,
       archived: e.archived ?? false,
+      openGymId: e.openGymId ?? null,
     })
     .returning({ id: schema.exercise.id });
   return row.id;
@@ -89,6 +91,7 @@ beforeAll(async () => {
     secondaryMuscles: ["glutes", "hamstrings"],
     instructions: ["Posicione a barra.", "Agache.", "Suba."],
     images: ["Barbell_Squat/0.jpg", "Barbell_Squat/1.jpg"],
+    openGymId: "edb_0043",
   });
   await addExercise({
     code: "Running",
@@ -197,6 +200,21 @@ describe("exercises DAL", () => {
       pageSize: 100,
     });
     expect(biceps.items.map((i) => i.name)).toEqual(["Rosca própria da clínica A"]);
+  });
+
+  it("filters to exercises with an openGym id", async () => {
+    const linked = await exercises.listExercises(ctxA, {
+      openGymOnly: true,
+      pageSize: 100,
+    });
+    expect(linked.items.map((i) => i.name)).toEqual(["Agachamento com barra"]);
+    expect(linked.total).toBe(1);
+
+    const corrida = await exercises.listExercises(ctxA, {
+      search: "corrida",
+      openGymOnly: true,
+    });
+    expect(corrida.items).toEqual([]);
   });
 
   it("paginates", async () => {

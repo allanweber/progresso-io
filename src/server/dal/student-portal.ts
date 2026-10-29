@@ -298,6 +298,7 @@ export async function getMyWorkoutState(
       current = {
         workoutId: active.id,
         workoutName: active.name,
+        versionId: latest.versionId,
         version: latest.version!,
         publishedAt: latest.publishedAt!.toISOString(),
         notes: latest.notes,

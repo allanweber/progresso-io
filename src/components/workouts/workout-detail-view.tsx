@@ -367,6 +367,7 @@ export function WorkoutExerciseDetail({
                 key={exercise.id}
                 images={images}
                 name={exercise.name}
+                primaryMuscles={exercise.primaryMuscles}
               />
 
               {/* Prescription stat cards */}
@@ -592,6 +593,7 @@ function SubstituteDetail({
                 key={sub.exerciseId}
                 images={images}
                 name={sub.name}
+                primaryMuscles={sub.primaryMuscles}
               />
 
               {sub.note && (

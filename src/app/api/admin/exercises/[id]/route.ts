@@ -42,6 +42,7 @@ export const GET = withAdmin<Params>(
       secondaryMuscles: exercise.secondaryMuscles,
       instructions: exercise.instructions,
       images: exercise.images,
+      imageCredits: exercise.imageCredits,
       origin: exercise.origin,
       clinicName: exercise.clinicName,
       archived: exercise.archived,

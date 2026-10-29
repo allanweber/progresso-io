@@ -10,11 +10,13 @@ import {
   type StudentWorkoutVersionDto,
   type WorkoutStructure,
 } from "@/lib/student-workouts";
+import type { OpenGymExportResponse } from "@/lib/opengym-plan";
 import { workoutChanged } from "@/lib/plan-changes";
 import type { WorkoutSessionDto } from "@/lib/workouts";
 import type { TenantContext } from "@/server/tenant";
 import {
   buildExerciseDto,
+  exportToOpenGym,
   loadExerciseCatalog,
   type ExerciseCatalog,
 } from "./workout-hydrate";
@@ -332,6 +334,7 @@ export async function getStudentWorkoutState(
     current = {
       workoutId: active.id,
       workoutName: active.name,
+      versionId: currentVersion.id,
       version: currentVersion.version!,
       publishedAt: currentVersion.publishedAt!.toISOString(),
       notes: currentVersion.notes,
@@ -818,4 +821,24 @@ export async function deleteStudentWorkoutVersion(
     }
   });
   return { ok: true, deletedWorkout: lastOne };
+}
+
+export async function exportOpenGymPlan(
+  ctx: TenantContext,
+  studentId: string,
+  versionId: string,
+  now: Date = new Date(),
+): Promise<OpenGymExportResponse | null> {
+  const version = await getStudentWorkoutVersion(ctx, studentId, versionId);
+  if (!version) return null;
+  return exportToOpenGym(
+    ctx,
+    {
+      name: version.workoutName,
+      notes: version.notes,
+      cardio: version.cardio,
+      sessions: version.sessions,
+    },
+    now,
+  );
 }

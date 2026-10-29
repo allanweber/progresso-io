@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, ArrowLeft, Copy, Pencil } from "lucide-react";
 
+import { OpenGymExportButton } from "@/components/workouts/opengym-export-button";
 import {
   WorkoutExerciseDetail,
   WorkoutSessionsView,
@@ -128,6 +129,8 @@ export default function WorkoutDetailPage() {
                 <Copy className="size-4" />
                 {copyMutation.isPending ? "Copiando…" : "Criar cópia"}
               </Button>
+
+              <OpenGymExportButton url={`/api/workouts/${id}/export/opengym`} />
 
               {data.origin === "clinic" && !data.archived && (
                 <Button asChild variant="outline" size="sm">

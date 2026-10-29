@@ -34,6 +34,7 @@ import type {
   CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
 import type { AiEvaluationPayload } from "@/lib/ai-evaluation";
+import type { ExerciseImageCredit } from "@/lib/exercises";
 
 // Re-exported as types so `@/db/schema` stays the one place a server module has
 // to import from. The VALUES deliberately are not re-exported: they live in the
@@ -965,7 +966,12 @@ export const exercise = pgTable(
     instructions: text("instructions").array().notNull().default([]),
     // Relative image keys ("<code>/0.jpg"); resolved to a URL at render time.
     images: text("images").array().notNull().default([]),
+    imageCredits: jsonb("image_credits")
+      .$type<Record<string, ExerciseImageCredit>>()
+      .notNull()
+      .default({}),
     source: text("source").notNull().default("free-exercise-db"),
+    openGymId: text("opengym_id").unique(),
     // NULL = shared base; set = this clinic's private custom exercise.
     clinicId: uuid("clinic_id").references(() => clinic.id, {
       onDelete: "cascade",

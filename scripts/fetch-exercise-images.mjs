@@ -13,9 +13,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
+import { imageSourceUrl } from "./lib/exercise-image-sources.mjs";
+
 const CATALOG = join(process.cwd(), "drizzle", "data", "exercises-catalog.ndjson.gz");
 const OUT_DIR = join(process.cwd(), "drizzle", "data", "exercises-images");
-const BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 const CONCURRENCY = 16;
 
 const text = gunzipSync(readFileSync(CATALOG)).toString("utf8");
@@ -37,7 +38,7 @@ async function fetchOne(key) {
     skipped++;
     return;
   }
-  const res = await fetch(`${BASE}/${key}`);
+  const res = await fetch(imageSourceUrl(key));
   if (!res.ok) {
     failed++;
     console.warn(`  ✗ ${key} → HTTP ${res.status}`);

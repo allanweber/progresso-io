@@ -302,6 +302,20 @@
       "when": 1790667997270,
       "tag": "0042_purple_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793108931714,
+      "tag": "0043_windy_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793186704509,
+      "tag": "0044_far_gertrude_yorkes",
+      "breakpoints": true
     }
   ]
 }

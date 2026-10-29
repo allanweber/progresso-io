@@ -93,12 +93,12 @@ export const EXERCISE_VOCAB = {
   agachamento_livre: "agachamento livre",
   agachamento_smith: "agachamento no smith",
   agachamento_corp: "agachamento corporal",
-  agach_sumo: "agachamento sumô",
+  agach_sumo: "^agachamento sumô com halter$",
   leg_press: "^leg press$",
   extensora: "extensão de perna",
   flexora: "^cadeira flexora$",
   terra: "levantamento terra romeno",
-  stiff: "stiff",
+  stiff: "^stiff-leg com base larga$",
   afundo: "afundo com halteres",
   panturrilha_pe: "elevação de panturrilha em pé",
   elev_pelvica: "elevação pélvica com barra",
@@ -110,7 +110,7 @@ export const EXERCISE_VOCAB = {
   desenv_halt: "desenvolvimento com halteres",
   arnold: "press arnold com halteres",
   elev_lateral: "^elevação lateral$",
-  elev_frontal: "elevação frontal",
+  elev_frontal: "^elevação frontal no pulley$",
   crucifixo_inv: "^crucifixo inverso$",
   face_pull: "^face pull$",
   encolhimento: "encolhimento de ombros com barra",
@@ -126,7 +126,7 @@ export const EXERCISE_VOCAB = {
   prancha: "^prancha$",
   abdominal: "^abdominal$",
   escalador: "^escalador$",
-  polichinelo: "polichinelo",
+  polichinelo: "^polichinelo rápido$",
 } as const;
 
 export type ExerciseSlug = keyof typeof EXERCISE_VOCAB;

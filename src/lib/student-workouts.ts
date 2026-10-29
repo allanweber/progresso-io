@@ -91,6 +91,7 @@ export type StudentWorkoutDraftDto = {
 export type StudentWorkoutPublishedDto = {
   workoutId: string;
   workoutName: string;
+  versionId: string;
   version: number;
   /** ISO timestamp. */
   publishedAt: string;

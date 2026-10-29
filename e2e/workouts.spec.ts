@@ -515,7 +515,7 @@ test.describe("workout builder", () => {
     await page.getByLabel("Descanso padrão da ficha").fill("60");
     // Unchecked by default — the popover promises the padrão governs the NEXT
     // exercises, so rewriting the existing ones is opt-in.
-    const applyAll = page.getByRole("checkbox");
+    const applyAll = page.getByRole("checkbox", { name: /Também aplicar aos/ });
     await expect(applyAll).not.toBeChecked();
     await expect(page.getByRole("button", { name: "Salvar padrão" })).toBeVisible();
     await applyAll.check();

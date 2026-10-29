@@ -2,6 +2,7 @@ import type {
   ExerciseCategory,
   ExerciseEquipment,
   ExerciseForce,
+  ExerciseImageCredit,
   ExerciseLevel,
   ExerciseMechanic,
   ExerciseSubstituteDto,
@@ -297,6 +298,7 @@ export type AdminExerciseDetailDto = {
   secondaryMuscles: Muscle[];
   instructions: string[];
   images: string[];
+  imageCredits: Record<string, ExerciseImageCredit>;
   origin: AdminExerciseOrigin;
   clinicName: string | null;
   archived: boolean;

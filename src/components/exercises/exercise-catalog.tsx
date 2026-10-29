@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Dumbbell, Search } from "lucide-react";
 
+import { ExerciseMuscleMap } from "@/components/exercises/exercise-muscle-map";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -113,6 +114,9 @@ export function ExerciseCatalog({
   const [includeArchived, setIncludeArchived] = useState(
     () => searchParams.get("archived") === "true",
   );
+  const [openGymOnly, setOpenGymOnly] = useState(
+    () => searchParams.get("openGym") === "1",
+  );
   // The page lives in the URL, and paginating is a real navigation (push), so
   // browser back/forward walk the pages. The filters are mirrored with replace
   // instead — they must never build up history. Page 1 is the default, so it
@@ -163,6 +167,7 @@ export function ExerciseCatalog({
     if (muscle) p.set("muscle", muscle);
     if (equipment) p.set("equipment", equipment);
     if (level) p.set("level", level);
+    if (openGymOnly) p.set("openGym", "1");
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [
@@ -174,6 +179,7 @@ export function ExerciseCatalog({
     muscle,
     equipment,
     level,
+    openGymOnly,
     pathname,
     router,
   ]);
@@ -188,14 +194,27 @@ export function ExerciseCatalog({
     if (muscle) p.set("muscle", muscle);
     if (equipment) p.set("equipment", equipment);
     if (level) p.set("level", level);
+    if (openGymOnly) p.set("openGym", "1");
     p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
     return p.toString();
-  }, [search, origin, clinic, includeArchived, category, muscle, equipment, level, page]);
+  }, [
+    search,
+    origin,
+    clinic,
+    includeArchived,
+    category,
+    muscle,
+    equipment,
+    level,
+    openGymOnly,
+    page,
+  ]);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: [apiBase, query],
-    queryFn: () => apiFetch<Response | ExerciseListResponse>(`${apiBase}?${query}`),
+    queryFn: () =>
+      apiFetch<Response | ExerciseListResponse>(`${apiBase}?${query}`),
     placeholderData: keepPreviousData,
   });
 
@@ -242,7 +261,10 @@ export function ExerciseCatalog({
                 setOrigin(v === "all" ? "" : (v as "base" | "clinic"))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Origem">
+              <SelectTrigger
+                className="h-10 w-full rounded-xl"
+                aria-label="Origem"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -253,11 +275,12 @@ export function ExerciseCatalog({
             </Select>
             <Select
               value={clinic || "all"}
-              onValueChange={(v: string) =>
-                setClinic(v === "all" ? "" : v)
-              }
+              onValueChange={(v: string) => setClinic(v === "all" ? "" : v)}
             >
-              <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Clínica">
+              <SelectTrigger
+                className="h-10 w-full rounded-xl"
+                aria-label="Clínica"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -277,7 +300,10 @@ export function ExerciseCatalog({
             setCategory(v === "all" ? "" : (v as ExerciseCategory))
           }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Categoria">
+          <SelectTrigger
+            className="h-10 w-full rounded-xl"
+            aria-label="Categoria"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -295,7 +321,10 @@ export function ExerciseCatalog({
             setMuscle(v === "all" ? "" : (v as Muscle))
           }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Músculo">
+          <SelectTrigger
+            className="h-10 w-full rounded-xl"
+            aria-label="Músculo"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -313,7 +342,10 @@ export function ExerciseCatalog({
             setEquipment(v === "all" ? "" : (v as ExerciseEquipment))
           }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Equipamento">
+          <SelectTrigger
+            className="h-10 w-full rounded-xl"
+            aria-label="Equipamento"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -346,11 +378,12 @@ export function ExerciseCatalog({
         {admin && (
           <Select
             value={includeArchived ? "all" : "active"}
-            onValueChange={(v: string) =>
-              setIncludeArchived(v === "all")
-            }
+            onValueChange={(v: string) => setIncludeArchived(v === "all")}
           >
-            <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Status">
+            <SelectTrigger
+              className="h-10 w-full rounded-xl"
+              aria-label="Status"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -360,6 +393,17 @@ export function ExerciseCatalog({
           </Select>
         )}
       </div>
+      {!admin && (
+        <label className="flex h-10 cursor-pointer items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={openGymOnly}
+            onChange={(e) => setOpenGymOnly(e.target.checked)}
+            className="size-4 shrink-0 accent-primary"
+          />
+          Somente com equivalente no openGym
+        </label>
+      )}
 
       <p className="mt-4 text-xs text-muted-foreground">
         {total.toLocaleString("pt-BR")} exercícios
@@ -380,7 +424,7 @@ export function ExerciseCatalog({
         </div>
       ) : (
         <>
-          <ul className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-3 grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((ex) => {
               // The card leads with the exercise's first image — the same
               // thumbnail the picker and the fichas show. Without one it keeps
@@ -391,10 +435,12 @@ export function ExerciseCatalog({
                 <li key={ex.id}>
                   <Link
                     href={`${basePath}/${ex.id}`}
-                    className="group flex gap-3 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
+                    className="group flex h-full gap-3 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
                   >
                     <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-light text-muted-foreground">
-                      {src ? (
+                      {!src && ex.primaryMuscles.length > 0 ? (
+                        <ExerciseMuscleMap primary={ex.primaryMuscles} className="size-full" />
+                      ) : src ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={src}
@@ -441,7 +487,9 @@ export function ExerciseCatalog({
                       </div>
                       {ex.primaryMuscles.length > 0 && (
                         <p className="mt-2 truncate text-body-dense text-[#475569]">
-                          {ex.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
+                          {ex.primaryMuscles
+                            .map((m) => MUSCLE_LABELS[m])
+                            .join(", ")}
                         </p>
                       )}
                     </div>

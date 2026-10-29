@@ -9,9 +9,14 @@ import {
   Expand,
 } from "lucide-react";
 
+import { ExerciseMuscleMap } from "@/components/exercises/exercise-muscle-map";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/api-client";
-import { exerciseImageUrl, type ExerciseDetailDto } from "@/lib/exercises";
+import {
+  exerciseImageUrl,
+  type ExerciseDetailDto,
+  type Muscle,
+} from "@/lib/exercises";
 import { cn } from "@/lib/utils";
 
 /**
@@ -135,11 +140,13 @@ export function ExerciseImageLightbox({
 export function ExerciseImages({
   images,
   name = "",
+  primaryMuscles,
 }: {
   /** Resolved image URLs (see `exerciseImageUrl`). */
   images: string[];
   /** The exercise's name — the alt text and the full-size caption. */
   name?: string;
+  primaryMuscles?: Muscle[];
 }) {
   const [broken, setBroken] = useState<Set<string>>(() => new Set());
   const [index, setIndex] = useState(0);
@@ -161,6 +168,15 @@ export function ExerciseImages({
   }, [shown.length]);
 
   if (shown.length === 0) {
+    if (primaryMuscles?.length) {
+      return (
+        <ExerciseMuscleMap
+          primary={primaryMuscles}
+          both
+          className="aspect-video rounded-2xl"
+        />
+      );
+    }
     return (
       <div className="flex aspect-video items-center justify-center rounded-2xl bg-surface-light text-muted-foreground">
         <Dumbbell className="size-10" />
@@ -272,12 +288,14 @@ export function ExerciseImageButton({
   exerciseId,
   name,
   thumbnail,
+  primaryMuscles,
   className,
 }: {
   exerciseId: string;
   name: string;
   /** The first image **key** (not a URL); resolve with `exerciseImageUrl`. */
   thumbnail: string | null;
+  primaryMuscles?: Muscle[];
   /** Sizing/rounding for the box (e.g. "size-9 rounded-md"). */
   className?: string;
 }) {
@@ -291,6 +309,9 @@ export function ExerciseImageButton({
 
   const thumb = exerciseImageUrl(thumbnail);
   if (!thumb) {
+    if (primaryMuscles?.length) {
+      return <ExerciseMuscleMap primary={primaryMuscles} className={className} />;
+    }
     return <div className={cn("shrink-0 bg-surface-light", className)} />;
   }
 

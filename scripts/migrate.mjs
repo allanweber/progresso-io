@@ -9,6 +9,11 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
+import {
+  readExerciseCatalog,
+  seedExerciseCatalog,
+  seedExerciseSubstitutionEdges,
+} from "./lib/seed-exercises.mjs";
 import { uploadExerciseImages } from "./upload-exercise-images.mjs";
 
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
@@ -280,58 +285,22 @@ async function seedMeasures(sql) {
   );
 }
 
-/**
- * Loads the base exercise catalog (`drizzle/data/exercises-catalog.ndjson.gz`,
- * produced by scripts/transform-exercises.mjs) into the empty `exercise` table.
- * Each row becomes a shared base exercise (`clinic_id = NULL`), with the muscle /
- * instruction / image arrays stored as-is and `search_text` computed with
- * `unaccent(lower(name))` so the trigram search is accent-blind — the same
- * convention the food catalog uses. Idempotent: skips when `exercise` already
- * has rows, so it's safe on every deploy.
- */
 async function seedExercises(sql) {
-  const [{ count }] = await sql`select count(*)::int as count from exercise`;
-  if (count > 0) {
-    console.log(`✓ Exercise catalog already seeded (${count} exercises) — skipping.`);
-    return;
-  }
-
-  let text;
+  let exercises;
   try {
-    text = gunzipSync(readFileSync(EXERCISES)).toString("utf8");
+    exercises = readExerciseCatalog(EXERCISES);
   } catch {
     console.log(`• No exercise artifact at ${EXERCISES} — skipping exercise seed.`);
     return;
   }
-
-  const exercises = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
-
-  await sql.begin(async (tx) => {
-    for (const e of exercises) {
-      await tx`
-        insert into exercise (
-          id, code, name, search_text, category, level, force, mechanic,
-          equipment, primary_muscles, secondary_muscles, instructions, images, source
-        ) values (
-          ${crypto.randomUUID()}, ${e.code}, ${e.name}, unaccent(lower(${e.name})),
-          ${e.category}, ${e.level}, ${e.force}, ${e.mechanic}, ${e.equipment},
-          ${e.primaryMuscles}, ${e.secondaryMuscles}, ${e.instructions}, ${e.images},
-          'free-exercise-db'
-        )`;
-    }
-  });
-
-  console.log(`✓ Exercise catalog seeded: ${exercises.length} exercises.`);
+  const { inserted, linked } = await sql.begin((tx) =>
+    seedExerciseCatalog((text, params) => tx.unsafe(text, params), exercises),
+  );
+  console.log(
+    `✓ Exercise catalog: ${inserted} new, ${linked} linked to openGym (of ${exercises.length}).`,
+  );
 }
 
-/**
- * Loads the base exercise substitutions (`drizzle/data/exercise-substitutions.json`,
- * produced by scripts/build-exercise-substitutions.mjs): directed "B can replace
- * A" links stamped `clinic_id = NULL` (shared). Exercises are referenced by their
- * stable `code` (the source id), resolved to ids here — so it runs after the
- * exercise catalog is seeded. A link whose exercise or substitute isn't in the
- * catalog is skipped. Idempotent: skips once any base substitution exists.
- */
 async function seedExerciseSubstitutions(sql) {
   let doc;
   try {
@@ -340,50 +309,14 @@ async function seedExerciseSubstitutions(sql) {
     console.log(`• No exercise substitutions at ${EXERCISE_SUBS} — skipping.`);
     return;
   }
-  const rules = doc.substitutions ?? [];
-  if (rules.length === 0) return;
-
-  const [{ count }] = await sql`
-    select count(*)::int as count from exercise_substitution where clinic_id is null`;
-  if (count > 0) {
-    console.log(`✓ Base exercise substitutions already seeded (${count}) — skipping.`);
-    return;
-  }
-
-  const codeRows = await sql`select id, code from exercise where code is not null`;
-  const idByCode = new Map(codeRows.map((r) => [r.code, r.id]));
-
-  const rows = [];
-  let skipped = 0;
-  for (const rule of rules) {
-    const exerciseId = idByCode.get(rule.exercise);
-    if (!exerciseId) {
-      skipped++;
-      continue;
-    }
-    for (const subCode of rule.substitutes ?? []) {
-      const substituteId = idByCode.get(subCode);
-      if (!substituteId || substituteId === exerciseId) {
-        skipped++;
-        continue;
-      }
-      rows.push({
-        clinic_id: null,
-        exercise_id: exerciseId,
-        substitute_exercise_id: substituteId,
-      });
-    }
-  }
-
-  if (rows.length > 0) {
-    await sql.begin(async (tx) => {
-      for (let i = 0; i < rows.length; i += 500) {
-        await tx`insert into exercise_substitution ${tx(rows.slice(i, i + 500))}`;
-      }
-    });
-  }
+  const { inserted, skipped } = await sql.begin((tx) =>
+    seedExerciseSubstitutionEdges(
+      (text, params) => tx.unsafe(text, params),
+      doc.substitutions ?? [],
+    ),
+  );
   console.log(
-    `✓ Base exercise substitutions seeded: ${rows.length}${skipped ? ` (${skipped} skipped)` : ""}.`,
+    `✓ Base exercise substitutions: ${inserted} new${skipped ? ` (${skipped} skipped)` : ""}.`,
   );
 }
 

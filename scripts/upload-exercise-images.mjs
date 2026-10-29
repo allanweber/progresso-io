@@ -22,9 +22,10 @@ import { gunzipSync } from "node:zlib";
 
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
+import { imageContentType, imageSourceUrl } from "./lib/exercise-image-sources.mjs";
+
 const CATALOG = join(process.cwd(), "drizzle", "data", "exercises-catalog.ndjson.gz");
 const IMAGES_DIR = join(process.cwd(), "drizzle", "data", "exercises-images");
-const CDN = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 const MANIFEST_KEY = ".exercises-manifest.json";
 const CONCURRENCY = 16;
 
@@ -41,8 +42,8 @@ function imageKeys() {
 async function loadImage(key) {
   const local = join(IMAGES_DIR, key);
   if (existsSync(local)) return readFileSync(local);
-  const res = await fetch(`${CDN}/${key}`);
-  if (!res.ok) throw new Error(`CDN ${res.status} for ${key}`);
+  const res = await fetch(imageSourceUrl(key));
+  if (!res.ok) throw new Error(`source ${res.status} for ${key}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
@@ -117,7 +118,7 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
           Bucket: R2_BUCKET,
           Key: prefix + key,
           Body: body,
-          ContentType: "image/jpeg",
+          ContentType: imageContentType(key),
           CacheControl: "public, max-age=31536000, immutable",
         }),
       );

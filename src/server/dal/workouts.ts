@@ -4,9 +4,11 @@ import type { DB } from "@/db";
 import { schema } from "@/db";
 import type { WorkoutOrigin, WorkoutReps, WorkoutSessionDto } from "@/lib/workouts";
 import type { WorkoutTechnique } from "@/lib/workout-techniques";
+import type { OpenGymExportResponse } from "@/lib/opengym-plan";
 import type { TenantContext } from "@/server/tenant";
 import {
   buildExerciseDto,
+  exportToOpenGym,
   loadExerciseCatalog,
   referencedExerciseIds,
   type ExercisePrescription,
@@ -574,4 +576,14 @@ export async function deleteWorkout(
     .delete(schema.workout)
     .where(and(eq(schema.workout.id, id), eq(schema.workout.clinicId, ctx.clinicId)));
   return { ok: true };
+}
+
+export async function exportOpenGymPlan(
+  ctx: TenantContext,
+  id: string,
+  now: Date = new Date(),
+): Promise<OpenGymExportResponse | null> {
+  const workout = await getWorkout(ctx, id);
+  if (!workout) return null;
+  return exportToOpenGym(ctx, workout, now);
 }
