@@ -256,6 +256,7 @@ export const adminExerciseListQuerySchema = z.object({
   origin: z.enum(["base", "clinic"]).optional(),
   clinic: z.string().uuid("Clínica inválida.").optional(),
   archived: z.boolean().optional(),
+  openGym: z.enum(["linked", "unlinked"]).optional(),
   page: z.coerce.number().int().min(1).max(100_000).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });
@@ -273,6 +274,7 @@ export type AdminExerciseListItemDto = {
   origin: AdminExerciseOrigin;
   clinicName: string | null;
   archived: boolean;
+  openGymId: string | null;
   thumbnail: string | null;
 };
 
@@ -302,6 +304,7 @@ export type AdminExerciseDetailDto = {
   origin: AdminExerciseOrigin;
   clinicName: string | null;
   archived: boolean;
+  openGymId: string | null;
   substitutes: ExerciseSubstituteDto[];
 };
 

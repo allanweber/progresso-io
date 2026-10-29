@@ -27,6 +27,7 @@
     "db:match-opengym-exercises": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/match-opengym-exercises.mjs",
     "db:enrich-exercisedb": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/enrich-exercisedb.mjs",
     "db:transform-exercises": "node scripts/transform-exercises.mjs",
+    "db:maintain-exercises": "node scripts/maintain-exercises.mjs",
     "db:build-exercise-substitutions": "node scripts/build-exercise-substitutions.mjs",
     "db:fetch-exercise-images": "node scripts/fetch-exercise-images.mjs",
     "db:upload-exercise-images": "node scripts/upload-exercise-images.mjs",

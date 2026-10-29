@@ -1021,6 +1021,13 @@ export const exerciseSubstitution = pgTable(
   ],
 );
 
+export const exerciseMaintenanceOp = pgTable("exercise_maintenance_op", {
+  id: text("id").primaryKey(),
+  status: text("status").$type<"applied" | "skipped">().notNull(),
+  detail: text("detail"),
+  appliedAt: timestamp("applied_at").defaultNow().notNull(),
+});
+
 /* -------------------------------------------------------------------------- */
 /*  Diets (coach-authored meal plans — same base/custom shape as the catalog)  */
 /*                                                                            */

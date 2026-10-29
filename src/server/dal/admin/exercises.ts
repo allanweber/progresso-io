@@ -45,8 +45,11 @@ export type AdminExerciseListItem = {
   origin: AdminExerciseOrigin;
   clinicName: string | null;
   archived: boolean;
+  openGymId: string | null;
   thumbnail: string | null;
 };
+
+export type AdminExerciseOpenGymFilter = "linked" | "unlinked";
 
 export type AdminExerciseListParams = {
   search?: string;
@@ -57,6 +60,7 @@ export type AdminExerciseListParams = {
   origin?: AdminExerciseOrigin;
   clinicId?: string;
   includeArchived?: boolean;
+  openGym?: AdminExerciseOpenGymFilter;
   page?: number;
   pageSize?: number;
 };
@@ -86,6 +90,8 @@ function adminExerciseWhere(params: AdminExerciseListParams) {
   if (params.origin === "base") conds.push(isNull(schema.exercise.clinicId));
   if (params.origin === "clinic") conds.push(isNotNull(schema.exercise.clinicId));
   if (params.clinicId) conds.push(eq(schema.exercise.clinicId, params.clinicId));
+  if (params.openGym === "linked") conds.push(isNotNull(schema.exercise.openGymId));
+  if (params.openGym === "unlinked") conds.push(isNull(schema.exercise.openGymId));
   const term = params.search?.trim();
   if (term) {
     for (const token of term.split(/\s+/)) {
@@ -129,6 +135,7 @@ export async function listAllExercises(
       primaryMuscles: schema.exercise.primaryMuscles,
       images: schema.exercise.images,
       archived: schema.exercise.archived,
+      openGymId: schema.exercise.openGymId,
       clinicId: schema.exercise.clinicId,
       clinicName: schema.clinic.name,
     })

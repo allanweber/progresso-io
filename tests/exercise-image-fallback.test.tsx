@@ -43,6 +43,7 @@ const DETAIL: ExerciseDetailDto = {
   imageCredits: {},
   origin: "base",
   archived: false,
+  openGymId: null,
   substitutes: [],
 };
 
@@ -182,5 +183,22 @@ describe("ExerciseDetail images", () => {
     expect(screen.getByText("Músculo principal")).toBeInTheDocument();
     expect(screen.getByText("Músculo secundário")).toBeInTheDocument();
     expect(screen.queryByText(/^Imagens:/)).not.toBeInTheDocument();
+  });
+});
+
+describe("ExerciseDetail openGym link", () => {
+  const detail = () =>
+    withClient(<ExerciseDetail apiBase="/api/admin/exercises" backHref="/admin/exercises" manage="base" />);
+
+  it("shows the linked openGym id", async () => {
+    apiFetch.mockResolvedValue({ ...DETAIL, openGymId: "0041" });
+    detail();
+    expect(await screen.findByText("openGym #0041")).toBeInTheDocument();
+  });
+
+  it("says when the exercise has no openGym link", async () => {
+    apiFetch.mockResolvedValue(DETAIL);
+    detail();
+    expect(await screen.findByText("Sem vínculo com o openGym")).toBeInTheDocument();
   });
 });

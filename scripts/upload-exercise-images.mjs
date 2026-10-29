@@ -47,6 +47,42 @@ async function loadImage(key) {
   return Buffer.from(await res.arrayBuffer());
 }
 
+function r2Client() {
+  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PREFIX = "" } = process.env;
+  return {
+    prefix: R2_PREFIX ? `${R2_PREFIX.replace(/\/+$/, "")}/` : "",
+    s3: new S3Client({
+      region: "auto",
+      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: R2_ACCESS_KEY_ID,
+        secretAccessKey: R2_SECRET_ACCESS_KEY,
+      },
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
+    }),
+  };
+}
+
+export function addedImageUploader(fileFor, { log = console.log } = {}) {
+  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = process.env;
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
+    return async (key) => log(`• R2 not configured — image ${key} attached but not uploaded.`);
+  }
+  const { s3, prefix } = r2Client();
+  return async (key) => {
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: prefix + key,
+        Body: readFileSync(fileFor(key)),
+        ContentType: imageContentType(key),
+        CacheControl: "public, max-age=31536000, immutable",
+      }),
+    );
+  };
+}
+
 /**
  * Uploads every exercise image to R2. Returns a small result describing what
  * happened. Never throws for a missing configuration — it just skips — so the
@@ -58,7 +94,6 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
     R2_ACCESS_KEY_ID,
     R2_SECRET_ACCESS_KEY,
     R2_BUCKET,
-    R2_PREFIX = "",
   } = process.env;
 
   if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
@@ -75,19 +110,7 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
   }
   if (keys.length === 0) return { skipped: true, reason: "no-images" };
 
-  const prefix = R2_PREFIX ? `${R2_PREFIX.replace(/\/+$/, "")}/` : "";
-  const s3 = new S3Client({
-    region: "auto",
-    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
-    // R2 rejects the aws-sdk v3 default integrity checksums with
-    // "SignatureDoesNotMatch"; only send them when the operation requires it.
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
-  });
+  const { s3, prefix } = r2Client();
 
   // A prior full upload leaves a manifest — skip when it already covers these
   // images, so re-deploys don't re-push thousands of unchanged objects.

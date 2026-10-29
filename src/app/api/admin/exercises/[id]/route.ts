@@ -46,6 +46,7 @@ export const GET = withAdmin<Params>(
       origin: exercise.origin,
       clinicName: exercise.clinicName,
       archived: exercise.archived,
+      openGymId: exercise.openGymId,
       substitutes: exercise.substitutes.map((s) => ({
         id: s.id,
         exerciseId: s.exerciseId,

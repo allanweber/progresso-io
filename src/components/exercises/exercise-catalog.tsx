@@ -43,6 +43,7 @@ const PAGE_SIZE = 24;
 type Item = ExerciseListItemDto & {
   clinicName?: string | null;
   archived?: boolean;
+  openGymId?: string | null;
 };
 
 type Response = {
@@ -117,6 +118,12 @@ export function ExerciseCatalog({
   const [openGymOnly, setOpenGymOnly] = useState(
     () => searchParams.get("openGym") === "1",
   );
+  const [openGymLink, setOpenGymLink] = useState<"" | "linked" | "unlinked">(
+    () => {
+      const v = searchParams.get("openGym");
+      return admin && (v === "linked" || v === "unlinked") ? v : "";
+    },
+  );
   // The page lives in the URL, and paginating is a real navigation (push), so
   // browser back/forward walk the pages. The filters are mirrored with replace
   // instead — they must never build up history. Page 1 is the default, so it
@@ -168,6 +175,7 @@ export function ExerciseCatalog({
     if (equipment) p.set("equipment", equipment);
     if (level) p.set("level", level);
     if (openGymOnly) p.set("openGym", "1");
+    if (openGymLink) p.set("openGym", openGymLink);
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [
@@ -180,6 +188,7 @@ export function ExerciseCatalog({
     equipment,
     level,
     openGymOnly,
+    openGymLink,
     pathname,
     router,
   ]);
@@ -195,6 +204,7 @@ export function ExerciseCatalog({
     if (equipment) p.set("equipment", equipment);
     if (level) p.set("level", level);
     if (openGymOnly) p.set("openGym", "1");
+    if (openGymLink) p.set("openGym", openGymLink);
     p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
     return p.toString();
@@ -208,6 +218,7 @@ export function ExerciseCatalog({
     equipment,
     level,
     openGymOnly,
+    openGymLink,
     page,
   ]);
 
@@ -392,6 +403,26 @@ export function ExerciseCatalog({
             </SelectContent>
           </Select>
         )}
+        {admin && (
+          <Select
+            value={openGymLink || "all"}
+            onValueChange={(v: string) =>
+              setOpenGymLink(v === "all" ? "" : (v as "linked" | "unlinked"))
+            }
+          >
+            <SelectTrigger
+              className="h-10 w-full rounded-xl"
+              aria-label="openGym"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">openGym: todos</SelectItem>
+              <SelectItem value="linked">Vinculados ao openGym</SelectItem>
+              <SelectItem value="unlinked">Sem vínculo com o openGym</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
       {!admin && (
         <label className="flex h-10 cursor-pointer items-center gap-2 text-sm text-foreground">
@@ -471,6 +502,11 @@ export function ExerciseCatalog({
                         {ex.archived && (
                           <Badge variant="neutral" className="font-medium">
                             arquivado
+                          </Badge>
+                        )}
+                        {admin && ex.openGymId && (
+                          <Badge variant="ok" className="font-medium">
+                            openGym #{ex.openGymId}
                           </Badge>
                         )}
                         <Badge variant="neutral" className="font-medium">

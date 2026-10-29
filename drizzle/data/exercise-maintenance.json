@@ -1,0 +1,517 @@
+{
+ "generatedBy": "scripts/maintain-exercises.mjs",
+ "ops": [
+  {
+   "id": "mvte6hpi-4608ac",
+   "at": "2026-10-29T10:19:59.142Z",
+   "type": "link",
+   "code": "Crunches",
+   "openGymId": "0274"
+  },
+  {
+   "id": "mvte9iko-bae7af",
+   "at": "2026-10-29T10:22:20.233Z",
+   "type": "link",
+   "code": "Weighted_Crunches",
+   "openGymId": "0832"
+  },
+  {
+   "id": "mvte9quv-cf8f4c",
+   "at": "2026-10-29T10:22:30.967Z",
+   "type": "archive",
+   "code": "Weighted_Sit-Ups_-_With_Bands"
+  },
+  {
+   "id": "mvte9wk9-cc65c9",
+   "at": "2026-10-29T10:22:38.361Z",
+   "type": "link",
+   "code": "Frog_Sit-Ups",
+   "openGymId": "2429"
+  },
+  {
+   "id": "mvtfzko3-be4273",
+   "at": "2026-10-29T11:10:35.619Z",
+   "type": "link",
+   "code": "Oblique_Crunches",
+   "openGymId": "1495"
+  },
+  {
+   "id": "mvtg0qfu-3dfcb7",
+   "at": "2026-10-29T11:11:29.754Z",
+   "type": "link",
+   "code": "Sit-Up",
+   "openGymId": "0735"
+  },
+  {
+   "id": "mvtg1reg-dcbccf",
+   "at": "2026-10-29T11:12:17.656Z",
+   "type": "link",
+   "code": "Rope_Crunch",
+   "openGymId": "0175"
+  },
+  {
+   "id": "mvtg232g-16d701",
+   "at": "2026-10-29T11:12:32.777Z",
+   "type": "link",
+   "code": "Crunch_-_Legs_On_Exercise_Ball",
+   "openGymId": "0456"
+  },
+  {
+   "id": "mvtg2d65-38b2c5",
+   "at": "2026-10-29T11:12:45.869Z",
+   "type": "archive",
+   "code": "Barbell_Ab_Rollout_-_On_Knees"
+  },
+  {
+   "id": "mvtg2k1l-2ba966",
+   "at": "2026-10-29T11:12:54.777Z",
+   "type": "archive",
+   "code": "Side_Jackknife"
+  },
+  {
+   "id": "mvtg39qq-736c59",
+   "at": "2026-10-29T11:13:28.082Z",
+   "type": "link",
+   "code": "Cable_Crunch",
+   "openGymId": "0175"
+  },
+  {
+   "id": "mvtg3cou-f88ad7",
+   "at": "2026-10-29T11:13:31.902Z",
+   "type": "archive",
+   "code": "Rope_Crunch"
+  },
+  {
+   "id": "mvtg4b1q-4d77d9",
+   "at": "2026-10-29T11:14:16.430Z",
+   "type": "link",
+   "code": "Seated_Flat_Bench_Leg_Pull-In",
+   "openGymId": "0555"
+  },
+  {
+   "id": "mvtg4jr9-3e5db0",
+   "at": "2026-10-29T11:14:27.717Z",
+   "type": "link",
+   "code": "Seated_Leg_Tucks",
+   "openGymId": "0689"
+  },
+  {
+   "id": "mvtg551c-ef1fdc",
+   "at": "2026-10-29T11:14:55.296Z",
+   "type": "link",
+   "code": "Thigh_Abductor",
+   "openGymId": "0597"
+  },
+  {
+   "id": "mvtg5nhf-a7fbd2",
+   "at": "2026-10-29T11:15:19.203Z",
+   "type": "archive",
+   "code": "Band_Pull_Apart"
+  },
+  {
+   "id": "mvtg5twv-779278",
+   "at": "2026-10-29T11:15:27.535Z",
+   "type": "archive",
+   "code": "Band_Hip_Adductions"
+  },
+  {
+   "id": "mvtg63gl-684753",
+   "at": "2026-10-29T11:15:39.909Z",
+   "type": "archive",
+   "code": "Adductor"
+  },
+  {
+   "id": "mvtg67nj-08e7cb",
+   "at": "2026-10-29T11:15:45.343Z",
+   "type": "link",
+   "code": "Thigh_Adductor",
+   "openGymId": "0598"
+  },
+  {
+   "id": "mvtg69rq-ddb664",
+   "at": "2026-10-29T11:15:48.086Z",
+   "type": "archive",
+   "code": "Adductor_Groin"
+  },
+  {
+   "id": "mvtgamos-abaf86",
+   "at": "2026-10-29T11:19:11.452Z",
+   "type": "archive",
+   "code": "Barbell_Walking_Lunge"
+  },
+  {
+   "id": "mvtgarer-224d76",
+   "at": "2026-10-29T11:19:17.571Z",
+   "type": "link",
+   "code": "Lunge_Sprint",
+   "openGymId": "0769"
+  },
+  {
+   "id": "mvtgc455-6cd105",
+   "at": "2026-10-29T11:20:20.729Z",
+   "type": "link",
+   "code": "Elevated_Back_Lunge",
+   "openGymId": "0077"
+  },
+  {
+   "id": "mvtgc6sb-3eac25",
+   "at": "2026-10-29T11:20:24.155Z",
+   "type": "archive",
+   "code": "Crossover_Reverse_Lunge"
+  },
+  {
+   "id": "mvtgc8uq-b21469",
+   "at": "2026-10-29T11:20:26.834Z",
+   "type": "archive",
+   "code": "Kneeling_Squat"
+  },
+  {
+   "id": "mvtgcbmu-0bde9f",
+   "at": "2026-10-29T11:20:30.438Z",
+   "type": "archive",
+   "code": "Squat_with_Chains"
+  },
+  {
+   "id": "mvtgcexc-8a8faf",
+   "at": "2026-10-29T11:20:34.704Z",
+   "type": "archive",
+   "code": "Squat_with_Plate_Movers"
+  },
+  {
+   "id": "mvtgcjhu-7e3b81",
+   "at": "2026-10-29T11:20:40.626Z",
+   "type": "archive",
+   "code": "Squat_with_Bands"
+  },
+  {
+   "id": "mvtgcxc6-430c89",
+   "at": "2026-10-29T11:20:58.566Z",
+   "type": "archive",
+   "code": "One-Arm_Overhead_Kettlebell_Squats"
+  },
+  {
+   "id": "mvtgczgb-8a1810",
+   "at": "2026-10-29T11:21:01.307Z",
+   "type": "archive",
+   "code": "Weighted_Jump_Squat"
+  },
+  {
+   "id": "mvtgd4m3-40097a",
+   "at": "2026-10-29T11:21:07.995Z",
+   "type": "link",
+   "code": "Bodyweight_Squat",
+   "openGymId": "3533"
+  },
+  {
+   "id": "mvtgd9fu-fc7a6a",
+   "at": "2026-10-29T11:21:14.250Z",
+   "type": "archive",
+   "code": "Reverse_Band_Power_Squat"
+  },
+  {
+   "id": "mvtgdh6t-b89e20",
+   "at": "2026-10-29T11:21:24.293Z",
+   "type": "archive",
+   "code": "Single-Leg_High_Box_Squat"
+  },
+  {
+   "id": "mvtgdils-7cd7d4",
+   "at": "2026-10-29T11:21:26.128Z",
+   "type": "archive",
+   "code": "Speed_Box_Squat"
+  },
+  {
+   "id": "mvtgdn1x-e163f1",
+   "at": "2026-10-29T11:21:31.893Z",
+   "type": "link",
+   "code": "Chair_Squat",
+   "openGymId": "0750"
+  },
+  {
+   "id": "mvtgey7w-34d38a",
+   "at": "2026-10-29T11:22:33.020Z",
+   "type": "link",
+   "code": "Box_Squat",
+   "openGymId": null
+  },
+  {
+   "id": "mvtgfa1h-a04494",
+   "at": "2026-10-29T11:22:48.341Z",
+   "type": "archive",
+   "code": "Reverse_Band_Box_Squat"
+  },
+  {
+   "id": "mvtgfcgg-c1196c",
+   "at": "2026-10-29T11:22:51.472Z",
+   "type": "archive",
+   "code": "Box_Squat_with_Chains"
+  },
+  {
+   "id": "mvtgfdqq-134397",
+   "at": "2026-10-29T11:22:53.138Z",
+   "type": "archive",
+   "code": "Box_Squat_with_Bands"
+  },
+  {
+   "id": "mvtgfg5o-f2cab7",
+   "at": "2026-10-29T11:22:56.269Z",
+   "type": "archive",
+   "code": "Jerk_Dip_Squat"
+  },
+  {
+   "id": "mvtgfia0-b78125",
+   "at": "2026-10-29T11:22:59.016Z",
+   "type": "archive",
+   "code": "Olympic_Squat"
+  },
+  {
+   "id": "mvtgfkli-612063",
+   "at": "2026-10-29T11:23:02.022Z",
+   "type": "archive",
+   "code": "Smith_Machine_Pistol_Squat"
+  },
+  {
+   "id": "mvtgfp6q-2e010b",
+   "at": "2026-10-29T11:23:07.970Z",
+   "type": "link",
+   "code": "Plie_Dumbbell_Squat",
+   "openGymId": "1760"
+  },
+  {
+   "id": "mvtgfsh8-6ec072",
+   "at": "2026-10-29T11:23:12.236Z",
+   "type": "link",
+   "code": "Sit_Squats",
+   "openGymId": "3221"
+  },
+  {
+   "id": "mvtgfx80-ae8614",
+   "at": "2026-10-29T11:23:18.384Z",
+   "type": "link",
+   "code": "Spinal_Stretch",
+   "openGymId": "1363"
+  },
+  {
+   "id": "mvtgfzz4-d51a45",
+   "at": "2026-10-29T11:23:21.953Z",
+   "type": "archive",
+   "code": "Chair_Upper_Body_Stretch"
+  },
+  {
+   "id": "mvtggcqy-f6be1d",
+   "at": "2026-10-29T11:23:38.507Z",
+   "type": "archive",
+   "code": "Kneeling_Forearm_Stretch"
+  },
+  {
+   "id": "mvtggevt-3c0ea2",
+   "at": "2026-10-29T11:23:41.273Z",
+   "type": "archive",
+   "code": "IT_Band_and_Glute_Stretch"
+  },
+  {
+   "id": "mvtggh2z-86a80c",
+   "at": "2026-10-29T11:23:44.123Z",
+   "type": "archive",
+   "code": "Standing_Biceps_Stretch"
+  },
+  {
+   "id": "mvtggiu9-27f856",
+   "at": "2026-10-29T11:23:46.401Z",
+   "type": "archive",
+   "code": "Seated_Biceps"
+  },
+  {
+   "id": "mvtggkp3-156c39",
+   "at": "2026-10-29T11:23:48.807Z",
+   "type": "archive",
+   "code": "Upper_Back-Leg_Grab"
+  },
+  {
+   "id": "mvtggm8q-658d06",
+   "at": "2026-10-29T11:23:50.810Z",
+   "type": "archive",
+   "code": "Middle_Back_Stretch"
+  },
+  {
+   "id": "mvtggnzf-c53ee8",
+   "at": "2026-10-29T11:23:53.067Z",
+   "type": "archive",
+   "code": "Seated_Front_Deltoid"
+  },
+  {
+   "id": "mvtggpb0-2ca797",
+   "at": "2026-10-29T11:23:54.780Z",
+   "type": "archive",
+   "code": "Standing_Hip_Flexors"
+  },
+  {
+   "id": "mvtggqwx-76af5d",
+   "at": "2026-10-29T11:23:56.865Z",
+   "type": "archive",
+   "code": "Lying_Glute"
+  },
+  {
+   "id": "mvtggs9p-bea282",
+   "at": "2026-10-29T11:23:58.621Z",
+   "type": "archive",
+   "code": "Lying_Hamstring"
+  },
+  {
+   "id": "mvtggth6-6a0015",
+   "at": "2026-10-29T11:24:00.186Z",
+   "type": "archive",
+   "code": "Seated_Hamstring_and_Calf_Stretch"
+  },
+  {
+   "id": "mvtgguz0-38df6c",
+   "at": "2026-10-29T11:24:02.124Z",
+   "type": "archive",
+   "code": "Seated_Hamstring"
+  },
+  {
+   "id": "mvtggwcn-1f57a3",
+   "at": "2026-10-29T11:24:03.911Z",
+   "type": "archive",
+   "code": "Seated_Floor_Hamstring_Stretch"
+  },
+  {
+   "id": "mvtggy2z-97ecd4",
+   "at": "2026-10-29T11:24:06.155Z",
+   "type": "archive",
+   "code": "Overhead_Lat"
+  },
+  {
+   "id": "mvtghibq-391009",
+   "at": "2026-10-29T11:24:32.390Z",
+   "type": "archive",
+   "code": "Shoulder_Stretch"
+  },
+  {
+   "id": "mvtghjo8-2f0ded",
+   "at": "2026-10-29T11:24:34.136Z",
+   "type": "archive",
+   "code": "Round_The_World_Shoulder_Stretch"
+  },
+  {
+   "id": "mvtgj14p-aae6be",
+   "at": "2026-10-29T11:25:43.417Z",
+   "type": "archive",
+   "code": "Calf_Stretch_Elbows_Against_Wall"
+  },
+  {
+   "id": "mvtgle61-41c006",
+   "at": "2026-10-29T11:27:33.625Z",
+   "type": "archive",
+   "code": "Quad_Stretch"
+  },
+  {
+   "id": "mvtglubp-4eb365",
+   "at": "2026-10-29T11:27:54.565Z",
+   "type": "archive",
+   "code": "On-Your-Back_Quad_Stretch"
+  },
+  {
+   "id": "mvtglwn0-edfab6",
+   "at": "2026-10-29T11:27:57.564Z",
+   "type": "archive",
+   "code": "Standing_Elevated_Quad_Stretch"
+  },
+  {
+   "id": "mvtglxqv-e80f50",
+   "at": "2026-10-29T11:27:58.999Z",
+   "type": "archive",
+   "code": "Chin_To_Chest_Stretch"
+  },
+  {
+   "id": "mvtgm105-a5248c",
+   "at": "2026-10-29T11:28:03.221Z",
+   "type": "archive",
+   "code": "Standing_Soleus_And_Achilles_Stretch"
+  },
+  {
+   "id": "mvtgm2cb-2c7e1f",
+   "at": "2026-10-29T11:28:04.956Z",
+   "type": "archive",
+   "code": "Lying_Bent_Leg_Groin"
+  },
+  {
+   "id": "mvtgm3uu-d0ed4a",
+   "at": "2026-10-29T11:28:06.918Z",
+   "type": "archive",
+   "code": "Groin_and_Back_Stretch"
+  },
+  {
+   "id": "mvtgm4pm-c3f433",
+   "at": "2026-10-29T11:28:08.026Z",
+   "type": "archive",
+   "code": "Side_Lying_Groin_Stretch"
+  },
+  {
+   "id": "mvtgm5uc-6b5592",
+   "at": "2026-10-29T11:28:09.492Z",
+   "type": "archive",
+   "code": "Dynamic_Back_Stretch"
+  },
+  {
+   "id": "mvtgm6x1-4af98b",
+   "at": "2026-10-29T11:28:10.885Z",
+   "type": "archive",
+   "code": "Dancers_Stretch"
+  },
+  {
+   "id": "mvtgm7mq-6e3d33",
+   "at": "2026-10-29T11:28:11.810Z",
+   "type": "archive",
+   "code": "Kneeling_Hip_Flexor"
+  },
+  {
+   "id": "mvtgm86j-272008",
+   "at": "2026-10-29T11:28:12.523Z",
+   "type": "archive",
+   "code": "Cat_Stretch"
+  },
+  {
+   "id": "mvtgm9an-843bee",
+   "at": "2026-10-29T11:28:13.967Z",
+   "type": "archive",
+   "code": "The_Straddle"
+  },
+  {
+   "id": "mvtgm9wb-0f2a11",
+   "at": "2026-10-29T11:28:14.747Z",
+   "type": "archive",
+   "code": "Intermediate_Groin_Stretch"
+  },
+  {
+   "id": "mvtgmaey-3bcbf1",
+   "at": "2026-10-29T11:28:15.418Z",
+   "type": "archive",
+   "code": "Tricep_Side_Stretch"
+  },
+  {
+   "id": "mvtgmayo-f69bcf",
+   "at": "2026-10-29T11:28:16.128Z",
+   "type": "archive",
+   "code": "Chair_Lower_Back_Stretch"
+  },
+  {
+   "id": "mvtgmbhd-83b19c",
+   "at": "2026-10-29T11:28:16.801Z",
+   "type": "archive",
+   "code": "Upward_Stretch"
+  },
+  {
+   "id": "mvtgmcec-141fe9",
+   "at": "2026-10-29T11:28:17.988Z",
+   "type": "archive",
+   "code": "Overhead_Stretch"
+  },
+  {
+   "id": "mvtgmcz6-28fdbb",
+   "at": "2026-10-29T11:28:18.738Z",
+   "type": "archive",
+   "code": "Seated_Overhead_Stretch"
+  }
+ ]
+}

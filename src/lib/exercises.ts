@@ -364,5 +364,6 @@ export type ExerciseDetailDto = {
   imageCredits: Record<string, ExerciseImageCredit>;
   origin: ExerciseOrigin;
   archived: boolean;
+  openGymId: string | null;
   substitutes: ExerciseSubstituteDto[];
 };

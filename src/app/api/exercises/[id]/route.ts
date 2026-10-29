@@ -45,6 +45,7 @@ export const GET = withCoach<Params>(
       imageCredits: exercise.imageCredits,
       origin: exercise.origin,
       archived: exercise.archived,
+      openGymId: exercise.openGymId,
       substitutes: exercise.substitutes.map((s) => ({
         id: s.id,
         exerciseId: s.exerciseId,

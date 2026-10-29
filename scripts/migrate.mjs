@@ -10,11 +10,17 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
 import {
+  addedImageFile,
+  applyExerciseMaintenance,
+  maintenanceSeedGuards,
+  readOps,
+} from "./lib/exercise-maintenance.mjs";
+import {
   readExerciseCatalog,
   seedExerciseCatalog,
   seedExerciseSubstitutionEdges,
 } from "./lib/seed-exercises.mjs";
-import { uploadExerciseImages } from "./upload-exercise-images.mjs";
+import { addedImageUploader, uploadExerciseImages } from "./upload-exercise-images.mjs";
 
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
@@ -285,7 +291,7 @@ async function seedMeasures(sql) {
   );
 }
 
-async function seedExercises(sql) {
+async function seedExercises(sql, guards) {
   let exercises;
   try {
     exercises = readExerciseCatalog(EXERCISES);
@@ -294,14 +300,14 @@ async function seedExercises(sql) {
     return;
   }
   const { inserted, linked } = await sql.begin((tx) =>
-    seedExerciseCatalog((text, params) => tx.unsafe(text, params), exercises),
+    seedExerciseCatalog((text, params) => tx.unsafe(text, params), exercises, guards),
   );
   console.log(
     `✓ Exercise catalog: ${inserted} new, ${linked} linked to openGym (of ${exercises.length}).`,
   );
 }
 
-async function seedExerciseSubstitutions(sql) {
+async function seedExerciseSubstitutions(sql, guards) {
   let doc;
   try {
     doc = JSON.parse(readFileSync(EXERCISE_SUBS, "utf8"));
@@ -313,11 +319,22 @@ async function seedExerciseSubstitutions(sql) {
     seedExerciseSubstitutionEdges(
       (text, params) => tx.unsafe(text, params),
       doc.substitutions ?? [],
+      guards,
     ),
   );
   console.log(
     `✓ Base exercise substitutions: ${inserted} new${skipped ? ` (${skipped} skipped)` : ""}.`,
   );
+}
+
+async function seedExerciseMaintenance(sql, ops) {
+  if (ops.length === 0) return;
+  const uploadImage = addedImageUploader(addedImageFile);
+  const { applied, skipped } = await sql.begin((tx) =>
+    applyExerciseMaintenance((text, params) => tx.unsafe(text, params), ops, { uploadImage }),
+  );
+  console.log(`✓ Exercise maintenance: ${applied} operations applied, ${skipped.length} skipped.`);
+  for (const s of skipped) console.warn(`  • skipped ${s.id} (${s.type} ${s.code}): ${s.reason}`);
 }
 
 /**
@@ -373,8 +390,15 @@ try {
   await seedSupplement(sql);
   await seedSubstitutions(sql);
   await seedMeasures(sql);
-  await seedExercises(sql);
-  await seedExerciseSubstitutions(sql);
+  const maintenanceOps = readOps();
+  let catalog = [];
+  try {
+    catalog = readExerciseCatalog(EXERCISES);
+  } catch {}
+  const guards = maintenanceSeedGuards(maintenanceOps, catalog);
+  await seedExercises(sql, guards);
+  await seedExerciseSubstitutions(sql, guards);
+  await seedExerciseMaintenance(sql, maintenanceOps);
   await seedWhatsappTemplates(sql);
   // Push the exercise images to R2 (idempotent; skips when R2 isn't configured
   // or already uploaded). Non-fatal: a failed upload must not fail the deploy —
