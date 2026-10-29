@@ -9,7 +9,7 @@ export function readExerciseCatalog(path) {
     .map((l) => JSON.parse(l));
 }
 
-export async function seedExerciseCatalog(query, exercises) {
+export async function seedExerciseCatalog(query, exercises, { keepCodes = new Set() } = {}) {
   const baseRows = await query(
     "select code, opengym_id from exercise where code is not null and clinic_id is null",
   );
@@ -53,10 +53,10 @@ export async function seedExerciseCatalog(query, exercises) {
       if (openGymId) taken.add(openGymId);
       continue;
     }
-    if (!openGymId || linkedCode.get(e.code) !== null) continue;
+    if (!openGymId || linkedCode.get(e.code) !== null || keepCodes.has(e.code)) continue;
     const rows = await query(
       `update exercise set opengym_id = $1
-       where code = $2 and clinic_id is null and opengym_id is null
+       where code = $2 and clinic_id is null and opengym_id is null and not archived
        returning id`,
       [openGymId, e.code],
     );
@@ -67,8 +67,60 @@ export async function seedExerciseCatalog(query, exercises) {
   return { inserted, linked };
 }
 
-export async function seedExerciseSubstitutionEdges(query, rules) {
-  const codeRows = await query("select id, code from exercise where code is not null");
+export async function repointExercise(query, from, to) {
+  const changed = async (text) => (await query(text, [from, to])).length;
+  let moved = await changed(
+    "update workout_exercise set exercise_id = $2 where exercise_id = $1 returning id",
+  );
+  await query(
+    `delete from workout_exercise_substitute s using workout_exercise w
+     where s.workout_exercise_id = w.id and s.substitute_exercise_id in ($1, $2) and w.exercise_id = $2`,
+    [from, to],
+  );
+  await query(
+    `delete from workout_exercise_substitute s
+     where s.substitute_exercise_id = $1 and exists (
+       select 1 from workout_exercise_substitute t
+       where t.workout_exercise_id = s.workout_exercise_id and t.substitute_exercise_id = $2)`,
+    [from, to],
+  );
+  moved += await changed(
+    "update workout_exercise_substitute set substitute_exercise_id = $2 where substitute_exercise_id = $1 returning id",
+  );
+  await query(
+    `delete from exercise_substitution
+     where (exercise_id = $1 and substitute_exercise_id = $2) or (exercise_id = $2 and substitute_exercise_id = $1)`,
+    [from, to],
+  );
+  await query(
+    `delete from exercise_substitution s
+     where s.exercise_id = $1 and exists (
+       select 1 from exercise_substitution t
+       where t.exercise_id = $2 and t.substitute_exercise_id = s.substitute_exercise_id
+         and t.clinic_id is not distinct from s.clinic_id)`,
+    [from, to],
+  );
+  await query(
+    `delete from exercise_substitution s
+     where s.substitute_exercise_id = $1 and exists (
+       select 1 from exercise_substitution t
+       where t.substitute_exercise_id = $2 and t.exercise_id = s.exercise_id
+         and t.clinic_id is not distinct from s.clinic_id)`,
+    [from, to],
+  );
+  moved += await changed(
+    "update exercise_substitution set exercise_id = $2 where exercise_id = $1 returning id",
+  );
+  moved += await changed(
+    "update exercise_substitution set substitute_exercise_id = $2 where substitute_exercise_id = $1 returning id",
+  );
+  return moved;
+}
+
+export async function seedExerciseSubstitutionEdges(query, rules, { removedEdges = new Set() } = {}) {
+  const codeRows = await query(
+    "select id, code from exercise where code is not null and not archived",
+  );
   const idByCode = new Map(codeRows.map((r) => [r.code, r.id]));
   const edgeRows = await query(
     "select exercise_id, substitute_exercise_id from exercise_substitution where clinic_id is null",
@@ -82,6 +134,7 @@ export async function seedExerciseSubstitutionEdges(query, rules) {
     const exerciseId = idByCode.get(rule.exercise);
     for (const subCode of rule.substitutes ?? []) {
       const substituteId = idByCode.get(subCode);
+      if (removedEdges.has(`${rule.exercise}:${subCode}`)) continue;
       if (!exerciseId || !substituteId || substituteId === exerciseId) {
         skipped++;
         continue;

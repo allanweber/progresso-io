@@ -26,6 +26,7 @@ export const GET = withAdmin("admin.exercises.list", async (request) => {
     origin: p.get("origin") || undefined,
     clinic: p.get("clinic") || undefined,
     archived: p.get("archived") === "true" ? true : undefined,
+    openGym: p.get("openGym") || undefined,
     page: p.get("page") || undefined,
     pageSize: p.get("pageSize") || undefined,
   });
@@ -41,6 +42,7 @@ export const GET = withAdmin("admin.exercises.list", async (request) => {
     origin: q.origin,
     clinicId: q.clinic,
     includeArchived: q.archived,
+    openGym: q.openGym,
     page: q.page,
     pageSize: q.pageSize,
   });

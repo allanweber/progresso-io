@@ -246,3 +246,22 @@ describe("admin exercises — base CRUD", () => {
     ).toBeNull();
   });
 });
+
+describe("admin exercises — openGym link filter", () => {
+  it("lists only linked or only unlinked exercises, with the id on each row", async () => {
+    await db
+      .update(schema.exercise)
+      .set({ openGymId: "0043" })
+      .where(sql`${schema.exercise.id} = ${baseSquat}`);
+
+    const linked = await admin.listAllExercises(adb(), { openGym: "linked" });
+    expect(linked.items.map((e) => [e.id, e.openGymId])).toEqual([[baseSquat, "0043"]]);
+
+    const unlinked = await admin.listAllExercises(adb(), { openGym: "unlinked" });
+    expect(unlinked.items.map((e) => e.id)).not.toContain(baseSquat);
+    expect(unlinked.items.every((e) => e.openGymId === null)).toBe(true);
+
+    const all = await admin.listAllExercises(adb());
+    expect(linked.total + unlinked.total).toBe(all.total);
+  });
+});

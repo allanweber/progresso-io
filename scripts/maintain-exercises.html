@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Manutenção de exercícios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #059669; --primary-deep: #047857; --primary-light: #f0fdf4; --primary-light-border: #bbf7d0;
+    --fg: #1c1a18; --secondary: #57534d; --muted: #746f67; --bg: #ffffff; --surface: #f7f6f4; --sunken: #efedea;
+    --ground: #e3e1dd; --border: #e5e2de; --border-strong: #d9d5cf;
+    --ok-bg: #e4f4e9; --ok-fg: #186b3a; --info-bg: #e5edfc; --info-fg: #2a5cbf; --warn-bg: #faeeda; --warn-fg: #8a5712;
+    --danger-bg: #fbe7e3; --danger-fg: #ae3826; --neutral-bg: #efedea; --neutral-fg: #57534d; --base-bg: #e9e9fb; --base-fg: #4338ca;
+    --shadow: 0 0 0 1px rgba(28,26,24,0.045), 0 1px 2px rgba(28,26,24,0.05), 0 8px 20px -8px rgba(28,26,24,0.12);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--fg); font: 14px/1.6 "DM Sans", system-ui, sans-serif; }
+  h1, h2, h3 { font-family: "Space Grotesk", system-ui, sans-serif; margin: 0; }
+  h1 { font-size: 18px; font-weight: 600; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+  h3 { font-size: 18px; font-weight: 600; }
+  header { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; padding: 12px 16px;
+    background: var(--bg); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 3; }
+  .count { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .status { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .status.err { color: var(--danger-fg); }
+  body { height: 100vh; display: flex; flex-direction: column; }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 16px; padding: 16px; }
+  .list, .editor, .opengym { min-height: 0; overflow: auto; border-radius: 16px; }
+  @media (max-width: 1280px) {
+    body { height: auto; display: block; }
+    main { grid-template-columns: 320px minmax(0, 1fr); grid-template-rows: none; align-items: start; }
+    .editor, .opengym { overflow: visible; }
+    .opengym { grid-column: 2; }
+    .list { position: sticky; top: 76px; max-height: calc(100vh - 92px); }
+  }
+  @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } .opengym { grid-column: auto; } }
+  .panel { background: var(--bg); border-radius: 16px; box-shadow: var(--shadow); }
+  .list { display: flex; flex-direction: column; overflow: hidden; }
+  .list-count { font-size: 12px; font-weight: 600; color: var(--muted); }
+  @media (max-width: 900px) { .list { position: static; max-height: 50vh; } }
+  .list-controls { display: grid; gap: 8px; padding: 16px; border-bottom: 1px solid var(--border-light, var(--border)); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  input, select, textarea, button { font: inherit; color: inherit; }
+  input[type=text], input[type=search], input:not([type]), select, textarea {
+    width: 100%; padding: 8px 12px; border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--bg); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  textarea { resize: vertical; min-height: 44px; line-height: 1.5; }
+  button { padding: 8px 14px; border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--bg); cursor: pointer; font-weight: 600; }
+  button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary-deep); }
+  button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  button.primary:hover:not(:disabled) { background: var(--primary-deep); color: #fff; }
+  button.danger { color: var(--danger-fg); }
+  button.danger:hover:not(:disabled) { border-color: var(--danger-fg); color: var(--danger-fg); }
+  button.icon { padding: 4px 8px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  label.check { display: flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 600; color: var(--secondary); }
+  .items { overflow: auto; }
+  .item { display: flex; gap: 8px; align-items: center; padding: 8px 16px; cursor: pointer; border-top: 1px solid var(--border); }
+  .item:hover { background: var(--surface); }
+  .item.sel { background: var(--primary-light); }
+  .item .n { flex: 1; min-width: 0; }
+  .item .n small { display: block; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item.archived .n { color: var(--muted); text-decoration: line-through; }
+  .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 9999px; white-space: nowrap; line-height: 1.4; }
+  .ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .info { background: var(--info-bg); color: var(--info-fg); }
+  .warn { background: var(--warn-bg); color: var(--warn-fg); }
+  .danger-chip { background: var(--danger-bg); color: var(--danger-fg); }
+  .neutral { background: var(--neutral-bg); color: var(--neutral-fg); }
+  .base { background: var(--base-bg); color: var(--base-fg); }
+  .editor { display: grid; gap: 16px; align-content: start; }
+  section.block { padding: 24px; }
+  section.block > h3 { margin-bottom: 12px; }
+  .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .head .grow { flex: 1; min-width: 220px; }
+  .meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .field { display: grid; gap: 4px; }
+  .field > span { font-size: 12px; font-weight: 600; color: var(--secondary); }
+  .images { display: flex; flex-wrap: wrap; gap: 12px; }
+  .thumb { width: 160px; display: grid; gap: 6px; }
+  .thumb img { width: 160px; height: 120px; object-fit: cover; border-radius: 8px; background: var(--sunken); }
+  .thumb .tools { display: flex; gap: 4px; justify-content: center; }
+  .muscles { display: grid; gap: 16px; }
+  .muscles .field > div { display: flex; flex-wrap: wrap; gap: 6px; }
+  .muscles button { padding: 4px 12px; border-radius: 9999px; font-size: 12px; line-height: 1.4; }
+  .muscles button.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .muscles button.on.secondary { background: var(--primary-light); border-color: var(--primary-light-border); color: var(--primary-deep); }
+  .steps { display: grid; gap: 8px; }
+  .step { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: start; }
+  .step b { color: var(--muted); padding-top: 9px; text-align: right; }
+  .step .tools { display: flex; gap: 4px; padding-top: 4px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  details summary { cursor: pointer; color: var(--secondary); font-size: 12px; font-weight: 600; }
+  details ol { margin: 6px 0 0; padding-left: 20px; }
+  .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+  .cands { display: grid; gap: 8px; }
+  .cand { border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; }
+  .cand.current { border-color: var(--primary); background: var(--primary-light); }
+  .cand.suggested { border-color: var(--warn-fg); }
+  .cand .t { font-weight: 600; }
+  .cand .r { grid-row: span 3; align-self: center; display: grid; gap: 4px; justify-items: end; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags .chip button { border: 0; background: none; padding: 0 0 0 6px; color: inherit; font-size: 12px; }
+  .picker { position: relative; }
+  .picker .menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 2; background: var(--bg); box-shadow: var(--shadow); border-radius: 10px; margin-top: 4px; overflow: hidden; }
+  .picker .menu div { padding: 8px 12px; cursor: pointer; }
+  .picker .menu div:hover { background: var(--surface); }
+  .history { display: grid; gap: 6px; }
+  .history div { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+  .empty { padding: 24px; color: var(--muted); text-align: center; }
+  .notice { padding: 12px 16px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-fg); font-size: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Manutenção de exercícios</h1>
+  <span class="count" id="count"></span>
+  <span class="status" id="status">Carregando…</span>
+</header>
+<main>
+  <aside class="panel list">
+    <div class="list-controls">
+      <input type="search" id="q" placeholder="Buscar por nome ou código…" autocomplete="off">
+      <div class="row2">
+        <select id="f-origin">
+          <option value="">Todas as origens</option>
+          <option value="free-exercise-db">Nossos</option>
+          <option value="exercisedb">Importados do openGym</option>
+          <option value="custom">Novos</option>
+        </select>
+        <select id="f-opengym">
+          <option value="">openGym: todos</option>
+          <option value="unlinked">Sem vínculo (pendente)</option>
+          <option value="linked">Vinculados</option>
+          <option value="nomatch">Sem equivalente</option>
+        </select>
+      </div>
+      <div class="row2">
+        <select id="f-archived">
+          <option value="active">Ativos</option>
+          <option value="archived">Arquivados</option>
+          <option value="all">Ativos e arquivados</option>
+        </select>
+        <label class="check"><input type="checkbox" id="f-edited"> Só editados</label>
+      </div>
+      <button id="new">+ Novo exercício</button>
+      <span class="list-count" id="list-count"></span>
+    </div>
+    <div class="items" id="items"></div>
+  </aside>
+  <div class="editor" id="editor"><div class="panel empty">Selecione um exercício.</div></div>
+  <div class="opengym" id="opengym"></div>
+</main>
+<script>
+const L = {
+  equipment: { body_only: "Peso do corpo", machine: "Máquina", other: "Outros", foam_roll: "Rolo de espuma",
+    kettlebells: "Kettlebell", dumbbell: "Halteres", cable: "Cabo", barbell: "Barra", bands: "Faixas elásticas",
+    medicine_ball: "Bola medicinal", exercise_ball: "Bola de exercício", e_z_curl_bar: "Barra W" },
+  muscles: { abdominals: "Abdômen", abductors: "Abdutores", adductors: "Adutores", biceps: "Bíceps",
+    calves: "Panturrilhas", chest: "Peito", forearms: "Antebraços", glutes: "Glúteos", hamstrings: "Posteriores de coxa",
+    lats: "Dorsais", lower_back: "Lombar", middle_back: "Meio das costas", neck: "Pescoço", quadriceps: "Quadríceps",
+    shoulders: "Ombros", traps: "Trapézio", triceps: "Tríceps" },
+  category: { strength: "Força", stretching: "Alongamento", plyometrics: "Pliometria", strongman: "Strongman",
+    powerlifting: "Powerlifting", cardio: "Cardio", olympic_weightlifting: "Levantamento olímpico" },
+  level: { beginner: "Iniciante", intermediate: "Intermediário", expert: "Avançado" },
+  force: { pull: "Puxar", push: "Empurrar", static: "Estático" },
+  mechanic: { compound: "Composto", isolation: "Isolado" },
+  bodyPart: { back: "Costas", cardio: "Cardio", chest: "Peito", "lower arms": "Antebraços", "lower legs": "Pernas (inferior)",
+    neck: "Pescoço", shoulders: "Ombros", "upper arms": "Braços", "upper legs": "Coxas", waist: "Cintura" },
+  source: { "free-exercise-db": "nosso", exercisedb: "importado", custom: "novo" },
+  op: { create: "criado", update: "editado", archive: "arquivado", unarchive: "restaurado", link: "openGym",
+    "add-substitute": "substituto +", "remove-substitute": "substituto −", "add-image": "imagem +" },
+};
+
+const state = { exercises: [], byCode: new Map(), ops: [], openGym: [], proposals: { same: {}, close: {} },
+  selected: null, creating: false, filters: null, confirmMerge: null, subQuery: "" };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fold = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const remember = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const recall = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const img = (key) => `/image/${encodeURIComponent(key)}`;
+const options = (map, value, empty) => (empty !== undefined ? `<option value="">${empty}</option>` : "") +
+  Object.entries(map).sort((a, b) => a[1].localeCompare(b[1], "pt-BR"))
+    .map(([k, v]) => `<option value="${esc(k)}"${k === value ? " selected" : ""}>${esc(v)}</option>`).join("");
+
+const grams = (s) => {
+  const t = ` ${fold(s).replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const g = new Set();
+  for (let i = 0; i < t.length - 2; i++) g.add(t.slice(i, i + 3));
+  return g;
+};
+const similarity = (a, b) => { let n = 0; for (const x of a) if (b.has(x)) n++; return (2 * n) / (a.size + b.size || 1); };
+
+function setStatus(text, err) {
+  $("status").textContent = text;
+  $("status").className = err ? "status err" : "status";
+}
+
+function load(data) {
+  if (data.openGym) state.openGym = data.openGym;
+  if (data.proposals) state.proposals = data.proposals;
+  state.exercises = data.exercises.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  state.byCode = new Map(state.exercises.map((e) => [e.code, e]));
+  state.ops = data.ops;
+  const pending = state.ops.filter((o) => !o.committed).length;
+  $("count").textContent = `${state.ops.length} operações · ${pending} não commitadas`;
+}
+
+async function call(method, path, body) {
+  setStatus("Salvando…");
+  try {
+    const res = await fetch(path, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error ?? res.statusText);
+    load(json);
+    setStatus(`Salvo às ${new Date().toLocaleTimeString("pt-BR")}`);
+    return json;
+  } catch (err) {
+    setStatus(`Erro: ${err.message}`, true);
+    return null;
+  }
+}
+
+const op = (body) => call("POST", "/api/ops", body);
+const update = (fields) => op({ type: "update", code: state.selected, fields });
+
+function proposalFor(code) {
+  const { same, close } = state.proposals;
+  return same[code] ? { id: same[code], kind: "same" } : close[code] ? { id: close[code], kind: "close" } : null;
+}
+
+function listMatches(e) {
+  const f = (id) => $(id).value;
+  if (f("f-origin") && e.source !== f("f-origin")) return false;
+  const og = f("f-opengym");
+  if (og === "linked" && !e.openGymId) return false;
+  if (og === "unlinked" && (e.openGymId || e.noMatch)) return false;
+  if (og === "nomatch" && !e.noMatch) return false;
+  const ar = f("f-archived");
+  if (ar === "active" && e.archived) return false;
+  if (ar === "archived" && !e.archived) return false;
+  if ($("f-edited").checked && !e.edited) return false;
+  const q = fold($("q").value.trim());
+  return !q || fold(`${e.name} ${e.nameEn ?? ""} ${e.code}`).includes(q);
+}
+
+function renderList() {
+  const all = state.exercises.filter(listMatches);
+  const shown = all.slice(0, 300);
+  $("list-count").textContent = `${all.length} ${all.length === 1 ? "exercício" : "exercícios"}`;
+  $("items").innerHTML = shown.map((e) => {
+    const chips = [
+      e.archived ? `<span class="chip neutral">arquivado</span>` : "",
+      e.openGymId ? `<span class="chip ok">#${esc(e.openGymId)}</span>` : e.noMatch ? `<span class="chip neutral">sem eq.</span>` : "",
+      !e.openGymId && !e.noMatch && proposalFor(e.code) ? `<span class="chip warn">sugestão</span>` : "",
+      e.edited ? `<span class="chip info">editado</span>` : "",
+    ].join("");
+    return `<div class="item${e.code === state.selected ? " sel" : ""}${e.archived ? " archived" : ""}" data-code="${esc(e.code)}">
+      <div class="n">${esc(e.name)}<small>${esc(L.equipment[e.equipment] ?? "Sem equipamento")} · ${esc(L.source[e.source] ?? e.source)} · ${esc(e.code)}</small></div>${chips}</div>`;
+  }).join("") + (all.length > shown.length ? `<div class="empty small">Mostrando 300 de ${all.length}. Refine a busca.</div>`
+    : all.length ? "" : `<div class="empty">Nada por aqui.</div>`);
+}
+
+function holderOf(id, except) {
+  return state.exercises.find((x) => x.openGymId === id && x.code !== except);
+}
+
+function candidateCard(e, c, suggestion) {
+  const current = e.openGymId === c.id;
+  const holder = holderOf(c.id, e.code);
+  const holderChip = !holder ? `<span class="chip ok">Livre</span>`
+    : holder.source === "exercisedb" ? `<span class="chip warn">Importado: será mesclado</span>`
+    : `<span class="chip danger-chip">Vinculado a ${esc(holder.name)}</span>`;
+  const confirming = state.confirmMerge === c.id;
+  const button = current ? `<span class="chip ok">vinculado</span>`
+    : confirming ? `<button class="primary" data-link="${esc(c.id)}" data-confirmed>${holder?.source === "exercisedb" ? "Confirmar mesclagem" : "Confirmar troca"}</button>`
+    : `<button class="primary" data-link="${esc(c.id)}">Vincular</button>`;
+  const muscles = [...c.primaryMuscles.map((m) => `<b>${esc(L.muscles[m] ?? m)}</b>`), ...c.secondaryMuscles.map((m) => esc(L.muscles[m] ?? m))].join(", ");
+  const warning = confirming && holder
+    ? `<div class="notice" style="grid-column: 1 / -1">${holder.source === "exercisedb"
+      ? `"${esc(holder.name)}" será arquivado e todos os treinos e substituições que o usam passarão para este exercício. A mesclagem não pode ser desfeita.`
+      : `"${esc(holder.name)}" perderá o vínculo #${esc(c.id)} e ficará sem equivalente.`}</div>` : "";
+  return `<div class="cand${current ? " current" : suggestion ? " suggested" : ""}">
+    <div class="t">${esc(c.name)} ${suggestion ? `<span class="chip warn">sugestão: ${suggestion === "same" ? "igual" : "parecido"}</span>` : ""}</div>
+    <div class="r">${button}<span class="muted small">#${esc(c.id)}</span></div>
+    <div class="muted small">${esc(c.nameEn)} · ${esc(c.equipmentEn)} · ${esc(L.bodyPart[c.bodyPart] ?? c.bodyPart)}</div>
+    <div class="small">${muscles || `<span class="muted">sem músculos mapeados</span>`} · ${holderChip}</div>
+    ${warning}
+    <details style="grid-column: 1 / -1"><summary>Instruções (inglês)</summary><ol>${c.instructions.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></details>
+  </div>`;
+}
+
+function rankedCandidates(e) {
+  const f = state.filters;
+  const q = fold(f.q.trim());
+  const en = grams(e.nameEn ?? e.name);
+  const pt = grams(e.name);
+  return state.openGym
+    .filter((c) => (!f.muscle || c.primaryMuscles.includes(f.muscle) || c.secondaryMuscles.includes(f.muscle))
+      && (!f.equipment || c.equipment === f.equipment) && (!f.bodyPart || c.bodyPart === f.bodyPart)
+      && (!q || fold(`${c.name} ${c.nameEn} ${c.id}`).includes(q)))
+    .map((c) => ({ c, s: Math.max(similarity(en, grams(c.nameEn)), similarity(pt, grams(c.name))) + (holderOf(c.id, e.code)?.source === "free-exercise-db" ? -0.2 : 0) }))
+    .sort((a, b) => b.s - a.s).slice(0, 30).map((x) => x.c);
+}
+
+function openGymBlock(e) {
+  if (e.source === "exercisedb" && !e.openGymId) {
+    return `<section class="panel block"><h3>openGym</h3><p class="muted">Importado do openGym${e.mergedInto ? `, mesclado em ${esc(state.byCode.get(e.mergedInto)?.name ?? e.mergedInto)}` : ""}.</p></section>`;
+  }
+  const current = e.openGymId ? state.openGym.find((c) => c.id === e.openGymId) : null;
+  const p = proposalFor(e.code);
+  const suggested = p && p.id !== e.openGymId ? state.openGym.find((c) => c.id === p.id) : null;
+  const f = state.filters;
+  const list = rankedCandidates(e).filter((c) => c.id !== suggested?.id && c.id !== e.openGymId);
+  return `<section class="panel block">
+    <h3>openGym</h3>
+    <div class="actions" style="margin-top:0">
+      <strong>${current ? `Vinculado a #${esc(current.id)} · ${esc(current.name)}` : e.noMatch ? "Sem equivalente no openGym" : "Sem vínculo"}</strong>
+      ${e.noMatch ? "" : `<button data-nomatch>Sem equivalente</button>`}
+    </div>
+    ${current ? `<div class="cands" style="margin-top:12px">${candidateCard(e, current)}</div>` : ""}
+    <div class="filters">
+      <select data-f="muscle">${options(L.muscles, f.muscle, "Todos os músculos")}</select>
+      <select data-f="equipment">${options(L.equipment, f.equipment, "Todos os equipamentos")}</select>
+      <select data-f="bodyPart">${options(L.bodyPart, f.bodyPart, "Todas as regiões")}</select>
+      <input data-f="q" value="${esc(f.q)}" placeholder="Nome ou #id">
+    </div>
+    <div class="cands">
+      ${suggested ? candidateCard(e, suggested, p.kind) : ""}
+      ${list.length ? list.map((c) => candidateCard(e, c)).join("") : `<div class="empty">Nenhum candidato com esses filtros.</div>`}
+    </div>
+  </section>`;
+}
+
+function renderEditor() {
+  if (state.creating) return renderCreate();
+  const e = state.byCode.get(state.selected);
+  if (!e) { $("editor").innerHTML = `<div class="panel empty">Selecione um exercício.</div>`; $("opengym").innerHTML = ""; return; }
+  $("opengym").innerHTML = openGymBlock(e);
+  const history = state.ops.filter((o) => o.code === e.code || o.substitute === e.code).slice().reverse();
+  const subQ = fold(state.subQuery.trim());
+  const subMatches = subQ.length >= 2 ? state.exercises.filter((x) => !x.archived && x.code !== e.code
+    && !e.substitutes.includes(x.code) && fold(`${x.name} ${x.nameEn ?? ""}`).includes(subQ)).slice(0, 8) : [];
+  const muscleNames = Object.entries(L.muscles).sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  const muscleOf = (m) => e.primaryMuscles.includes(m) ? "primary" : e.secondaryMuscles.includes(m) ? "secondary" : "";
+  $("editor").innerHTML = `
+    <section class="panel block">
+      <div class="head">
+        <div class="grow">
+          <h2>${esc(e.name)}</h2>
+          <div class="meta"><span>${esc(e.nameEn ?? "")}</span><span>·</span><span>${esc(e.code)}</span>
+            <span class="chip base">${esc(L.source[e.source] ?? e.source)}</span>
+            ${e.archived ? `<span class="chip neutral">arquivado</span>` : ""}</div>
+        </div>
+        ${e.archived ? (e.mergedInto ? `<span class="muted small">Mesclado: não pode ser restaurado.</span>` : `<button data-unarchive>Restaurar</button>`)
+          : `<button class="danger" data-archive>Arquivar</button>`}
+      </div>
+    </section>
+    <section class="panel block">
+      <h3>Imagens</h3>
+      <div class="images">
+        ${e.images.map((k, i) => `<div class="thumb"><img src="${img(k)}" alt="" loading="lazy">
+          <div class="tools">
+            <button class="icon" data-img-move="${i}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="Mover para a esquerda">←</button>
+            <button class="icon" data-img-move="${i}" data-dir="1" ${i === e.images.length - 1 ? "disabled" : ""} aria-label="Mover para a direita">→</button>
+            <button class="icon danger" data-img-remove="${i}" aria-label="Remover imagem">✕</button>
+          </div>
+          ${e.imageCredits[k] ? `<span class="muted small">© ${esc(e.imageCredits[k].author)} · ${esc(e.imageCredits[k].license)}</span>` : ""}</div>`).join("")
+          || `<span class="muted">Sem imagens.</span>`}
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label class="field"><span>Adicionar imagem</span><input type="file" id="img-file" accept="image/*"></label>
+        <label class="field"><span>Autor (opcional)</span><input id="img-author"></label>
+        <label class="field"><span>Licença</span><input id="img-license" placeholder="ex.: CC BY-SA 4.0"></label>
+        <label class="field"><span>Fonte (URL)</span><input id="img-source"></label>
+      </div>
+      <div class="actions"><button class="primary" data-img-add>Enviar imagem</button></div>
+    </section>
+    <section class="panel block">
+      <h3>Dados</h3>
+      <div class="grid">
+        <label class="field" style="grid-column: 1 / -1"><span>Nome</span><input data-text="name" value="${esc(e.name)}"></label>
+        <label class="field" style="grid-column: 1 / -1"><span>Descrição</span><textarea data-text="description" rows="2">${esc(e.description ?? "")}</textarea></label>
+        <label class="field"><span>Categoria</span><select data-select="category">${options(L.category, e.category)}</select></label>
+        <label class="field"><span>Nível</span><select data-select="level">${options(L.level, e.level)}</select></label>
+        <label class="field"><span>Força</span><select data-select="force">${options(L.force, e.force, "—")}</select></label>
+        <label class="field"><span>Mecânica</span><select data-select="mechanic">${options(L.mechanic, e.mechanic, "—")}</select></label>
+        <label class="field"><span>Equipamento</span><select data-select="equipment">${options(L.equipment, e.equipment, "Nenhum")}</select></label>
+      </div>
+    </section>
+    <section class="panel block">
+      <h3>Músculos</h3>
+      <div class="muscles">
+        ${[["primary", "Principal"], ["secondary", "Secundário"]].map(([role, title]) => `<div class="field"><span>${title}</span><div>
+          ${muscleNames.map(([m, label]) => `<button class="${muscleOf(m) === role ? `on ${role}` : ""}" data-muscle="${m}" data-role="${role}" aria-pressed="${muscleOf(m) === role}">${esc(label)}</button>`).join("")}
+        </div></div>`).join("")}
+      </div>
+    </section>
+    <section class="panel block">
+      <h3>Instruções</h3>
+      <div class="steps">
+        ${e.instructions.map((s, i) => `<div class="step"><b>${i + 1}.</b><textarea data-step="${i}" rows="2">${esc(s)}</textarea>
+          <div class="tools">
+            <button class="icon" data-step-move="${i}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="Subir">↑</button>
+            <button class="icon" data-step-move="${i}" data-dir="1" ${i === e.instructions.length - 1 ? "disabled" : ""} aria-label="Descer">↓</button>
+            <button class="icon danger" data-step-remove="${i}" aria-label="Remover passo">✕</button>
+          </div></div>`).join("") || `<span class="muted">Sem instruções.</span>`}
+      </div>
+      <div class="actions"><button data-step-add>+ Passo</button></div>
+    </section>
+    <section class="panel block">
+      <h3>Substituições</h3>
+      <div class="tags">${e.substitutes.map((c) => `<span class="chip neutral">${esc(state.byCode.get(c)?.name ?? c)}<button data-sub-remove="${esc(c)}" aria-label="Remover">✕</button></span>`).join("")
+        || `<span class="muted">Nenhuma.</span>`}</div>
+      <div class="picker" style="margin-top:12px">
+        <input id="sub-q" value="${esc(state.subQuery)}" placeholder="Adicionar substituto…" autocomplete="off">
+        ${subMatches.length ? `<div class="menu">${subMatches.map((x) => `<div data-sub-add="${esc(x.code)}">${esc(x.name)} <span class="muted small">${esc(L.equipment[x.equipment] ?? "")}</span></div>`).join("")}</div>` : ""}
+      </div>
+    </section>
+    <section class="panel block">
+      <h3>Histórico</h3>
+      <div class="history">${history.map((o) => `<div><span class="chip ${o.committed ? "neutral" : "info"}">${o.committed ? "commitada" : "pendente"}</span>
+        <span>${esc(L.op[o.type] ?? o.type)}${o.type === "update" ? `: ${esc(Object.keys(o.fields).join(", "))}` : ""}${o.type === "link" ? ` ${o.openGymId ? `#${esc(o.openGymId)}` : "sem equivalente"}` : ""}${o.substitute ? ` ${esc(state.byCode.get(o.code === e.code ? o.substitute : o.code)?.name ?? "")}` : ""}</span>
+        <span class="muted">${new Date(o.at).toLocaleString("pt-BR")}</span>
+        ${o.committed ? "" : `<button class="icon" data-undo="${esc(o.id)}">Desfazer</button>`}</div>`).join("") || `<span class="muted">Nenhuma alteração.</span>`}</div>
+    </section>`;
+}
+
+function renderCreate() {
+  $("opengym").innerHTML = "";
+  $("editor").innerHTML = `<section class="panel block">
+    <h3>Novo exercício</h3>
+    <div class="grid" style="margin-top:12px">
+      <label class="field" style="grid-column: 1 / -1"><span>Nome</span><input id="c-name"></label>
+      <label class="field"><span>Categoria</span><select id="c-category">${options(L.category, "strength")}</select></label>
+      <label class="field"><span>Nível</span><select id="c-level">${options(L.level, "beginner")}</select></label>
+      <label class="field"><span>Equipamento</span><select id="c-equipment">${options(L.equipment, "", "Nenhum")}</select></label>
+      <label class="field"><span>Músculo principal</span><select id="c-muscle">${options(L.muscles, "chest")}</select></label>
+    </div>
+    <div class="actions"><button class="primary" data-create>Criar</button><button data-cancel>Cancelar</button></div>
+  </section>`;
+}
+
+function render() { renderList(); renderEditor(); }
+
+function select(code) {
+  state.creating = false;
+  state.selected = code;
+  state.confirmMerge = null;
+  state.subQuery = "";
+  const e = state.byCode.get(code);
+  state.filters = e ? { muscle: e.primaryMuscles[0] ?? "", equipment: e.equipment ?? "", bodyPart: "", q: "" } : null;
+  remember("maintain:selected", code ?? "");
+  render();
+  $("editor").scrollTop = 0;
+  $("opengym").scrollTop = 0;
+}
+
+function moved(list, i, dir) {
+  const next = [...list];
+  [next[i], next[i + dir]] = [next[i + dir], next[i]];
+  return next;
+}
+
+function nextUnlinked(code) {
+  const list = state.exercises.filter(listMatches);
+  const i = list.findIndex((x) => x.code === code);
+  return list.slice(i + 1).find((x) => !x.openGymId && !x.noMatch)?.code;
+}
+
+["q", "f-origin", "f-opengym", "f-archived", "f-edited"].forEach((id) =>
+  $(id).addEventListener(id === "q" ? "input" : "change", () => {
+    remember(`maintain:${id}`, $(id).type === "checkbox" ? String($(id).checked) : $(id).value);
+    renderList();
+  }));
+$("items").addEventListener("click", (ev) => { const it = ev.target.closest("[data-code]"); if (it) select(it.dataset.code); });
+$("new").addEventListener("click", () => { state.creating = true; state.selected = null; render(); });
+
+const editorClick = async (ev) => {
+  const t = ev.target.closest("button, [data-sub-add]");
+  if (!t) return;
+  const e = state.byCode.get(state.selected);
+  const d = t.dataset;
+  if ("create" in d) {
+    const name = $("c-name").value.trim();
+    if (name.length < 2) return setStatus("Informe o nome.", true);
+    const res = await op({ type: "create", code: "-", fields: { name, category: $("c-category").value, level: $("c-level").value,
+      equipment: $("c-equipment").value || null, primaryMuscles: [$("c-muscle").value] } });
+    if (res) select(res.code);
+    return;
+  }
+  if ("cancel" in d) { state.creating = false; return render(); }
+  if (!e) return;
+  let ok = true;
+  if ("archive" in d) {
+    const list = state.exercises.filter(listMatches);
+    const i = list.findIndex((x) => x.code === e.code);
+    const next = (list[i + 1] ?? list[i - 1])?.code;
+    ok = await op({ type: "archive", code: e.code });
+    if (ok && next) return select(next);
+  } else if ("unarchive" in d) ok = await op({ type: "unarchive", code: e.code });
+  else if ("nomatch" in d) {
+    ok = await op({ type: "link", code: e.code, openGymId: null });
+    if (ok && $("f-opengym").value === "unlinked") { const next = nextUnlinked(e.code); if (next) return select(next); }
+  } else if (d.link) {
+    const holder = holderOf(d.link, e.code);
+    if (holder && !("confirmed" in d)) { state.confirmMerge = d.link; return renderEditor(); }
+    const next = nextUnlinked(e.code);
+    ok = await op({ type: "link", code: e.code, openGymId: d.link });
+    if (ok && $("f-opengym").value === "unlinked" && next) return select(next);
+  } else if (d.imgMove !== undefined) ok = await update({ images: moved(e.images, +d.imgMove, +d.dir) });
+  else if (d.imgRemove !== undefined) {
+    const key = e.images[+d.imgRemove];
+    const pending = state.ops.find((o) => o.type === "add-image" && o.key === key && !o.committed);
+    ok = pending ? await call("DELETE", `/api/ops/${pending.id}`) : await update({ images: e.images.filter((k) => k !== key) });
+  } else if ("imgAdd" in d) {
+    const file = $("img-file").files[0];
+    if (!file) return setStatus("Escolha um arquivo.", true);
+    const data = await new Promise((resolve, reject) => {
+      const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file);
+    });
+    ok = await call("POST", "/api/images", { code: e.code, data, credit: { author: $("img-author").value, license: $("img-license").value,
+      sourceUrl: $("img-source").value, licenseUrl: "", aiGenerated: false } });
+  } else if (d.stepMove !== undefined) ok = await update({ instructions: moved(e.instructions, +d.stepMove, +d.dir) });
+  else if (d.stepRemove !== undefined) ok = await update({ instructions: e.instructions.filter((_, i) => i !== +d.stepRemove) });
+  else if ("stepAdd" in d) { e.instructions.push(""); return renderEditor(); }
+  else if (d.muscle) {
+    const without = (list) => list.filter((m) => m !== d.muscle);
+    const primary = without(e.primaryMuscles);
+    const secondary = without(e.secondaryMuscles);
+    const was = e.primaryMuscles.includes(d.muscle) ? "primary" : e.secondaryMuscles.includes(d.muscle) ? "secondary" : "";
+    if (was !== d.role) (d.role === "primary" ? primary : secondary).push(d.muscle);
+    if (!primary.length) return setStatus("O exercício precisa de pelo menos um músculo principal.", true);
+    ok = await update({ primaryMuscles: primary, secondaryMuscles: secondary });
+  } else if (d.subRemove) ok = await op({ type: "remove-substitute", code: e.code, substitute: d.subRemove });
+  else if (d.subAdd) { state.subQuery = ""; ok = await op({ type: "add-substitute", code: e.code, substitute: d.subAdd }); }
+  else if (d.undo) ok = await call("DELETE", `/api/ops/${d.undo}`);
+  else return;
+  state.confirmMerge = null;
+  if (ok) render();
+};
+
+const editorChange = async (ev) => {
+  const t = ev.target;
+  const e = state.byCode.get(state.selected);
+  if (!e) return;
+  const d = t.dataset;
+  let ok = false;
+  if (d.text === "name" && t.value.trim() && t.value.trim() !== e.name) ok = await update({ name: t.value.trim() });
+  else if (d.text === "description") ok = await update({ description: t.value.trim() || null });
+  else if (d.select) ok = await update({ [d.select]: t.value || null });
+  else if (d.step !== undefined) {
+    const steps = e.instructions.map((s, i) => (i === +d.step ? t.value.trim() : s)).filter((s) => s.trim());
+    ok = await update({ instructions: steps });
+  }
+  if (ok) render();
+};
+
+const editorInput = (ev) => {
+  const t = ev.target;
+  if (t.id === "sub-q") {
+    state.subQuery = t.value;
+    const pos = t.selectionStart;
+    renderEditor();
+    const input = $("sub-q"); input.focus(); input.setSelectionRange(pos, pos);
+    return;
+  }
+  const key = t.dataset.f;
+  if (!key) return;
+  state.filters[key] = t.value;
+  const pos = key === "q" ? t.selectionStart : null;
+  renderEditor();
+  if (pos !== null) { const input = document.querySelector('[data-f="q"]'); input.focus(); input.setSelectionRange(pos, pos); }
+};
+
+for (const el of [$("editor"), $("opengym")]) {
+  el.addEventListener("click", editorClick);
+  el.addEventListener("change", editorChange);
+  el.addEventListener("input", editorInput);
+}
+
+for (const id of ["q", "f-origin", "f-opengym", "f-archived"]) { const v = recall(`maintain:${id}`); if (v !== null) $(id).value = v; }
+$("f-edited").checked = recall("maintain:f-edited") === "true";
+
+fetch("/api/data").then((r) => r.json()).then((data) => {
+  load(data);
+  setStatus("Pronto · cada alteração é salva na hora");
+  const saved = recall("maintain:selected");
+  select(state.byCode.has(saved) ? saved : state.exercises.find(listMatches)?.code ?? null);
+}).catch((err) => setStatus(`Erro ao carregar: ${err.message}`, true));
+</script>
+</body>
+</html>

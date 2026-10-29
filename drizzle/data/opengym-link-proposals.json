@@ -1,0 +1,32 @@
+{
+ "same": {
+  "Ab_Crunch_Machine": "1452", "Back_Flyes_-_With_Bands": "0993", "Barbell_Curls_Lying_Against_An_Incline": "0072",
+  "Barbell_Side_Bend": "0096", "Bent-Arm_Dumbbell_Pullover": "0375", "Bent_Over_One-Arm_Long_Bar_Row": "0064",
+  "Butt_Lift_Bridge": "3013", "Butterfly": "0596", "Cable_Chest_Press": "2144", "Cable_Lying_Triceps_Extension": "0186",
+  "Cable_Rear_Delt_Fly": "0154", "Chair_Squat": "0750", "Crunches": "0274", "Drop_Push": "1275",
+  "Flat_Bench_Cable_Flyes": "0185", "Floor_Glute-Ham_Raise": "0696", "Glute_Ham_Raise": "3193", "Incline_Bench_Pull": "0049",
+  "Oblique_Crunches": "1495", "Lunge_Sprint": "0769", "Lying_Close-Grip_Bar_Curl_On_High_Pulley": "0182", "Pyramid": "1341",
+  "Reverse_Machine_Flyes": "0602", "Reverse_Triceps_Bench_Press": "2187", "Seated_One-arm_Cable_Pulley_Rows": "0214",
+  "Seated_Palms-Down_Barbell_Wrist_Curl": "0082", "Seated_Triceps_Press": "2188", "See-Saw_Press_Alternating_Side_Press": "0286",
+  "Side_Bridge": "0705", "Single_Leg_Glute_Bridge": "3645", "Sit-Up": "0735", "Standing_Biceps_Cable_Curl": "0868",
+  "Standing_Low-Pulley_Deltoid_Raise": "0192", "T-Bar_Row_with_Handle": "0574", "Thigh_Abductor": "0597",
+  "Thigh_Adductor": "0598", "Triceps_Overhead_Extension_with_Rope": "1724", "Weighted_Crunches": "0832",
+  "Weighted_Jump_Squat": "0053", "Step_Mill": "2311"
+ },
+ "close": {
+  "Alternate_Incline_Dumbbell_Curl": "0315", "Barbell_Hip_Thrust": "0058", "Bodyweight_Mid_Row": "3166",
+  "Cable_Iron_Cross": "0155", "Calf-Machine_Shoulder_Shrug": "0580", "Calf_Stretch_Elbows_Against_Wall": "1407",
+  "Chair_Lower_Back_Stretch": "0690", "Close-Grip_Front_Lat_Pulldown": "0818", "Decline_Smith_Press": "1309",
+  "Flexor_Incline_Dumbbell_Curls": "0317", "Front_Incline_Dumbbell_Raise": "0325", "Front_Two-Dumbbell_Raise": "0309",
+  "Incline_Push-Up_Medium": "3785", "Cable_Seated_Lateral_Raise": "0178", "Pallof_Press": "0979",
+  "Push-Ups_With_Feet_On_An_Exercise_Ball": "0655", "Quad_Stretch": "3533", "Natural_Glute_Ham_Raise": "0496",
+  "One-Arm_High-Pulley_Cable_Side_Bends": "0222", "One-Arm_Long_Bar_Row": "0589", "One-Legged_Cable_Kickback": "0228",
+  "One-Arm_Kettlebell_Swings": "0549", "Knee_Hip_Raise_On_Parallel_Bars": "0826", "Lateral_Raise_-_With_Bands": "0977",
+  "Latissimus_Dorsi-SMR": "2207", "Leverage_Iso_Row": "1313", "Lying_Close-Grip_Barbell_Triceps_Press_To_Chin": "0056",
+  "Lying_High_Bench_Barbell_Curl": "0059", "Lying_Prone_Quadriceps": "1713", "Lying_Triceps_Press": "0061",
+  "Machine_Bench_Press": "0576", "Seated_Bent-Over_Rear_Delt_Raise": "2292", "Smith_Machine_Stiff-Legged_Deadlift": "0752",
+  "Spider_Crawl": "0778", "Spinal_Stretch": "1363", "Standing_Leg_Curl": "0795", "Standing_Military_Press": "1457",
+  "Standing_Soleus_And_Achilles_Stretch": "1397", "Standing_Toe_Touches": "3212", "Walking_Treadmill": "3666",
+  "Wide-Grip_Lat_Pulldown": "0198"
+ }
+}

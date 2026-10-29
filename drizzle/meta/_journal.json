@@ -316,6 +316,13 @@
       "when": 1793186704509,
       "tag": "0044_far_gertrude_yorkes",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793267970294,
+      "tag": "0045_wise_sauron",
+      "breakpoints": true
     }
   ]
 }

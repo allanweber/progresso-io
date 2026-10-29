@@ -128,3 +128,42 @@ describe("ExerciseCatalog openGym flag", () => {
     expect(screen.queryByTestId("exercise-thumb")).not.toBeInTheDocument();
   });
 });
+
+describe("admin ExerciseCatalog openGym link", () => {
+  const adminCatalog = () =>
+    withClient(
+      <ExerciseCatalog apiBase="/api/admin/exercises" basePath="/admin/exercises" title="Exercícios" admin />,
+    );
+
+  it("restores the linked/unlinked filter from the URL and sends it to the listing", async () => {
+    searchParams = new URLSearchParams("openGym=unlinked");
+    adminCatalog();
+
+    expect(screen.getByRole("combobox", { name: "openGym" })).toHaveTextContent(
+      "Sem vínculo com o openGym",
+    );
+    await waitFor(() =>
+      expect(urls().find((u) => u.startsWith("/api/admin/exercises?"))).toContain("openGym=unlinked"),
+    );
+  });
+
+  it("ignores the coach flag value", async () => {
+    searchParams = new URLSearchParams("openGym=1");
+    adminCatalog();
+
+    expect(screen.getByRole("combobox", { name: "openGym" })).toHaveTextContent("openGym: todos");
+    await screen.findByText("Agachamento com barra");
+  });
+
+  it("shows the openGym id badge on a linked card", async () => {
+    apiFetch.mockResolvedValue({
+      items: [{ ...SQUAT, openGymId: "0043", archived: false, clinicName: null }],
+      total: 1,
+      page: 1,
+      pageSize: 24,
+    });
+    adminCatalog();
+
+    expect(await screen.findByText("openGym #0043")).toBeInTheDocument();
+  });
+});

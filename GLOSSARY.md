@@ -33,3 +33,7 @@ _Avoid_: Plan (unqualified)
 **openGym id**:
 The permanent number openGym gives an exercise in its catalogue; a base exercise that has one is the same exercise in both apps.
 _Avoid_: ExerciseDB id
+
+**Exercise merge**:
+Folding a base exercise imported from openGym into one of ours that is the same exercise: ours takes its openGym id and its uses in workouts, and the imported one is archived for good.
+_Avoid_: Link (when a duplicate is absorbed), dedupe

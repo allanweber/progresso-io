@@ -271,6 +271,9 @@ export function ExerciseDetail({
                 {MECHANIC_LABELS[data.mechanic]}
               </Badge>
             )}
+            <Badge variant={data.openGymId ? "ok" : "neutral"} className="font-medium">
+              {data.openGymId ? `openGym #${data.openGymId}` : "Sem vínculo com o openGym"}
+            </Badge>
           </div>
 
           {/* Description (free text) */}
