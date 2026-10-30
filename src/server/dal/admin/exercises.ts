@@ -18,6 +18,11 @@ import type {
   ExerciseLevel,
   Muscle,
 } from "@/db/schema";
+import {
+  exerciseSearchConditions,
+  exerciseSearchRank,
+  exerciseSearchText,
+} from "@/server/dal/exercise-search";
 import type {
   ExerciseSubstituteRow,
   ExerciseWriteInput,
@@ -38,6 +43,7 @@ export type AdminExerciseListItem = {
   id: string;
   code: string | null;
   name: string;
+  nameEn: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
   equipment: ExerciseEquipment | null;
@@ -94,11 +100,7 @@ function adminExerciseWhere(params: AdminExerciseListParams) {
   if (params.openGym === "unlinked") conds.push(isNull(schema.exercise.openGymId));
   const term = params.search?.trim();
   if (term) {
-    for (const token of term.split(/\s+/)) {
-      conds.push(
-        sql`${schema.exercise.searchText} like '%' || unaccent(lower(${token})) || '%'`,
-      );
-    }
+    conds.push(...exerciseSearchConditions(term));
   }
   return conds.length ? and(...conds) : undefined;
 }
@@ -119,7 +121,7 @@ export async function listAllExercises(
 
   const orderBy = term
     ? [
-        desc(sql`similarity(${schema.exercise.searchText}, unaccent(lower(${term})))`),
+        desc(exerciseSearchRank(term)),
         asc(schema.exercise.name),
       ]
     : [asc(schema.exercise.name), asc(schema.exercise.id)];
@@ -129,6 +131,7 @@ export async function listAllExercises(
       id: schema.exercise.id,
       code: schema.exercise.code,
       name: schema.exercise.name,
+      nameEn: schema.exercise.nameEn,
       category: schema.exercise.category,
       level: schema.exercise.level,
       equipment: schema.exercise.equipment,
@@ -231,8 +234,9 @@ export async function getAnyExercise(
 function baseExerciseValues(input: ExerciseWriteInput) {
   return {
     name: input.name,
+    nameEn: input.nameEn,
     description: input.description,
-    searchText: sql`unaccent(lower(${input.name}))`,
+    searchText: exerciseSearchText(input.name, input.nameEn),
     category: input.category,
     level: input.level,
     force: input.force,
@@ -241,6 +245,7 @@ function baseExerciseValues(input: ExerciseWriteInput) {
     primaryMuscles: input.primaryMuscles,
     secondaryMuscles: input.secondaryMuscles,
     instructions: input.instructions,
+    instructionsEn: input.instructionsEn,
     images: input.images,
   };
 }

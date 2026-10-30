@@ -24,7 +24,18 @@
   h3 { font-size: 18px; font-weight: 600; }
   header { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; padding: 12px 16px;
     background: var(--bg); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 3; }
-  .count { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .count { color: var(--muted); font-size: 12px; font-weight: 600; padding: 4px 10px; }
+  .count.has { background: var(--info-bg); border-color: var(--info-bg); color: var(--info-fg); }
+  .pending { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border); }
+  .pending > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pending .change { display: grid; gap: 6px; font-size: 12px; padding: 8px 12px; border-radius: 10px; background: var(--surface); }
+  .pending .change > div { display: flex; gap: 8px; align-items: center; }
+  .pending .change > div .muted { flex: 1; }
+  .pending dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; }
+  .pending dt { color: var(--secondary); font-weight: 600; }
+  .pending dd { margin: 0; overflow-wrap: anywhere; }
+  .pending del { color: var(--danger-fg); }
+  .pending ins { color: var(--ok-fg); text-decoration: none; }
   .status { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--muted); }
   .status.err { color: var(--danger-fg); }
   body { height: 100vh; display: flex; flex-direction: column; }
@@ -75,7 +86,7 @@
   .danger-chip { background: var(--danger-bg); color: var(--danger-fg); }
   .neutral { background: var(--neutral-bg); color: var(--neutral-fg); }
   .base { background: var(--base-bg); color: var(--base-fg); }
-  .editor { display: grid; gap: 16px; align-content: start; }
+  .editor { display: grid; gap: 16px; align-content: start; scroll-margin-top: 92px; }
   section.block { padding: 24px; }
   section.block > h3 { margin-bottom: 12px; }
   .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
@@ -124,7 +135,7 @@
 <body>
 <header>
   <h1>Manutenção de exercícios</h1>
-  <span class="count" id="count"></span>
+  <button class="count" id="count"></button>
   <span class="status" id="status">Carregando…</span>
 </header>
 <main>
@@ -187,7 +198,7 @@ const L = {
 };
 
 const state = { exercises: [], byCode: new Map(), ops: [], openGym: [], proposals: { same: {}, close: {} },
-  selected: null, creating: false, filters: null, confirmMerge: null, subQuery: "" };
+  selected: null, creating: false, reviewing: false, pending: [], confirmDiscard: false, filters: null, confirmMerge: null, subQuery: "" };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const fold = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -219,6 +230,68 @@ function load(data) {
   state.ops = data.ops;
   const pending = state.ops.filter((o) => !o.committed).length;
   $("count").textContent = `${state.ops.length} operações · ${pending} não commitadas`;
+  $("count").className = pending ? "count has" : "count";
+}
+
+async function loadPending() {
+  try {
+    state.pending = (await (await fetch("/api/pending")).json()).changes;
+  } catch (err) {
+    setStatus(`Erro ao carregar alterações: ${err.message}`, true);
+  }
+}
+
+const FIELD_LABELS = { name: "Nome", nameEn: "Nome (inglês)", description: "Descrição", category: "Categoria", level: "Nível",
+  force: "Força", mechanic: "Mecânica", equipment: "Equipamento", primaryMuscles: "Músculos principais",
+  secondaryMuscles: "Músculos secundários", instructions: "Instruções", instructionsEn: "Instruções (inglês)",
+  images: "Imagens", openGymId: "openGym" };
+const FIELD_MAPS = { category: L.category, level: L.level, force: L.force, mechanic: L.mechanic, equipment: L.equipment,
+  primaryMuscles: L.muscles, secondaryMuscles: L.muscles };
+
+function showValue(field, value) {
+  if (value === null || value === undefined || (Array.isArray(value) && !value.length)) return `<span class="muted">vazio</span>`;
+  const map = FIELD_MAPS[field];
+  if (field === "images") return esc(value.map((k) => k.split("/").at(-1)).join(", "));
+  if (field === "openGymId") return `#${esc(value)}`;
+  if (Array.isArray(value)) return field.startsWith("instructions")
+    ? value.map((s, i) => `${i + 1}. ${esc(s)}`).join("<br>") : esc(value.map((v) => map?.[v] ?? v).join(", "));
+  return esc(map?.[value] ?? value);
+}
+
+function describeChange(o) {
+  const name = (code) => esc(state.byCode.get(code)?.name ?? code);
+  const diff = (fields) => `<dl>${Object.entries(fields).map(([k, v]) => `<dt>${esc(FIELD_LABELS[k] ?? k)}</dt>
+    <dd>${o.before ? `<del>${showValue(k, o.before[k])}</del> → ` : ""}<ins>${showValue(k, v)}</ins></dd>`).join("")}</dl>`;
+  if (o.type === "update") return diff(o.fields);
+  if (o.type === "create") return diff(o.fields);
+  if (o.type === "link") return o.openGymId ? diff({ openGymId: o.openGymId }) : `<span>Marcado sem equivalente no openGym</span>`;
+  if (o.type === "add-substitute") return `<span>Substituto adicionado: ${name(o.substitute)}</span>`;
+  if (o.type === "remove-substitute") return `<span>Substituto removido: ${name(o.substitute)}</span>`;
+  if (o.type === "add-image") return `<span><img src="${img(o.key)}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:8px;vertical-align:middle"> Imagem adicionada${o.credit ? ` · ${esc(o.credit.author)}` : ""}</span>`;
+  return "";
+}
+
+function renderPending() {
+  $("opengym").innerHTML = "";
+  const groups = new Map();
+  for (const o of state.pending) groups.set(o.code, [...(groups.get(o.code) ?? []), o]);
+  const total = state.pending.length;
+  $("editor").innerHTML = `<section class="panel block">
+    <div class="head"><h3 class="grow">Não commitadas <span class="chip info">${total}</span></h3>
+      ${!total ? "" : state.confirmDiscard
+        ? `<button class="danger" data-pending-all-confirm>Confirmar: descartar ${total}</button><button data-pending-all-cancel>Cancelar</button>`
+        : `<button class="danger" data-pending-all>Descartar todas</button>`}
+      <button data-pending-close>Fechar</button></div>
+    <p class="muted small">Ainda não estão no git. Descartar remove a alteração do arquivo de manutenção; uma alteração já commitada não pode ser descartada aqui.</p>
+    ${[...groups].map(([code, list]) => `<div class="pending">
+      <div><b>${esc(state.byCode.get(code)?.name ?? list.find((o) => o.type === "create")?.fields.name ?? code)}</b>
+        <span class="muted small">${esc(code)}</span>
+        ${state.byCode.has(code) ? `<button class="icon" data-pending-open="${esc(code)}">Abrir</button>` : ""}</div>
+      ${list.map((o) => `<div class="change"><div><span class="chip info">${esc(L.op[o.type] ?? o.type)}</span>
+        <span class="muted">${new Date(o.at).toLocaleString("pt-BR")}</span>
+        <button class="icon danger" data-pending-discard="${esc(o.id)}">Descartar</button></div>${describeChange(o)}</div>`).join("")}
+    </div>`).join("") || `<div class="empty">Nenhuma alteração pendente.</div>`}
+  </section>`;
 }
 
 async function call(method, path, body) {
@@ -393,6 +466,7 @@ function openGymBlock(e) {
 }
 
 function renderEditor() {
+  if (state.reviewing) return renderPending();
   if (state.creating) return renderCreate();
   const e = state.byCode.get(state.selected);
   if (!e) { $("editor").innerHTML = `<div class="panel empty">Selecione um exercício.</div>`; $("opengym").innerHTML = ""; return; }
@@ -440,6 +514,7 @@ function renderEditor() {
       <h3>Dados</h3>
       <div class="grid">
         <label class="field" style="grid-column: 1 / -1"><span>Nome</span><input data-text="name" value="${esc(e.name)}"></label>
+        <label class="field" style="grid-column: 1 / -1"><span>Nome (inglês)</span><input data-text="nameEn" lang="en" value="${esc(e.nameEn ?? "")}"></label>
         <label class="field" style="grid-column: 1 / -1"><span>Descrição</span><textarea data-text="description" rows="2">${esc(e.description ?? "")}</textarea></label>
         <label class="field"><span>Categoria</span><select data-select="category">${options(L.category, e.category)}</select></label>
         <label class="field"><span>Nível</span><select data-select="level">${options(L.level, e.level)}</select></label>
@@ -456,18 +531,18 @@ function renderEditor() {
         </div></div>`).join("")}
       </div>
     </section>
-    <section class="panel block">
-      <h3>Instruções</h3>
+    ${[["instructions", "Instruções", "pt-BR"], ["instructionsEn", "Instruções (inglês)", "en"]].map(([list, title, lang]) => `<section class="panel block">
+      <h3>${title}</h3>
       <div class="steps">
-        ${e.instructions.map((s, i) => `<div class="step"><b>${i + 1}.</b><textarea data-step="${i}" rows="2">${esc(s)}</textarea>
+        ${e[list].map((s, i) => `<div class="step"><b>${i + 1}.</b><textarea data-list="${list}" data-step="${i}" lang="${lang}" rows="2">${esc(s)}</textarea>
           <div class="tools">
-            <button class="icon" data-step-move="${i}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="Subir">↑</button>
-            <button class="icon" data-step-move="${i}" data-dir="1" ${i === e.instructions.length - 1 ? "disabled" : ""} aria-label="Descer">↓</button>
-            <button class="icon danger" data-step-remove="${i}" aria-label="Remover passo">✕</button>
+            <button class="icon" data-list="${list}" data-step-move="${i}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="Subir">↑</button>
+            <button class="icon" data-list="${list}" data-step-move="${i}" data-dir="1" ${i === e[list].length - 1 ? "disabled" : ""} aria-label="Descer">↓</button>
+            <button class="icon danger" data-list="${list}" data-step-remove="${i}" aria-label="Remover passo">✕</button>
           </div></div>`).join("") || `<span class="muted">Sem instruções.</span>`}
       </div>
-      <div class="actions"><button data-step-add>+ Passo</button></div>
-    </section>
+      <div class="actions"><button data-list="${list}" data-step-add>+ Passo</button></div>
+    </section>`).join("")}
     <section class="panel block">
       <h3>Substituições</h3>
       <div class="tags">${e.substitutes.map((c) => `<span class="chip neutral">${esc(state.byCode.get(c)?.name ?? c)}<button data-sub-remove="${esc(c)}" aria-label="Remover">✕</button></span>`).join("")
@@ -492,6 +567,7 @@ function renderCreate() {
     <h3>Novo exercício</h3>
     <div class="grid" style="margin-top:12px">
       <label class="field" style="grid-column: 1 / -1"><span>Nome</span><input id="c-name"></label>
+      <label class="field" style="grid-column: 1 / -1"><span>Nome (inglês)</span><input id="c-name-en" lang="en"></label>
       <label class="field"><span>Categoria</span><select id="c-category">${options(L.category, "strength")}</select></label>
       <label class="field"><span>Nível</span><select id="c-level">${options(L.level, "beginner")}</select></label>
       <label class="field"><span>Equipamento</span><select id="c-equipment">${options(L.equipment, "", "Nenhum")}</select></label>
@@ -505,6 +581,7 @@ function render() { renderList(); renderEditor(); }
 
 function select(code) {
   state.creating = false;
+  state.reviewing = false;
   state.selected = code;
   state.confirmMerge = null;
   state.subQuery = "";
@@ -556,17 +633,42 @@ $("bulk").addEventListener("click", async (ev) => {
   }
   renderList();
 });
-$("new").addEventListener("click", () => { state.creating = true; state.selected = null; render(); });
+$("new").addEventListener("click", () => { state.creating = true; state.reviewing = false; state.selected = null; render(); });
+$("count").addEventListener("click", async () => {
+  state.reviewing = true;
+  state.creating = false;
+  state.confirmDiscard = false;
+  await loadPending();
+  render();
+  $("editor").scrollTop = 0;
+  $("editor").scrollIntoView({ block: "start" });
+});
 
 const editorClick = async (ev) => {
   const t = ev.target.closest("button, [data-sub-add]");
   if (!t) return;
   const e = state.byCode.get(state.selected);
   const d = t.dataset;
+  if (state.reviewing) {
+    if (d.pendingOpen) return select(d.pendingOpen);
+    if ("pendingClose" in d) return select(state.selected);
+    if ("pendingAll" in d) { state.confirmDiscard = true; return renderPending(); }
+    state.confirmDiscard = false;
+    if ("pendingAllCancel" in d) return renderPending();
+    const discarded = "pendingAllConfirm" in d ? await call("DELETE", "/api/ops")
+      : d.pendingDiscard ? await call("DELETE", `/api/ops/${d.pendingDiscard}`) : null;
+    if (!discarded) return renderPending();
+    await loadPending();
+    if (!state.byCode.has(state.selected)) state.selected = null;
+    setStatus("Alteração descartada");
+    return render();
+  }
   if ("create" in d) {
     const name = $("c-name").value.trim();
     if (name.length < 2) return setStatus("Informe o nome.", true);
-    const res = await op({ type: "create", code: "-", fields: { name, category: $("c-category").value, level: $("c-level").value,
+    const nameEn = $("c-name-en").value.trim() || null;
+    if (nameEn && nameEn.length < 2) return setStatus("O nome em inglês precisa de pelo menos 2 letras.", true);
+    const res = await op({ type: "create", code: "-", fields: { name, nameEn, category: $("c-category").value, level: $("c-level").value,
       equipment: $("c-equipment").value || null, primaryMuscles: [$("c-muscle").value] } });
     if (res) select(res.code);
     return;
@@ -610,9 +712,9 @@ const editorClick = async (ev) => {
     });
     ok = await call("POST", "/api/images", { code: e.code, data, credit: { author: $("img-author").value, license: $("img-license").value,
       sourceUrl: $("img-source").value, licenseUrl: "", aiGenerated: false } });
-  } else if (d.stepMove !== undefined) ok = await update({ instructions: moved(e.instructions, +d.stepMove, +d.dir) });
-  else if (d.stepRemove !== undefined) ok = await update({ instructions: e.instructions.filter((_, i) => i !== +d.stepRemove) });
-  else if ("stepAdd" in d) { e.instructions.push(""); return renderEditor(); }
+  } else if (d.stepMove !== undefined) ok = await update({ [d.list]: moved(e[d.list], +d.stepMove, +d.dir) });
+  else if (d.stepRemove !== undefined) ok = await update({ [d.list]: e[d.list].filter((_, i) => i !== +d.stepRemove) });
+  else if ("stepAdd" in d) { e[d.list].push(""); return renderEditor(); }
   else if (d.muscle) {
     const without = (list) => list.filter((m) => m !== d.muscle);
     const primary = without(e.primaryMuscles);
@@ -636,11 +738,12 @@ const editorChange = async (ev) => {
   const d = t.dataset;
   let ok = false;
   if (d.text === "name" && t.value.trim() && t.value.trim() !== e.name) ok = await update({ name: t.value.trim() });
+  else if (d.text === "nameEn" && t.value.trim() !== (e.nameEn ?? "")) ok = await update({ nameEn: t.value.trim() || null });
   else if (d.text === "description") ok = await update({ description: t.value.trim() || null });
   else if (d.select) ok = await update({ [d.select]: t.value || null });
   else if (d.step !== undefined) {
-    const steps = e.instructions.map((s, i) => (i === +d.step ? t.value.trim() : s)).filter((s) => s.trim());
-    ok = await update({ instructions: steps });
+    const steps = e[d.list].map((s, i) => (i === +d.step ? t.value.trim() : s)).filter((s) => s.trim());
+    ok = await update({ [d.list]: steps });
   }
   if (ok) render();
 };

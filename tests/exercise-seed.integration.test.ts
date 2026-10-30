@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
+  backfillExerciseEnglish,
   readExerciseCatalog,
   seedExerciseCatalog,
   seedExerciseSubstitutionEdges,
@@ -24,7 +25,7 @@ const rules = JSON.parse(readFileSync(data("exercise-substitutions.json"), "utf8
 
 const freeDbRows = catalog.filter((e) => e.source === "free-exercise-db");
 const matched = freeDbRows.find((e) => e.openGymId) as Row;
-const preExpansion = freeDbRows.map((e) => ({ ...e, openGymId: null }));
+const preExpansion = freeDbRows.map((e) => ({ ...e, openGymId: null, nameEn: null, instructionsEn: [] }));
 const preExpansionRules = rules
   .filter((r) => freeDbRows.some((e) => e.code === r.exercise))
   .map((r) => ({
@@ -97,6 +98,41 @@ describe("incremental exercise seed on an already-seeded database", () => {
       opengym_id: fresh.openGymId,
     });
     expect(row.search_text).not.toMatch(/[A-ZÀ-ÿ]/);
+  });
+
+  it("stores the English name and instructions of the new exercises, searchable in both languages", async () => {
+    const fresh = catalog.find((e) => e.source === "exercisedb") as Row;
+    const [row] = await query(
+      "select name_en, instructions_en, search_text from exercise where code = $1",
+      [fresh.code],
+    );
+    expect(row.name_en).toBe(fresh.nameEn);
+    expect(row.instructions_en).toEqual(fresh.instructionsEn);
+    const [{ expected }] = await query("select unaccent(lower($1 || ' ' || $2)) as expected", [
+      fresh.name,
+      fresh.nameEn,
+    ]);
+    expect(row.search_text).toBe(expected);
+  });
+
+  it("backfills English onto the exercises seeded before it, keeping their current name", async () => {
+    expect(await backfillExerciseEnglish(query, catalog)).toBe(freeDbRows.length);
+
+    const [row] = await query(
+      "select name, name_en, instructions_en, search_text from exercise where code = $1",
+      [matched.code],
+    );
+    const [{ expected }] = await query("select unaccent(lower($1 || ' ' || $2)) as expected", [
+      "Editado pelo admin",
+      matched.nameEn,
+    ]);
+    expect(row).toEqual({
+      name: "Editado pelo admin",
+      name_en: matched.nameEn,
+      instructions_en: matched.instructionsEn,
+      search_text: expected,
+    });
+    expect(await backfillExerciseEnglish(query, catalog)).toBe(0);
   });
 
   it("stores the wger images of an illustrated exercise with their credits", async () => {

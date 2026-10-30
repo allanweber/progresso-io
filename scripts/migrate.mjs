@@ -16,6 +16,7 @@ import {
   readOps,
 } from "./lib/exercise-maintenance.mjs";
 import {
+  backfillExerciseEnglish,
   readExerciseCatalog,
   seedExerciseCatalog,
   seedExerciseSubstitutionEdges,
@@ -299,11 +300,13 @@ async function seedExercises(sql, guards) {
     console.log(`• No exercise artifact at ${EXERCISES} — skipping exercise seed.`);
     return;
   }
-  const { inserted, linked } = await sql.begin((tx) =>
-    seedExerciseCatalog((text, params) => tx.unsafe(text, params), exercises, guards),
-  );
+  const { inserted, linked, english } = await sql.begin(async (tx) => {
+    const query = (text, params) => tx.unsafe(text, params);
+    const seeded = await seedExerciseCatalog(query, exercises, guards);
+    return { ...seeded, english: await backfillExerciseEnglish(query, exercises) };
+  });
   console.log(
-    `✓ Exercise catalog: ${inserted} new, ${linked} linked to openGym (of ${exercises.length}).`,
+    `✓ Exercise catalog: ${inserted} new, ${linked} linked to openGym, ${english} given English names (of ${exercises.length}).`,
   );
 }
 

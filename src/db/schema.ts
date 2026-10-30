@@ -941,10 +941,11 @@ export const exercise = pgTable(
     // exercises; unique when present.
     code: text("code").unique(),
     name: text("name").notNull(),
+    nameEn: text("name_en"),
     // Free-text summary (PT-BR). NULL for the seeded base catalog (which has no
     // description); set by coaches/admin when they register a custom exercise.
     description: text("description"),
-    // unaccent(lower(name)); the trigram search index is built on this.
+    // unaccent(lower(concat_ws(' ', name, name_en))); the trigram search index is built on this.
     searchText: text("search_text").notNull(),
     category: text("category").$type<ExerciseCategory>().notNull(),
     level: text("level").$type<ExerciseLevel>().notNull(),
@@ -964,6 +965,7 @@ export const exercise = pgTable(
       .default([]),
     // Ordered step-by-step instructions (PT-BR).
     instructions: text("instructions").array().notNull().default([]),
+    instructionsEn: text("instructions_en").array().notNull().default([]),
     // Relative image keys ("<code>/0.jpg"); resolved to a URL at render time.
     images: text("images").array().notNull().default([]),
     imageCredits: jsonb("image_credits")

@@ -488,6 +488,11 @@ export function ExerciseCatalog({
                       <h3 className="break-words font-medium text-foreground">
                         {ex.name}
                       </h3>
+                      {ex.nameEn && (
+                        <p lang="en" className="mt-0.5 truncate text-xs text-meta">
+                          {ex.nameEn}
+                        </p>
+                      )}
                       {ex.clinicName && (
                         <p className="mt-0.5 truncate text-xs text-meta">
                           {ex.clinicName}

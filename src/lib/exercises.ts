@@ -279,6 +279,11 @@ export const exerciseFormSchema = z.object({
     .trim()
     .min(1, "Informe o nome do exercício.")
     .max(200, "Nome muito longo."),
+  nameEn: z
+    .string()
+    .trim()
+    .max(200, "Nome muito longo.")
+    .transform((v) => (v === "" ? null : v)),
   description: z
     .string()
     .trim()
@@ -298,6 +303,9 @@ export const exerciseFormSchema = z.object({
   instructions: z
     .array(z.string().trim().min(1, "Passo vazio.").max(2000, "Passo muito longo."))
     .max(40, "Passos demais."),
+  instructionsEn: z
+    .array(z.string().trim().min(1, "Passo vazio.").max(2000, "Passo muito longo."))
+    .max(40, "Passos demais."),
   images: z
     .array(z.string().trim().min(1).max(300))
     .max(2, "No máximo duas imagens."),
@@ -314,6 +322,7 @@ export type ExerciseListItemDto = {
   id: string;
   code: string | null;
   name: string;
+  nameEn: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
   equipment: ExerciseEquipment | null;
@@ -351,6 +360,7 @@ export type ExerciseDetailDto = {
   id: string;
   code: string | null;
   name: string;
+  nameEn: string | null;
   description: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
@@ -360,6 +370,7 @@ export type ExerciseDetailDto = {
   primaryMuscles: Muscle[];
   secondaryMuscles: Muscle[];
   instructions: string[];
+  instructionsEn: string[];
   images: string[];
   imageCredits: Record<string, ExerciseImageCredit>;
   origin: ExerciseOrigin;

@@ -26,9 +26,9 @@ export async function seedExerciseCatalog(query, exercises, { keepCodes = new Se
     if (!linkedCode.has(e.code)) {
       const rows = await query(
         `insert into exercise (
-          code, name, search_text, category, level, force, mechanic, equipment,
-          primary_muscles, secondary_muscles, instructions, images, image_credits, source, opengym_id
-        ) values ($1, $2, unaccent(lower($2)), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          code, name, name_en, search_text, category, level, force, mechanic, equipment,
+          primary_muscles, secondary_muscles, instructions, instructions_en, images, image_credits, source, opengym_id
+        ) values ($1, $2, $15, unaccent(lower(concat_ws(' ', $2::text, $15::text))), $3, $4, $5, $6, $7, $8, $9, $10, $16, $11, $12, $13, $14)
         on conflict (code) do nothing
         returning id`,
         [
@@ -46,6 +46,8 @@ export async function seedExerciseCatalog(query, exercises, { keepCodes = new Se
           JSON.stringify(e.imageCredits ?? {}),
           e.source ?? "free-exercise-db",
           openGymId,
+          e.nameEn ?? null,
+          e.instructionsEn ?? [],
         ],
       );
       if (rows.length === 0) continue;
@@ -65,6 +67,28 @@ export async function seedExerciseCatalog(query, exercises, { keepCodes = new Se
     taken.add(openGymId);
   }
   return { inserted, linked };
+}
+
+export async function backfillExerciseEnglish(query, exercises) {
+  const missing = new Set(
+    (await query("select code from exercise where code is not null and name_en is null")).map((r) => r.code),
+  );
+  const rows = exercises
+    .filter((e) => e.nameEn && missing.has(e.code))
+    .map((e) => ({ code: e.code, name_en: e.nameEn, instructions_en: e.instructionsEn ?? [] }));
+  if (!rows.length) return 0;
+  const updated = await query(
+    `update exercise x set
+       name_en = v.name_en,
+       instructions_en = array(select jsonb_array_elements_text(v.instructions_en)),
+       search_text = unaccent(lower(concat_ws(' ', x.name, v.name_en))),
+       updated_at = now()
+     from jsonb_to_recordset($1::jsonb) as v(code text, name_en text, instructions_en jsonb)
+     where x.code = v.code and x.name_en is null
+     returning x.id`,
+    [JSON.stringify(rows)],
+  );
+  return updated.length;
 }
 
 export async function repointExercise(query, from, to) {

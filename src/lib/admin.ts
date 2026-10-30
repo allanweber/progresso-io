@@ -267,6 +267,7 @@ export type AdminExerciseListItemDto = {
   id: string;
   code: string | null;
   name: string;
+  nameEn: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
   equipment: ExerciseEquipment | null;
@@ -290,6 +291,7 @@ export type AdminExerciseDetailDto = {
   id: string;
   code: string | null;
   name: string;
+  nameEn: string | null;
   description: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
@@ -299,6 +301,7 @@ export type AdminExerciseDetailDto = {
   primaryMuscles: Muscle[];
   secondaryMuscles: Muscle[];
   instructions: string[];
+  instructionsEn: string[];
   images: string[];
   imageCredits: Record<string, ExerciseImageCredit>;
   origin: AdminExerciseOrigin;

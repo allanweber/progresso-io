@@ -27,6 +27,7 @@ const SQUAT: ExerciseListItemDto = {
   id: "ex-1",
   code: "Barbell_Squat",
   name: "Agachamento com barra",
+  nameEn: null,
   category: "strength",
   level: "beginner",
   equipment: "barbell",

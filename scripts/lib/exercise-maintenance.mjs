@@ -11,7 +11,6 @@ import {
   EXERCISEDB_PTBR_FILE,
   EXERCISEDB_TARGET,
   FORCES,
-  FREE_DB_FILE,
   LEVELS,
   MATCHES_FILE,
   MECHANICS,
@@ -40,8 +39,10 @@ const credit = z.object({
 const fields = z
   .object({
     name: z.string().trim().min(2).max(120),
+    nameEn: z.string().trim().min(2).max(200).nullable(),
     description: z.string().trim().max(2000).nullable(),
     instructions: z.array(z.string().trim().min(1).max(1000)).max(30),
+    instructionsEn: z.array(z.string().trim().min(1).max(1000)).max(30),
     category: z.enum(CATEGORIES),
     level: z.enum(LEVELS),
     force: z.enum(FORCES).nullable(),
@@ -111,8 +112,38 @@ export function recordOp(ops, committed, op) {
 
 export function removeOp(ops, committed, id) {
   if (committed.has(id)) return { ok: false, error: "Operação já commitada não pode ser removida." };
-  if (!ops.some((o) => o.id === id)) return { ok: false, error: "Operação não encontrada." };
-  return { ok: true, ops: ops.filter((o) => o.id !== id) };
+  const op = ops.find((o) => o.id === id);
+  if (!op) return { ok: false, error: "Operação não encontrada." };
+  const drop = (o) =>
+    o.id === id || (op.type === "create" && !committed.has(o.id) && (o.code === op.code || o.substitute === op.code));
+  const removed = ops.filter(drop);
+  const keys = new Set(removed.filter((o) => o.type === "add-image").map((o) => o.key));
+  const kept = ops
+    .filter((o) => !drop(o))
+    .map((o) =>
+      !committed.has(o.id) && o.type === "update" && o.fields.images?.some((k) => keys.has(k))
+        ? { ...o, fields: { ...o.fields, images: o.fields.images.filter((k) => !keys.has(k)) } }
+        : o,
+    );
+  return { ok: true, ops: kept, removed };
+}
+
+export function discardPending(ops, committed) {
+  return { ops: ops.filter((o) => committed.has(o.id)), removed: ops.filter((o) => !committed.has(o.id)) };
+}
+
+export function pendingChanges(ops, committed) {
+  const state = buildState([]);
+  const changes = [];
+  for (const o of ops) {
+    if (!committed.has(o.id)) {
+      const current = state.get(o.code);
+      const fields = o.type === "update" ? Object.keys(o.fields) : o.type === "link" ? ["openGymId"] : null;
+      changes.push({ ...o, before: fields && Object.fromEntries(fields.map((k) => [k, current?.[k] ?? null])) });
+    }
+    applyOpToState(state, o);
+  }
+  return changes;
 }
 
 const SECONDARY = {
@@ -177,10 +208,6 @@ export function loadOpenGymCatalog() {
 export function loadCatalogState() {
   const rules = existsSync(SUBSTITUTIONS_FILE) ? readJson(SUBSTITUTIONS_FILE).substitutions : [];
   const subs = new Map(rules.map((r) => [r.exercise, r.substitutes ?? []]));
-  const english = new Map([
-    ...readJson(FREE_DB_FILE).map((e) => [e.id, e.name]),
-    ...readJson(EXERCISEDB_FILE).map((x) => [`exercisedb-${x.id}`, x.name]),
-  ]);
   return new Map(
     readExerciseCatalog(CATALOG_FILE).map((e) => [
       e.code,
@@ -188,7 +215,8 @@ export function loadCatalogState() {
         code: e.code,
         name: e.name,
         description: null,
-        nameEn: english.get(e.code) ?? null,
+        nameEn: e.nameEn ?? null,
+        instructionsEn: e.instructionsEn ?? [],
         category: e.category,
         level: e.level,
         force: e.force,
@@ -229,6 +257,7 @@ export function applyOpToState(state, op) {
       code: op.code,
       description: null,
       nameEn: null,
+      instructionsEn: [],
       force: null,
       mechanic: null,
       equipment: null,
@@ -299,6 +328,8 @@ export function maintenanceSeedGuards(ops, catalog) {
 
 const COLUMNS = {
   name: "name",
+  nameEn: "name_en",
+  instructionsEn: "instructions_en",
   description: "description",
   instructions: "instructions",
   category: "category",
@@ -324,9 +355,9 @@ async function applyOpToDb(query, op, uploadImage) {
     const f = op.fields;
     const rows = await query(
       `insert into exercise (
-        code, name, search_text, description, category, level, force, mechanic, equipment,
-        primary_muscles, secondary_muscles, instructions, images, source
-      ) values ($1, $2, unaccent(lower($2)), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'custom')
+        code, name, name_en, search_text, description, category, level, force, mechanic, equipment,
+        primary_muscles, secondary_muscles, instructions, instructions_en, images, source
+      ) values ($1, $2, $13, unaccent(lower(concat_ws(' ', $2::text, $13::text))), $3, $4, $5, $6, $7, $8, $9, $10, $14, $11, $12, 'custom')
       on conflict (code) do nothing
       returning id`,
       [
@@ -342,6 +373,8 @@ async function applyOpToDb(query, op, uploadImage) {
         f.secondaryMuscles ?? [],
         f.instructions ?? [],
         f.images ?? [],
+        f.nameEn ?? null,
+        f.instructionsEn ?? [],
       ],
     );
     return rows.length ? null : "código já existe";
@@ -353,10 +386,14 @@ async function applyOpToDb(query, op, uploadImage) {
   if (op.type === "update") {
     const sets = [];
     const params = [row.id];
+    const text = { name: "name", nameEn: "name_en" };
     for (const [field, value] of Object.entries(op.fields)) {
       params.push(value);
       sets.push(`${COLUMNS[field]} = $${params.length}`);
-      if (field === "name") sets.push(`search_text = unaccent(lower($${params.length}))`);
+      if (field in text) text[field] = `$${params.length}::text`;
+    }
+    if ("name" in op.fields || "nameEn" in op.fields) {
+      sets.push(`search_text = unaccent(lower(concat_ws(' ', ${text.name}, ${text.nameEn})))`);
     }
     if (sets.length) {
       await query(`update exercise set ${sets.join(", ")}, updated_at = now() where id = $1`, params);
