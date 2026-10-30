@@ -3,7 +3,9 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   applyExerciseMaintenance,
+  discardPending,
   maintenanceSeedGuards,
+  pendingChanges,
   recordOp,
   removeOp,
 } from "../scripts/lib/exercise-maintenance.mjs";
@@ -120,6 +122,50 @@ describe("recording operations in the maintenance file", () => {
   it("refuses to remove a committed operation", () => {
     expect(removeOp(base, committed, "c1")).toMatchObject({ ok: false });
   });
+
+  it("discards a new exercise together with every pending change that depends on it", () => {
+    const ops: Op[] = [
+      ...base,
+      { id: "n1", code: "New", type: "create", fields: { name: "Novo" } },
+      { id: "n2", code: "New", type: "update", fields: { level: "expert" } },
+      { id: "n3", code: "A", type: "add-substitute", substitute: "New" },
+      { id: "n4", code: "A", type: "archive" },
+    ];
+    const result = removeOp(ops, committed, "n1");
+    expect(result.ops.map((o: Op) => o.id)).toEqual(["c1", "n4"]);
+    expect(result.removed.map((o: Op) => o.id)).toEqual(["n1", "n2", "n3"]);
+  });
+
+  it("drops a discarded image from the pending image order", () => {
+    const key = "added/a/x1.webp";
+    const ops: Op[] = [
+      ...base,
+      { id: "i1", code: "A", type: "add-image", key, credit: null },
+      { id: "u1", code: "A", type: "update", fields: { images: ["a.jpg", key] } },
+    ];
+    expect(removeOp(ops, committed, "i1").ops.at(-1)).toMatchObject({ fields: { images: ["a.jpg"] } });
+  });
+
+  it("discards every pending operation and keeps the committed ones", () => {
+    const ops: Op[] = [...base, { id: "o1", code: "A", type: "archive" }];
+    expect(discardPending(ops, committed)).toEqual({ ops: base, removed: [ops[1]] });
+  });
+
+  it("lists the pending changes with the committed value of each edited field", () => {
+    const ops: Op[] = [{ id: "c1", code: "Side_Bridge", type: "update", fields: { name: "Prancha" } },
+      { id: "o1", code: "Side_Bridge", type: "update", fields: { name: "Prancha lateral", level: "expert" } }];
+    const [change, ...rest] = pendingChanges(ops, committed);
+    expect(rest).toEqual([]);
+    expect(change).toMatchObject({ id: "o1", before: { name: "Prancha", level: "beginner" } });
+  });
+
+  it("compares an edit of a new exercise with the values it was created with", () => {
+    const ops: Op[] = [
+      { id: "n1", code: "New", type: "create", fields: { name: "Novo", level: "beginner", primaryMuscles: ["chest"] } },
+      { id: "n2", code: "New", type: "update", fields: { level: "expert" } },
+    ];
+    expect(pendingChanges(ops, committed)[1]).toMatchObject({ before: { level: "beginner" } });
+  });
 });
 
 describe("applying maintenance operations on deploy", () => {
@@ -173,6 +219,23 @@ describe("applying maintenance operations on deploy", () => {
       level: "expert",
       primary_muscles: ["abdominals", "glutes"],
     });
+  });
+
+  it("sets the English name and instructions, keeping both names searchable", async () => {
+    await applyExerciseMaintenance(query, [
+      op({ type: "update", code: "Side_Bridge", fields: { nameEn: "Side Bridge", instructionsEn: ["Lie on your side.", "Lift your hips."] } }),
+    ]);
+    expect(await row("Side_Bridge")).toMatchObject({
+      name: "Prancha Lateral",
+      name_en: "Side Bridge",
+      instructions_en: ["Lie on your side.", "Lift your hips."],
+      search_text: "prancha lateral side bridge",
+    });
+
+    await applyExerciseMaintenance(query, [
+      op({ type: "update", code: "Side_Bridge", fields: { name: "Prancha de Lado", nameEn: null } }),
+    ]);
+    expect(await row("Side_Bridge")).toMatchObject({ name_en: null, search_text: "prancha de lado" });
   });
 
   it("archives and restores", async () => {

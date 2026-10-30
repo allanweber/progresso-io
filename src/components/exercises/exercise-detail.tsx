@@ -168,6 +168,11 @@ export function ExerciseDetail({
               </Badge>
             )}
           </div>
+          {data.nameEn && (
+            <p lang="en" className="mt-1 text-sm text-muted-foreground">
+              {data.nameEn}
+            </p>
+          )}
           {data.clinicName && (
             <p className="mt-1 text-sm text-muted-foreground">{data.clinicName}</p>
           )}

@@ -10,6 +10,11 @@ import type {
   ExerciseMechanic,
   Muscle,
 } from "@/db/schema";
+import {
+  exerciseSearchConditions,
+  exerciseSearchRank,
+  exerciseSearchText,
+} from "@/server/dal/exercise-search";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -32,6 +37,7 @@ export type ExerciseListItem = {
   id: string;
   code: string | null;
   name: string;
+  nameEn: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
   equipment: ExerciseEquipment | null;
@@ -85,13 +91,9 @@ function listWhere(ctx: TenantContext, params: ExerciseListParams) {
   const term = params.search?.trim();
   if (term) {
     // Each whitespace token must appear in the (already unaccented) search_text,
-    // matching how it was built at seed time — so accents and case don't matter;
-    // the GIN trigram index accelerates it.
-    for (const token of term.split(/\s+/)) {
-      conds.push(
-        sql`${schema.exercise.searchText} like '%' || unaccent(lower(${token})) || '%'`,
-      );
-    }
+    // which holds both the PT-BR and the English name — so either language,
+    // accents and case don't matter; the GIN trigram index accelerates it.
+    conds.push(...exerciseSearchConditions(term));
   }
   return and(...conds);
 }
@@ -115,7 +117,7 @@ export async function listExercises(
 
   const orderBy = term
     ? [
-        desc(sql`similarity(${schema.exercise.searchText}, unaccent(lower(${term})))`),
+        desc(exerciseSearchRank(term)),
         asc(schema.exercise.name),
       ]
     : [asc(schema.exercise.name), asc(schema.exercise.id)];
@@ -125,6 +127,7 @@ export async function listExercises(
       id: schema.exercise.id,
       code: schema.exercise.code,
       name: schema.exercise.name,
+      nameEn: schema.exercise.nameEn,
       category: schema.exercise.category,
       level: schema.exercise.level,
       equipment: schema.exercise.equipment,
@@ -161,6 +164,7 @@ export async function listExercises(
  */
 export type ExerciseWriteInput = {
   name: string;
+  nameEn: string | null;
   description: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
@@ -170,6 +174,7 @@ export type ExerciseWriteInput = {
   primaryMuscles: Muscle[];
   secondaryMuscles: Muscle[];
   instructions: string[];
+  instructionsEn: string[];
   images: string[];
 };
 
@@ -177,8 +182,9 @@ export type ExerciseWriteInput = {
 function exerciseValues(input: ExerciseWriteInput) {
   return {
     name: input.name,
+    nameEn: input.nameEn,
     description: input.description,
-    searchText: sql`unaccent(lower(${input.name}))`,
+    searchText: exerciseSearchText(input.name, input.nameEn),
     category: input.category,
     level: input.level,
     force: input.force,
@@ -187,6 +193,7 @@ function exerciseValues(input: ExerciseWriteInput) {
     primaryMuscles: input.primaryMuscles,
     secondaryMuscles: input.secondaryMuscles,
     instructions: input.instructions,
+    instructionsEn: input.instructionsEn,
     images: input.images,
   };
 }

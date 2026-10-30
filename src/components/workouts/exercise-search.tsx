@@ -190,7 +190,9 @@ export function ExerciseSearch({
                       {f.name}
                     </span>
                     <span className="block truncate text-label text-muted-foreground">
-                      {CATEGORY_LABELS[f.category]}
+                      {f.nameEn
+                        ? `${CATEGORY_LABELS[f.category]} · ${f.nameEn}`
+                        : CATEGORY_LABELS[f.category]}
                     </span>
                   </button>
                 </li>

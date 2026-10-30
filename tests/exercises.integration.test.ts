@@ -17,6 +17,7 @@ let ctxB: TenantContext;
 async function addExercise(e: {
   code?: string | null;
   name: string;
+  nameEn?: string | null;
   category?: schema.ExerciseCategory;
   level?: schema.ExerciseLevel;
   force?: schema.ExerciseForce | null;
@@ -35,7 +36,8 @@ async function addExercise(e: {
     .values({
       code: e.code ?? null,
       name: e.name,
-      searchText: sql`unaccent(lower(${e.name}))`,
+      nameEn: e.nameEn ?? null,
+      searchText: sql`unaccent(lower(concat_ws(' ', ${e.name}::text, ${e.nameEn ?? null}::text)))`,
       category: e.category ?? "strength",
       level: e.level ?? "beginner",
       force: e.force ?? null,
@@ -44,6 +46,7 @@ async function addExercise(e: {
       primaryMuscles: e.primaryMuscles ?? [],
       secondaryMuscles: e.secondaryMuscles ?? [],
       instructions: e.instructions ?? [],
+      instructionsEn: [],
       images: e.images ?? [],
       clinicId: e.clinicId ?? null,
       archived: e.archived ?? false,
@@ -82,6 +85,7 @@ beforeAll(async () => {
   agachamentoId = await addExercise({
     code: "Barbell_Squat",
     name: "Agachamento com barra",
+    nameEn: "Barbell Squat",
     category: "strength",
     level: "intermediate",
     force: "push",
@@ -164,6 +168,14 @@ describe("exercises DAL", () => {
     expect(hit.items).toHaveLength(0);
     const squat = await exercises.listExercises(ctxA, { search: "AGACHAMENTO" });
     expect(squat.items.map((i) => i.name)).toContain("Agachamento com barra");
+  });
+
+  it("searches the PT-BR and the English name at the same time", async () => {
+    for (const search of ["barbell squat", "SQUAT", "agachamento barbell"]) {
+      const result = await exercises.listExercises(ctxA, { search });
+      expect(result.items.map((i) => i.name)).toEqual(["Agachamento com barra"]);
+      expect(result.items[0].nameEn).toBe("Barbell Squat");
+    }
   });
 
   it("filters by category, level, equipment and muscle", async () => {
@@ -335,6 +347,7 @@ describe("exercises DAL", () => {
   it("lets a coach create, edit and archive its own custom exercise", async () => {
     const created = await exercises.createExercise(ctxA, {
       name: "Rosca direta com halteres",
+      nameEn: null,
       description: "Bíceps com halteres.",
       category: "strength",
       level: "beginner",
@@ -344,6 +357,7 @@ describe("exercises DAL", () => {
       primaryMuscles: ["biceps"],
       secondaryMuscles: ["forearms"],
       instructions: ["Segure os halteres.", "Flexione os cotovelos."],
+      instructionsEn: [],
       images: ["custom/a.jpg"],
     });
     // The DAL derives the tenant/origin — never the payload.
@@ -363,6 +377,7 @@ describe("exercises DAL", () => {
     expect(
       await exercises.updateExercise(ctxB, created.id, {
         name: "Sequestro",
+        nameEn: null,
         description: null,
         category: "strength",
         level: "beginner",
@@ -372,11 +387,13 @@ describe("exercises DAL", () => {
         primaryMuscles: [],
         secondaryMuscles: [],
         instructions: [],
+        instructionsEn: [],
         images: [],
       }),
     ).toBeNull();
     const updated = await exercises.updateExercise(ctxA, created.id, {
       name: "Rosca alternada",
+      nameEn: null,
       description: null,
       category: "strength",
       level: "beginner",
@@ -386,6 +403,7 @@ describe("exercises DAL", () => {
       primaryMuscles: ["biceps"],
       secondaryMuscles: [],
       instructions: ["Alterne os braços."],
+      instructionsEn: [],
       images: [],
     });
     expect(updated?.name).toBe("Rosca alternada");
@@ -401,6 +419,7 @@ describe("exercises DAL", () => {
   it("does not let a coach edit or archive a base exercise", async () => {
     const noop = {
       name: "hijack",
+      nameEn: null,
       description: null,
       category: "strength" as const,
       level: "beginner" as const,
@@ -410,6 +429,7 @@ describe("exercises DAL", () => {
       primaryMuscles: [],
       secondaryMuscles: [],
       instructions: [],
+      instructionsEn: [],
       images: [],
     };
     expect(await exercises.updateExercise(ctxA, agachamentoId, noop)).toBeNull();

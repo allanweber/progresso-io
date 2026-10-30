@@ -152,6 +152,7 @@ describe("admin exercises — base CRUD", () => {
   it("creates a base exercise visible to every clinic", async () => {
     const created = await admin.createBaseExercise(adb(), {
       name: "Remada curvada base",
+      nameEn: null,
       description: "Exercício de costas.",
       category: "strength",
       level: "intermediate",
@@ -161,6 +162,7 @@ describe("admin exercises — base CRUD", () => {
       primaryMuscles: ["middle_back"],
       secondaryMuscles: ["biceps"],
       instructions: ["Incline o tronco.", "Puxe a barra."],
+      instructionsEn: [],
       images: ["custom/rem.jpg"],
     });
     expect(created.clinicId).toBeNull();
@@ -176,6 +178,7 @@ describe("admin exercises — base CRUD", () => {
   it("edits/archives base only — a clinic exercise is read-only here", async () => {
     const updated = await admin.updateBaseExercise(adb(), baseLegPress, {
       name: "Leg press renomeado",
+      nameEn: null,
       description: null,
       category: "strength",
       level: "beginner",
@@ -185,6 +188,7 @@ describe("admin exercises — base CRUD", () => {
       primaryMuscles: ["quadriceps"],
       secondaryMuscles: [],
       instructions: [],
+      instructionsEn: [],
       images: [],
     });
     expect(updated?.name).toBe("Leg press renomeado");
@@ -192,6 +196,7 @@ describe("admin exercises — base CRUD", () => {
     // A clinic exercise can't be edited or archived through the base path.
     const clinicEdit = await admin.updateBaseExercise(adb(), clinicAExercise, {
       name: "Sequestro",
+      nameEn: null,
       description: null,
       category: "strength",
       level: "beginner",
@@ -201,6 +206,7 @@ describe("admin exercises — base CRUD", () => {
       primaryMuscles: [],
       secondaryMuscles: [],
       instructions: [],
+      instructionsEn: [],
       images: [],
     });
     expect(clinicEdit).toBeNull();
@@ -263,5 +269,35 @@ describe("admin exercises — openGym link filter", () => {
 
     const all = await admin.listAllExercises(adb());
     expect(linked.total + unlinked.total).toBe(all.total);
+  });
+
+  it("searches both languages after a rename", async () => {
+    await db
+      .update(schema.exercise)
+      .set({ nameEn: "Dumbbell Lunge", searchText: "afundo com halteres dumbbell lunge" })
+      .where(sql`${schema.exercise.id} = ${baseLunge}`);
+    await admin.updateBaseExercise(adb(), baseLunge, {
+      name: "Avanço com halteres",
+      nameEn: "Dumbbell Lunge",
+      description: null,
+      category: "strength",
+      level: "beginner",
+      force: null,
+      mechanic: null,
+      equipment: "dumbbell",
+      primaryMuscles: ["quadriceps"],
+      secondaryMuscles: [],
+      instructions: [],
+      instructionsEn: [],
+      images: [],
+    });
+
+    for (const search of ["dumbbell lunge", "avanco", "avanço lunge"]) {
+      const result = await admin.listAllExercises(adb(), { search });
+      expect(result.items.map((e) => [e.name, e.nameEn])).toEqual([
+        ["Avanço com halteres", "Dumbbell Lunge"],
+      ]);
+    }
+    expect((await admin.listAllExercises(adb(), { search: "afundo" })).total).toBe(0);
   });
 });

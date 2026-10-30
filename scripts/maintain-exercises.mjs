@@ -7,10 +7,12 @@ import { z } from "zod";
 import {
   addedImageFile,
   buildState,
+  discardPending,
   loadOpenGymCatalog,
   newOpId,
   opInput,
   OPS_FILE,
+  pendingChanges,
   PROPOSALS_FILE,
   readOps,
   recordOp,
@@ -164,14 +166,22 @@ async function addImage(body) {
   return result;
 }
 
+function drop(next, removed) {
+  ops = next;
+  writeOps(ops);
+  for (const op of removed) if (op.type === "add-image") rmSync(addedImageFile(op.key), { force: true });
+  return { status: 200, body: snapshot() };
+}
+
 function deleteOp(id) {
-  const op = ops.find((o) => o.id === id);
   const result = removeOp(ops, committedIds(), id);
   if (!result.ok) return { status: 409, body: { error: result.error } };
-  ops = result.ops;
-  writeOps(ops);
-  if (op?.type === "add-image") rmSync(addedImageFile(op.key), { force: true });
-  return { status: 200, body: snapshot() };
+  return drop(result.ops, result.removed);
+}
+
+function deletePending() {
+  const result = discardPending(ops, committedIds());
+  return drop(result.ops, result.removed);
 }
 
 createServer(async (req, res) => {
@@ -213,6 +223,15 @@ createServer(async (req, res) => {
   }
   if (req.method === "POST" && url.pathname === "/api/images") {
     const result = await addImage(await readBody(req));
+    send(res, result.status, result.body);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/api/pending") {
+    send(res, 200, { changes: pendingChanges(ops, committedIds()) });
+    return;
+  }
+  if (req.method === "DELETE" && url.pathname === "/api/ops") {
+    const result = deletePending();
     send(res, result.status, result.body);
     return;
   }

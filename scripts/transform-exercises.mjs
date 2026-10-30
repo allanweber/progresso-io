@@ -13,8 +13,8 @@
 // in src/lib/exercises.ts, mirroring how the food catalog labels its nutrients.
 //
 // Output format (one JSON object per line; the seed in scripts/migrate.mjs reads it):
-//   { code, name, category, level, force, mechanic, equipment,
-//     primaryMuscles:[...], secondaryMuscles:[...], instructions:[...], images:[...] }
+//   { code, name, nameEn, category, level, force, mechanic, equipment,
+//     primaryMuscles:[...], secondaryMuscles:[...], instructions:[...], instructionsEn:[...], images:[...] }
 //
 // `code` is the source id (e.g. "3_4_Sit-Up"); it doubles as the image folder.
 //
@@ -22,7 +22,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";
-import { EXERCISEDB_PTBR_FILE, MATCHES_FILE } from "./lib/exercisedb-vocab.mjs";
+import { EXERCISEDB_FILE, EXERCISEDB_PTBR_FILE, MATCHES_FILE } from "./lib/exercisedb-vocab.mjs";
 
 const SRC = join(process.cwd(), "drizzle", "data", "exercises-src");
 const A_FILE = join(SRC, "free-exercise-db.json");
@@ -69,6 +69,11 @@ const openGymIdByCode = new Map(matches.filter((m) => m.code).map((m) => [m.code
 const exerciseDb = existsSync(EXERCISEDB_PTBR_FILE)
   ? JSON.parse(readFileSync(EXERCISEDB_PTBR_FILE, "utf8")).exercises
   : [];
+const exerciseDbEnglish = new Map(
+  existsSync(EXERCISEDB_FILE)
+    ? JSON.parse(readFileSync(EXERCISEDB_FILE, "utf8")).map((x) => [x.id, x])
+    : [],
+);
 const wgerImages = existsSync(WGER_IMAGES_FILE)
   ? JSON.parse(readFileSync(WGER_IMAGES_FILE, "utf8"))
   : {};
@@ -96,7 +101,9 @@ const freeDbExercises = aRows.map((en) => {
     code: en.id,
     // PT-BR text from B; fall back to the English source if a row lacks it.
     name: pt?.name ?? en.name,
+    nameEn: en.name,
     instructions: pt?.instructions ?? en.instructions ?? [],
+    instructionsEn: en.instructions ?? [],
     category,
     level,
     force,
@@ -124,7 +131,9 @@ const exerciseDbExercises = exerciseDb.map((e) => {
   return {
     code,
     name: e.name,
+    nameEn: exerciseDbEnglish.get(e.id)?.name ?? null,
     instructions: e.instructions,
+    instructionsEn: exerciseDbEnglish.get(e.id)?.instructions ?? [],
     category: e.category,
     level: e.level,
     force: e.force,

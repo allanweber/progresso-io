@@ -42,7 +42,7 @@ import {
  * library and the admin base catalog (they differ only in the endpoints, cache
  * keys and redirect path). It POSTs to the collection or PUTs to the item, both
  * via TanStack Query, validating with the exact zod schema the API uses. Free
- * text is limited to name, description and the instruction steps; every other
+ * text is limited to the names, description and the instruction steps; every other
  * field is a fixed enum (per the project rule). Images are uploaded to R2 first
  * (each returns a stored key), then saved with the exercise.
  */
@@ -72,6 +72,7 @@ async function uploadImage(endpoint: string, file: File): Promise<string> {
 export type ExerciseFormSource = {
   id: string;
   name: string;
+  nameEn: string | null;
   description: string | null;
   category: ExerciseCategory;
   level: ExerciseLevel;
@@ -81,11 +82,13 @@ export type ExerciseFormSource = {
   primaryMuscles: Muscle[];
   secondaryMuscles: Muscle[];
   instructions: string[];
+  instructionsEn: string[];
   images: string[];
 };
 
 type Values = {
   name: string;
+  nameEn: string;
   description: string;
   category: ExerciseCategory | "";
   level: ExerciseLevel | "";
@@ -95,11 +98,13 @@ type Values = {
   primaryMuscles: Muscle[];
   secondaryMuscles: Muscle[];
   instructions: string[];
+  instructionsEn: string[];
   images: string[];
 };
 
 const EMPTY: Values = {
   name: "",
+  nameEn: "",
   description: "",
   category: "",
   level: "",
@@ -109,12 +114,14 @@ const EMPTY: Values = {
   primaryMuscles: [],
   secondaryMuscles: [],
   instructions: [],
+  instructionsEn: [],
   images: [],
 };
 
 function toValues(e: ExerciseFormSource): Values {
   return {
     name: e.name,
+    nameEn: e.nameEn ?? "",
     description: e.description ?? "",
     category: e.category,
     level: e.level,
@@ -124,6 +131,7 @@ function toValues(e: ExerciseFormSource): Values {
     primaryMuscles: e.primaryMuscles,
     secondaryMuscles: e.secondaryMuscles,
     instructions: e.instructions,
+    instructionsEn: e.instructionsEn,
     images: e.images,
   };
 }
@@ -271,6 +279,21 @@ export function ExerciseForm({
             onBlur={field.handleBlur}
             onChange={(e) => field.handleChange(e.target.value)}
             error={fieldError(field, serverErrors?.name)}
+          />
+        )}
+      </form.Field>
+
+      <form.Field name="nameEn">
+        {(field) => (
+          <Field
+            id="nameEn"
+            label="Nome em inglês (opcional)"
+            placeholder="Ex.: Dumbbell Squat"
+            lang="en"
+            value={field.state.value}
+            onBlur={field.handleBlur}
+            onChange={(e) => field.handleChange(e.target.value)}
+            error={fieldError(field, serverErrors?.nameEn)}
           />
         )}
       </form.Field>
@@ -430,59 +453,67 @@ export function ExerciseForm({
         )}
       </form.Field>
 
-      {/* Instructions (steps) */}
-      <form.Field name="instructions" mode="array">
-        {(field) => (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Como executar (passos)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => field.pushValue("")}
-              >
-                <Plus className="size-4" />
-                Adicionar passo
-              </Button>
+      {/* Instructions (steps), in PT-BR and in English */}
+      {(
+        [
+          ["instructions", "Como executar (passos)", "pt-BR", "Passo"],
+          ["instructionsEn", "Como executar em inglês (opcional)", "en", "Step"],
+        ] as const
+      ).map(([list, title, lang, step]) => (
+        <form.Field key={list} name={list} mode="array">
+          {(field) => (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label>{title}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => field.pushValue("")}
+                >
+                  <Plus className="size-4" />
+                  Adicionar passo
+                </Button>
+              </div>
+              {field.state.value.length === 0 ? (
+                <p className="text-body-dense text-muted-foreground">
+                  Nenhum passo. Adicione as instruções de execução, uma por passo.
+                </p>
+              ) : (
+                <ol className="space-y-2">
+                  {field.state.value.map((_, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="mt-2.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
+                        {i + 1}
+                      </span>
+                      <form.Field name={`${list}[${i}]`}>
+                        {(sub) => (
+                          <Textarea
+                            className="min-h-[44px] flex-1"
+                            placeholder={`${step} ${i + 1}`}
+                            lang={lang}
+                            value={sub.state.value}
+                            onBlur={sub.handleBlur}
+                            onChange={(e) => sub.handleChange(e.target.value)}
+                          />
+                        )}
+                      </form.Field>
+                      <button
+                        type="button"
+                        onClick={() => field.removeValue(i)}
+                        aria-label={`Remover passo ${i + 1}${list === "instructionsEn" ? " em inglês" : ""}`}
+                        className="mt-2 shrink-0 rounded-full p-1.5 text-meta transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
-            {field.state.value.length === 0 ? (
-              <p className="text-body-dense text-muted-foreground">
-                Nenhum passo. Adicione as instruções de execução, uma por passo.
-              </p>
-            ) : (
-              <ol className="space-y-2">
-                {field.state.value.map((_, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="mt-2.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
-                      {i + 1}
-                    </span>
-                    <form.Field name={`instructions[${i}]`}>
-                      {(sub) => (
-                        <Textarea
-                          className="min-h-[44px] flex-1"
-                          placeholder={`Passo ${i + 1}`}
-                          value={sub.state.value}
-                          onBlur={sub.handleBlur}
-                          onChange={(e) => sub.handleChange(e.target.value)}
-                        />
-                      )}
-                    </form.Field>
-                    <button
-                      type="button"
-                      onClick={() => field.removeValue(i)}
-                      aria-label={`Remover passo ${i + 1}`}
-                      className="mt-2 shrink-0 rounded-full p-1.5 text-meta transition-colors hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        )}
-      </form.Field>
+          )}
+        </form.Field>
+      ))}
 
       <div className="flex items-center gap-3 pt-1">
         <Button type="submit" disabled={mutation.isPending || uploadingImages}>
