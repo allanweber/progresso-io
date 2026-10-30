@@ -41,6 +41,9 @@
   .panel { background: var(--bg); border-radius: 16px; box-shadow: var(--shadow); }
   .list { display: flex; flex-direction: column; overflow: hidden; }
   .list-count { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .bulk span:last-child { display: flex; gap: 6px; }
+  .bulk button { padding: 4px 10px; font-size: 12px; }
   @media (max-width: 900px) { .list { position: static; max-height: 50vh; } }
   .list-controls { display: grid; gap: 8px; padding: 16px; border-bottom: 1px solid var(--border-light, var(--border)); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -140,6 +143,7 @@
           <option value="unlinked">Sem vínculo (pendente)</option>
           <option value="linked">Vinculados</option>
           <option value="nomatch">Sem equivalente</option>
+          <option value="imported">Importados sem par nosso</option>
         </select>
       </div>
       <div class="row2">
@@ -151,7 +155,10 @@
         <label class="check"><input type="checkbox" id="f-edited"> Só editados</label>
       </div>
       <button id="new">+ Novo exercício</button>
-      <span class="list-count" id="list-count"></span>
+      <div class="bulk">
+        <span class="list-count" id="list-count"></span>
+        <span id="bulk"></span>
+      </div>
     </div>
     <div class="items" id="items"></div>
   </aside>
@@ -239,11 +246,12 @@ function proposalFor(code) {
 
 function listMatches(e) {
   const f = (id) => $(id).value;
-  if (f("f-origin") && e.source !== f("f-origin")) return false;
   const og = f("f-opengym");
+  if (og !== "imported" && f("f-origin") && e.source !== f("f-origin")) return false;
   if (og === "linked" && !e.openGymId) return false;
   if (og === "unlinked" && (e.openGymId || e.noMatch)) return false;
   if (og === "nomatch" && !e.noMatch) return false;
+  if (og === "imported" && (e.source !== "exercisedb" || !e.openGymId)) return false;
   const ar = f("f-archived");
   if (ar === "active" && e.archived) return false;
   if (ar === "archived" && !e.archived) return false;
@@ -256,10 +264,16 @@ function renderList() {
   const all = state.exercises.filter(listMatches);
   const shown = all.slice(0, 300);
   $("list-count").textContent = `${all.length} ${all.length === 1 ? "exercício" : "exercícios"}`;
+  const archivable = all.filter((e) => !e.archived).length;
+  $("bulk").innerHTML = !archivable ? ""
+    : state.confirmBulk === archivable
+      ? `<button class="danger" data-bulk-confirm>Confirmar: arquivar ${archivable}</button><button data-bulk-cancel>Cancelar</button>`
+      : `<button class="danger" data-bulk-archive>Arquivar todos (${archivable})</button>`;
   $("items").innerHTML = shown.map((e) => {
     const chips = [
       e.archived ? `<span class="chip neutral">arquivado</span>` : "",
-      e.openGymId ? `<span class="chip ok">#${esc(e.openGymId)}</span>` : e.noMatch ? `<span class="chip neutral">sem eq.</span>` : "",
+      e.openGymId && e.source === "exercisedb" ? `<span class="chip warn">importado</span>`
+        : e.openGymId ? `<span class="chip ok">#${esc(e.openGymId)}</span>` : e.noMatch ? `<span class="chip neutral">sem eq.</span>` : "",
       !e.openGymId && !e.noMatch && proposalFor(e.code) ? `<span class="chip warn">sugestão</span>` : "",
       e.edited ? `<span class="chip info">editado</span>` : "",
     ].join("");
@@ -300,21 +314,58 @@ function candidateCard(e, c, suggestion) {
 
 function rankedCandidates(e) {
   const f = state.filters;
-  const q = fold(f.q.trim());
-  const en = grams(e.nameEn ?? e.name);
-  const pt = grams(e.name);
+  const q = fold(f.q.trim()).replace(/^#/, "");
+  const words = q.split(/\s+/).filter(Boolean);
+  const en = grams(q || (e.nameEn ?? e.name));
+  const pt = grams(q || e.name);
   return state.openGym
-    .filter((c) => (!f.muscle || c.primaryMuscles.includes(f.muscle) || c.secondaryMuscles.includes(f.muscle))
-      && (!f.equipment || c.equipment === f.equipment) && (!f.bodyPart || c.bodyPart === f.bodyPart)
-      && (!q || fold(`${c.name} ${c.nameEn} ${c.id}`).includes(q)))
-    .map((c) => ({ c, s: Math.max(similarity(en, grams(c.nameEn)), similarity(pt, grams(c.name))) + (holderOf(c.id, e.code)?.source === "free-exercise-db" ? -0.2 : 0) }))
+    .filter((c) => words.length
+      ? words.every((w) => fold(`${c.name} ${c.nameEn} ${c.id}`).includes(w))
+      : (!f.muscle || c.primaryMuscles.includes(f.muscle) || c.secondaryMuscles.includes(f.muscle))
+        && (!f.equipment || c.equipment === f.equipment) && (!f.bodyPart || c.bodyPart === f.bodyPart))
+    .map((c) => ({ c, s: (c.id === q ? 2 : 0) + Math.max(similarity(en, grams(c.nameEn)), similarity(pt, grams(c.name)))
+      + (holderOf(c.id, e.code)?.source === "free-exercise-db" ? -0.2 : 0) }))
     .sort((a, b) => b.s - a.s).slice(0, 30).map((x) => x.c);
+}
+
+function importedBlock(e) {
+  const q = fold(state.filters.q.trim());
+  const words = q.split(/\s+/).filter(Boolean);
+  const pt = grams(q || e.name);
+  const en = grams(q || (e.nameEn ?? e.name));
+  const ours = state.exercises
+    .filter((x) => x.source !== "exercisedb" && !x.archived && !x.openGymId
+      && words.every((w) => fold(`${x.name} ${x.nameEn ?? ""} ${x.code}`).includes(w)))
+    .map((x) => ({ x, s: Math.max(similarity(pt, grams(x.name)), similarity(en, grams(x.nameEn ?? ""))) }))
+    .sort((a, b) => b.s - a.s).slice(0, 15).map((r) => r.x);
+  return `<section class="panel block">
+    <h3>openGym</h3>
+    <p style="margin:0"><span class="chip warn">importado #${esc(e.openGymId)}</span> Nenhum exercício nosso está vinculado a este. Arquive-o ou mescle-o em um dos nossos.</p>
+    <div class="filters" style="grid-template-columns: 1fr">
+      <input data-f="q" type="search" value="${esc(state.filters.q)}" placeholder="Buscar entre os nossos sem vínculo…">
+    </div>
+    <div class="cands">
+      ${ours.map((x) => {
+        const confirming = state.confirmMerge === x.code;
+        return `<div class="cand">
+          <div class="t">${esc(x.name)}</div>
+          <div class="r">${confirming
+            ? `<button class="primary" data-merge-into="${esc(x.code)}" data-confirmed>Confirmar mesclagem</button>`
+            : `<button data-merge-into="${esc(x.code)}">Mesclar neste</button>`}</div>
+          <div class="muted small">${esc(x.nameEn ?? "")} · ${esc(L.equipment[x.equipment] ?? "Sem equipamento")} · ${esc(x.code)}</div>
+          <div class="small">${x.primaryMuscles.map((m) => esc(L.muscles[m] ?? m)).join(", ")}</div>
+          ${confirming ? `<div class="notice" style="grid-column: 1 / -1">"${esc(x.name)}" recebe o #${esc(e.openGymId)}; "${esc(e.name)}" será arquivado e todos os treinos e substituições que o usam passarão para "${esc(x.name)}". A mesclagem não pode ser desfeita depois de commitada.</div>` : ""}
+        </div>`;
+      }).join("") || `<div class="empty">Nenhum exercício nosso sem vínculo encontrado.</div>`}
+    </div>
+  </section>`;
 }
 
 function openGymBlock(e) {
   if (e.source === "exercisedb" && !e.openGymId) {
     return `<section class="panel block"><h3>openGym</h3><p class="muted">Importado do openGym${e.mergedInto ? `, mesclado em ${esc(state.byCode.get(e.mergedInto)?.name ?? e.mergedInto)}` : ""}.</p></section>`;
   }
+  if (e.source === "exercisedb") return importedBlock(e);
   const current = e.openGymId ? state.openGym.find((c) => c.id === e.openGymId) : null;
   const p = proposalFor(e.code);
   const suggested = p && p.id !== e.openGymId ? state.openGym.find((c) => c.id === p.id) : null;
@@ -331,8 +382,9 @@ function openGymBlock(e) {
       <select data-f="muscle">${options(L.muscles, f.muscle, "Todos os músculos")}</select>
       <select data-f="equipment">${options(L.equipment, f.equipment, "Todos os equipamentos")}</select>
       <select data-f="bodyPart">${options(L.bodyPart, f.bodyPart, "Todas as regiões")}</select>
-      <input data-f="q" value="${esc(f.q)}" placeholder="Nome ou #id">
+      <input data-f="q" type="search" value="${esc(f.q)}" placeholder="Buscar em português ou inglês, ou #id">
     </div>
+    ${f.q.trim() ? `<p class="muted small" style="margin:-4px 0 12px">Buscando em todo o openGym; os filtros acima não se aplicam.</p>` : ""}
     <div class="cands">
       ${suggested ? candidateCard(e, suggested, p.kind) : ""}
       ${list.length ? list.map((c) => candidateCard(e, c)).join("") : `<div class="empty">Nenhum candidato com esses filtros.</div>`}
@@ -478,10 +530,32 @@ function nextUnlinked(code) {
 
 ["q", "f-origin", "f-opengym", "f-archived", "f-edited"].forEach((id) =>
   $(id).addEventListener(id === "q" ? "input" : "change", () => {
+    state.confirmBulk = null;
     remember(`maintain:${id}`, $(id).type === "checkbox" ? String($(id).checked) : $(id).value);
+    if (id === "f-opengym" && $(id).value === "imported") {
+      for (const [other, value] of [["q", ""], ["f-origin", ""], ["f-archived", "active"]]) { $(other).value = value; remember(`maintain:${other}`, value); }
+      $("f-edited").checked = false;
+      remember("maintain:f-edited", "false");
+      const first = state.exercises.find(listMatches)?.code;
+      if (first) return select(first);
+    }
     renderList();
   }));
 $("items").addEventListener("click", (ev) => { const it = ev.target.closest("[data-code]"); if (it) select(it.dataset.code); });
+$("bulk").addEventListener("click", async (ev) => {
+  const d = ev.target.closest("button")?.dataset;
+  if (!d) return;
+  const codes = state.exercises.filter(listMatches).filter((e) => !e.archived).map((e) => e.code);
+  if ("bulkArchive" in d) { state.confirmBulk = codes.length; return renderList(); }
+  state.confirmBulk = null;
+  if ("bulkCancel" in d) return renderList();
+  if (!("bulkConfirm" in d)) return;
+  if (await call("POST", "/api/archive", { codes })) {
+    setStatus(`${codes.length} exercícios arquivados`);
+    return select(state.exercises.find(listMatches)?.code ?? null);
+  }
+  renderList();
+});
 $("new").addEventListener("click", () => { state.creating = true; state.selected = null; render(); });
 
 const editorClick = async (ev) => {
@@ -510,6 +584,13 @@ const editorClick = async (ev) => {
   else if ("nomatch" in d) {
     ok = await op({ type: "link", code: e.code, openGymId: null });
     if (ok && $("f-opengym").value === "unlinked") { const next = nextUnlinked(e.code); if (next) return select(next); }
+  } else if (d.mergeInto) {
+    if (!("confirmed" in d)) { state.confirmMerge = d.mergeInto; return renderEditor(); }
+    const list = state.exercises.filter(listMatches);
+    const i = list.findIndex((x) => x.code === e.code);
+    const next = (list[i + 1] ?? list[i - 1])?.code;
+    ok = await op({ type: "link", code: d.mergeInto, openGymId: e.openGymId });
+    if (ok && next) return select(next);
   } else if (d.link) {
     const holder = holderOf(d.link, e.code);
     if (holder && !("confirmed" in d)) { state.confirmMerge = d.link; return renderEditor(); }

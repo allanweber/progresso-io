@@ -107,6 +107,24 @@ function record(input) {
   return { status: 200, body: { ...snapshot(), code: parsed.data.code } };
 }
 
+const bulkArchive = z.object({ codes: z.array(z.string().min(1).max(120)).min(1).max(5000) });
+
+function archiveAll(body) {
+  const parsed = bulkArchive.safeParse(body);
+  if (!parsed.success) return { status: 422, body: { error: "Lista inválida." } };
+  const state = buildState(ops);
+  const codes = [...new Set(parsed.data.codes)];
+  const missing = codes.find((c) => !state.has(c));
+  if (missing) return { status: 404, body: { error: `Exercício não encontrado: ${missing}` } };
+  const committed = committedIds();
+  const at = new Date().toISOString();
+  for (const code of codes.filter((c) => !state.get(c).archived)) {
+    ops = recordOp(ops, committed, { id: newOpId(), at, type: "archive", code });
+  }
+  writeOps(ops);
+  return { status: 200, body: snapshot() };
+}
+
 const imageUpload = z.object({
   code: z.string().min(1).max(120),
   data: z.string().min(1),
@@ -185,6 +203,11 @@ createServer(async (req, res) => {
   }
   if (req.method === "POST" && url.pathname === "/api/ops") {
     const result = record(await readBody(req));
+    send(res, result.status, result.body);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/api/archive") {
+    const result = archiveAll(await readBody(req));
     send(res, result.status, result.body);
     return;
   }
