@@ -1134,6 +1134,5864 @@
    "type": "link",
    "code": "Butt_Lift_Bridge",
    "openGymId": "3013"
+  },
+  {
+   "id": "mvtj8095-efcbfe",
+   "at": "2026-10-29T12:41:07.913Z",
+   "type": "link",
+   "code": "Front_Two-Dumbbell_Raise",
+   "openGymId": "0309"
+  },
+  {
+   "id": "mvtj8687-a2e2b0",
+   "at": "2026-10-29T12:41:15.655Z",
+   "type": "archive",
+   "code": "Dumbbell_Scaption"
+  },
+  {
+   "id": "mvtj8q3o-c8e83f",
+   "at": "2026-10-29T12:41:41.412Z",
+   "type": "link",
+   "code": "Front_Incline_Dumbbell_Raise",
+   "openGymId": "0392"
+  },
+  {
+   "id": "mvtj93zf-d538aa",
+   "at": "2026-10-29T12:41:59.403Z",
+   "type": "link",
+   "code": "Floor_Glute-Ham_Raise",
+   "openGymId": "0696"
+  },
+  {
+   "id": "mvtj973b-9f65ef",
+   "at": "2026-10-29T12:42:03.431Z",
+   "type": "link",
+   "code": "Lateral_Raise_-_With_Bands",
+   "openGymId": "0977"
+  },
+  {
+   "id": "mvtj9brt-8b2653",
+   "at": "2026-10-29T12:42:09.497Z",
+   "type": "link",
+   "code": "Standing_Low-Pulley_Deltoid_Raise",
+   "openGymId": "0192"
+  },
+  {
+   "id": "mvtj9es8-45c9fc",
+   "at": "2026-10-29T12:42:13.400Z",
+   "type": "archive",
+   "code": "Side_Leg_Raises"
+  },
+  {
+   "id": "mvtj9s9a-f68fc7",
+   "at": "2026-10-29T12:42:30.862Z",
+   "type": "link",
+   "code": "Cable_Seated_Lateral_Raise",
+   "openGymId": "0178"
+  },
+  {
+   "id": "mvtja8d4-03043a",
+   "at": "2026-10-29T12:42:51.736Z",
+   "type": "link",
+   "code": "Barbell_Hip_Thrust",
+   "openGymId": "0058"
+  },
+  {
+   "id": "mvtjb18a-aa5be3",
+   "at": "2026-10-29T12:43:29.146Z",
+   "type": "link",
+   "code": "Lying_Rear_Delt_Raise",
+   "openGymId": "1328"
+  },
+  {
+   "id": "mvtjb4g4-23cb71",
+   "at": "2026-10-29T12:43:33.316Z",
+   "type": "link",
+   "code": "Seated_Bent-Over_Rear_Delt_Raise",
+   "openGymId": "2292"
+  },
+  {
+   "id": "mvtjb8w7-98f005",
+   "at": "2026-10-29T12:43:39.079Z",
+   "type": "link",
+   "code": "Straight_Raises_on_Incline_Bench",
+   "openGymId": "1257"
+  },
+  {
+   "id": "mvtjbe06-4e5354",
+   "at": "2026-10-29T12:43:45.702Z",
+   "type": "archive",
+   "code": "Power_Partials"
+  },
+  {
+   "id": "mvtjbl2p-ba60cd",
+   "at": "2026-10-29T12:43:54.865Z",
+   "type": "archive",
+   "code": "Sled_Push"
+  },
+  {
+   "id": "mvtjbmq8-09bf7d",
+   "at": "2026-10-29T12:43:57.008Z",
+   "type": "archive",
+   "code": "Heavy_Bag_Thrust"
+  },
+  {
+   "id": "mvtjcitv-6ec2e4",
+   "at": "2026-10-29T12:44:38.611Z",
+   "type": "archive",
+   "code": "Barbell_Shrug_Behind_The_Back"
+  },
+  {
+   "id": "mvtjcorj-7d60fa",
+   "at": "2026-10-29T12:44:46.303Z",
+   "type": "archive",
+   "code": "Snatch_Shrug"
+  },
+  {
+   "id": "mvtjcyzy-7340fa",
+   "at": "2026-10-29T12:44:59.566Z",
+   "type": "link",
+   "code": "Middle_Back_Shrug",
+   "openGymId": "0305"
+  },
+  {
+   "id": "mvtk2ext-598788",
+   "at": "2026-10-29T13:04:46.625Z",
+   "type": "link",
+   "code": "Calf-Machine_Shoulder_Shrug",
+   "openGymId": "0580"
+  },
+  {
+   "id": "mvtkmomf-587b87",
+   "at": "2026-10-29T13:20:32.296Z",
+   "type": "archive",
+   "code": "Clean_Shrug"
+  },
+  {
+   "id": "mvtkmr3t-e38c41",
+   "at": "2026-10-29T13:20:35.513Z",
+   "type": "archive",
+   "code": "Rack_Delivery"
+  },
+  {
+   "id": "mvtkmt14-6a700d",
+   "at": "2026-10-29T13:20:38.008Z",
+   "type": "archive",
+   "code": "Downward_Facing_Balance"
+  },
+  {
+   "id": "mvtkmu7o-1d5491",
+   "at": "2026-10-29T13:20:39.540Z",
+   "type": "archive",
+   "code": "Power_Stairs"
+  },
+  {
+   "id": "mvtkmzqe-f0a387",
+   "at": "2026-10-29T13:20:46.694Z",
+   "type": "link",
+   "code": "Stairmaster",
+   "openGymId": "2311"
+  },
+  {
+   "id": "mvtkn206-ebe030",
+   "at": "2026-10-29T13:20:49.638Z",
+   "type": "archive",
+   "code": "Linear_Acceleration_Wall_Drill"
+  },
+  {
+   "id": "mvtkn3jd-c76507",
+   "at": "2026-10-29T13:20:51.625Z",
+   "type": "archive",
+   "code": "Isometric_Neck_Exercise_-_Front_And_Back"
+  },
+  {
+   "id": "mvtkn4lx-d03c4b",
+   "at": "2026-10-29T13:20:53.013Z",
+   "type": "archive",
+   "code": "Isometric_Neck_Exercise_-_Sides"
+  },
+  {
+   "id": "mvtkn69r-10e572",
+   "at": "2026-10-29T13:20:55.167Z",
+   "type": "archive",
+   "code": "Chain_Handle_Extension"
+  },
+  {
+   "id": "mvtkngqo-503eba",
+   "at": "2026-10-29T13:21:08.736Z",
+   "type": "archive",
+   "code": "Single-Leg_Leg_Extension"
+  },
+  {
+   "id": "mvtko1z5-6fe4a2",
+   "at": "2026-10-29T13:21:36.257Z",
+   "type": "link",
+   "code": "Triceps_Overhead_Extension_with_Rope",
+   "openGymId": "1722"
+  },
+  {
+   "id": "mvtkojjk-dee93f",
+   "at": "2026-10-29T13:21:59.024Z",
+   "type": "link",
+   "code": "Incline_Barbell_Triceps_Extension",
+   "openGymId": "0061"
+  },
+  {
+   "id": "mvtkonp2-100e22",
+   "at": "2026-10-29T13:22:04.406Z",
+   "type": "link",
+   "code": "Lying_Close-Grip_Barbell_Triceps_Press_To_Chin",
+   "openGymId": "0056"
+  },
+  {
+   "id": "mvtkorp2-85b30a",
+   "at": "2026-10-29T13:22:09.590Z",
+   "type": "link",
+   "code": "Low_Cable_Triceps_Extension",
+   "openGymId": "0204"
+  },
+  {
+   "id": "mvtkotnf-e76846",
+   "at": "2026-10-29T13:22:12.123Z",
+   "type": "archive",
+   "code": "Sled_Overhead_Triceps_Extension"
+  },
+  {
+   "id": "mvtksngc-f95ac0",
+   "at": "2026-10-29T13:25:10.716Z",
+   "type": "archive",
+   "code": "Face_Pull"
+  },
+  {
+   "id": "mvtksp60-4eac6f",
+   "at": "2026-10-29T13:25:12.936Z",
+   "type": "archive",
+   "code": "Push-Ups_With_Feet_Elevated"
+  },
+  {
+   "id": "mvtkstif-632ec0",
+   "at": "2026-10-29T13:25:18.567Z",
+   "type": "link",
+   "code": "Push-Ups_With_Feet_On_An_Exercise_Ball",
+   "openGymId": "0655"
+  },
+  {
+   "id": "mvtksxwk-8e41cc",
+   "at": "2026-10-29T13:25:24.260Z",
+   "type": "archive",
+   "code": "Drop_Push"
+  },
+  {
+   "id": "mvtkt24b-b32831",
+   "at": "2026-10-29T13:25:29.723Z",
+   "type": "archive",
+   "code": "Ball_Leg_Curl"
+  },
+  {
+   "id": "mvtkt7co-445b35",
+   "at": "2026-10-29T13:25:36.504Z",
+   "type": "link",
+   "code": "Standing_Leg_Curl",
+   "openGymId": "0795"
+  },
+  {
+   "id": "mvtktc05-83efe0",
+   "at": "2026-10-29T13:25:42.533Z",
+   "type": "archive",
+   "code": "Seated_Band_Hamstring_Curl"
+  },
+  {
+   "id": "mvtktdtt-1802a5",
+   "at": "2026-10-29T13:25:44.897Z",
+   "type": "archive",
+   "code": "Hip_Flexion_with_Band"
+  },
+  {
+   "id": "mvtkti5a-c6cdb9",
+   "at": "2026-10-29T13:25:50.494Z",
+   "type": "link",
+   "code": "Incline_Push-Up_Wide",
+   "openGymId": "3785"
+  },
+  {
+   "id": "mvtktldj-0a56db",
+   "at": "2026-10-29T13:25:54.679Z",
+   "type": "archive",
+   "code": "Incline_Push-Up_Medium"
+  },
+  {
+   "id": "mvtktq9d-ef6e03",
+   "at": "2026-10-29T13:26:01.009Z",
+   "type": "link",
+   "code": "One-Arm_High-Pulley_Cable_Side_Bends",
+   "openGymId": "0222"
+  },
+  {
+   "id": "mvtktu8p-4baae2",
+   "at": "2026-10-29T13:26:06.169Z",
+   "type": "link",
+   "code": "Pushups_Close_and_Wide_Hand_Positions",
+   "openGymId": "2398"
+  },
+  {
+   "id": "mvtku6va-7b1d40",
+   "at": "2026-10-29T13:26:22.534Z",
+   "type": "archive",
+   "code": "Bodyweight_Flyes"
+  },
+  {
+   "id": "mvtkuaa6-9d4253",
+   "at": "2026-10-29T13:26:26.958Z",
+   "type": "link",
+   "code": "Plate_Twist",
+   "openGymId": "0846"
+  },
+  {
+   "id": "mvtkudbu-6a49da",
+   "at": "2026-10-29T13:26:30.906Z",
+   "type": "link",
+   "code": "Glute_Ham_Raise",
+   "openGymId": "3193"
+  },
+  {
+   "id": "mvtkuggm-206399",
+   "at": "2026-10-29T13:26:34.966Z",
+   "type": "link",
+   "code": "Sledgehammer_Swings",
+   "openGymId": "1496"
+  },
+  {
+   "id": "mvtkuixo-c86dd0",
+   "at": "2026-10-29T13:26:38.172Z",
+   "type": "archive",
+   "code": "Groiners"
+  },
+  {
+   "id": "mvtkup3o-13145d",
+   "at": "2026-10-29T13:26:46.164Z",
+   "type": "link",
+   "code": "Hyperextensions_With_No_Hyperextension_Bench",
+   "openGymId": "1423"
+  },
+  {
+   "id": "mvtkurpa-3747f1",
+   "at": "2026-10-29T13:26:49.534Z",
+   "type": "archive",
+   "code": "Single_Leg_Push-off"
+  },
+  {
+   "id": "mvtkv1td-7e3179",
+   "at": "2026-10-29T13:27:02.641Z",
+   "type": "link",
+   "code": "Barbell_Side_Bend",
+   "openGymId": "0096"
+  },
+  {
+   "id": "mvtkv5wz-1b9af7",
+   "at": "2026-10-29T13:27:07.955Z",
+   "type": "archive",
+   "code": "90_90_Hamstring"
+  },
+  {
+   "id": "mvtkv81q-cc5b9a",
+   "at": "2026-10-29T13:27:10.718Z",
+   "type": "archive",
+   "code": "Two-Arm_Kettlebell_Jerk"
+  },
+  {
+   "id": "mvtkvcsv-3e2c2b",
+   "at": "2026-10-29T13:27:16.879Z",
+   "type": "archive",
+   "code": "One_Knee_To_Chest"
+  },
+  {
+   "id": "mvtkvdvj-b3bc4b",
+   "at": "2026-10-29T13:27:18.271Z",
+   "type": "archive",
+   "code": "Knee_Across_The_Body"
+  },
+  {
+   "id": "mvtkvsbi-0579a9",
+   "at": "2026-10-29T13:27:36.990Z",
+   "type": "archive",
+   "code": "One-Arm_Open_Palm_Kettlebell_Clean"
+  },
+  {
+   "id": "mvtkw4q1-f5fc82",
+   "at": "2026-10-29T13:27:53.065Z",
+   "type": "archive",
+   "code": "Landmine_Linear_Jammer"
+  },
+  {
+   "id": "mvtkx927-c67642",
+   "at": "2026-10-29T13:28:45.343Z",
+   "type": "archive",
+   "code": "Narrow_Stance_Leg_Press"
+  },
+  {
+   "id": "mvtl40rp-26110b",
+   "at": "2026-10-29T13:34:01.189Z",
+   "type": "link",
+   "code": "Single-Arm_Linear_Jammer",
+   "openGymId": "3237"
+  },
+  {
+   "id": "mvtl43i2-5bf8af",
+   "at": "2026-10-29T13:34:04.730Z",
+   "type": "archive",
+   "code": "Log_Lift"
+  },
+  {
+   "id": "mvtl4koj-5f2f43",
+   "at": "2026-10-29T13:34:26.995Z",
+   "type": "archive",
+   "code": "Reverse_Band_Deadlift"
+  },
+  {
+   "id": "mvtl4m6r-3160a8",
+   "at": "2026-10-29T13:34:28.947Z",
+   "type": "archive",
+   "code": "Deadlift_with_Chains"
+  },
+  {
+   "id": "mvtl4p2d-7d839e",
+   "at": "2026-10-29T13:34:32.677Z",
+   "type": "archive",
+   "code": "Deficit_Deadlift"
+  },
+  {
+   "id": "mvtl4qi6-82fbed",
+   "at": "2026-10-29T13:34:34.542Z",
+   "type": "archive",
+   "code": "Axle_Deadlift"
+  },
+  {
+   "id": "mvtl4rsc-cb717f",
+   "at": "2026-10-29T13:34:36.204Z",
+   "type": "archive",
+   "code": "Deadlift_with_Bands"
+  },
+  {
+   "id": "mvtl4sxt-738121",
+   "at": "2026-10-29T13:34:37.697Z",
+   "type": "archive",
+   "code": "Rickshaw_Deadlift"
+  },
+  {
+   "id": "mvtl4w35-814858",
+   "at": "2026-10-29T13:34:41.777Z",
+   "type": "archive",
+   "code": "Car_Deadlift"
+  },
+  {
+   "id": "mvtl4zze-da0500",
+   "at": "2026-10-29T13:34:46.826Z",
+   "type": "archive",
+   "code": "Clean_Deadlift"
+  },
+  {
+   "id": "mvtl5305-802df1",
+   "at": "2026-10-29T13:34:50.741Z",
+   "type": "archive",
+   "code": "Romanian_Deadlift_from_Deficit"
+  },
+  {
+   "id": "mvtl57f1-4cb4b0",
+   "at": "2026-10-29T13:34:56.461Z",
+   "type": "archive",
+   "code": "Reverse_Band_Sumo_Deadlift"
+  },
+  {
+   "id": "mvtl59jm-6f53aa",
+   "at": "2026-10-29T13:34:59.218Z",
+   "type": "archive",
+   "code": "Sumo_Deadlift_with_Chains"
+  },
+  {
+   "id": "mvtl5a3e-1f90eb",
+   "at": "2026-10-29T13:34:59.930Z",
+   "type": "archive",
+   "code": "Sumo_Deadlift_with_Bands"
+  },
+  {
+   "id": "mvtl5bvy-79707f",
+   "at": "2026-10-29T13:35:02.255Z",
+   "type": "archive",
+   "code": "Iliotibial_Tract-SMR"
+  },
+  {
+   "id": "mvtl5cuy-d64bb1",
+   "at": "2026-10-29T13:35:03.514Z",
+   "type": "archive",
+   "code": "Brachialis-SMR"
+  },
+  {
+   "id": "mvtl5dg4-b1ccd3",
+   "at": "2026-10-29T13:35:04.276Z",
+   "type": "archive",
+   "code": "Foot-SMR"
+  },
+  {
+   "id": "mvtl5e0q-777c32",
+   "at": "2026-10-29T13:35:05.018Z",
+   "type": "archive",
+   "code": "Neck-SMR"
+  },
+  {
+   "id": "mvtl5elu-1fddc1",
+   "at": "2026-10-29T13:35:05.778Z",
+   "type": "archive",
+   "code": "Piriformis-SMR"
+  },
+  {
+   "id": "mvtl5f6p-87f60a",
+   "at": "2026-10-29T13:35:06.529Z",
+   "type": "archive",
+   "code": "Quadriceps-SMR"
+  },
+  {
+   "id": "mvtl5fp6-1a3f0b",
+   "at": "2026-10-29T13:35:07.194Z",
+   "type": "archive",
+   "code": "Anterior_Tibialis-SMR"
+  },
+  {
+   "id": "mvtl5g8n-244e2e",
+   "at": "2026-10-29T13:35:07.895Z",
+   "type": "archive",
+   "code": "Peroneals-SMR"
+  },
+  {
+   "id": "mvtl5gzm-6f791a",
+   "at": "2026-10-29T13:35:08.866Z",
+   "type": "archive",
+   "code": "Rhomboids-SMR"
+  },
+  {
+   "id": "mvtl5kqs-049e32",
+   "at": "2026-10-29T13:35:13.732Z",
+   "type": "link",
+   "code": "Ab_Crunch_Machine",
+   "openGymId": "1452"
+  },
+  {
+   "id": "mvtl5m9h-44a20e",
+   "at": "2026-10-29T13:35:15.701Z",
+   "type": "archive",
+   "code": "One_Half_Locust"
+  },
+  {
+   "id": "mvtl5q6l-f4f00a",
+   "at": "2026-10-29T13:35:20.781Z",
+   "type": "link",
+   "code": "Parallel_Bar_Dip",
+   "openGymId": "1767"
+  },
+  {
+   "id": "mvtl5seh-a7e98d",
+   "at": "2026-10-29T13:35:23.657Z",
+   "type": "archive",
+   "code": "Windmills"
+  },
+  {
+   "id": "mvtl5zjf-c00965",
+   "at": "2026-10-29T13:35:32.907Z",
+   "type": "archive",
+   "code": "Car_Drivers"
+  },
+  {
+   "id": "mvtl822c-a4aba3",
+   "at": "2026-10-29T13:37:09.492Z",
+   "type": "archive",
+   "code": "Looking_At_Ceiling"
+  },
+  {
+   "id": "mvtl8sjq-7e1b67",
+   "at": "2026-10-29T13:37:43.814Z",
+   "type": "link",
+   "code": "Pallof_Press",
+   "openGymId": "0979"
+  },
+  {
+   "id": "mvtl960g-3d73b2",
+   "at": "2026-10-29T13:38:01.264Z",
+   "type": "archive",
+   "code": "Pallof_Press_With_Rotation"
+  },
+  {
+   "id": "mvtl97pd-9c60c5",
+   "at": "2026-10-29T13:38:03.457Z",
+   "type": "archive",
+   "code": "Kettlebell_Pass_Between_The_Legs"
+  },
+  {
+   "id": "mvtl998b-a6fdba",
+   "at": "2026-10-29T13:38:05.435Z",
+   "type": "archive",
+   "code": "Carioca_Quick_Step"
+  },
+  {
+   "id": "mvtl99zt-192a69",
+   "at": "2026-10-29T13:38:06.425Z",
+   "type": "archive",
+   "code": "Skating"
+  },
+  {
+   "id": "mvtl9b8f-57b452",
+   "at": "2026-10-29T13:38:08.031Z",
+   "type": "archive",
+   "code": "Atlas_Stones"
+  },
+  {
+   "id": "mvtl9da3-29b179",
+   "at": "2026-10-29T13:38:10.683Z",
+   "type": "archive",
+   "code": "Plate_Pinch"
+  },
+  {
+   "id": "mvtl9efg-aba61e",
+   "at": "2026-10-29T13:38:12.172Z",
+   "type": "archive",
+   "code": "Pyramid"
+  },
+  {
+   "id": "mvtl9j57-0ef655",
+   "at": "2026-10-29T13:38:18.283Z",
+   "type": "link",
+   "code": "Fast_Skipping",
+   "openGymId": "3224"
+  },
+  {
+   "id": "mvtl9n1h-9be543",
+   "at": "2026-10-29T13:38:23.333Z",
+   "type": "link",
+   "code": "Single_Leg_Glute_Bridge",
+   "openGymId": "3645"
+  },
+  {
+   "id": "mvtl9qxt-dd8a32",
+   "at": "2026-10-29T13:38:28.386Z",
+   "type": "link",
+   "code": "Physioball_Hip_Bridge",
+   "openGymId": "1559"
+  },
+  {
+   "id": "mvtl9u8z-3b5837",
+   "at": "2026-10-29T13:38:32.675Z",
+   "type": "archive",
+   "code": "Childs_Pose"
+  },
+  {
+   "id": "mvtla6yp-70d219",
+   "at": "2026-10-29T13:38:49.153Z",
+   "type": "archive",
+   "code": "Smith_Machine_Hang_Power_Clean"
+  },
+  {
+   "id": "mvtlb246-39cbe9",
+   "at": "2026-10-29T13:39:29.526Z",
+   "type": "archive",
+   "code": "Plank"
+  },
+  {
+   "id": "mvtlb6a5-36d1c3",
+   "at": "2026-10-29T13:39:34.925Z",
+   "type": "link",
+   "code": "Side_Bridge",
+   "openGymId": "0705"
+  },
+  {
+   "id": "mvtlbb2a-2e9d7c",
+   "at": "2026-10-29T13:39:41.122Z",
+   "type": "link",
+   "code": "See-Saw_Press_Alternating_Side_Press",
+   "openGymId": "0286"
+  },
+  {
+   "id": "mvtlbl1z-57e4c6",
+   "at": "2026-10-29T13:39:54.071Z",
+   "type": "link",
+   "code": "Standing_Cable_Chest_Press",
+   "openGymId": "0151"
+  },
+  {
+   "id": "mvtlbpwu-a68f4b",
+   "at": "2026-10-29T13:40:00.366Z",
+   "type": "link",
+   "code": "Cable_Chest_Press",
+   "openGymId": "2144"
+  },
+  {
+   "id": "mvtlbu87-5bca14",
+   "at": "2026-10-29T13:40:05.959Z",
+   "type": "archive",
+   "code": "Neck_Press"
+  },
+  {
+   "id": "mvtlbvvd-edf5c5",
+   "at": "2026-10-29T13:40:08.089Z",
+   "type": "archive",
+   "code": "Single-Leg_Hop_Progression"
+  },
+  {
+   "id": "mvtlc0ud-695b55",
+   "at": "2026-10-29T13:40:14.533Z",
+   "type": "link",
+   "code": "Wide-Grip_Lat_Pulldown",
+   "openGymId": "0198"
+  },
+  {
+   "id": "mvtlcsok-8dc14c",
+   "at": "2026-10-29T13:40:50.612Z",
+   "type": "link",
+   "code": "Close-Grip_Front_Lat_Pulldown",
+   "openGymId": "0818"
+  },
+  {
+   "id": "mvtlcwnc-f96514",
+   "at": "2026-10-29T13:40:55.752Z",
+   "type": "link",
+   "code": "Bent-Arm_Dumbbell_Pullover",
+   "openGymId": "0375"
+  },
+  {
+   "id": "mvtlczpy-cca247",
+   "at": "2026-10-29T13:40:59.734Z",
+   "type": "link",
+   "code": "Box_Skip",
+   "openGymId": "1374"
+  },
+  {
+   "id": "mvtld5hu-3e8e02",
+   "at": "2026-10-29T13:41:07.218Z",
+   "type": "archive",
+   "code": "Push_Press"
+  },
+  {
+   "id": "mvtld71k-73ef5b",
+   "at": "2026-10-29T13:41:09.224Z",
+   "type": "archive",
+   "code": "Push_Press_-_Behind_the_Neck"
+  },
+  {
+   "id": "mvtld8a9-d46cd1",
+   "at": "2026-10-29T13:41:10.833Z",
+   "type": "archive",
+   "code": "Leg_Pull-In"
+  },
+  {
+   "id": "mvtldd8s-df1574",
+   "at": "2026-10-29T13:41:17.260Z",
+   "type": "link",
+   "code": "Incline_Bench_Pull",
+   "openGymId": "0049"
+  },
+  {
+   "id": "mvtldfmn-cde26a",
+   "at": "2026-10-29T13:41:20.351Z",
+   "type": "archive",
+   "code": "Rack_Pull_with_Bands"
+  },
+  {
+   "id": "mvtldi31-74b95d",
+   "at": "2026-10-29T13:41:23.533Z",
+   "type": "archive",
+   "code": "Clean_Pull"
+  },
+  {
+   "id": "mvtldjfv-a71e62",
+   "at": "2026-10-29T13:41:25.291Z",
+   "type": "archive",
+   "code": "Lying_Prone_Quadriceps"
+  },
+  {
+   "id": "mvtldkpv-adb10f",
+   "at": "2026-10-29T13:41:26.948Z",
+   "type": "archive",
+   "code": "Spider_Crawl"
+  },
+  {
+   "id": "mvtldq1c-a1905d",
+   "at": "2026-10-29T13:41:33.840Z",
+   "type": "link",
+   "code": "Upright_Row_-_With_Bands",
+   "openGymId": "1022"
+  },
+  {
+   "id": "mvtle86v-6f59d4",
+   "at": "2026-10-29T13:41:57.367Z",
+   "type": "archive",
+   "code": "Smith_Machine_One-Arm_Upright_Row"
+  },
+  {
+   "id": "mvtleb1c-763f10",
+   "at": "2026-10-29T13:42:01.056Z",
+   "type": "link",
+   "code": "One-Arm_Long_Bar_Row",
+   "openGymId": "0589"
+  },
+  {
+   "id": "mvtleci6-42b64f",
+   "at": "2026-10-29T13:42:02.958Z",
+   "type": "archive",
+   "code": "Sled_Row"
+  },
+  {
+   "id": "mvtleqrl-6cb8ce",
+   "at": "2026-10-29T13:42:21.441Z",
+   "type": "link",
+   "code": "Bent_Over_Two-Arm_Long_Bar_Row",
+   "openGymId": "0574"
+  },
+  {
+   "id": "mvtlex6l-bcc53a",
+   "at": "2026-10-29T13:42:29.757Z",
+   "type": "link",
+   "code": "Bent_Over_One-Arm_Long_Bar_Row",
+   "openGymId": "0064"
+  },
+  {
+   "id": "mvtlf53k-5e5fd1",
+   "at": "2026-10-29T13:42:40.016Z",
+   "type": "archive",
+   "code": "Straight_Bar_Bench_Mid_Rows"
+  },
+  {
+   "id": "mvtlfbx3-ac0eee",
+   "at": "2026-10-29T13:42:48.855Z",
+   "type": "link",
+   "code": "Bent_Over_Two-Dumbbell_Row_With_Palms_In",
+   "openGymId": "2327"
+  },
+  {
+   "id": "mvtlfwv4-2008db",
+   "at": "2026-10-29T13:43:16.000Z",
+   "type": "link",
+   "code": "T-Bar_Row_with_Handle",
+   "openGymId": "0574"
+  },
+  {
+   "id": "mvtlg03w-10e434",
+   "at": "2026-10-29T13:43:20.204Z",
+   "type": "archive",
+   "code": "Bent_Over_Two-Arm_Long_Bar_Row"
+  },
+  {
+   "id": "mvtlgvrw-e5abf6",
+   "at": "2026-10-29T13:44:01.244Z",
+   "type": "link",
+   "code": "Leverage_Iso_Row",
+   "openGymId": "1313"
+  },
+  {
+   "id": "mvtlgxr3-d58c3f",
+   "at": "2026-10-29T13:44:03.807Z",
+   "type": "archive",
+   "code": "Bodyweight_Mid_Row"
+  },
+  {
+   "id": "mvtlhalo-e91dfb",
+   "at": "2026-10-29T13:44:20.460Z",
+   "type": "link",
+   "code": "Low_Pulley_Row_To_Neck",
+   "openGymId": "1318"
+  },
+  {
+   "id": "mvtlhlnh-fe6ffe",
+   "at": "2026-10-29T13:44:34.781Z",
+   "type": "archive",
+   "code": "Shotgun_Row"
+  },
+  {
+   "id": "mvtlhr5t-20e909",
+   "at": "2026-10-29T13:44:41.921Z",
+   "type": "link",
+   "code": "Seated_One-arm_Cable_Pulley_Rows",
+   "openGymId": "0214"
+  },
+  {
+   "id": "mvtlhy2r-310bb8",
+   "at": "2026-10-29T13:44:50.883Z",
+   "type": "archive",
+   "code": "Rowing_Stationary"
+  },
+  {
+   "id": "mvtliass-4c0655",
+   "at": "2026-10-29T13:45:07.372Z",
+   "type": "archive",
+   "code": "Lying_Face_Down_Plate_Neck_Resistance"
+  },
+  {
+   "id": "mvtljoo7-ca89e2",
+   "at": "2026-10-29T13:46:12.007Z",
+   "type": "archive",
+   "code": "Lying_Face_Up_Plate_Neck_Resistance"
+  },
+  {
+   "id": "mvtljqb7-54ed2e",
+   "at": "2026-10-29T13:46:14.131Z",
+   "type": "archive",
+   "code": "Seated_Head_Harness_Neck_Resistance"
+  },
+  {
+   "id": "mvtljsea-4162f4",
+   "at": "2026-10-29T13:46:16.834Z",
+   "type": "archive",
+   "code": "Return_Push_from_Stance"
+  },
+  {
+   "id": "mvtlk77l-f54a9a",
+   "at": "2026-10-29T13:46:36.033Z",
+   "type": "link",
+   "code": "Ab_Roller",
+   "openGymId": "1758"
+  },
+  {
+   "id": "mvtlkjna-d5dad5",
+   "at": "2026-10-29T13:46:52.150Z",
+   "type": "archive",
+   "code": "Conans_Wheel"
+  },
+  {
+   "id": "mvuopogk-11a199",
+   "at": "2026-10-30T08:02:36.692Z",
+   "type": "link",
+   "code": "Alternate_Incline_Dumbbell_Curl",
+   "openGymId": "0315"
+  },
+  {
+   "id": "mvuopswg-734d08",
+   "at": "2026-10-30T08:02:42.448Z",
+   "type": "link",
+   "code": "Lying_Close-Grip_Bar_Curl_On_High_Pulley",
+   "openGymId": "0182"
+  },
+  {
+   "id": "mvuopyde-028309",
+   "at": "2026-10-30T08:02:49.539Z",
+   "type": "link",
+   "code": "Barbell_Curls_Lying_Against_An_Incline",
+   "openGymId": "0072"
+  },
+  {
+   "id": "mvuorkwe-0a4056",
+   "at": "2026-10-30T08:04:05.390Z",
+   "type": "link",
+   "code": "Close-Grip_EZ-Bar_Curl_with_Band",
+   "openGymId": "1627"
+  },
+  {
+   "id": "mvuors00-79fd1b",
+   "at": "2026-10-30T08:04:14.592Z",
+   "type": "link",
+   "code": "High_Cable_Curls",
+   "openGymId": "0868"
+  },
+  {
+   "id": "mvuorvdu-51a2bd",
+   "at": "2026-10-30T08:04:18.978Z",
+   "type": "link",
+   "code": "Seated_Palms-Down_Barbell_Wrist_Curl",
+   "openGymId": "0082"
+  },
+  {
+   "id": "mvuoshb9-fff8f1",
+   "at": "2026-10-30T08:04:47.397Z",
+   "type": "link",
+   "code": "Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl",
+   "openGymId": "1643"
+  },
+  {
+   "id": "mvuossny-912185",
+   "at": "2026-10-30T08:05:02.110Z",
+   "type": "link",
+   "code": "Standing_Biceps_Cable_Curl",
+   "openGymId": "0868"
+  },
+  {
+   "id": "mvuot0c7-766db5",
+   "at": "2026-10-30T08:05:12.055Z",
+   "type": "archive",
+   "code": "High_Cable_Curls"
+  },
+  {
+   "id": "mvuot4tc-ee2e73",
+   "at": "2026-10-30T08:05:17.856Z",
+   "type": "archive",
+   "code": "Reverse_Plate_Curls"
+  },
+  {
+   "id": "mvuotuzv-6a67f0",
+   "at": "2026-10-30T08:05:51.787Z",
+   "type": "link",
+   "code": "Alternate_Hammer_Curl",
+   "openGymId": "1646"
+  },
+  {
+   "id": "mvuou4cw-fb23fc",
+   "at": "2026-10-30T08:06:03.920Z",
+   "type": "link",
+   "code": "Lying_High_Bench_Barbell_Curl",
+   "openGymId": "0059"
+  },
+  {
+   "id": "mvuouhat-3dcd33",
+   "at": "2026-10-30T08:06:20.693Z",
+   "type": "link",
+   "code": "One_Arm_Dumbbell_Preacher_Curl",
+   "openGymId": "0402"
+  },
+  {
+   "id": "mvuoukwc-17b9c0",
+   "at": "2026-10-30T08:06:25.356Z",
+   "type": "link",
+   "code": "Flexor_Incline_Dumbbell_Curls",
+   "openGymId": "0317"
+  },
+  {
+   "id": "mvuovv22-820718",
+   "at": "2026-10-30T08:07:25.178Z",
+   "type": "link",
+   "code": "Standing_Cable_Wood_Chop",
+   "openGymId": "0243"
+  },
+  {
+   "id": "mvuovyfu-521878",
+   "at": "2026-10-30T08:07:29.562Z",
+   "type": "link",
+   "code": "Wrist_Rotations_with_Straight_Bar",
+   "openGymId": "0125"
+  },
+  {
+   "id": "mvuow3p8-d88c46",
+   "at": "2026-10-30T08:07:36.380Z",
+   "type": "archive",
+   "code": "Torso_Rotation"
+  },
+  {
+   "id": "mvuow7hb-6ee145",
+   "at": "2026-10-30T08:07:41.279Z",
+   "type": "link",
+   "code": "External_Rotation_with_Band",
+   "openGymId": "0989"
+  },
+  {
+   "id": "mvuox3ur-c25adb",
+   "at": "2026-10-30T08:08:23.235Z",
+   "type": "link",
+   "code": "Internal_Rotation_with_Band",
+   "openGymId": "1012"
+  },
+  {
+   "id": "mvuox5nc-7e332c",
+   "at": "2026-10-30T08:08:25.560Z",
+   "type": "archive",
+   "code": "Stride_Jump_Crossover"
+  },
+  {
+   "id": "mvuoxhlo-91add5",
+   "at": "2026-10-30T08:08:41.052Z",
+   "type": "archive",
+   "code": "Knee_Tuck_Jump"
+  },
+  {
+   "id": "mvuoxizm-cb06fb",
+   "at": "2026-10-30T08:08:42.850Z",
+   "type": "archive",
+   "code": "Single-Leg_Stride_Jump"
+  },
+  {
+   "id": "mvuoxjmr-4c82e6",
+   "at": "2026-10-30T08:08:43.683Z",
+   "type": "archive",
+   "code": "Alternate_Leg_Diagonal_Bound"
+  },
+  {
+   "id": "mvuoxks3-dc5f26",
+   "at": "2026-10-30T08:08:45.171Z",
+   "type": "archive",
+   "code": "Split_Jump"
+  },
+  {
+   "id": "mvuoxltp-58b9b0",
+   "at": "2026-10-30T08:08:46.525Z",
+   "type": "archive",
+   "code": "Standing_Long_Jump"
+  },
+  {
+   "id": "mvuoywqb-ba8485",
+   "at": "2026-10-30T08:09:47.315Z",
+   "type": "archive",
+   "code": "Side_Standing_Long_Jump"
+  },
+  {
+   "id": "mvuoyy53-00659e",
+   "at": "2026-10-30T08:09:49.143Z",
+   "type": "archive",
+   "code": "Depth_Jump_Leap"
+  },
+  {
+   "id": "mvuoyyqq-2e0255",
+   "at": "2026-10-30T08:09:49.922Z",
+   "type": "archive",
+   "code": "Linear_Depth_Jump"
+  },
+  {
+   "id": "mvuoyzal-a7c551",
+   "at": "2026-10-30T08:09:50.638Z",
+   "type": "archive",
+   "code": "Rocket_Jump"
+  },
+  {
+   "id": "mvuoz4rj-583728",
+   "at": "2026-10-30T08:09:57.727Z",
+   "type": "archive",
+   "code": "Lateral_Bound"
+  },
+  {
+   "id": "mvuoz5bw-f2816c",
+   "at": "2026-10-30T08:09:58.460Z",
+   "type": "archive",
+   "code": "Side_Hop-Sprint"
+  },
+  {
+   "id": "mvuoz5mb-cfbcb9",
+   "at": "2026-10-30T08:09:58.835Z",
+   "type": "archive",
+   "code": "Lateral_Box_Jump"
+  },
+  {
+   "id": "mvuoz6sq-a06442",
+   "at": "2026-10-30T08:10:00.362Z",
+   "type": "archive",
+   "code": "Single-Leg_Lateral_Hop"
+  },
+  {
+   "id": "mvuoz7gr-e165e8",
+   "at": "2026-10-30T08:10:01.227Z",
+   "type": "archive",
+   "code": "Box_Jump_Multiple_Response"
+  },
+  {
+   "id": "mvuoz85f-bf05d4",
+   "at": "2026-10-30T08:10:02.115Z",
+   "type": "archive",
+   "code": "Front_Box_Jump"
+  },
+  {
+   "id": "mvuoz9yr-5a7d4d",
+   "at": "2026-10-30T08:10:04.467Z",
+   "type": "archive",
+   "code": "Dumbbell_Seated_Box_Jump"
+  },
+  {
+   "id": "mvuozc2v-8c6a5a",
+   "at": "2026-10-30T08:10:07.207Z",
+   "type": "archive",
+   "code": "Bench_Jump"
+  },
+  {
+   "id": "mvuozcux-751824",
+   "at": "2026-10-30T08:10:08.217Z",
+   "type": "archive",
+   "code": "Quick_Leap"
+  },
+  {
+   "id": "mvuozdsc-523d94",
+   "at": "2026-10-30T08:10:09.420Z",
+   "type": "archive",
+   "code": "Frog_Hops"
+  },
+  {
+   "id": "mvuozeu9-466872",
+   "at": "2026-10-30T08:10:10.785Z",
+   "type": "archive",
+   "code": "Front_Cone_Hops_or_hurdle_hops"
+  },
+  {
+   "id": "mvuozff0-701beb",
+   "at": "2026-10-30T08:10:11.532Z",
+   "type": "archive",
+   "code": "Lateral_Cone_Hops"
+  },
+  {
+   "id": "mvuozgnf-6e7592",
+   "at": "2026-10-30T08:10:13.131Z",
+   "type": "archive",
+   "code": "Hurdle_Hops"
+  },
+  {
+   "id": "mvuozheb-0872a0",
+   "at": "2026-10-30T08:10:14.099Z",
+   "type": "archive",
+   "code": "Moving_Claw_Series"
+  },
+  {
+   "id": "mvuozier-c5114d",
+   "at": "2026-10-30T08:10:15.411Z",
+   "type": "archive",
+   "code": "Side_to_Side_Box_Shuffle"
+  },
+  {
+   "id": "mvuozjf5-26fed8",
+   "at": "2026-10-30T08:10:16.721Z",
+   "type": "archive",
+   "code": "Snatch_Balance"
+  },
+  {
+   "id": "mvuozm1d-f95536",
+   "at": "2026-10-30T08:10:20.113Z",
+   "type": "archive",
+   "code": "Heaving_Snatch_Balance"
+  },
+  {
+   "id": "mvuozrki-d16c06",
+   "at": "2026-10-30T08:10:27.282Z",
+   "type": "archive",
+   "code": "Step_Mill"
+  },
+  {
+   "id": "mvup1441-0eaf63",
+   "at": "2026-10-30T08:11:30.193Z",
+   "type": "archive",
+   "code": "Wide_Stance_Stiff_Legs"
+  },
+  {
+   "id": "mvup14qz-77c995",
+   "at": "2026-10-30T08:11:31.019Z",
+   "type": "archive",
+   "code": "Kettlebell_One-Legged_Deadlift"
+  },
+  {
+   "id": "mvup1a9q-f6eb5e",
+   "at": "2026-10-30T08:11:38.174Z",
+   "type": "link",
+   "code": "Smith_Machine_Stiff-Legged_Deadlift",
+   "openGymId": "0752"
+  },
+  {
+   "id": "mvup1cmc-4054df",
+   "at": "2026-10-30T08:11:41.220Z",
+   "type": "archive",
+   "code": "Step-up_with_Knee_Raise"
+  },
+  {
+   "id": "mvup1y23-76a556",
+   "at": "2026-10-30T08:12:09.003Z",
+   "type": "archive",
+   "code": "Superman"
+  },
+  {
+   "id": "mvup2ok3-7deba9",
+   "at": "2026-10-30T08:12:43.347Z",
+   "type": "archive",
+   "code": "Bench_Press_-_Powerlifting"
+  },
+  {
+   "id": "mvup2pwt-20d95c",
+   "at": "2026-10-30T08:12:45.101Z",
+   "type": "archive",
+   "code": "Bench_Press_with_Chains"
+  },
+  {
+   "id": "mvup2r3g-130539",
+   "at": "2026-10-30T08:12:46.636Z",
+   "type": "archive",
+   "code": "Chain_Press"
+  },
+  {
+   "id": "mvup2ro4-ef6e2a",
+   "at": "2026-10-30T08:12:47.380Z",
+   "type": "archive",
+   "code": "Reverse_Band_Bench_Press"
+  },
+  {
+   "id": "mvup2uep-604593",
+   "at": "2026-10-30T08:12:50.929Z",
+   "type": "archive",
+   "code": "Board_Press"
+  },
+  {
+   "id": "mvup2ztl-845971",
+   "at": "2026-10-30T08:12:57.945Z",
+   "type": "link",
+   "code": "Reverse_Triceps_Bench_Press",
+   "openGymId": "2187"
+  },
+  {
+   "id": "mvup3356-7315d3",
+   "at": "2026-10-30T08:13:02.251Z",
+   "type": "link",
+   "code": "Machine_Bench_Press",
+   "openGymId": "0576"
+  },
+  {
+   "id": "mvup38ut-cfd0ad",
+   "at": "2026-10-30T08:13:09.653Z",
+   "type": "archive",
+   "code": "Floor_Press"
+  },
+  {
+   "id": "mvup3bsf-d92ebe",
+   "at": "2026-10-30T08:13:13.455Z",
+   "type": "archive",
+   "code": "Floor_Press_with_Chains"
+  },
+  {
+   "id": "mvup3jfl-63c5d6",
+   "at": "2026-10-30T08:13:23.361Z",
+   "type": "link",
+   "code": "Dumbbell_Floor_Press",
+   "openGymId": "0296"
+  },
+  {
+   "id": "mvup3njt-174593",
+   "at": "2026-10-30T08:13:28.697Z",
+   "type": "archive",
+   "code": "Leg-Over_Floor_Press"
+  },
+  {
+   "id": "mvup3uk8-2be429",
+   "at": "2026-10-30T08:13:37.784Z",
+   "type": "link",
+   "code": "Decline_Smith_Press",
+   "openGymId": "1309"
+  },
+  {
+   "id": "mvup400l-f8a355",
+   "at": "2026-10-30T08:13:44.853Z",
+   "type": "archive",
+   "code": "One_Handed_Hang"
+  },
+  {
+   "id": "mvup4fek-dca9cc",
+   "at": "2026-10-30T08:14:04.796Z",
+   "type": "archive",
+   "code": "Linear_3-Part_Start_Technique"
+  },
+  {
+   "id": "mvup5euk-fcac5b",
+   "at": "2026-10-30T08:14:50.732Z",
+   "type": "archive",
+   "code": "Toe_Touchers"
+  },
+  {
+   "id": "mvup5gva-03d093",
+   "at": "2026-10-30T08:14:53.350Z",
+   "type": "archive",
+   "code": "Standing_Toe_Touches"
+  },
+  {
+   "id": "mvupjbky-d7f384",
+   "at": "2026-10-30T08:25:39.682Z",
+   "type": "archive",
+   "code": "Medicine_Ball_Full_Twist"
+  },
+  {
+   "id": "mvupjd6z-b283c2",
+   "at": "2026-10-30T08:25:41.771Z",
+   "type": "archive",
+   "code": "Ankle_On_The_Knee"
+  },
+  {
+   "id": "mvupjeb3-782ba8",
+   "at": "2026-10-30T08:25:43.215Z",
+   "type": "archive",
+   "code": "Atlas_Stone_Trainer"
+  },
+  {
+   "id": "mvupk2sn-423881",
+   "at": "2026-10-30T08:26:14.951Z",
+   "type": "link",
+   "code": "Lying_Triceps_Press",
+   "openGymId": "0330"
+  },
+  {
+   "id": "mvupkw64-c8da89",
+   "at": "2026-10-30T08:26:53.020Z",
+   "type": "link",
+   "code": "Cable_Lying_Triceps_Extension",
+   "openGymId": "1724"
+  },
+  {
+   "id": "mvupl1sv-ff47ed",
+   "at": "2026-10-30T08:27:00.319Z",
+   "type": "link",
+   "code": "Seated_Triceps_Press",
+   "openGymId": "2188"
+  },
+  {
+   "id": "mvuplafz-98c27f",
+   "at": "2026-10-30T08:27:11.519Z",
+   "type": "archive",
+   "code": "Speed_Band_Overhead_Triceps"
+  },
+  {
+   "id": "mvupljts-13e809",
+   "at": "2026-10-30T08:27:23.680Z",
+   "type": "link",
+   "code": "Standing_Low-Pulley_One-Arm_Triceps_Extension",
+   "openGymId": "1727"
+  },
+  {
+   "id": "mvupln2h-76810d",
+   "at": "2026-10-30T08:27:27.881Z",
+   "type": "link",
+   "code": "Band_Skull_Crusher",
+   "openGymId": "0998"
+  },
+  {
+   "id": "mvuplshc-392f7d",
+   "at": "2026-10-30T08:27:34.896Z",
+   "type": "link",
+   "code": "EZ-Bar_Skullcrusher",
+   "openGymId": "0448"
+  },
+  {
+   "id": "mvuppy0e-26be3d",
+   "at": "2026-10-30T08:30:48.686Z",
+   "type": "archive",
+   "code": "Kettlebell_Turkish_Get-Up_Lunge_style"
+  },
+  {
+   "id": "mvupqbxt-dcaceb",
+   "at": "2026-10-30T08:31:06.737Z",
+   "type": "archive",
+   "code": "Stomach_Vacuum"
+  },
+  {
+   "id": "mvuqs42a-8d74f9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0972"
+  },
+  {
+   "id": "mvuqs42b-4f7b6d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0981"
+  },
+  {
+   "id": "mvuqs42b-05dc1d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3679"
+  },
+  {
+   "id": "mvuqs42b-62fcb5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0469"
+  },
+  {
+   "id": "mvuqs42b-d23c3a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0600"
+  },
+  {
+   "id": "mvuqs42b-13262b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0992"
+  },
+  {
+   "id": "mvuqs42b-bdc39f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0457"
+  },
+  {
+   "id": "mvuqs42c-58a531",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0840"
+  },
+  {
+   "id": "mvuqs42c-5104ca",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0985"
+  },
+  {
+   "id": "mvuqs42c-ed1525",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3640"
+  },
+  {
+   "id": "mvuqs42c-d14c88",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3204"
+  },
+  {
+   "id": "mvuqs42c-12d0f7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0282"
+  },
+  {
+   "id": "mvuqs42c-25d414",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2297"
+  },
+  {
+   "id": "mvuqs42c-1ebd5b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2312"
+  },
+  {
+   "id": "mvuqs42c-5e09ff",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3016"
+  },
+  {
+   "id": "mvuqs42c-6f962e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3201"
+  },
+  {
+   "id": "mvuqs42c-cdec10",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3670"
+  },
+  {
+   "id": "mvuqs42d-e9e080",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1005"
+  },
+  {
+   "id": "mvuqs42d-4119f6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1007"
+  },
+  {
+   "id": "mvuqs42d-564a13",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0226"
+  },
+  {
+   "id": "mvuqs42d-c30f84",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0969"
+  },
+  {
+   "id": "mvuqs42d-1b2692",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1014"
+  },
+  {
+   "id": "mvuqs42d-be0324",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0223"
+  },
+  {
+   "id": "mvuqs42d-115995",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0691"
+  },
+  {
+   "id": "mvuqs42d-686b2f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0272"
+  },
+  {
+   "id": "mvuqs42d-ba3231",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0634"
+  },
+  {
+   "id": "mvuqs42d-e75d8a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2206"
+  },
+  {
+   "id": "mvuqs42d-394e08",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0242"
+  },
+  {
+   "id": "mvuqs42e-16e4b2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3760"
+  },
+  {
+   "id": "mvuqs42e-bcafac",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0595"
+  },
+  {
+   "id": "mvuqs42e-d1cce1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1427"
+  },
+  {
+   "id": "mvuqs42e-6f7a4a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0710"
+  },
+  {
+   "id": "mvuqs42e-11ab11",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3006"
+  },
+  {
+   "id": "mvuqs42e-56444f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3667"
+  },
+  {
+   "id": "mvuqs42e-ae8cc3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3635"
+  },
+  {
+   "id": "mvuqs42e-a420a4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3470"
+  },
+  {
+   "id": "mvuqs42f-64a681",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3642"
+  },
+  {
+   "id": "mvuqs42f-d64475",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3655"
+  },
+  {
+   "id": "mvuqs42f-90fc36",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3644"
+  },
+  {
+   "id": "mvuqs42f-4474cf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2810"
+  },
+  {
+   "id": "mvuqs42f-0027fa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1732"
+  },
+  {
+   "id": "mvuqs42f-52f23c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1658"
+  },
+  {
+   "id": "mvuqs42f-90c5e0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1651"
+  },
+  {
+   "id": "mvuqs42f-f9d48f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1688"
+  },
+  {
+   "id": "mvuqs42f-71a422",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3582"
+  },
+  {
+   "id": "mvuqs42g-75df73",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1410"
+  },
+  {
+   "id": "mvuqs42g-5db6f0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0078"
+  },
+  {
+   "id": "mvuqs42g-fc7a12",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0099"
+  },
+  {
+   "id": "mvuqs42g-c6b5e6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1001"
+  },
+  {
+   "id": "mvuqs42g-b95478",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0102"
+  },
+  {
+   "id": "mvuqs42g-fcd642",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0987"
+  },
+  {
+   "id": "mvuqs42g-4a609e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1685"
+  },
+  {
+   "id": "mvuqs42g-e90b16",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1686"
+  },
+  {
+   "id": "mvuqs42g-8e193f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1435"
+  },
+  {
+   "id": "mvuqs42g-79c109",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1434"
+  },
+  {
+   "id": "mvuqs42g-a10a54",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2803"
+  },
+  {
+   "id": "mvuqs42g-d21cc1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3291"
+  },
+  {
+   "id": "mvuqs42g-ea0cf2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1003"
+  },
+  {
+   "id": "mvuqs42g-6ed138",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0513"
+  },
+  {
+   "id": "mvuqs42h-7f6fd7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2798"
+  },
+  {
+   "id": "mvuqs42h-73cfc5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0053"
+  },
+  {
+   "id": "mvuqs42h-14a7e7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3543"
+  },
+  {
+   "id": "mvuqs42h-1ed726",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1461"
+  },
+  {
+   "id": "mvuqs42h-79c12d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1462"
+  },
+  {
+   "id": "mvuqs42h-96e612",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3281"
+  },
+  {
+   "id": "mvuqs42h-4f22f8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3643"
+  },
+  {
+   "id": "mvuqs42h-6777e7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3769"
+  },
+  {
+   "id": "mvuqs42h-148697",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0039"
+  },
+  {
+   "id": "mvuqs42h-2c43a9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1433"
+  },
+  {
+   "id": "mvuqs42h-6aa877",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0755"
+  },
+  {
+   "id": "mvuqs42h-81bde9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0097"
+  },
+  {
+   "id": "mvuqs42h-fcfd99",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1705"
+  },
+  {
+   "id": "mvuqs42h-584c8d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1759"
+  },
+  {
+   "id": "mvuqs42h-cf4c20",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0371"
+  },
+  {
+   "id": "mvuqs42h-f17a85",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3119"
+  },
+  {
+   "id": "mvuqs42i-84eb17",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3132"
+  },
+  {
+   "id": "mvuqs42i-58e4f8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1489"
+  },
+  {
+   "id": "mvuqs42i-b2de0e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3142"
+  },
+  {
+   "id": "mvuqs42i-38b94d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0411"
+  },
+  {
+   "id": "mvuqs42i-29d67b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1476"
+  },
+  {
+   "id": "mvuqs42i-e207c2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1545"
+  },
+  {
+   "id": "mvuqs42i-2c30db",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1712"
+  },
+  {
+   "id": "mvuqs42i-58149d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1405"
+  },
+  {
+   "id": "mvuqs42i-5e795e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0669"
+  },
+  {
+   "id": "mvuqs42i-15fa79",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1339"
+  },
+  {
+   "id": "mvuqs42i-bf6bf5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1710"
+  },
+  {
+   "id": "mvuqs42i-f27a10",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1709"
+  },
+  {
+   "id": "mvuqs42i-b1f725",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1378"
+  },
+  {
+   "id": "mvuqs42j-2d9a97",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1708"
+  },
+  {
+   "id": "mvuqs42j-4dd87d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1407"
+  },
+  {
+   "id": "mvuqs42j-77166e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1716"
+  },
+  {
+   "id": "mvuqs42j-0d3fac",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1560"
+  },
+  {
+   "id": "mvuqs42j-a18df5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1582"
+  },
+  {
+   "id": "mvuqs42j-7f4b73",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1713"
+  },
+  {
+   "id": "mvuqs42j-0fe407",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2202"
+  },
+  {
+   "id": "mvuqs42j-437545",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2205"
+  },
+  {
+   "id": "mvuqs42j-1169cf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1745"
+  },
+  {
+   "id": "mvuqs42j-48ee88",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2567"
+  },
+  {
+   "id": "mvuqs42j-2a6f52",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1714"
+  },
+  {
+   "id": "mvuqs42j-704de0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2571"
+  },
+  {
+   "id": "mvuqs42j-38a821",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1346"
+  },
+  {
+   "id": "mvuqs42j-fb6967",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2207"
+  },
+  {
+   "id": "mvuqs42k-f2f535",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1342"
+  },
+  {
+   "id": "mvuqs42k-953cdd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0716"
+  },
+  {
+   "id": "mvuqs42k-50af06",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1341"
+  },
+  {
+   "id": "mvuqs42k-f25ebc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0690"
+  },
+  {
+   "id": "mvuqs42k-279c79",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3669"
+  },
+  {
+   "id": "mvuqs42k-f512ab",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0067"
+  },
+  {
+   "id": "mvuqs42k-ba5c04",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3888"
+  },
+  {
+   "id": "mvuqs42k-dd2245",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3297"
+  },
+  {
+   "id": "mvuqs42k-b87928",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3641"
+  },
+  {
+   "id": "mvuqs42k-438615",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3303"
+  },
+  {
+   "id": "mvuqs42k-987f74",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3293"
+  },
+  {
+   "id": "mvuqs42k-888cd6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0015"
+  },
+  {
+   "id": "mvuqs42k-74d671",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1432"
+  },
+  {
+   "id": "mvuqs42k-489e53",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0017"
+  },
+  {
+   "id": "mvuqs42l-501dc0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0572"
+  },
+  {
+   "id": "mvuqs42l-87e8b6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1429"
+  },
+  {
+   "id": "mvuqs42l-08f46c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1763"
+  },
+  {
+   "id": "mvuqs42l-f8f094",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0651"
+  },
+  {
+   "id": "mvuqs42l-cedb88",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3418"
+  },
+  {
+   "id": "mvuqs42l-1be579",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0140"
+  },
+  {
+   "id": "mvuqs42l-360233",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0670"
+  },
+  {
+   "id": "mvuqs42l-c0d98f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0674"
+  },
+  {
+   "id": "mvuqs42l-1c48e5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1431"
+  },
+  {
+   "id": "mvuqs42l-b00406",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1327"
+  },
+  {
+   "id": "mvuqs42l-93cffd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2987"
+  },
+  {
+   "id": "mvuqs42l-4da3f9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0139"
+  },
+  {
+   "id": "mvuqs42l-ba8464",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3290"
+  },
+  {
+   "id": "mvuqs42l-4e9e3b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3433"
+  },
+  {
+   "id": "mvuqs42m-c38bf4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2331"
+  },
+  {
+   "id": "mvuqs42m-e98b1a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2138"
+  },
+  {
+   "id": "mvuqs42m-90ef8d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1160"
+  },
+  {
+   "id": "mvuqs42m-dfdf91",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1201"
+  },
+  {
+   "id": "mvuqs42m-971fdb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0501"
+  },
+  {
+   "id": "mvuqs42m-2ac222",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0624"
+  },
+  {
+   "id": "mvuqs42m-80a5d2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3548"
+  },
+  {
+   "id": "mvuqs42m-7b9d7d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3360"
+  },
+  {
+   "id": "mvuqs42m-ef8b91",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0684"
+  },
+  {
+   "id": "mvuqs42m-a800e5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3656"
+  },
+  {
+   "id": "mvuqs42m-2979fa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0685"
+  },
+  {
+   "id": "mvuqs42m-2a0104",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1269"
+  },
+  {
+   "id": "mvuqs42m-41ea89",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1270"
+  },
+  {
+   "id": "mvuqs42n-bd7d46",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1277"
+  },
+  {
+   "id": "mvuqs42n-2bf996",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3234"
+  },
+  {
+   "id": "mvuqs42n-b77d78",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0307"
+  },
+  {
+   "id": "mvuqs42n-319e5e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0158"
+  },
+  {
+   "id": "mvuqs42n-c7ccdf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1276"
+  },
+  {
+   "id": "mvuqs42n-966d36",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1262"
+  },
+  {
+   "id": "mvuqs42n-549a46",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0227"
+  },
+  {
+   "id": "mvuqs42n-63e7b2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1278"
+  },
+  {
+   "id": "mvuqs42n-b6caac",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0170"
+  },
+  {
+   "id": "mvuqs42n-0949e0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1279"
+  },
+  {
+   "id": "mvuqs42n-1ae77e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1264"
+  },
+  {
+   "id": "mvuqs42o-137ce9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0225"
+  },
+  {
+   "id": "mvuqs42o-365ba8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0378"
+  },
+  {
+   "id": "mvuqs42o-a281ff",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0240"
+  },
+  {
+   "id": "mvuqs42o-6e2528",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0326"
+  },
+  {
+   "id": "mvuqs42o-b6f239",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0601"
+  },
+  {
+   "id": "mvuqs42o-1e4f68",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0359"
+  },
+  {
+   "id": "mvuqs42o-9bb7cb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1292"
+  },
+  {
+   "id": "mvuqs42o-628d6a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0458"
+  },
+  {
+   "id": "mvuqs42o-4426fd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1286"
+  },
+  {
+   "id": "mvuqs42o-78b77f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1288"
+  },
+  {
+   "id": "mvuqs42o-6b8a65",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1280"
+  },
+  {
+   "id": "mvuqs42o-3e1c15",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1263"
+  },
+  {
+   "id": "mvuqs42p-8b2012",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0388"
+  },
+  {
+   "id": "mvuqs42p-5abc9c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3546"
+  },
+  {
+   "id": "mvuqs42p-241b09",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0287"
+  },
+  {
+   "id": "mvuqs42p-f51dee",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2136"
+  },
+  {
+   "id": "mvuqs42p-70b8fe",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0438"
+  },
+  {
+   "id": "mvuqs42p-348d01",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1456"
+  },
+  {
+   "id": "mvuqs42p-34cbb2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0774"
+  },
+  {
+   "id": "mvuqs42p-651c6e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0772"
+  },
+  {
+   "id": "mvuqs42p-4b6b68",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1438"
+  },
+  {
+   "id": "mvuqs42p-4d476f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0869"
+  },
+  {
+   "id": "mvuqs42p-0435f3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2318"
+  },
+  {
+   "id": "mvuqs42p-64fe13",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0325"
+  },
+  {
+   "id": "mvuqs42q-6e2350",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0766"
+  },
+  {
+   "id": "mvuqs42q-7703b6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0747"
+  },
+  {
+   "id": "mvuqs42q-ab5a1b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2397"
+  },
+  {
+   "id": "mvuqs42q-009ac0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3122"
+  },
+  {
+   "id": "mvuqs42q-ffa41f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0404"
+  },
+  {
+   "id": "mvuqs42q-df0761",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0086"
+  },
+  {
+   "id": "mvuqs42q-8cffcd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1621"
+  },
+  {
+   "id": "mvuqs42q-28d021",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0360"
+  },
+  {
+   "id": "mvuqs42q-a8af73",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0590"
+  },
+  {
+   "id": "mvuqs42q-b76aff",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1622"
+  },
+  {
+   "id": "mvuqs42q-dbadff",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1290"
+  },
+  {
+   "id": "mvuqs42r-4d2e04",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1332"
+  },
+  {
+   "id": "mvuqs42r-95a853",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2799"
+  },
+  {
+   "id": "mvuqs42r-5f82bd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2800"
+  },
+  {
+   "id": "mvuqs42r-bb7a28",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3636"
+  },
+  {
+   "id": "mvuqs42r-095d3f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2801"
+  },
+  {
+   "id": "mvuqs42r-71971c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0011"
+  },
+  {
+   "id": "mvuqs42r-e822c7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0010"
+  },
+  {
+   "id": "mvuqs42r-5c9c14",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2355"
+  },
+  {
+   "id": "mvuqs42r-02d0ed",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1761"
+  },
+  {
+   "id": "mvuqs42r-f2c675",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1373"
+  },
+  {
+   "id": "mvuqs42r-3d9b5c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1375"
+  },
+  {
+   "id": "mvuqs42r-244d73",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1370"
+  },
+  {
+   "id": "mvuqs42s-72bff2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0999"
+  },
+  {
+   "id": "mvuqs42s-a55611",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1376"
+  },
+  {
+   "id": "mvuqs42s-250580",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1000"
+  },
+  {
+   "id": "mvuqs42s-50a27b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2802"
+  },
+  {
+   "id": "mvuqs42s-69fbe8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1343"
+  },
+  {
+   "id": "mvuqs42s-1d4328",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0013"
+  },
+  {
+   "id": "mvuqs42s-91a5f7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0012"
+  },
+  {
+   "id": "mvuqs42s-184aba",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0865"
+  },
+  {
+   "id": "mvuqs42s-38b2e6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1764"
+  },
+  {
+   "id": "mvuqs42s-c745a0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0476"
+  },
+  {
+   "id": "mvuqs42t-f72eac",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1002"
+  },
+  {
+   "id": "mvuqs42t-97f7b6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2333"
+  },
+  {
+   "id": "mvuqs42t-1afd6a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2963"
+  },
+  {
+   "id": "mvuqs42t-0b9669",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0475"
+  },
+  {
+   "id": "mvuqs42t-bf32fd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0866"
+  },
+  {
+   "id": "mvuqs42t-5075be",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3562"
+  },
+  {
+   "id": "mvuqs42t-032351",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0130"
+  },
+  {
+   "id": "mvuqs42t-9c7a9c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3523"
+  },
+  {
+   "id": "mvuqs42t-b324c8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3561"
+  },
+  {
+   "id": "mvuqs42t-ab8dfc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0474"
+  },
+  {
+   "id": "mvuqs42u-7659d8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1466"
+  },
+  {
+   "id": "mvuqs42u-4fdaab",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1772"
+  },
+  {
+   "id": "mvuqs42u-ec6c68",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3542"
+  },
+  {
+   "id": "mvuqs42u-6f0e25",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1017"
+  },
+  {
+   "id": "mvuqs42u-69e923",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3541"
+  },
+  {
+   "id": "mvuqs42u-1347c8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0041"
+  },
+  {
+   "id": "mvuqs42u-779866",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0978"
+  },
+  {
+   "id": "mvuqs42u-548e5b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0164"
+  },
+  {
+   "id": "mvuqs42u-5de4c9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0161"
+  },
+  {
+   "id": "mvuqs42u-ba3094",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0415"
+  },
+  {
+   "id": "mvuqs42v-e5e56f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0380"
+  },
+  {
+   "id": "mvuqs42v-223903",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0844"
+  },
+  {
+   "id": "mvuqs42v-036daa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0709"
+  },
+  {
+   "id": "mvuqs42v-629e8a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0311"
+  },
+  {
+   "id": "mvuqs42v-65c30a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0584"
+  },
+  {
+   "id": "mvuqs42v-afeee8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0215"
+  },
+  {
+   "id": "mvuqs42v-27426d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2317"
+  },
+  {
+   "id": "mvuqs42v-2ed37c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0395"
+  },
+  {
+   "id": "mvuqs42v-4594eb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0356"
+  },
+  {
+   "id": "mvuqs42v-635794",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0075"
+  },
+  {
+   "id": "mvuqs42w-db5791",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2470"
+  },
+  {
+   "id": "mvuqs42w-6143f7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0341"
+  },
+  {
+   "id": "mvuqs42w-1234d9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0304"
+  },
+  {
+   "id": "mvuqs42w-d37f0f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1018"
+  },
+  {
+   "id": "mvuqs42w-d1e9de",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0767"
+  },
+  {
+   "id": "mvuqs42w-d53f85",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1439"
+  },
+  {
+   "id": "mvuqs42w-a8c1cd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0329"
+  },
+  {
+   "id": "mvuqs42w-ebdec4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2139"
+  },
+  {
+   "id": "mvuqs42w-4450c8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2142"
+  },
+  {
+   "id": "mvuqs42w-f2b413",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2466"
+  },
+  {
+   "id": "mvuqs42x-362728",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1362"
+  },
+  {
+   "id": "mvuqs42x-d9b037",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1733"
+  },
+  {
+   "id": "mvuqs42x-33bee3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3007"
+  },
+  {
+   "id": "mvuqs42x-7bb155",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3236"
+  },
+  {
+   "id": "mvuqs42x-619faa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2286"
+  },
+  {
+   "id": "mvuqs42x-abab97",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1729"
+  },
+  {
+   "id": "mvuqs42x-a50496",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0149"
+  },
+  {
+   "id": "mvuqs42x-c37563",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0152"
+  },
+  {
+   "id": "mvuqs42x-0a2897",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0057"
+  },
+  {
+   "id": "mvuqs42x-58ec16",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0337"
+  },
+  {
+   "id": "mvuqs42y-e6b608",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1725"
+  },
+  {
+   "id": "mvuqs42y-e6b7a8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1771"
+  },
+  {
+   "id": "mvuqs42y-6f0ac0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1336"
+  },
+  {
+   "id": "mvuqs42y-e0a877",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1314"
+  },
+  {
+   "id": "mvuqs42y-b5ed97",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1333"
+  },
+  {
+   "id": "mvuqs42y-fafd76",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1335"
+  },
+  {
+   "id": "mvuqs42y-459c1e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1334"
+  },
+  {
+   "id": "mvuqs42y-e4f08c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0573"
+  },
+  {
+   "id": "mvuqs42y-aa15dd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3294"
+  },
+  {
+   "id": "mvuqs42y-eb2225",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0642"
+  },
+  {
+   "id": "mvuqs42z-c27567",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0661"
+  },
+  {
+   "id": "mvuqs42z-025d0c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3638"
+  },
+  {
+   "id": "mvuqs42z-97b665",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1421"
+  },
+  {
+   "id": "mvuqs42z-1543c3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0656"
+  },
+  {
+   "id": "mvuqs42z-8a5639",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0663"
+  },
+  {
+   "id": "mvuqs42z-96f7ce",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1273"
+  },
+  {
+   "id": "mvuqs42z-f03dab",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1275"
+  },
+  {
+   "id": "mvuqs42z-6da9dc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0699"
+  },
+  {
+   "id": "mvuqs42z-d7e97e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3216"
+  },
+  {
+   "id": "mvuqs430-d6dd05",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1310"
+  },
+  {
+   "id": "mvuqs430-603676",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0666"
+  },
+  {
+   "id": "mvuqs430-c619b1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0283"
+  },
+  {
+   "id": "mvuqs430-aac1ef",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0778"
+  },
+  {
+   "id": "mvuqs430-ad7d30",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1689"
+  },
+  {
+   "id": "mvuqs430-d7a3c3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3327"
+  },
+  {
+   "id": "mvuqs430-f4e65f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0975"
+  },
+  {
+   "id": "mvuqs430-17977d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2328"
+  },
+  {
+   "id": "mvuqs430-a4303d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1701"
+  },
+  {
+   "id": "mvuqs431-7459a9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3217"
+  },
+  {
+   "id": "mvuqs431-10d39b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0717"
+  },
+  {
+   "id": "mvuqs431-feaeaf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0659"
+  },
+  {
+   "id": "mvuqs431-1f0ff1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0658"
+  },
+  {
+   "id": "mvuqs431-f3353f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1307"
+  },
+  {
+   "id": "mvuqs431-2834e4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0653"
+  },
+  {
+   "id": "mvuqs431-d23f1e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3211"
+  },
+  {
+   "id": "mvuqs431-6b43f8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3145"
+  },
+  {
+   "id": "mvuqs431-873820",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1274"
+  },
+  {
+   "id": "mvuqs432-698ab2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1467"
+  },
+  {
+   "id": "mvuqs432-5e6e8f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0803"
+  },
+  {
+   "id": "mvuqs432-42edad",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0339"
+  },
+  {
+   "id": "mvuqs432-43277f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0697"
+  },
+  {
+   "id": "mvuqs432-bf7912",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3292"
+  },
+  {
+   "id": "mvuqs432-4301fc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3021"
+  },
+  {
+   "id": "mvuqs432-d1ad74",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3011"
+  },
+  {
+   "id": "mvuqs432-9fdaf8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0002"
+  },
+  {
+   "id": "mvuqs432-6c820c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1296"
+  },
+  {
+   "id": "mvuqs433-7a98c3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3662"
+  },
+  {
+   "id": "mvuqs433-b63621",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3235"
+  },
+  {
+   "id": "mvuqs433-e20d4a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2400"
+  },
+  {
+   "id": "mvuqs433-632854",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3195"
+  },
+  {
+   "id": "mvuqs433-a9a273",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1417"
+  },
+  {
+   "id": "mvuqs433-b6febc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3296"
+  },
+  {
+   "id": "mvuqs433-965676",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3295"
+  },
+  {
+   "id": "mvuqs433-cff8a6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2271"
+  },
+  {
+   "id": "mvuqs433-42290e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3318"
+  },
+  {
+   "id": "mvuqs434-a51b81",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0749"
+  },
+  {
+   "id": "mvuqs434-47d73e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3759"
+  },
+  {
+   "id": "mvuqs434-450a21",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2288"
+  },
+  {
+   "id": "mvuqs434-2cf5ab",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0488"
+  },
+  {
+   "id": "mvuqs434-6058c1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0675"
+  },
+  {
+   "id": "mvuqs434-c68b79",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3698"
+  },
+  {
+   "id": "mvuqs434-c0be8d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0450"
+  },
+  {
+   "id": "mvuqs434-c8b5c1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3419"
+  },
+  {
+   "id": "mvuqs435-cb70c7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1464"
+  },
+  {
+   "id": "mvuqs435-bd7b7a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1463"
+  },
+  {
+   "id": "mvuqs435-b3b99d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0740"
+  },
+  {
+   "id": "mvuqs435-a5de6d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1425"
+  },
+  {
+   "id": "mvuqs435-967501",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2287"
+  },
+  {
+   "id": "mvuqs435-9825ed",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2611"
+  },
+  {
+   "id": "mvuqs435-d52f30",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0300"
+  },
+  {
+   "id": "mvuqs435-514824",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1010"
+  },
+  {
+   "id": "mvuqs435-3f9801",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1459"
+  },
+  {
+   "id": "mvuqs436-076a2c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1756"
+  },
+  {
+   "id": "mvuqs436-fafa8f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1757"
+  },
+  {
+   "id": "mvuqs436-e9e036",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2805"
+  },
+  {
+   "id": "mvuqs436-f9b330",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2208"
+  },
+  {
+   "id": "mvuqs436-70317c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3314"
+  },
+  {
+   "id": "mvuqs436-9a0e3d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3315"
+  },
+  {
+   "id": "mvuqs436-7061cb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3202"
+  },
+  {
+   "id": "mvuqs436-359362",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3203"
+  },
+  {
+   "id": "mvuqs437-3115af",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3222"
+  },
+  {
+   "id": "mvuqs437-7ce22f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3313"
+  },
+  {
+   "id": "mvuqs437-dc898b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3288"
+  },
+  {
+   "id": "mvuqs437-616990",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0813"
+  },
+  {
+   "id": "mvuqs437-bd358d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1753"
+  },
+  {
+   "id": "mvuqs437-6d94d5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1754"
+  },
+  {
+   "id": "mvuqs437-1f7bc3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3012"
+  },
+  {
+   "id": "mvuqs437-c60b25",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3289"
+  },
+  {
+   "id": "mvuqs438-5dfc52",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0672"
+  },
+  {
+   "id": "mvuqs438-4df5f6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1744"
+  },
+  {
+   "id": "mvuqs438-47d61b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0815"
+  },
+  {
+   "id": "mvuqs438-71f877",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3287"
+  },
+  {
+   "id": "mvuqs438-97c9e7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0812"
+  },
+  {
+   "id": "mvuqs438-35425a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1399"
+  },
+  {
+   "id": "mvuqs438-a08379",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2364"
+  },
+  {
+   "id": "mvuqs438-2c09ba",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0009"
+  },
+  {
+   "id": "mvuqs439-c9c4ae",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2363"
+  },
+  {
+   "id": "mvuqs439-52d5c6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2462"
+  },
+  {
+   "id": "mvuqs43c-f894db",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1430"
+  },
+  {
+   "id": "mvuqs43c-701388",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0019"
+  },
+  {
+   "id": "mvuqs43d-35925e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0591"
+  },
+  {
+   "id": "mvuqs43d-8a8bd6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1755"
+  },
+  {
+   "id": "mvuqs43d-956990",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0639"
+  },
+  {
+   "id": "mvuqs43d-1a9b94",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0582"
+  },
+  {
+   "id": "mvuqs43d-20c0fc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1766"
+  },
+  {
+   "id": "mvuqs43d-4de370",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2203"
+  },
+  {
+   "id": "mvuqs43d-ace635",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2209"
+  },
+  {
+   "id": "mvuqs43d-fcb764",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0100"
+  },
+  {
+   "id": "mvuqs43d-09332d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3286"
+  },
+  {
+   "id": "mvuqs43e-1bc085",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3312"
+  },
+  {
+   "id": "mvuqs43e-528763",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1401"
+  },
+  {
+   "id": "mvuqs43e-124529",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1015"
+  },
+  {
+   "id": "mvuqs43e-ca753a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0833"
+  },
+  {
+   "id": "mvuqs43e-451acb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1253"
+  },
+  {
+   "id": "mvuqs43e-b1fa2f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1386"
+  },
+  {
+   "id": "mvuqs43e-e039d2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3240"
+  },
+  {
+   "id": "mvuqs43e-d5c424",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3241"
+  },
+  {
+   "id": "mvuqs43e-d45816",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1382"
+  },
+  {
+   "id": "mvuqs43e-05c23c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2334"
+  },
+  {
+   "id": "mvuqs43f-6d4038",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0108"
+  },
+  {
+   "id": "mvuqs43f-91b91f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1397"
+  },
+  {
+   "id": "mvuqs43f-4bbee8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1490"
+  },
+  {
+   "id": "mvuqs43f-30c395",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1394"
+  },
+  {
+   "id": "mvuqs43f-e4ff30",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1396"
+  },
+  {
+   "id": "mvuqs43f-4cb3db",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0742"
+  },
+  {
+   "id": "mvuqs43f-d3fc40",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1383"
+  },
+  {
+   "id": "mvuqs43f-44f858",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0738"
+  },
+  {
+   "id": "mvuqs43f-ac21a6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1385"
+  },
+  {
+   "id": "mvuqs43f-71ff99",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2315"
+  },
+  {
+   "id": "mvuqs43g-304280",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1371"
+  },
+  {
+   "id": "mvuqs43g-41920d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1379"
+  },
+  {
+   "id": "mvuqs43g-e2e6e5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2335"
+  },
+  {
+   "id": "mvuqs43g-7fec47",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1395"
+  },
+  {
+   "id": "mvuqs43g-211dbc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0409"
+  },
+  {
+   "id": "mvuqs43g-2cbf5d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1387"
+  },
+  {
+   "id": "mvuqs43g-ab2cd0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1393"
+  },
+  {
+   "id": "mvuqs43g-b44648",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1384"
+  },
+  {
+   "id": "mvuqs43g-c1420c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1392"
+  },
+  {
+   "id": "mvuqs43g-cc4b62",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1381"
+  },
+  {
+   "id": "mvuqs43h-ed4879",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1380"
+  },
+  {
+   "id": "mvuqs43h-3a90ef",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3302"
+  },
+  {
+   "id": "mvuqs43h-a73e85",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3672"
+  },
+  {
+   "id": "mvuqs43h-e328f1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3671"
+  },
+  {
+   "id": "mvuqs43h-9547d5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1687"
+  },
+  {
+   "id": "mvuqs43h-767a0b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3552"
+  },
+  {
+   "id": "mvuqs43h-4910c6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3298"
+  },
+  {
+   "id": "mvuqs43h-940f05",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3299"
+  },
+  {
+   "id": "mvuqs43h-0dc3ee",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3300"
+  },
+  {
+   "id": "mvuqs43h-874f6a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3301"
+  },
+  {
+   "id": "mvuqs43i-3178bc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1494"
+  },
+  {
+   "id": "mvuqs43i-bfa096",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1366"
+  },
+  {
+   "id": "mvuqs43i-a0e854",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0464"
+  },
+  {
+   "id": "mvuqs43i-268906",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3239"
+  },
+  {
+   "id": "mvuqs43i-0eb309",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3665"
+  },
+  {
+   "id": "mvuqs43i-7249bf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2135"
+  },
+  {
+   "id": "mvuqs43i-8a3cf0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3663"
+  },
+  {
+   "id": "mvuqs43i-b7af76",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1774"
+  },
+  {
+   "id": "mvuqs43i-3b8e96",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3664"
+  },
+  {
+   "id": "mvuqs43i-c7bf4c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1775"
+  },
+  {
+   "id": "mvuqs43j-65580c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3544"
+  },
+  {
+   "id": "mvuqs43j-b6e5e5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2705"
+  },
+  {
+   "id": "mvuqs43j-fb9ca1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2808"
+  },
+  {
+   "id": "mvuqs43j-829692",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0199"
+  },
+  {
+   "id": "mvuqs43j-4e81c6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0073"
+  },
+  {
+   "id": "mvuqs43j-6cb037",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1294"
+  },
+  {
+   "id": "mvuqs43j-6e7410",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1284"
+  },
+  {
+   "id": "mvuqs43j-7c861a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1295"
+  },
+  {
+   "id": "mvuqs43j-ecdb53",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0022"
+  },
+  {
+   "id": "mvuqs43j-46e7c1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1255"
+  },
+  {
+   "id": "mvuqs43k-658454",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0034"
+  },
+  {
+   "id": "mvuqs43k-b7a43d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3010"
+  },
+  {
+   "id": "mvuqs43k-19b8c8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0184"
+  },
+  {
+   "id": "mvuqs43k-bcf68e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2285"
+  },
+  {
+   "id": "mvuqs43k-0d12d1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1291"
+  },
+  {
+   "id": "mvuqs43k-02659b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1700"
+  },
+  {
+   "id": "mvuqs43k-d13357",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0150"
+  },
+  {
+   "id": "mvuqs43k-0e8b29",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0205"
+  },
+  {
+   "id": "mvuqs43k-fe546c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0007"
+  },
+  {
+   "id": "mvuqs43l-6526da",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0974"
+  },
+  {
+   "id": "mvuqs43l-e923d3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0673"
+  },
+  {
+   "id": "mvuqs43l-037ed2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0153"
+  },
+  {
+   "id": "mvuqs43l-93749f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0177"
+  },
+  {
+   "id": "mvuqs43l-8aae2c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2736"
+  },
+  {
+   "id": "mvuqs43l-fa7579",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0579"
+  },
+  {
+   "id": "mvuqs43l-097f9a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0197"
+  },
+  {
+   "id": "mvuqs43l-8f9de2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3117"
+  },
+  {
+   "id": "mvuqs43l-89af71",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1013"
+  },
+  {
+   "id": "mvuqs43l-c3fdca",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3116"
+  },
+  {
+   "id": "mvuqs43m-99601a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1347"
+  },
+  {
+   "id": "mvuqs43m-9940ca",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0983"
+  },
+  {
+   "id": "mvuqs43m-b5693f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0119"
+  },
+  {
+   "id": "mvuqs43m-9b4cfc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0121"
+  },
+  {
+   "id": "mvuqs43m-38556f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1765"
+  },
+  {
+   "id": "mvuqs43m-d04173",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0123"
+  },
+  {
+   "id": "mvuqs43m-50694d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1324"
+  },
+  {
+   "id": "mvuqs43m-74b36b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0208"
+  },
+  {
+   "id": "mvuqs43n-b481a0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0213"
+  },
+  {
+   "id": "mvuqs43n-4fd9c0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1356"
+  },
+  {
+   "id": "mvuqs43n-876eed",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0180"
+  },
+  {
+   "id": "mvuqs43n-01a654",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0988"
+  },
+  {
+   "id": "mvuqs43n-3bff21",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2464"
+  },
+  {
+   "id": "mvuqs43n-1488ae",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1351"
+  },
+  {
+   "id": "mvuqs43n-38a1ae",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1349"
+  },
+  {
+   "id": "mvuqs43n-8c4928",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1717"
+  },
+  {
+   "id": "mvuqs43o-9ba1eb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3168"
+  },
+  {
+   "id": "mvuqs43o-905f5f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3167"
+  },
+  {
+   "id": "mvuqs43o-042985",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1322"
+  },
+  {
+   "id": "mvuqs43o-859189",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0761"
+  },
+  {
+   "id": "mvuqs43o-30efdd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1319"
+  },
+  {
+   "id": "mvuqs43o-820a88",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1344"
+  },
+  {
+   "id": "mvuqs43o-2d8eb2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1361"
+  },
+  {
+   "id": "mvuqs43o-feed54",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1329"
+  },
+  {
+   "id": "mvuqs43o-9bad1c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3158"
+  },
+  {
+   "id": "mvuqs43p-f521f3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3200"
+  },
+  {
+   "id": "mvuqs43p-668ade",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0189"
+  },
+  {
+   "id": "mvuqs43p-1687c3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1360"
+  },
+  {
+   "id": "mvuqs43p-1c4489",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3166"
+  },
+  {
+   "id": "mvuqs43p-bdc1b7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0236"
+  },
+  {
+   "id": "mvuqs43p-52bcd6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3165"
+  },
+  {
+   "id": "mvuqs43p-616fc2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0234"
+  },
+  {
+   "id": "mvuqs43p-fd60a6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0497"
+  },
+  {
+   "id": "mvuqs43p-5c5ee1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2300"
+  },
+  {
+   "id": "mvuqs43q-3e0580",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3019"
+  },
+  {
+   "id": "mvuqs43q-4225ba",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2298"
+  },
+  {
+   "id": "mvuqs43q-933bd7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1331"
+  },
+  {
+   "id": "mvuqs43q-538043",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1317"
+  },
+  {
+   "id": "mvuqs43q-73350c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3697"
+  },
+  {
+   "id": "mvuqs43q-aaa480",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0377"
+  },
+  {
+   "id": "mvuqs43q-1ccad8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0233"
+  },
+  {
+   "id": "mvuqs43q-1a4c22",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0202"
+  },
+  {
+   "id": "mvuqs43r-574afa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0762"
+  },
+  {
+   "id": "mvuqs43r-075625",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3017"
+  },
+  {
+   "id": "mvuqs43r-8770bb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0571"
+  },
+  {
+   "id": "mvuqs43r-693561",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1350"
+  },
+  {
+   "id": "mvuqs43r-7fb4e4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1323"
+  },
+  {
+   "id": "mvuqs43r-277335",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0239"
+  },
+  {
+   "id": "mvuqs43r-999114",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0218"
+  },
+  {
+   "id": "mvuqs43r-d85fd1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0588"
+  },
+  {
+   "id": "mvuqs43s-84765f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1320"
+  },
+  {
+   "id": "mvuqs43s-ae5356",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0159"
+  },
+  {
+   "id": "mvuqs43s-9d9997",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0160"
+  },
+  {
+   "id": "mvuqs43s-3fe5e6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0990"
+  },
+  {
+   "id": "mvuqs43s-54a36c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3144"
+  },
+  {
+   "id": "mvuqs43s-31ad80",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1330"
+  },
+  {
+   "id": "mvuqs43s-1feb52",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0244"
+  },
+  {
+   "id": "mvuqs43s-c0b750",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3156"
+  },
+  {
+   "id": "mvuqs43s-af3985",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1773"
+  },
+  {
+   "id": "mvuqs43t-692172",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3162"
+  },
+  {
+   "id": "mvuqs43t-af65af",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3161"
+  },
+  {
+   "id": "mvuqs43t-398dfc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1348"
+  },
+  {
+   "id": "mvuqs43t-1004bf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3147"
+  },
+  {
+   "id": "mvuqs43t-db1b8a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0103"
+  },
+  {
+   "id": "mvuqs43t-d7d47f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0857"
+  },
+  {
+   "id": "mvuqs43t-ca8118",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0971"
+  },
+  {
+   "id": "mvuqs43t-57c59b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0796"
+  },
+  {
+   "id": "mvuqs43u-44c7d0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3637"
+  },
+  {
+   "id": "mvuqs43u-ea751b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1662"
+  },
+  {
+   "id": "mvuqs43u-bc5e94",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1637"
+  },
+  {
+   "id": "mvuqs43u-9eb9ec",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1664"
+  },
+  {
+   "id": "mvuqs43u-e144fc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2403"
+  },
+  {
+   "id": "mvuqs43u-feb8a4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1649"
+  },
+  {
+   "id": "mvuqs43u-b4f85d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1650"
+  },
+  {
+   "id": "mvuqs43u-c49006",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1632"
+  },
+  {
+   "id": "mvuqs43v-490b38",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1660"
+  },
+  {
+   "id": "mvuqs43v-17de4f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0023"
+  },
+  {
+   "id": "mvuqs43v-53bd6e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0968"
+  },
+  {
+   "id": "mvuqs43v-ffce9a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2407"
+  },
+  {
+   "id": "mvuqs43v-92ba85",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3547"
+  },
+  {
+   "id": "mvuqs43v-264881",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1655"
+  },
+  {
+   "id": "mvuqs43w-0c1e71",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2401"
+  },
+  {
+   "id": "mvuqs43w-ea013b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1653"
+  },
+  {
+   "id": "mvuqs43w-b2dc34",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1656"
+  },
+  {
+   "id": "mvuqs43w-24ae11",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0382"
+  },
+  {
+   "id": "mvuqs43w-e5f780",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1769"
+  },
+  {
+   "id": "mvuqs43w-b21f6a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1661"
+  },
+  {
+   "id": "mvuqs43w-0a87af",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0416"
+  },
+  {
+   "id": "mvuqs43x-fc567d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1629"
+  },
+  {
+   "id": "mvuqs43x-0cc175",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0229"
+  },
+  {
+   "id": "mvuqs43x-6d8d7a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1652"
+  },
+  {
+   "id": "mvuqs43x-686d6a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1638"
+  },
+  {
+   "id": "mvuqs43x-0c7cec",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1645"
+  },
+  {
+   "id": "mvuqs43x-7caae7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1683"
+  },
+  {
+   "id": "mvuqs43y-ccc960",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3123"
+  },
+  {
+   "id": "mvuqs43y-9386ce",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1677"
+  },
+  {
+   "id": "mvuqs43y-15f1fd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0390"
+  },
+  {
+   "id": "mvuqs43y-af2ee2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0986"
+  },
+  {
+   "id": "mvuqs43y-e9ae38",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1644"
+  },
+  {
+   "id": "mvuqs43y-dfaad5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0365"
+  },
+  {
+   "id": "mvuqs43y-0a30a8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0636"
+  },
+  {
+   "id": "mvuqs43z-3919ac",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2404"
+  },
+  {
+   "id": "mvuqs43z-35a649",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0232"
+  },
+  {
+   "id": "mvuqs43z-5f33cd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2402"
+  },
+  {
+   "id": "mvuqs43z-ae5f66",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0312"
+  },
+  {
+   "id": "mvuqs43z-bc4047",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0847"
+  },
+  {
+   "id": "mvuqs440-c7fed1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1675"
+  },
+  {
+   "id": "mvuqs440-99d72f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0397"
+  },
+  {
+   "id": "mvuqs440-2efc43",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0976"
+  },
+  {
+   "id": "mvuqs440-042796",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2414"
+  },
+  {
+   "id": "mvuqs440-2117fc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1631"
+  },
+  {
+   "id": "mvuqs440-894ff5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1770"
+  },
+  {
+   "id": "mvuqs440-62f6b6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1682"
+  },
+  {
+   "id": "mvuqs440-e435cf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0403"
+  },
+  {
+   "id": "mvuqs441-51b134",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0421"
+  },
+  {
+   "id": "mvuqs441-e2489a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0353"
+  },
+  {
+   "id": "mvuqs441-2a758c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1642"
+  },
+  {
+   "id": "mvuqs441-a4f713",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1437"
+  },
+  {
+   "id": "mvuqs441-deaa8a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1016"
+  },
+  {
+   "id": "mvuqs441-e0de99",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0224"
+  },
+  {
+   "id": "mvuqs441-08d266",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0771"
+  },
+  {
+   "id": "mvuqs442-17a5e9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0079"
+  },
+  {
+   "id": "mvuqs442-1bcfdc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0994"
+  },
+  {
+   "id": "mvuqs442-7dcd7d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0210"
+  },
+  {
+   "id": "mvuqs442-976617",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1441"
+  },
+  {
+   "id": "mvuqs442-e43e13",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1426"
+  },
+  {
+   "id": "mvuqs442-1d707e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1415"
+  },
+  {
+   "id": "mvuqs442-b7c205",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0367"
+  },
+  {
+   "id": "mvuqs442-4d5ad1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0451"
+  },
+  {
+   "id": "mvuqs443-aa5a40",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0110"
+  },
+  {
+   "id": "mvuqs443-f8e2b6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1630"
+  },
+  {
+   "id": "mvuqs443-06bdd8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2741"
+  },
+  {
+   "id": "mvuqs443-48f00e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0853"
+  },
+  {
+   "id": "mvuqs443-fde03a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-5201"
+  },
+  {
+   "id": "mvuqs443-c5fc5b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1654"
+  },
+  {
+   "id": "mvuqs443-99c819",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1667"
+  },
+  {
+   "id": "mvuqs444-648118",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0425"
+  },
+  {
+   "id": "mvuqs444-739ba4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1413"
+  },
+  {
+   "id": "mvuqs444-e24415",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3560"
+  },
+  {
+   "id": "mvuqs444-700dff",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1648"
+  },
+  {
+   "id": "mvuqs444-e571ef",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1676"
+  },
+  {
+   "id": "mvuqs444-9cdeb1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1659"
+  },
+  {
+   "id": "mvuqs444-049011",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1669"
+  },
+  {
+   "id": "mvuqs445-25ceb8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1657"
+  },
+  {
+   "id": "mvuqs445-c4c417",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1674"
+  },
+  {
+   "id": "mvuqs445-cf5bae",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1671"
+  },
+  {
+   "id": "mvuqs445-0a3959",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1678"
+  },
+  {
+   "id": "mvuqs445-696b73",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1666"
+  },
+  {
+   "id": "mvuqs445-6b18c3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1647"
+  },
+  {
+   "id": "mvuqs445-2c101f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0384"
+  },
+  {
+   "id": "mvuqs446-de3e2c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1673"
+  },
+  {
+   "id": "mvuqs446-8d7f3e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1616"
+  },
+  {
+   "id": "mvuqs446-10e61b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0428"
+  },
+  {
+   "id": "mvuqs446-63dba9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0081"
+  },
+  {
+   "id": "mvuqs446-9ccdeb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0209"
+  },
+  {
+   "id": "mvuqs446-66330a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1414"
+  },
+  {
+   "id": "mvuqs446-4c4592",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1635"
+  },
+  {
+   "id": "mvuqs447-679cdc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1639"
+  },
+  {
+   "id": "mvuqs447-bce764",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1615"
+  },
+  {
+   "id": "mvuqs447-738eea",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1663"
+  },
+  {
+   "id": "mvuqs447-9ad5c5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1640"
+  },
+  {
+   "id": "mvuqs447-6f6e23",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1614"
+  },
+  {
+   "id": "mvuqs447-066667",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1633"
+  },
+  {
+   "id": "mvuqs447-e7c40c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2293"
+  },
+  {
+   "id": "mvuqs448-ebeb7c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1672"
+  },
+  {
+   "id": "mvuqs448-80f036",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1458"
+  },
+  {
+   "id": "mvuqs448-ebd3fa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1641"
+  },
+  {
+   "id": "mvuqs448-3bca55",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1628"
+  },
+  {
+   "id": "mvuqs448-0b3c93",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0366"
+  },
+  {
+   "id": "mvuqs448-9cefad",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1665"
+  },
+  {
+   "id": "mvuqs448-f4a209",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1680"
+  },
+  {
+   "id": "mvuqs449-3666b6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1670"
+  },
+  {
+   "id": "mvuqs449-d37ed8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1679"
+  },
+  {
+   "id": "mvuqs449-08edcc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1668"
+  },
+  {
+   "id": "mvuqs449-f8c245",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1416"
+  },
+  {
+   "id": "mvuqs449-7160c6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3639"
+  },
+  {
+   "id": "mvuqs449-72f02a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0996"
+  },
+  {
+   "id": "mvuqs449-7ce124",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0583"
+  },
+  {
+   "id": "mvuqs44a-68ed09",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0849"
+  },
+  {
+   "id": "mvuqs44a-6cf297",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1707"
+  },
+  {
+   "id": "mvuqs44a-3073ce",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0112"
+  },
+  {
+   "id": "mvuqs44a-574e2c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0862"
+  },
+  {
+   "id": "mvuqs44a-b37411",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2329"
+  },
+  {
+   "id": "mvuqs44a-433f29",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1011"
+  },
+  {
+   "id": "mvuqs44a-11f0d5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2399"
+  },
+  {
+   "id": "mvuqs44b-0167c7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0399"
+  },
+  {
+   "id": "mvuqs44b-432914",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0864"
+  },
+  {
+   "id": "mvuqs44b-2153bf",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0984"
+  },
+  {
+   "id": "mvuqs44b-9296e5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0014"
+  },
+  {
+   "id": "mvuqs44b-0ff36a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2371"
+  },
+  {
+   "id": "mvuqs44b-790d53",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0845"
+  },
+  {
+   "id": "mvuqs44b-258b75",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1472"
+  },
+  {
+   "id": "mvuqs44c-adbb5b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3220"
+  },
+  {
+   "id": "mvuqs44c-b1a537",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3361"
+  },
+  {
+   "id": "mvuqs44c-4a987c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1473"
+  },
+  {
+   "id": "mvuqs44c-1453db",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1587"
+  },
+  {
+   "id": "mvuqs44c-86bd74",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2204"
+  },
+  {
+   "id": "mvuqs44c-9f5c36",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3304"
+  },
+  {
+   "id": "mvuqs44d-741422",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1023"
+  },
+  {
+   "id": "mvuqs44d-4f12bc",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1009"
+  },
+  {
+   "id": "mvuqs44d-e9230b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0434"
+  },
+  {
+   "id": "mvuqs44d-f44574",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1008"
+  },
+  {
+   "id": "mvuqs44d-19608e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2812"
+  },
+  {
+   "id": "mvuqs44d-1718f5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2796"
+  },
+  {
+   "id": "mvuqs44d-42ab97",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1684"
+  },
+  {
+   "id": "mvuqs44e-2688c4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2706"
+  },
+  {
+   "id": "mvuqs44e-0f50cd",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0338"
+  },
+  {
+   "id": "mvuqs44e-5d8d10",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1293"
+  },
+  {
+   "id": "mvuqs44e-69535b",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1743"
+  },
+  {
+   "id": "mvuqs44e-009d4f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1283"
+  },
+  {
+   "id": "mvuqs44e-eeced7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1301"
+  },
+  {
+   "id": "mvuqs44f-ed7df6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0303"
+  },
+  {
+   "id": "mvuqs44f-2ce944",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1256"
+  },
+  {
+   "id": "mvuqs44f-f44c4c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0754"
+  },
+  {
+   "id": "mvuqs44f-75474f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1626"
+  },
+  {
+   "id": "mvuqs44f-527429",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1625"
+  },
+  {
+   "id": "mvuqs44f-b597b5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1261"
+  },
+  {
+   "id": "mvuqs44f-0c1ac6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1287"
+  },
+  {
+   "id": "mvuqs44g-335bd9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1617"
+  },
+  {
+   "id": "mvuqs44g-a94ca6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1260"
+  },
+  {
+   "id": "mvuqs44g-c01747",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3758"
+  },
+  {
+   "id": "mvuqs44g-bfe63a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0764"
+  },
+  {
+   "id": "mvuqs44g-2938c8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3545"
+  },
+  {
+   "id": "mvuqs44g-d6cdf1",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0316"
+  },
+  {
+   "id": "mvuqs44h-9e0447",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1623"
+  },
+  {
+   "id": "mvuqs44h-135948",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1719"
+  },
+  {
+   "id": "mvuqs44h-e5b508",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0048"
+  },
+  {
+   "id": "mvuqs44h-d16063",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1618"
+  },
+  {
+   "id": "mvuqs44h-91df7f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0758"
+  },
+  {
+   "id": "mvuqs44h-27a9f4",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1479"
+  },
+  {
+   "id": "mvuqs44h-c8913d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1281"
+  },
+  {
+   "id": "mvuqs44i-b5c3c7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1289"
+  },
+  {
+   "id": "mvuqs44i-618f45",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1619"
+  },
+  {
+   "id": "mvuqs44i-7e929a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1265"
+  },
+  {
+   "id": "mvuqs44i-f410f8",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1266"
+  },
+  {
+   "id": "mvuqs44i-f7ba82",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1268"
+  },
+  {
+   "id": "mvuqs44i-b51638",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1624"
+  },
+  {
+   "id": "mvuqs44j-d672e6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0340"
+  },
+  {
+   "id": "mvuqs44j-670206",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1308"
+  },
+  {
+   "id": "mvuqs44j-e38cff",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0055"
+  },
+  {
+   "id": "mvuqs44j-2f79fe",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1258"
+  },
+  {
+   "id": "mvuqs44j-8e2476",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0342"
+  },
+  {
+   "id": "mvuqs44j-3e5790",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3124"
+  },
+  {
+   "id": "mvuqs44k-97a9fe",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1282"
+  },
+  {
+   "id": "mvuqs44k-dda765",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1620"
+  },
+  {
+   "id": "mvuqs44k-5e8880",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1267"
+  },
+  {
+   "id": "mvuqs44k-a81bcb",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0549"
+  },
+  {
+   "id": "mvuqs44k-f5f0c0",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3305"
+  },
+  {
+   "id": "mvuqs44k-8e6271",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3214"
+  },
+  {
+   "id": "mvuqs44k-75dbc9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3218"
+  },
+  {
+   "id": "mvuqs44l-49aade",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3215"
+  },
+  {
+   "id": "mvuqs44l-817c38",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3213"
+  },
+  {
+   "id": "mvuqs44l-1c7a01",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3699"
+  },
+  {
+   "id": "mvuqs44l-65c6e5",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1468"
+  },
+  {
+   "id": "mvuqs44l-975928",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3212"
+  },
+  {
+   "id": "mvuqs44l-229a70",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3231"
+  },
+  {
+   "id": "mvuqs44m-2e559e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1739"
+  },
+  {
+   "id": "mvuqs44m-0977f7",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1730"
+  },
+  {
+   "id": "mvuqs44m-052e42",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0420"
+  },
+  {
+   "id": "mvuqs44m-e91ee2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1728"
+  },
+  {
+   "id": "mvuqs44m-c6784c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1734"
+  },
+  {
+   "id": "mvuqs44m-e4e461",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0860"
+  },
+  {
+   "id": "mvuqs44n-657c1e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0394"
+  },
+  {
+   "id": "mvuqs44n-0c3197",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0354"
+  },
+  {
+   "id": "mvuqs44n-ef7932",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1742"
+  },
+  {
+   "id": "mvuqs44n-21e1a3",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2405"
+  },
+  {
+   "id": "mvuqs44n-ab5209",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1747"
+  },
+  {
+   "id": "mvuqs44n-96b9f2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1746"
+  },
+  {
+   "id": "mvuqs44o-aaf267",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0637"
+  },
+  {
+   "id": "mvuqs44o-f10e78",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1749"
+  },
+  {
+   "id": "mvuqs44o-cd4a09",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0449"
+  },
+  {
+   "id": "mvuqs44o-c06ad2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0092"
+  },
+  {
+   "id": "mvuqs44o-ed7b55",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0453"
+  },
+  {
+   "id": "mvuqs44o-3d8faa",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0389"
+  },
+  {
+   "id": "mvuqs44o-05071e",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2189"
+  },
+  {
+   "id": "mvuqs44o-90f71d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1718"
+  },
+  {
+   "id": "mvuqs44p-e44773",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1736"
+  },
+  {
+   "id": "mvuqs44p-f3021c",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1738"
+  },
+  {
+   "id": "mvuqs44p-2b771a",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2406"
+  },
+  {
+   "id": "mvuqs44p-a5b573",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1748"
+  },
+  {
+   "id": "mvuqs44p-d89065",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0060"
+  },
+  {
+   "id": "mvuqs44p-00d9ec",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1721"
+  },
+  {
+   "id": "mvuqs44p-43c71f",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1726"
+  },
+  {
+   "id": "mvuqs44q-086cc2",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1752"
+  },
+  {
+   "id": "mvuqs44q-0f67e6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-0186"
+  },
+  {
+   "id": "mvuqs44q-7e6af9",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1735"
+  },
+  {
+   "id": "mvuqs44q-ad8a7d",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-1723"
+  },
+  {
+   "id": "mvuqs44q-44f5c6",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-3420"
+  },
+  {
+   "id": "mvuqs44q-f6c341",
+   "at": "2026-10-30T09:00:29.458Z",
+   "type": "archive",
+   "code": "exercisedb-2143"
+  },
+  {
+   "id": "mvur42cl-38fc55",
+   "at": "2026-10-30T09:09:47.109Z",
+   "type": "archive",
+   "code": "Box_Squat"
   }
  ]
 }
