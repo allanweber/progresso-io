@@ -134,14 +134,10 @@ test.describe("workout copy", () => {
                   ? [{ exerciseId: crucifixo, note: "ombro sensível" }]
                   : [],
               }),
-              // A super set authored the intuitive way: only the FIRST item
-              // carries the technique; it chains (no rest) into the next, which
-              // is the block's tail (no technique, same groupId).
               item(crucifixo, {
                 sets: 3,
                 reps: range(10, 12),
                 rest: 30,
-                technique: "superset",
                 groupId: "ssA",
               }),
               item(triceps, {
@@ -155,9 +151,9 @@ test.describe("workout copy", () => {
           {
             name: "Ficha B · Costas, Bíceps e Ombros",
             exercises: nn([
-              item(remada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
-              item(puxada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
-              item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "giant", groupId: "gtB" }),
+              item(remada, { sets: 4, reps: range(8, 10), rest: 20, groupId: "gtB" }),
+              item(puxada, { sets: 4, reps: range(8, 10), rest: 20, groupId: "gtB" }),
+              item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "dropset", groupId: "gtB" }),
               item(desenvolvimento, { sets: 4, reps: range(10, 12), rest: 75, technique: "cluster" }),
               item(abdominal, { sets: 3, reps: { kind: "failure" }, rest: 45, technique: "tripledrop" }),
             ]),
@@ -194,12 +190,12 @@ test.describe("workout copy", () => {
     });
     await page.setViewportSize({ width: 1280, height: 900 });
 
-    // --- Workout detail (desktop) — the continuous super/giant rail + badges ---
+    // --- Workout detail (desktop) — the continuous super-set rail + badges ---
     await page.goto(`/coach/workouts/${workout.id}`);
     await expect(
       page.getByRole("heading", { name: /Programa completo/ }),
     ).toBeVisible();
-    await expect(page.getByText(/Giant set/).first()).toBeVisible();
+    await expect(page.getByText(/Super set · 3 em sequência/)).toBeVisible();
     // Every ficha row leads with the exercise's first image, so a program reads
     // visually and not as a wall of names. "Visible" is not enough — a blocked
     // or 404'd image still occupies the box, so assert the art actually decoded.
@@ -216,7 +212,7 @@ test.describe("workout copy", () => {
     // must be real SVG *and* distinct from one another, so a technique reads
     // without relying on its pigment.
     const marks: string[] = [];
-    for (const label of ["Drop set", "Giant set", "Super set"]) {
+    for (const label of ["Drop set", "Cluster", "Super set"]) {
       const mark = page
         .getByText(new RegExp(`^${label}`))
         .first()
@@ -225,8 +221,6 @@ test.describe("workout copy", () => {
       marks.push(await mark.innerHTML());
     }
     expect(new Set(marks).size).toBe(marks.length);
-    // The super set was authored by marking only the first item, yet chains into
-    // the next: the block spans both exercises (its opener labels it).
     await expect(page.getByText(/Super set · 2 em sequência/)).toBeVisible();
     await expect(page.getByText(/substituiç/).first()).toBeVisible(); // the count indicator
     await page.screenshot({
@@ -606,11 +600,11 @@ test.describe("workout builder", () => {
   });
 
   /**
-   * The three noise items: name chips must compose instead of overwriting each
-   * other, técnica must explain itself, and a grouping technique with nothing
-   * after it must stop claiming a chain the payload does not contain.
+   * Name chips must compose instead of overwriting each other, técnica must
+   * explain itself, and the link icon joins an exercise into a super set with
+   * the one above it.
    */
-  test("composes ficha names, explains técnicas, and tells the truth about super sets", async ({
+  test("composes ficha names, explains técnicas, and links exercises into super sets", async ({
     page,
   }) => {
     await stubExerciseImages(page);
@@ -637,53 +631,46 @@ test.describe("workout builder", () => {
     await page.getByRole("button", { name: /^Mais detalhes/ }).click();
     await page.getByRole("button", { name: /^Técnica avançada/ }).click();
     // The catalog's PT-BR explanation reaches the coach, not just the label.
-    await expect(
-      page.getByText(/Dois exercícios executados em sequência, sem descanso/),
-    ).toBeVisible();
-    await page.getByRole("button", { name: /^Super set/ }).click();
+    await expect(page.getByText(/Faça a série até a falha, reduza a carga/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Super set/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Giant set/ })).toHaveCount(0);
+    await page.getByRole("button", { name: /^Drop set/ }).click();
     await page.getByRole("button", { name: "Adicionar ao treino" }).click();
 
-    // --- A super set with nothing after it admits it does nothing ----------
-    await expect(
-      page.getByText(/Sem efeito aqui — não há exercício seguinte para encadear/),
-    ).toBeVisible();
+    // The first exercise has nothing above it to join.
+    await expect(page.getByRole("button", { name: /^Fazer super set/ })).toHaveCount(0);
 
-    await page.screenshot({
-      path: "test-results/screens/coach-superset-orphan-desktop.png",
-      fullPage: true,
-    });
-
-    // Give it a follower and the chain becomes real — and visible on BOTH rows.
     await page.getByPlaceholder(/Buscar exercício/).fill("leg press");
     await page.getByRole("button").filter({ hasText: /leg press/i }).first().click();
     await page.getByRole("button", { name: "Adicionar ao treino" }).click();
-    await expect(
-      page.getByText(/Super set — sem descanso, encadeia com o próximo exercício/),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        /Super set — em sequência com o anterior, sem descanso entre eles/,
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Sem efeito aqui/),
-    ).toHaveCount(0);
 
-    // --- Removing an exercise is undoable ----------------------------------
+    // --- The link icon joins the exercise with the one above ----------------
+    await page.getByRole("button", { name: /^Fazer super set de .* com .*agachamento/i }).click();
+    await expect(page.getByText(/Super set · 2 exercícios, sem descanso entre eles/)).toBeVisible();
+    await expect(page.getByText(/Super set com .*agachamento.*, sem descanso/i)).toBeVisible();
+    // A super-set member keeps its own técnica.
+    await expect(page.getByText(/^Drop set/).first()).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/screens/coach-superset-link-desktop.png",
+      fullPage: true,
+    });
+
+    // --- Removing an exercise is undoable, and undo restores the link -------
     // Each row's remove button now names the exercise it removes, so the ficha's
     // own "Remover ficha" has to be excluded rather than relied on for order.
     await page.getByRole("button", { name: /^Remover (?!ficha)/ }).last().click();
     const undo = page.getByRole("status").filter({ hasText: /removido/ });
     await expect(undo).toBeVisible();
-    await expect(
-      page.getByText(/Sem efeito aqui — não há exercício seguinte para encadear/),
-    ).toBeVisible();
+    await expect(page.getByText(/Super set · 2 exercícios/)).toHaveCount(0);
     await undo.getByRole("button", { name: "Desfazer" }).click();
-    await expect(
-      page.getByText(
-        /Super set — em sequência com o anterior, sem descanso entre eles/,
-      ),
-    ).toBeVisible();
+    await expect(page.getByText(/Super set · 2 exercícios/)).toBeVisible();
+
+    // --- Clicking the link again splits them --------------------------------
+    await page.getByRole("button", { name: /^Separar .* do super set/ }).click();
+    await expect(page.getByText(/Super set · 2 exercícios/)).toHaveCount(0);
+    await page.getByRole("button", { name: /^Fazer super set de/ }).click();
+    await expect(page.getByText(/Super set · 2 exercícios/)).toBeVisible();
 
     // --- Removing a ficha with exercises asks first ------------------------
     await page.getByRole("button", { name: "Remover ficha" }).click();

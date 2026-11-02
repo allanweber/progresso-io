@@ -372,14 +372,6 @@ function translateExercise(
       items.push(`Técnica ${label} foi para a observação.`);
       break;
     }
-    case "superset":
-    case "giant":
-      if (!item.groupId) {
-        const label = WORKOUT_TECHNIQUE_CATALOG[item.technique].label;
-        notes.push(`Técnica: ${label}`);
-        items.push(`${label} sem grupo foi para a observação.`);
-      }
-      break;
     case null:
       break;
   }

@@ -30,9 +30,8 @@ import {
   type WorkoutSessionDto,
 } from "@/lib/workouts";
 import {
-  isGroupingTechnique,
+  WORKOUT_TECHNIQUE_CATALOG,
   techniqueInfo,
-  type WorkoutTechnique,
 } from "@/lib/workout-techniques";
 import { ExerciseImages } from "@/components/workouts/exercise-images";
 import {
@@ -42,19 +41,16 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Grouping context for an exercise inside a super-set / giant-set block. A block
- * is a run of exercises sharing a `groupId`; only its **opening** member(s) carry
- * the grouping technique (which "chains" into the following exercise), so the
- * block's technique is resolved once here and shown on every member's rail.
+ * Grouping context for an exercise inside a super-set block: a run of exercises
+ * sharing a `groupId`.
  */
 export type GroupInfo = {
   position: number;
   total: number;
   nextName: string | null;
-  technique: WorkoutTechnique | null;
 };
 
-/** Computes the super-set/giant grouping of a session's exercises by `groupId`. */
+/** Computes the super-set grouping of a session's exercises by `groupId`. */
 function groupInfoFor(
   exercises: WorkoutExerciseDto[],
 ): Map<string, GroupInfo> {
@@ -67,15 +63,12 @@ function groupInfoFor(
     runs.set(ex.groupId, list);
   }
   for (const list of runs.values()) {
-    // The block's technique is the first member carrying a grouping technique.
-    const technique =
-      list.find((ex) => isGroupingTechnique(ex.technique))?.technique ?? null;
+    if (list.length < 2) continue;
     list.forEach((ex, i) => {
       map.set(ex.id, {
         position: i + 1,
         total: list.length,
         nextName: i < list.length - 1 ? list[i + 1].name : null,
-        technique,
       });
     });
   }
@@ -92,18 +85,12 @@ function ExerciseRow({
   onClick?: () => void;
 }) {
   const inBlock = Boolean(group);
-  // A block member shows the block's technique (its opener's) on the rail/badge;
-  // a standalone exercise shows its own technique.
-  const techKey = inBlock
-    ? group!.technique ?? exercise.technique
-    : exercise.technique;
-  const tech = techniqueInfo(techKey);
-  const color = tech?.color ?? "#059669";
+  const color = WORKOUT_TECHNIQUE_CATALOG.superset.color;
   const first = group?.position === 1;
   const last = group ? group.position === group.total : false;
   const subCount = exercise.substitutes.length;
 
-  // A continuous rail spans the whole super-set / giant block: each grouped row
+  // A continuous rail spans the whole super-set block: each grouped row
   // draws a vertical line that overlaps its neighbours (negative top/bottom) so
   // the segments join, plus a technique-icon node on the line beside the row.
   const NODE_TOP = "1.05rem"; // node center, aligned with the exercise name line
@@ -129,7 +116,7 @@ function ExerciseRow({
           color,
         }}
       >
-        <TechniqueIcon technique={techKey} className="size-2.5" />
+        <TechniqueIcon technique="superset" className="size-2.5" />
       </span>
     </div>
   ) : null;
@@ -162,12 +149,13 @@ function ExerciseRow({
               {exercise.name}
             </span>
             {/* Label the block on its first row; the node marks the rest. */}
-            {tech && (first || !inBlock) && (
+            {group && first && (
               <TechniqueBadge
-                technique={techKey}
-                suffix={group ? ` · ${group.total} em sequência` : undefined}
+                technique="superset"
+                suffix={` · ${group.total} em sequência`}
               />
             )}
+            <TechniqueBadge technique={exercise.technique} />
           </span>
           <span className="shrink-0 whitespace-nowrap text-body font-semibold tabular-nums text-muted-foreground">
             {exercise.sets}× {formatReps(exercise.reps)}
@@ -220,7 +208,7 @@ function ExerciseRow({
 /**
  * The read-only sessions (fichas) of a workout: each ficha is a card, each
  * exercise a row with its prescription (séries × reps, descanso, carga), the
- * advanced-technique badge, super-set/giant grouping rail, and its substitutes.
+ * advanced-technique badge, super-set grouping rail, and its substitutes.
  * When `onExerciseClick` is set, rows open the exercise detail. The program's
  * `cardio` prescription (free text), when set, is shown above the fichas.
  */
@@ -332,10 +320,9 @@ export function WorkoutExerciseDetail({
   /** See `WorkoutSessionsView`. Carried onto the dialog, which portals out. */
   posture?: "reading";
 }) {
-  // Block members show the block's technique (the opener's) even when their own
-  // `technique` is null (they are the chained tail of the super-set / giant set).
-  const techKey = exercise?.technique ?? group?.technique ?? null;
+  const techKey = exercise?.technique ?? null;
   const tech = techniqueInfo(techKey);
+  const superset = WORKOUT_TECHNIQUE_CATALOG.superset;
   const images = (exercise?.images ?? [])
     .map((k) => exerciseImageUrl(k))
     .filter((u): u is string => Boolean(u));
@@ -357,6 +344,7 @@ export function WorkoutExerciseDetail({
             <DialogHeader>
               <DialogTitle className="flex flex-wrap items-center gap-2">
                 {exercise.name}
+                {group && <TechniqueBadge technique="superset" />}
                 {tech && <TechniqueBadge technique={techKey} />}
               </DialogTitle>
             </DialogHeader>
@@ -436,11 +424,15 @@ export function WorkoutExerciseDetail({
               {group && (
                 <div
                   className="rounded-2xl border p-4"
-                  style={{ borderColor: tech?.color ?? "#059669" }}
+                  style={{ borderColor: superset.color }}
                 >
-                  <div className="text-subtitle font-semibold text-foreground">
-                    Bloco · exercício {group.position} de {group.total}
+                  <div className="flex items-center gap-2 text-subtitle font-semibold text-foreground">
+                    <TechniqueIcon technique="superset" className="size-4 shrink-0" />
+                    {superset.label} · exercício {group.position} de {group.total}
                   </div>
+                  <p className="mt-1.5 text-body text-[#334155]">
+                    {superset.description}
+                  </p>
                   {group.nextName ? (
                     <div className="mt-1.5 text-body text-[#334155]">
                       Sem descanso → <b>{group.nextName}</b>

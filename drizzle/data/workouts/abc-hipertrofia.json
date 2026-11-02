@@ -57,7 +57,6 @@
           },
           "load": "moderada",
           "rest": 60,
-          "technique": "superset",
           "groupId": "abc-a1"
         },
         {
@@ -69,7 +68,6 @@
           },
           "load": "leve",
           "rest": 60,
-          "technique": "superset",
           "groupId": "abc-a1"
         }
       ]
@@ -130,7 +128,6 @@
           },
           "load": "moderada",
           "rest": 60,
-          "technique": "superset",
           "groupId": "abc-b1"
         },
         {
@@ -142,7 +139,6 @@
           },
           "load": "moderada",
           "rest": 60,
-          "technique": "superset",
           "groupId": "abc-b1"
         }
       ]

@@ -46,7 +46,7 @@ describe("workoutChanged", () => {
         {
           name: "Ficha A",
           items: [
-            item({ technique: "superset", groupId: a }),
+            item({ technique: null, groupId: a }),
             item({ technique: null, groupId: a }),
             item({ technique: null, groupId: b }),
           ],
@@ -64,7 +64,7 @@ describe("workoutChanged", () => {
         {
           name: "Ficha A",
           items: [
-            item({ technique: "superset", groupId: "x" }),
+            item({ technique: null, groupId: "x" }),
             item({ technique: null, groupId: "x" }),
             item({ technique: null, groupId: "x" }),
           ],

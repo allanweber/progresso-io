@@ -310,8 +310,8 @@ async function seedAlunoWorkout(
   const nonNull = <T>(xs: (T | null)[]): T[] => xs.filter((x): x is T => x !== null);
 
   // A demo that exercises the full technique catalogue (drop set, triple drop,
-  // super set, giant set, GVT, FS7, rest-pause, cluster) so the read views show
-  // every variety — the badge, the continuous super/giant rail, and the reps
+  // GVT, FS7, rest-pause, cluster) plus super sets so the read views show
+  // every variety — the badge, the continuous super-set rail, and the reps
   // kinds (range / fixed / falha).
   const hipertrofia: WorkoutWriteInput = {
     name: "Hipertrofia · 4x semana",
@@ -332,17 +332,17 @@ async function seedAlunoWorkout(
               : [],
           }),
           // A super-set pair (shared groupId).
-          item(crucifixo, { sets: 3, reps: range(10, 12), rest: 30, technique: "superset", groupId: "ssA" }),
-          item(triceps, { sets: 3, reps: range(12, 15), rest: 60, technique: "superset", groupId: "ssA" }),
+          item(crucifixo, { sets: 3, reps: range(10, 12), rest: 30, groupId: "ssA" }),
+          item(triceps, { sets: 3, reps: range(12, 15), rest: 60, groupId: "ssA" }),
         ]),
       },
       {
         name: "Ficha B · Costas, Bíceps e Ombros",
         exercises: nonNull([
-          // A giant set of three (shared groupId).
-          item(remada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
-          item(puxada, { sets: 4, reps: range(8, 10), rest: 20, technique: "giant", groupId: "gtB" }),
-          item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "giant", groupId: "gtB" }),
+          // A super set of three (shared groupId), its last member a drop set.
+          item(remada, { sets: 4, reps: range(8, 10), rest: 20, groupId: "gtB" }),
+          item(puxada, { sets: 4, reps: range(8, 10), rest: 20, groupId: "gtB" }),
+          item(rosca, { sets: 3, reps: range(10, 12), rest: 60, technique: "dropset", groupId: "gtB" }),
           item(desenvolvimento, {
             sets: 4,
             reps: pyramid(12, 10, 8, 6),

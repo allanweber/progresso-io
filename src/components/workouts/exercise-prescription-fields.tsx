@@ -31,7 +31,6 @@ import {
 } from "@/lib/workouts";
 import {
   WORKOUT_TECHNIQUES,
-  isGroupingTechnique,
   techniqueInfo,
   WORKOUT_TECHNIQUE_CATALOG,
   type WorkoutTechnique,
@@ -380,12 +379,6 @@ function DetailFields({
             onChange={(technique) => onPatch({ technique })}
           />
         </div>
-        {isGroupingTechnique(value.technique) && (
-          <p className="mt-1 text-label text-muted-foreground">
-            Encadeia com o próximo exercício da ficha, sem descanso entre eles.
-            Para um giant set, marque também os exercícios seguintes.
-          </p>
-        )}
       </div>
 
       <div>
