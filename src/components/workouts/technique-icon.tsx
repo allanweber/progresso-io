@@ -9,29 +9,26 @@ import {
   Pause,
   Timer,
   TrendingDown,
-  Waypoints,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { techniqueInfo, type WorkoutTechnique } from "@/lib/workout-techniques";
+import { techniqueInfo, type TechniqueMark } from "@/lib/workout-techniques";
 
 /**
  * The drawn mark for each técnica avançada.
  *
  * Every one depicts the **mechanic the aluno has to perform**, never a mood:
  * the load falling once (drop set) or in steps (triple drop), links chaining
- * exercises with no rest between them (super set) and a run of chained nodes
- * (giant set), the 10×10 matrix of GVT, the fixed short rest that defines FS7,
+ * exercises with no rest between them (super set), the 10×10 matrix of GVT, the fixed short rest that defines FS7,
  * the pause rest-pause is named for, and the mini-blocks of a cluster.
  *
  * This lives here rather than in the catalog because `lib/workout-techniques`
  * is imported by the schema and the DAL and must stay free of React.
  */
-export const TECHNIQUE_ICONS: Record<WorkoutTechnique, LucideIcon> = {
+export const TECHNIQUE_ICONS: Record<TechniqueMark, LucideIcon> = {
   dropset: TrendingDown,
   tripledrop: ChevronsDown,
   superset: Link2,
-  giant: Waypoints,
   gvt: Grid3x3,
   fs7: Timer,
   restpause: Pause,
@@ -43,7 +40,7 @@ export function TechniqueIcon({
   technique,
   className,
 }: {
-  technique: WorkoutTechnique | null | undefined;
+  technique: TechniqueMark | null | undefined;
   className?: string;
 }) {
   if (!technique) return null;
@@ -53,7 +50,7 @@ export function TechniqueIcon({
 
 /**
  * The técnica pill: mark + PT-BR label in the technique's own pigment. `suffix`
- * carries the block size on a super/giant set ("· 3 em sequência"). The mark is
+ * carries the block size on a super set ("· 3 em sequência"). The mark is
  * decorative — the label is the accessible name.
  */
 export function TechniqueBadge({
@@ -61,7 +58,7 @@ export function TechniqueBadge({
   suffix,
   className,
 }: {
-  technique: WorkoutTechnique | null | undefined;
+  technique: TechniqueMark | null | undefined;
   suffix?: string;
   className?: string;
 }) {

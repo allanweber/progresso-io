@@ -58,7 +58,6 @@
           },
           "load": "leve",
           "rest": 45,
-          "technique": "superset",
           "groupId": "gp-a1"
         },
         {
@@ -70,7 +69,6 @@
           },
           "load": "moderada",
           "rest": 45,
-          "technique": "superset",
           "groupId": "gp-a1"
         }
       ]

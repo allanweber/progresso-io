@@ -22,11 +22,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  ArrowDown,
   ArrowLeft,
   ArrowUp,
   GripVertical,
   HeartPulse,
+  Link2,
   MessageSquareText,
   Pencil,
   Plus,
@@ -36,6 +36,7 @@ import {
   Trash2,
   TriangleAlert,
   Undo2,
+  Unlink2,
   X,
 } from "lucide-react";
 
@@ -89,12 +90,15 @@ import {
   type WorkoutReps,
 } from "@/lib/workouts";
 import {
-  isGroupingTechnique,
   techniqueInfo,
   type WorkoutTechnique,
 } from "@/lib/workout-techniques";
 import { TechniqueBadge } from "@/components/workouts/technique-icon";
-import { assignGroupIds } from "@/lib/workout-grouping";
+import {
+  detachExercise,
+  moveExercise,
+  supersetGroupIds,
+} from "@/lib/workout-grouping";
 import { z } from "@/lib/validation";
 
 /* -------------------------------------------------------------------------- */
@@ -114,6 +118,7 @@ type ExerciseDraft = {
   load: string;
   rest: number;
   technique: WorkoutTechnique | null;
+  linked: boolean;
   note: string;
   customSubstitutes: CustomSubDraft[];
 };
@@ -207,8 +212,9 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
       key: newKey(),
       name: s.name,
       defaults: inferDefaults(s.exercises),
-      exercises: s.exercises.map((x) => ({
+      exercises: s.exercises.map((x, i) => ({
         key: newKey(),
+        linked: i > 0 && x.groupId !== null && x.groupId === s.exercises[i - 1].groupId,
         exerciseId: x.exerciseId,
         name: x.name,
         code: x.code,
@@ -237,43 +243,19 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
   };
 }
 
-const withGroupIds = (exercises: ExerciseDraft[]) =>
-  assignGroupIds(exercises, newKey);
-
-/**
- * What a row should say about its super/giant-set block. The builder used to
- * print "encadeia com o próximo exercício" from the technique tag alone, so
- * tagging the LAST exercise of a ficha rendered a chain that `assignGroupIds`
- * had already dropped — the UI asserted something the payload did not contain.
- * These marks come from the real grouping pass, so the opener, the tail, and a
- * tag that formed no block at all each say the truth.
- */
-type GroupMark =
-  | { kind: "opener"; technique: WorkoutTechnique }
-  | { kind: "tail"; technique: WorkoutTechnique }
-  | { kind: "orphan" };
+type GroupMark = { position: number; total: number; above: string | null };
 
 function groupMarks(exercises: ExerciseDraft[]): (GroupMark | null)[] {
   let n = 0;
-  const grouped = assignGroupIds(exercises, () => `g${n++}`);
-  return grouped.map((entry, i) => {
-    const tech = entry.exercise.technique;
-    if (isGroupingTechnique(tech)) {
-      return entry.groupId
-        ? { kind: "opener", technique: tech as WorkoutTechnique }
-        : { kind: "orphan" };
-    }
-    if (!entry.groupId) return null;
-    // The block's tail carries no technique of its own — inherit the opener's
-    // so the second half of a bi-set is visible instead of silent.
-    for (let j = i - 1; j >= 0; j--) {
-      if (grouped[j].groupId !== entry.groupId) break;
-      const t = grouped[j].exercise.technique;
-      if (isGroupingTechnique(t)) {
-        return { kind: "tail", technique: t as WorkoutTechnique };
-      }
-    }
-    return null;
+  const ids = supersetGroupIds(exercises, () => `g${n++}`);
+  return ids.map((id, i) => {
+    if (!id) return null;
+    const first = ids.indexOf(id);
+    return {
+      position: i - first + 1,
+      total: ids.lastIndexOf(id) - first + 1,
+      above: i > first ? exercises[i - 1].name : null,
+    };
   });
 }
 
@@ -467,9 +449,11 @@ export function WorkoutBuilder({
       name: value.name,
       notes: value.notes,
       cardio: value.cardio,
-      sessions: sessions.map((s) => ({
+      sessions: sessions.map((s) => {
+        const groupIds = supersetGroupIds(s.exercises, newKey);
+        return {
         name: s.name.trim(),
-        exercises: withGroupIds(s.exercises).map(({ exercise: x, groupId }) => ({
+        exercises: s.exercises.map((x, i) => ({
           exerciseId: x.exerciseId,
           sets: x.sets,
           reps: x.reps,
@@ -477,13 +461,14 @@ export function WorkoutBuilder({
           rest: x.rest,
           technique: x.technique,
           note: x.note.trim() === "" ? null : x.note.trim(),
-          groupId,
+          groupId: groupIds[i],
           customSubstitutes: x.customSubstitutes.map((cs) => ({
             exerciseId: cs.exerciseId,
             note: cs.note.trim() === "" ? null : cs.note.trim(),
           })),
         })),
-      })),
+        };
+      }),
     };
   }
 
@@ -991,9 +976,11 @@ const SortableSession = memo(function SortableSession({
   const [adding, setAdding] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const [undo, setUndo] = useState<{ exercise: ExerciseDraft; index: number } | null>(
-    null,
-  );
+  const [undo, setUndo] = useState<{
+    exercise: ExerciseDraft;
+    index: number;
+    next: { key: string; linked: boolean } | null;
+  } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chipsRef = useRef<HTMLDivElement>(null);
 
@@ -1024,17 +1011,24 @@ const SortableSession = memo(function SortableSession({
    */
   function removeExercise(exercise: ExerciseDraft) {
     const index = session.exercises.findIndex((e) => e.key === exercise.key);
-    onExercises(session.key, (ex) => ex.filter((i) => i.key !== exercise.key));
-    setUndo({ exercise, index });
+    const after = session.exercises[index + 1];
+    onExercises(session.key, (ex) => {
+      const at = ex.findIndex((i) => i.key === exercise.key);
+      return at < 0 ? ex : detachExercise(ex, at);
+    });
+    setUndo({ exercise, index, next: after ? { key: after.key, linked: after.linked } : null });
     startUndoTimer();
   }
 
   function restoreExercise() {
     if (!undo) return;
-    const { exercise, index } = undo;
+    const { exercise, index, next: after } = undo;
     onExercises(session.key, (ex) => {
-      const next = ex.slice();
-      next.splice(Math.min(index, next.length), 0, exercise);
+      const at = Math.min(index, ex.length);
+      const next = ex.map((i) =>
+        after && i.key === after.key && ex.indexOf(i) === at ? { ...i, linked: after.linked } : i,
+      );
+      next.splice(at, 0, exercise);
       return next;
     });
     clearUndoTimer();
@@ -1045,6 +1039,13 @@ const SortableSession = memo(function SortableSession({
     (key: string, p: Partial<ExerciseDraft>) =>
       onExercises(session.key, (ex) =>
         ex.map((i) => (i.key === key ? { ...i, ...p } : i)),
+      ),
+    [onExercises, session.key],
+  );
+  const toggleLink = useCallback(
+    (key: string) =>
+      onExercises(session.key, (ex) =>
+        ex.map((i) => (i.key === key ? { ...i, linked: !i.linked } : i)),
       ),
     [onExercises, session.key],
   );
@@ -1083,6 +1084,7 @@ const SortableSession = memo(function SortableSession({
         load: prescription.load,
         rest: prescription.rest,
         technique: prescription.technique,
+        linked: false,
         note: prescription.note,
         customSubstitutes: prescription.customSubstitutes,
       },
@@ -1104,7 +1106,7 @@ const SortableSession = memo(function SortableSession({
     onExercises(session.key, (ex) => {
       const from = ex.findIndex((i) => i.key === active.id);
       const to = ex.findIndex((i) => i.key === over.id);
-      return from < 0 || to < 0 ? ex : arrayMove(ex, from, to);
+      return from < 0 || to < 0 ? ex : moveExercise(ex, from, to);
     });
   }
 
@@ -1225,9 +1227,11 @@ const SortableSession = memo(function SortableSession({
                     key={exercise.key}
                     exercise={exercise}
                     mark={marks[i] ?? null}
+                    above={i > 0 ? session.exercises[i - 1].name : null}
                     defaults={session.defaults}
                     sessionExerciseIds={sessionExerciseIds}
                     onPatch={patchExercise}
+                    onToggleLink={toggleLink}
                     onRemove={removeByKey}
                   />
                 ))}
@@ -1431,19 +1435,22 @@ function SessionDefaultsRow({
 const SortableExercise = memo(function SortableExercise({
   exercise,
   mark,
+  above,
   defaults,
   sessionExerciseIds,
   onPatch,
+  onToggleLink,
   onRemove,
 }: {
   exercise: ExerciseDraft;
-  /** What this row truthfully is inside a super/giant-set block, if anything. */
   mark: GroupMark | null;
+  above: string | null;
   defaults: PrescriptionDefaults | null;
   sessionExerciseIds: string[];
   /* Keyed rather than closed over, so the parent can hand down one stable
      function instead of a fresh arrow per row on every render. */
   onPatch: (key: string, patch: Partial<ExerciseDraft>) => void;
+  onToggleLink: (key: string) => void;
   onRemove: (key: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
@@ -1465,7 +1472,7 @@ const SortableExercise = memo(function SortableExercise({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-xl border border-border bg-surface-light/40 p-2.5"
+      className={`rounded-xl border bg-surface-light/40 p-2.5 ${mark ? "border-primary" : "border-border"}`}
     >
       <div className="flex items-center gap-1.5">
         <button
@@ -1537,28 +1544,16 @@ const SortableExercise = memo(function SortableExercise({
                 </span>
               )}
             </span>
-            {/* The chain marks name their técnica in words and read in Reading
-                Grey. They used to be painted in the técnica's own pigment at
-                12px, where three of the eight hues land under 3.8:1 — the hue
-                was carrying the identity alone, which is the one thing the
-                categorical set is not allowed to do. */}
-            {mark?.kind === "opener" && (
+            {mark && mark.position === 1 && (
               <span className="mt-0.5 flex items-center gap-1 text-label font-medium text-text-secondary">
-                <ArrowDown className="size-3.5 shrink-0" aria-hidden />
-                {techniqueInfo(mark.technique)?.label} — sem descanso, encadeia
-                com o próximo exercício
+                <Link2 className="size-3.5 shrink-0" aria-hidden />
+                Super set · {mark.total} exercícios, sem descanso entre eles
               </span>
             )}
-            {mark?.kind === "tail" && (
+            {mark && mark.above && (
               <span className="mt-0.5 flex items-center gap-1 text-label font-medium text-text-secondary">
                 <ArrowUp className="size-3.5 shrink-0" aria-hidden />
-                {techniqueInfo(mark.technique)?.label} — em sequência com o
-                anterior, sem descanso entre eles
-              </span>
-            )}
-            {mark?.kind === "orphan" && (
-              <span className="mt-0.5 block text-label font-medium text-warn-fg">
-                Sem efeito aqui — não há exercício seguinte para encadear.
+                Super set com {mark.above}, sem descanso
               </span>
             )}
           </span>
@@ -1567,6 +1562,26 @@ const SortableExercise = memo(function SortableExercise({
             aria-hidden
           />
         </button>
+        {above !== null && (
+          <button
+            type="button"
+            onClick={() => onToggleLink(exercise.key)}
+            aria-pressed={exercise.linked}
+            aria-label={
+              exercise.linked
+                ? `Separar ${exercise.name} do super set com ${above}`
+                : `Fazer super set de ${exercise.name} com ${above}`
+            }
+            title={exercise.linked ? "Separar do super set" : "Super set com o exercício de cima"}
+            className={`flex size-11 shrink-0 items-center justify-center rounded-[10px] transition-colors ${
+              exercise.linked
+                ? "bg-primary-light text-primary-deep hover:text-destructive"
+                : "text-muted-foreground hover:text-primary-deep"
+            }`}
+          >
+            {exercise.linked ? <Unlink2 className="size-4" /> : <Link2 className="size-4" />}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onRemove(exercise.key)}

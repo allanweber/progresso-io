@@ -60,7 +60,6 @@
           },
           "load": "moderada",
           "rest": 60,
-          "technique": "superset",
           "groupId": "ul-ss1"
         },
         {
@@ -72,7 +71,6 @@
           },
           "load": "leve",
           "rest": 60,
-          "technique": "superset",
           "groupId": "ul-ss1"
         }
       ]
@@ -135,7 +133,6 @@
           },
           "load": "moderada",
           "rest": 75,
-          "technique": "superset",
           "groupId": "ul-ss2"
         },
         {
@@ -147,7 +144,6 @@
           },
           "load": "moderada",
           "rest": 45,
-          "technique": "superset",
           "groupId": "ul-ss2"
         }
       ]

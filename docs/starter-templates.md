@@ -28,7 +28,7 @@ The single source of truth is the JSON files:
   vegetariana, recomposição, econômica, vegana, diabético/metabólica, ganho de
   peso, jejum intermitente).
 - `drizzle/data/workouts/*.json` — 11 workouts spanning beginner→expert and
-  every technique in `WORKOUT_TECHNIQUES` (dropset, tripledrop, superset, giant,
+  every technique in `WORKOUT_TECHNIQUES` (dropset, tripledrop,
   gvt, fs7, restpause, cluster).
 
 They are loaded into `STARTER_DIETS` / `STARTER_WORKOUTS`

@@ -1,50 +1,57 @@
 import { describe, expect, it } from "vitest";
 
-import { assignGroupIds } from "@/lib/workout-grouping";
-import type { WorkoutTechnique } from "@/lib/workout-techniques";
+import { detachExercise, moveExercise, supersetGroupIds } from "@/lib/workout-grouping";
 
-/** Deterministic id generator for stable assertions. */
-function counter() {
+const counter = () => {
   let n = 0;
   return () => `g${++n}`;
-}
+};
+const ids = (linked: boolean[]) =>
+  supersetGroupIds(linked.map((l) => ({ linked: l })), counter());
 
-const ex = (technique: WorkoutTechnique | null) => ({ technique });
-const ids = (t: (WorkoutTechnique | null)[]) =>
-  assignGroupIds(t.map(ex), counter()).map((o) => o.groupId);
-
-describe("assignGroupIds (super-set / giant-set chaining)", () => {
-  it("chains a super set forward: marking only the first pairs it with the next", () => {
-    // The coach marks exercise 1 as super set; exercise 2 is plain.
-    expect(ids(["superset", null])).toEqual(["g1", "g1"]);
+describe("supersetGroupIds", () => {
+  it("joins an exercise with the one above it", () => {
+    expect(ids([false, true])).toEqual(["g1", "g1"]);
   });
 
-  it("extends a giant set while consecutive items carry the same technique", () => {
-    // Marking the first two giant-set items forms a block of three (incl. tail).
-    expect(ids(["giant", "giant", null])).toEqual(["g1", "g1", "g1"]);
+  it("keeps a super set growing while each next exercise is linked", () => {
+    expect(ids([false, true, true, true])).toEqual(["g1", "g1", "g1", "g1"]);
   });
 
-  it("drops a lone marked item at the end (nothing to chain into)", () => {
-    expect(ids([null, "superset"])).toEqual([null, null]);
+  it("leaves unlinked exercises out of any block", () => {
+    expect(ids([false, false, true, false])).toEqual([null, "g1", "g1", null]);
   });
 
-  it("keeps two separate blocks apart", () => {
-    expect(ids(["superset", null, "superset", null])).toEqual([
-      "g1",
-      "g1",
-      "g2",
-      "g2",
-    ]);
+  it("starts a new block after an unlinked exercise", () => {
+    expect(ids([false, true, false, true])).toEqual(["g1", "g1", "g2", "g2"]);
   });
 
-  it("does not group non-grouping techniques (drop set stays standalone)", () => {
-    expect(ids(["dropset", null, "cluster"])).toEqual([null, null, null]);
+  it("ignores a link on the first exercise, which has nothing above it", () => {
+    expect(ids([true, false])).toEqual([null, null]);
+    expect(ids([true, true])).toEqual(["g1", "g1"]);
+  });
+});
+
+const rows = (linked: boolean[]) => linked.map((l, i) => ({ key: String.fromCharCode(65 + i), linked: l }));
+const shape = (list: { key: string; linked: boolean }[]) =>
+  list.map((x) => (x.linked ? `+${x.key}` : x.key)).join(" ");
+
+describe("detachExercise", () => {
+  it("keeps the block together when a middle member leaves", () => {
+    expect(shape(detachExercise(rows([false, true, true]), 1))).toBe("A +C");
   });
 
-  it("closes a block when the next grouping technique differs", () => {
-    // superset chains into the giant item, which becomes the block's tail (a
-    // different technique doesn't extend the chain); the trailing plain item is
-    // then standalone.
-    expect(ids(["superset", "giant", null])).toEqual(["g1", "g1", null]);
+  it("starts the rest of the block fresh when its first member leaves", () => {
+    expect(shape(detachExercise(rows([false, true, true]), 0))).toBe("B +C");
+  });
+
+  it("does not join the next exercise to the one above an unlinked exercise", () => {
+    expect(shape(detachExercise(rows([false, false, true]), 1))).toBe("A C");
+  });
+});
+
+describe("moveExercise", () => {
+  it("takes a dragged exercise out of its super set", () => {
+    expect(shape(moveExercise(rows([false, true, true, false]), 1, 3))).toBe("A +C D B");
   });
 });

@@ -164,8 +164,8 @@ beforeAll(async () => {
       {
         name: "Ficha B",
         exercises: [
-          item("remada", { rest: 0, technique: "superset", groupId: "g1" }),
-          item("puxada", { technique: "superset", groupId: "g1" }),
+          item("remada", { rest: 0, groupId: "g1" }),
+          item("puxada", { groupId: "g1" }),
           item("rosca", {
             reps: { kind: "range", values: [10, 8, 6] },
             technique: "fs7",
@@ -173,7 +173,7 @@ beforeAll(async () => {
           item("prancha", { reps: { kind: "duration", seconds: 45 }, technique: "cluster" }),
           item("semId"),
           item("proprio", { load: "peso corporal" }),
-          item("elevacao", { technique: "giant", groupId: "g2" }),
+          item("elevacao", { technique: "dropset", groupId: "g2" }),
         ],
       },
     ],

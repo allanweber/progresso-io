@@ -19,15 +19,16 @@ versioned `student_workout` (see `docs/student-workouts.md`).
   `{ kind: "range" | "pyramid", values: number[] }`; a **pirâmide** additionally
   signals that the load rises each set (the reps typically fall).
 - An exercise may carry an **advanced technique** (`technique`): drop set, triple
-  drop, super set, giant set, GVT, FS7, rest-pause, cluster. The technique's
-  label/icon/**explanation** is static app content (`src/lib/workout-techniques.ts`),
-  keyed by the enum — never stored per workout. Grouping techniques (super set /
-  giant set) **chain forward**: marking an exercise links it — without rest —
-  into the **following** exercise, so a pair only needs its first item marked. The
-  block extends while consecutive items carry the same grouping technique and
-  closes on the first that doesn't (its tail). The builder assigns the shared
-  `group_id` (`assignGroupIds`, `src/lib/workout-grouping.ts`); the read views
-  draw the block as a continuous rail.
+  drop, GVT, FS7, rest-pause, cluster. The technique's label/icon/**explanation**
+  is static app content (`src/lib/workout-techniques.ts`), keyed by the enum —
+  never stored per workout.
+- A **super set** is two or more consecutive exercises sharing a `group_id`,
+  done without rest between them. It is not a technique: each member keeps its
+  own optional technique. In the builder, the link icon on an exercise joins it
+  with the one above (click again to split); the builder derives the shared
+  `group_id` from those links (`supersetGroupIds`, `src/lib/workout-grouping.ts`).
+  The read views draw the block as a continuous rail. Giant set no longer exists:
+  any block of three or more is a super set.
 - An exercise may have **custom substitutes** cadastrados no treino (a catalog
   exercise + optional note). These are stored on the item; the exercise's
   **library** substitutes (`exercise_substitution`) are merged in **live** on read.
@@ -96,12 +97,13 @@ All coach-only, zod-validated, tenant via `getTenantContext()` + the DAL:
 - `/coach/workouts` — the list; `new` and `[id]/edit` drive the reusable
   **`WorkoutBuilder`** (`src/components/workouts/workout-builder.tsx`): sessions →
   exercises with drag-reorder (`@dnd-kit`), the exercise search + prescription
-  panel (`ExercisePicker`), a technique select, super-set/giant grouping (derived
-  from consecutive same-technique runs), and a per-item custom-substitute picker.
+  panel (`ExercisePicker`), a technique select, a link icon per exercise that
+  joins it into a super set with the one above, and a per-item custom-substitute
+  picker.
 - `/coach/workouts/[id]` — the read view (`WorkoutSessionsView`), with **Criar
   cópia** / **Editar** / **Arquivar**. In the full view each exercise shows its
-  prescription, the technique badge, a **continuous super-set/giant rail with a
-  technique-icon node** beside each grouped exercise, and only a **substitution
+  prescription, the technique badge, a **continuous super-set rail with a
+  link-icon node** beside each grouped exercise, and only a **substitution
   count** indicator; the **full substitution list** (and the image carousel,
   técnica explanation, execution cues, muscles) lives in the
   **`WorkoutExerciseDetail`** dialog. All pages are `"use client"` and talk to the

@@ -74,7 +74,6 @@
           },
           "load": "peso corporal",
           "rest": 30,
-          "technique": "giant",
           "groupId": "casa-b1"
         },
         {
@@ -86,7 +85,6 @@
           },
           "load": "peso corporal",
           "rest": 30,
-          "technique": "giant",
           "groupId": "casa-b1"
         },
         {
@@ -98,7 +96,6 @@
           },
           "load": "peso corporal",
           "rest": 30,
-          "technique": "giant",
           "groupId": "casa-b1"
         },
         {
@@ -110,7 +107,6 @@
           },
           "load": "peso corporal",
           "rest": 30,
-          "technique": "giant",
           "groupId": "casa-b1"
         },
         {
