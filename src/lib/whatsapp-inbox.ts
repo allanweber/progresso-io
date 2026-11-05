@@ -30,9 +30,6 @@ export type WhatsAppMessageType = (typeof WHATSAPP_MESSAGE_TYPES)[number];
  * Delivery status of a message. Outbound starts at `sent` (the dev provider
  * can't confirm more); a real provider upgrades to `delivered`/`read`/`failed`
  * via status webhooks. Inbound rows are stored as `delivered` (already received).
- * In handoff mode outbound starts at `queued`: `handed_off` means the coach opened
- * it in WhatsApp (sending is unconfirmed), `dismissed` that it was discarded or
- * replaced by a newer message of the same template.
  */
 export const WHATSAPP_MESSAGE_STATUSES = [
   "queued",
@@ -47,7 +44,6 @@ export type WhatsAppMessageStatus = (typeof WHATSAPP_MESSAGE_STATUSES)[number];
 
 export type WhatsAppDeliveryMode = "logged" | "handoff" | "api";
 
-/** A queued message stops being offered after this, matching the invite link's TTL. */
 export const WHATSAPP_QUEUE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function isQueueItemActive(
@@ -240,7 +236,6 @@ export type WhatsAppConnectionDto = {
   connectedAt: string | null;
 };
 
-/** A prepared message waiting for the coach to open it in WhatsApp. */
 export type WhatsAppQueuedMessageDto = {
   id: string;
   conversationId: string;

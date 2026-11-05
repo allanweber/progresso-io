@@ -139,12 +139,6 @@ const handoffProvider: WhatsAppProvider = {
   },
 };
 
-/**
- * Resolves the active provider from `WHATSAPP_PROVIDER`: `handoff` (production,
- * the coach sends through a wa.me link) or `dev`. A real vendor is registered
- * here (one `case`) when chosen. Unknown / unset → the dev provider, so nothing
- * can break for lack of configuration.
- */
 export function getWhatsAppProvider(): WhatsAppProvider {
   const name = process.env.WHATSAPP_PROVIDER?.toLowerCase();
   switch (name) {

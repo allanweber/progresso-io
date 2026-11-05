@@ -1,12 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-/**
- * The coach WhatsApp inbox in handoff mode, which is what coaches see in
- * production. Runs in the `coach` project against the seeded coach's session +
- * the real DB. Asserts a prepared message reaches the queue with a correct wa.me
- * link, that opening and dismissing update it, and captures the desktop + mobile
- * screenshots as a byproduct (see the screenshots rule in AGENTS.md).
- */
 test.describe("coach whatsapp inbox", () => {
   test("prepares, opens and dismisses messages, both viewports", async ({
     page,

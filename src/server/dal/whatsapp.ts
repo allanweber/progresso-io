@@ -41,9 +41,7 @@ import { createNotification } from "./notifications";
  * shared by the real webhook and the dev simulate endpoint) update the
  * denormalized `last*` columns so the list renders without touching the message
  * table. Delivery itself goes through the provider port — the dev provider logs
- * and never delivers, so outbound persists as `sent`. Under the handoff provider
- * the coach sends through a wa.me link, so outbound persists as `queued`, and the
- * window doesn't apply because no inbound ever arrives.
+ * and never delivers, so outbound persists as `sent`.
  */
 
 /** Domain errors the routes map to friendly 422 messages. */
@@ -77,7 +75,6 @@ function initialOutboundStatus(
   return provider.deliveryMode === "handoff" ? "queued" : "sent";
 }
 
-/** A newer template replaces an older unopened one, whose link may be dead. */
 async function supersedeQueued(
   ctx: TenantContext,
   conversationId: string,
@@ -770,7 +767,6 @@ function activeQueueFilter(ctx: TenantContext) {
   );
 }
 
-/** Prepared messages still waiting for the coach, oldest first. */
 export async function listQueued(
   ctx: TenantContext,
   limit = 50,
@@ -828,7 +824,6 @@ export async function countQueued(ctx: TenantContext): Promise<number> {
   return row?.n ?? 0;
 }
 
-/** Everything in WhatsApp waiting on the coach; the sidebar and dashboard total. */
 export async function countAwaitingCoach(ctx: TenantContext): Promise<number> {
   const [waiting, queued] = await Promise.all([
     countWaiting(ctx),
@@ -837,10 +832,6 @@ export async function countAwaitingCoach(ctx: TenantContext): Promise<number> {
   return waiting + queued;
 }
 
-/**
- * Moves a queued message to `next`. Idempotent: a message already past `queued`
- * keeps its status. Returns null if the message isn't in this clinic (404).
- */
 async function resolveQueued(
   ctx: TenantContext,
   messageId: string,
