@@ -3,13 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Construction, Lock, MessageCircle, Send, Sparkles } from "lucide-react";
+import {
+  Construction,
+  ExternalLink,
+  Lock,
+  MessageCircle,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MessageText } from "@/components/whatsapp/message-text";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { whatsappHref } from "@/lib/phone";
 import {
   COMPOSER_TEMPLATE_KEYS,
+  isQueueItemActive,
   isWindowOpen,
   windowLabel,
   type WhatsAppInboxDto,
@@ -77,6 +87,20 @@ export default function CoachWhatsappPage() {
     },
   });
 
+  const queueAction = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "handoff" | "dismiss" }) =>
+      apiFetch<{ message: WhatsAppMessageDto }>(
+        `/api/coach/whatsapp/messages/${id}`,
+        { method: "POST", body: JSON.stringify({ action }) },
+      ),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["coach-whatsapp"] });
+      queryClient.invalidateQueries({ queryKey: ["coach-wa-waiting-count"] });
+    },
+  });
+
+  const handoff = inbox.data?.deliveryMode === "handoff";
+  const queued = inbox.data?.queued ?? [];
   const active = thread.data?.conversation ?? null;
   // Derive the window live so the 24h boundary flips without waiting for a poll.
   const windowOpen = active ? isWindowOpen(active.lastInboundAt) : false;
@@ -95,11 +119,19 @@ export default function CoachWhatsappPage() {
 
   return (
     <div className="flex h-[calc(100dvh-8rem)] min-h-[32rem] flex-col gap-3">
-      {/* Under-development notice — shown whenever the active provider can't
-          deliver (the dev provider: no real WhatsApp vendor connected yet).
-          Sending records the message in the inbox but nothing reaches the
-          student until a provider is connected. */}
-      {inbox.data && !inbox.data.deliveryEnabled ? (
+      {handoff ? (
+        <div
+          data-testid="wa-handoff-banner"
+          className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-foreground"
+        >
+          <MessageCircle className="mt-0.5 size-4 flex-shrink-0 text-primary" />
+          <p>
+            <strong>Você envia pelo seu WhatsApp.</strong> O Progresso prepara a
+            mensagem e um toque abre o WhatsApp com tudo escrito. É só apertar
+            enviar. As respostas chegam no seu WhatsApp, não aqui.
+          </p>
+        </div>
+      ) : inbox.data && !inbox.data.deliveryEnabled ? (
         <div className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
           <Construction className="mt-0.5 size-4 flex-shrink-0" />
           <p>
@@ -117,7 +149,13 @@ export default function CoachWhatsappPage() {
         <h1 className="font-heading text-xl font-semibold tracking-tight">
           WhatsApp
         </h1>
-        <ConnectionDot connected={inbox.data?.connection.status === "connected"} />
+        {handoff ? (
+          <span className="text-xs text-muted-foreground">
+            envio pelo seu WhatsApp
+          </span>
+        ) : (
+          <ConnectionDot connected={inbox.data?.connection.status === "connected"} />
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
@@ -127,6 +165,48 @@ export default function CoachWhatsappPage() {
             selectedId ? "hidden md:block" : "block"
           }`}
         >
+          {queueAction.isError && (
+            <p role="alert" className="px-4 pt-3 text-xs text-destructive">
+              Não foi possível atualizar a mensagem. Tente de novo.
+            </p>
+          )}
+          {queued.length > 0 && (
+            <section
+              data-testid="wa-queue"
+              aria-labelledby="wa-queue-title"
+              className="border-b border-border bg-primary-light/30"
+            >
+              <h2
+                id="wa-queue-title"
+                className="px-4 pb-1 pt-3 text-xs font-semibold text-foreground"
+              >
+                Prontos para enviar ({queued.length})
+              </h2>
+              <ul>
+                {queued.map((m) => (
+                  <li
+                    key={m.id}
+                    data-testid="wa-queue-item"
+                    className="border-t border-border/60 px-4 py-3 first:border-t-0"
+                  >
+                    <div className="truncate text-sm font-semibold">{m.name}</div>
+                    <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">
+                      {m.body}
+                    </p>
+                    <QueueActions
+                      href={whatsappHref(m.phone, m.body)}
+                      onOpen={() =>
+                        queueAction.mutate({ id: m.id, action: "handoff" })
+                      }
+                      onDismiss={() =>
+                        queueAction.mutate({ id: m.id, action: "dismiss" })
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {inbox.isLoading ? (
             <p className="p-4 text-sm text-muted-foreground">Carregando…</p>
           ) : inbox.data && inbox.data.conversations.length === 0 ? (
@@ -165,18 +245,20 @@ export default function CoachWhatsappPage() {
                         <p className="truncate text-xs text-muted-foreground">
                           {c.lastMessagePreview ?? "—"}
                         </p>
-                        <span
-                          className={`mt-1 inline-flex items-center gap-1 text-caption font-semibold ${
-                            open ? "text-primary" : "text-destructive"
-                          }`}
-                        >
+                        {!handoff && (
                           <span
-                            className={`size-1.5 rounded-full ${
-                              open ? "bg-primary" : "bg-destructive"
+                            className={`mt-1 inline-flex items-center gap-1 text-caption font-semibold ${
+                              open ? "text-primary" : "text-destructive"
                             }`}
-                          />
-                          {open ? "janela aberta" : "janela fechada"}
-                        </span>
+                          >
+                            <span
+                              className={`size-1.5 rounded-full ${
+                                open ? "bg-primary" : "bg-destructive"
+                              }`}
+                            />
+                            {open ? "janela aberta" : "janela fechada"}
+                          </span>
+                        )}
                       </div>
                     </button>
                   </li>
@@ -217,27 +299,67 @@ export default function CoachWhatsappPage() {
                     {active.phoneDisplay}
                   </div>
                 </div>
-                <span
-                  data-testid="wa-window-badge"
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold ${
-                    windowOpen
-                      ? "bg-primary-light text-primary"
-                      : "bg-destructive/10 text-destructive"
-                  }`}
-                >
-                  ⏱ {windowLabel(active.lastInboundAt)}
-                </span>
+                {!handoff && (
+                  <span
+                    data-testid="wa-window-badge"
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold ${
+                      windowOpen
+                        ? "bg-primary-light text-primary"
+                        : "bg-destructive/10 text-destructive"
+                    }`}
+                  >
+                    ⏱ {windowLabel(active.lastInboundAt)}
+                  </span>
+                )}
               </div>
 
               {/* Messages */}
               <MessageList
                 messages={thread.data?.messages ?? []}
                 loading={thread.isLoading}
+                phone={active.phone}
+                onQueueAction={(id, action) =>
+                  queueAction.mutate({ id, action })
+                }
               />
 
               {/* Composer */}
               <div className="flex-shrink-0 border-t border-border bg-muted/40 p-3">
-                {windowOpen ? (
+                {handoff && composerTemplates.length > 0 && (
+                  <details className="mb-2 text-xs">
+                    <summary className="cursor-pointer font-semibold text-foreground">
+                      Usar um template
+                    </summary>
+                    <div className="mt-2 flex max-h-40 flex-col gap-2 overflow-y-auto">
+                      {composerTemplates.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          data-testid="wa-template"
+                          disabled={send.isPending}
+                          onClick={() =>
+                            send.mutate({
+                              type: "template",
+                              templateKey: t.key,
+                            })
+                          }
+                          className="flex items-center gap-3 rounded-xl bg-white px-3.5 py-2.5 text-left shadow-sm transition-colors hover:bg-primary-light/30 disabled:opacity-60"
+                        >
+                          <div className="flex-1">
+                            <div className="text-xs font-semibold">{t.title}</div>
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              {t.body}
+                            </div>
+                          </div>
+                          <span className="flex-shrink-0 text-caption font-semibold text-primary">
+                            Preparar →
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                {handoff || windowOpen ? (
                   <div className="flex items-end gap-2">
                     <textarea
                       data-testid="wa-composer-text"
@@ -250,7 +372,11 @@ export default function CoachWhatsappPage() {
                             send.mutate({ type: "text", body: draft.trim() });
                         }
                       }}
-                      placeholder="Escreva uma mensagem…"
+                      placeholder={
+                        handoff
+                          ? "Escreva a mensagem que vai enviar…"
+                          : "Escreva uma mensagem…"
+                      }
                       rows={1}
                       className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-white px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                     />
@@ -259,6 +385,8 @@ export default function CoachWhatsappPage() {
                       size="icon"
                       className="size-10 rounded-full"
                       data-testid="wa-send"
+                      aria-label={handoff ? "Preparar mensagem" : "Enviar mensagem"}
+                      title={handoff ? "Preparar mensagem" : "Enviar mensagem"}
                       disabled={!draft.trim() || send.isPending}
                       onClick={() =>
                         send.mutate({ type: "text", body: draft.trim() })
@@ -341,6 +469,43 @@ function ConnectionDot({ connected }: { connected: boolean }) {
   );
 }
 
+function QueueActions({
+  href,
+  onOpen,
+  onDismiss,
+}: {
+  href: string;
+  onOpen: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button asChild size="sm">
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="wa-queue-open"
+          onClick={onOpen}
+        >
+          <ExternalLink className="size-3.5" />
+          Abrir no WhatsApp
+        </a>
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        data-testid="wa-queue-dismiss"
+        onClick={onDismiss}
+      >
+        <X className="size-3.5" />
+        Descartar
+      </Button>
+    </div>
+  );
+}
+
 function Avatar({ initials }: { initials: string }) {
   return (
     <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold uppercase text-white">
@@ -352,9 +517,13 @@ function Avatar({ initials }: { initials: string }) {
 function MessageList({
   messages,
   loading,
+  phone,
+  onQueueAction,
 }: {
   messages: WhatsAppMessageDto[];
   loading: boolean;
+  phone: string;
+  onQueueAction: (id: string, action: "handoff" | "dismiss") => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -391,8 +560,36 @@ function MessageList({
               <MessageText text={m.body} />
             </p>
             <div className="mt-1 text-right text-eyebrow text-muted-foreground">
+              {m.status === "queued" && !isQueueItemActive(m.createdAt)
+                ? "Expirada · "
+                : m.status === "queued"
+                  ? "Pronta para enviar · "
+                  : m.status === "handed_off"
+                    ? "Aberta no WhatsApp · "
+                    : m.status === "dismissed"
+                      ? "Descartada · "
+                      : ""}
               {messageTime(m.createdAt)}
             </div>
+            {m.status === "queued" && isQueueItemActive(m.createdAt) && (
+              <div className="mt-2">
+                <QueueActions
+                  href={whatsappHref(phone, m.body)}
+                  onOpen={() => onQueueAction(m.id, "handoff")}
+                  onDismiss={() => onQueueAction(m.id, "dismiss")}
+                />
+              </div>
+            )}
+            {m.status === "handed_off" && (
+              <a
+                href={whatsappHref(phone, m.body)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 block text-right text-eyebrow font-semibold text-primary underline"
+              >
+                Abrir de novo
+              </a>
+            )}
           </div>
         </div>
       ))}
@@ -413,8 +610,7 @@ function WhatsappUpsell() {
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           Faça upgrade para o Solo ou Clínica e converse com seus alunos pelo
-          WhatsApp — com a janela de 24h e templates pré-aprovados direto no
-          painel.
+          WhatsApp — com mensagens prontas direto no painel.
         </p>
         <div className="mt-6">
           <Button asChild>

@@ -284,8 +284,11 @@ export default function StudentProfilePage() {
 
       {invite.isSuccess && (
         <p className="mt-3 text-body-dense font-medium text-primary">
-          Convite enviado por WhatsApp
-          {student.email ? " e e-mail" : ""}.
+          Convite pronto para enviar no{" "}
+          <Link href="/coach/whatsapp" className="underline">
+            WhatsApp
+          </Link>
+          {student.email ? " e enviado por e-mail" : ""}.
         </p>
       )}
       {(invite.isError || archive.isError || reactivate.isError) && (
@@ -460,7 +463,11 @@ export default function StudentProfilePage() {
               </div>
               {resendAnamnesis.isSuccess && (
                 <p className="mt-3 text-body-dense font-medium text-primary">
-                  Link da anamnese enviado por WhatsApp.
+                  Link da anamnese pronto para enviar no{" "}
+                  <Link href="/coach/whatsapp" className="underline">
+                    WhatsApp
+                  </Link>
+                  .
                 </p>
               )}
               {resendAnamnesis.isError && (

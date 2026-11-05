@@ -474,11 +474,11 @@ function SetupGuide({
                 {(field) => (
                   <ToggleRow
                     id="whatsappReminder"
-                    label="Lembrete automático por WhatsApp"
+                    label="Lembrete preparado para envio no WhatsApp"
                     on={field.state.value}
                     onChange={() => field.handleChange(!field.state.value)}
-                    onText="Ativo · envia 24h antes do check-in"
-                    offText="Inativo · sem lembrete automático"
+                    onText="Ativo · prepara o lembrete para você enviar"
+                    offText="Inativo · sem lembrete"
                   />
                 )}
               </form.Field>

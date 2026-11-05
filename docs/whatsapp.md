@@ -7,10 +7,50 @@ excluded), gated exactly like the Calendar. The platform admin gets a per-tenant
 overview at `/admin/whatsapp`, and the coach dashboard's "WhatsApp aguardando"
 card is wired to real data.
 
-Which WhatsApp vendor the app talks to is **deliberately undecided** — everything
-runs behind a provider **port** so Meta Cloud API / Twilio / Z-API can be dropped
-in later with no caller changes. Until one is wired, a `dev` provider logs and
-never delivers, and inbound arrives through a guarded dev endpoint.
+The destination is Meta's official Cloud API (see
+`docs/adr/0002-whatsapp-official-cloud-api-with-handoff-bridge.md`), and everything
+runs behind a provider **port**. Until it ships, production runs the `handoff`
+provider: the coach sends each prepared message from their own WhatsApp. Locally
+and in unit tests the `dev` provider logs and never delivers, and inbound arrives
+through a guarded dev endpoint.
+
+## Handoff mode (production today)
+
+`WHATSAPP_PROVIDER=handoff`, the default in `docker-compose.yml`. Nothing is sent
+by the server. Every outbound message, from an automation or the composer, is
+saved as `queued` and offered in the **Prontos para enviar** list at
+`/coach/whatsapp`. **Abrir no WhatsApp** is a `wa.me` link with the text filled in
+(`whatsappHref(phone, text)` in `src/lib/phone.ts`); the coach presses send there.
+
+| Status | Meaning |
+| --- | --- |
+| `queued` | Prepared, the coach hasn't opened it |
+| `handed_off` | The coach opened it in WhatsApp. Sending is unconfirmed |
+| `dismissed` | Discarded, or replaced by a newer message of the same template |
+
+- **7-day cutoff:** queued messages older than `WHATSAPP_QUEUE_MAX_AGE_MS` stop
+  being offered, derived at read time with no cron. It matches `INVITE_TTL_DAYS`,
+  so a queued portal invite never has a dead link. The thread labels them
+  "Expirada".
+- **No 24h window:** there is no inbound and a person sends the message, so the
+  DAL skips the check and the UI hides the window badge and banner.
+- **Replacement:** queuing a template dismisses older `queued` rows with the same
+  `templateKey` on that conversation.
+- **Reminders aren't re-queued:** the dedupe in the reminder and nudge jobs counts
+  message rows, so an unopened item still counts within its period.
+- **The coach's count:** the sidebar badge and dashboard tile read
+  `countAwaitingCoach` (unanswered conversations + active queued messages).
+- **Invoice reminders use e-mail:** they message the coach about their own
+  subscription, so `runInvoiceReminders` only picks WhatsApp when
+  `provider.canDeliver` is true.
+- **Admin overview:** "msgs este mês" counts every message row, including queued
+  and dismissed ones.
+
+`POST /api/coach/whatsapp/messages/[id]` with `{ "action": "handoff" | "dismiss" }`
+records the coach's choice. Both are idempotent, and a message from another clinic
+is a 404.
+
+The sections below describe the rules for an API provider and the `dev` provider.
 
 ## The 24h window (the rule that shapes everything)
 

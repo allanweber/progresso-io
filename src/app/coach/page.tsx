@@ -591,7 +591,7 @@ export default function CoachDashboardPage() {
             {[
               {
                 title: "Convide o aluno",
-                body: "Ele recebe o convite no WhatsApp e não precisa instalar nada.",
+                body: "Você envia o convite pelo WhatsApp com um toque, e ele não precisa instalar nada.",
               },
               {
                 title: "Monte o treino ou a dieta",
@@ -599,7 +599,7 @@ export default function CoachDashboardPage() {
               },
               {
                 title: "Publique",
-                body: "O aluno é avisado no WhatsApp e passa a ver a versão publicada.",
+                body: "O aluno passa a ver a versão publicada, e o aviso fica pronto para você enviar no WhatsApp.",
               },
             ].map((step, i) => (
               <li key={step.title} className="flex gap-3">
@@ -868,8 +868,8 @@ export default function CoachDashboardPage() {
             badge={
               <CountBadge
                 count={totals?.waWaiting ?? 0}
-                one="conversa aguardando resposta"
-                other="conversas aguardando resposta"
+                one="item aguardando você"
+                other="itens aguardando você"
                 tone="brand"
               />
             }
@@ -885,7 +885,7 @@ export default function CoachDashboardPage() {
             {isLoading ? (
               <CardMessage busy>Carregando…</CardMessage>
             ) : waWaiting.length === 0 ? (
-              <CardMessage>Nenhuma conversa aguardando resposta.</CardMessage>
+              <CardMessage>Nada aguardando no WhatsApp.</CardMessage>
             ) : (
               <ul>
                 {waWaiting.map((c) => (

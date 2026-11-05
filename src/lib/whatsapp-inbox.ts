@@ -30,6 +30,9 @@ export type WhatsAppMessageType = (typeof WHATSAPP_MESSAGE_TYPES)[number];
  * Delivery status of a message. Outbound starts at `sent` (the dev provider
  * can't confirm more); a real provider upgrades to `delivered`/`read`/`failed`
  * via status webhooks. Inbound rows are stored as `delivered` (already received).
+ * In handoff mode outbound starts at `queued`: `handed_off` means the coach opened
+ * it in WhatsApp (sending is unconfirmed), `dismissed` that it was discarded or
+ * replaced by a newer message of the same template.
  */
 export const WHATSAPP_MESSAGE_STATUSES = [
   "queued",
@@ -37,8 +40,22 @@ export const WHATSAPP_MESSAGE_STATUSES = [
   "delivered",
   "read",
   "failed",
+  "handed_off",
+  "dismissed",
 ] as const;
 export type WhatsAppMessageStatus = (typeof WHATSAPP_MESSAGE_STATUSES)[number];
+
+export type WhatsAppDeliveryMode = "logged" | "handoff" | "api";
+
+/** A queued message stops being offered after this, matching the invite link's TTL. */
+export const WHATSAPP_QUEUE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function isQueueItemActive(
+  createdAt: string | Date,
+  now: number = Date.now(),
+): boolean {
+  return now - new Date(createdAt).getTime() < WHATSAPP_QUEUE_MAX_AGE_MS;
+}
 
 /** A template's Meta-approval lifecycle. Only `approved` may be sent. */
 export const WHATSAPP_TEMPLATE_STATUSES = [
@@ -223,9 +240,23 @@ export type WhatsAppConnectionDto = {
   connectedAt: string | null;
 };
 
+/** A prepared message waiting for the coach to open it in WhatsApp. */
+export type WhatsAppQueuedMessageDto = {
+  id: string;
+  conversationId: string;
+  studentId: string | null;
+  name: string;
+  initials: string;
+  phone: string;
+  body: string;
+  templateKey: string | null;
+  createdAt: string;
+};
+
 /** The coach inbox list payload. */
 export type WhatsAppInboxDto = {
   conversations: WhatsAppConversationDto[];
+  queued: WhatsAppQueuedMessageDto[];
   templates: WhatsAppTemplateDto[];
   connection: WhatsAppConnectionDto;
   /**
@@ -236,6 +267,7 @@ export type WhatsAppInboxDto = {
    * the DAL.
    */
   deliveryEnabled: boolean;
+  deliveryMode: WhatsAppDeliveryMode;
 };
 
 /** A single conversation's full thread. */
@@ -287,6 +319,10 @@ export const whatsappSendSchema = z
     path: ["templateKey"],
   });
 export type WhatsAppSendInput = z.infer<typeof whatsappSendSchema>;
+
+export const whatsappQueueActionSchema = z.object({
+  action: z.enum(["handoff", "dismiss"]),
+});
 
 /**
  * The dev simulate-inbound payload — deliberately just `{ phone, body }`. No

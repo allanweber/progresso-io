@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { WhatsAppDeliveryMode } from "@/lib/whatsapp-inbox";
 import { logger } from "@/server/observability";
 
 /**
@@ -58,6 +59,7 @@ export type WhatsAppProvider = {
   readonly name: string;
   /** Whether this provider can actually deliver (false for the dev provider). */
   readonly canDeliver: boolean;
+  readonly deliveryMode: WhatsAppDeliveryMode;
   sendSessionMessage(to: string, body: string): Promise<ProviderSendResult>;
   sendTemplateMessage(
     to: string,
@@ -93,6 +95,7 @@ export type WhatsAppProvider = {
 const devProvider: WhatsAppProvider = {
   name: "dev",
   canDeliver: false,
+  deliveryMode: "logged",
   async sendSessionMessage(to, body) {
     console.info(`[whatsapp:dev] session → ${maskPhone(to)}: ${body}`);
     logger.info("whatsapp.session.logged", { to: maskPhone(to) });
@@ -118,16 +121,37 @@ const devProvider: WhatsAppProvider = {
   },
 };
 
+const handoffProvider: WhatsAppProvider = {
+  name: "handoff",
+  canDeliver: false,
+  deliveryMode: "handoff",
+  async sendSessionMessage() {
+    return { delivered: false };
+  },
+  async sendTemplateMessage() {
+    return { delivered: false };
+  },
+  parseInboundWebhook() {
+    return [];
+  },
+  verifyWebhook() {
+    return false;
+  },
+};
+
 /**
- * Resolves the active provider from `WHATSAPP_PROVIDER`. Only `dev` exists today;
- * a real vendor is registered here (one `case`) when chosen. Unknown / unset →
- * the dev provider, so nothing can break for lack of configuration.
+ * Resolves the active provider from `WHATSAPP_PROVIDER`: `handoff` (production,
+ * the coach sends through a wa.me link) or `dev`. A real vendor is registered
+ * here (one `case`) when chosen. Unknown / unset → the dev provider, so nothing
+ * can break for lack of configuration.
  */
 export function getWhatsAppProvider(): WhatsAppProvider {
   const name = process.env.WHATSAPP_PROVIDER?.toLowerCase();
   switch (name) {
     // case "meta": return metaProvider;
     // case "twilio": return twilioProvider;
+    case "handoff":
+      return handoffProvider;
     case "dev":
     case undefined:
     case "":

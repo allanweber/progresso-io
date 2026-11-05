@@ -102,5 +102,15 @@ describe("isValidPhone / whatsappHref", () => {
   it("links to wa.me with digits only", () => {
     expect(whatsappHref("5511999990000")).toBe("https://wa.me/5511999990000");
     expect(whatsappHref(null)).toBe("");
+    expect(whatsappHref("", "oi")).toBe("");
+  });
+
+  it("encodes prefilled text so it survives the URL intact", () => {
+    const text = "Olá, João & Cia! 💪\nVeja: https://x.io/a?b=1&c=2";
+    const href = whatsappHref("5511999990000", text);
+    const url = new URL(href);
+    expect(url.pathname).toBe("/5511999990000");
+    expect(url.searchParams.get("text")).toBe(text);
+    expect([...url.searchParams.keys()]).toEqual(["text"]);
   });
 });

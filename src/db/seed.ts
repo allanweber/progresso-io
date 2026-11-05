@@ -1032,6 +1032,7 @@ async function seed() {
           minAgo: number;
           type?: "text" | "template";
           templateKey?: string;
+          status?: "queued";
         }>;
       }) {
         const last = opts.messages[opts.messages.length - 1];
@@ -1056,9 +1057,11 @@ async function seed() {
             type: m.type ?? ("text" as const),
             body: m.body,
             templateKey: m.templateKey ?? null,
-            status: (m.direction === "inbound" ? "delivered" : "sent") as
-              | "delivered"
-              | "sent",
+            status:
+              m.status ??
+              (m.direction === "inbound"
+                ? ("delivered" as const)
+                : ("sent" as const)),
             createdByUserId: m.direction === "outbound" ? coach.id : null,
             createdAt: minutesAgo(m.minAgo),
           })),
@@ -1072,6 +1075,14 @@ async function seed() {
         lastInboundMinAgo: 45,
         unread: 1,
         messages: [
+          {
+            direction: "outbound",
+            type: "template",
+            templateKey: "checkin_reminder",
+            body: "Oi Ana! Bora preencher seu check-in da semana? 📋 Leva só um minutinho.",
+            minAgo: 200,
+            status: "queued",
+          },
           { direction: "outbound", body: "Oi Ana! Como foi o treino B?", minAgo: 90 },
           {
             direction: "inbound",

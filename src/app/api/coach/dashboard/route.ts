@@ -31,19 +31,37 @@ export const GET = withCoach("coach.dashboard", async (_request, ctx) => {
   ]);
 
   // `listWaiting` caps at 5 — the card shows a preview of the inbox, not the
-  // inbox. The count therefore cannot come from that array: `countWaiting` is
-  // the uncapped total, and it is the same query the sidebar badge reads, so the
+  // inbox. The count therefore cannot come from that array: `countAwaitingCoach`
+  // is the uncapped total, and it is the same query the sidebar badge reads, so the
   // two can no longer disagree on screen (the tile said 5 while the rail said 9+).
-  const [waWaitingRows, waWaitingTotal] = canWhatsapp
-    ? await Promise.all([whatsapp.listWaiting(ctx), whatsapp.countWaiting(ctx)])
-    : [[], 0];
-  const waWaiting: WaWaitingDto[] = waWaitingRows.map((c) => ({
-    conversationId: c.id,
-    studentId: c.studentId,
-    name: c.name,
-    initials: c.initials,
-    preview: c.lastMessagePreview,
-  }));
+  const [waWaitingRows, waQueuedRows, waWaitingTotal] = canWhatsapp
+    ? await Promise.all([
+        whatsapp.listWaiting(ctx),
+        whatsapp.listQueued(ctx, 5),
+        whatsapp.countAwaitingCoach(ctx),
+      ])
+    : [[], [], 0];
+  const waByConversation = new Map<string, WaWaitingDto>();
+  for (const c of waWaitingRows) {
+    waByConversation.set(c.id, {
+      conversationId: c.id,
+      studentId: c.studentId,
+      name: c.name,
+      initials: c.initials,
+      preview: c.lastMessagePreview,
+    });
+  }
+  for (const m of waQueuedRows) {
+    if (waByConversation.has(m.conversationId)) continue;
+    waByConversation.set(m.conversationId, {
+      conversationId: m.conversationId,
+      studentId: m.studentId,
+      name: m.name,
+      initials: m.initials,
+      preview: `Pronta para enviar: ${m.body}`,
+    });
+  }
+  const waWaiting = [...waByConversation.values()].slice(0, 5);
 
   // A `Date` does not survive JSON, so the wire carries an ISO instant and the
   // client formats it. The DAL already sorted these longest-untouched first.

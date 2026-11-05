@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { and, eq } from "drizzle-orm";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
@@ -658,5 +658,154 @@ describe("deleting an aluno removes their WhatsApp history", () => {
       .from(schema.whatsappConversation)
       .where(eq(schema.whatsappConversation.clinicId, ctx.clinicId));
     expect(rows.map((r) => r.phone)).toEqual([normalizePhone("11988887777")]);
+  });
+});
+
+describe("handoff mode (coach sends through wa.me)", () => {
+  beforeEach(() => {
+    vi.stubEnv("WHATSAPP_PROVIDER", "handoff");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function messageStatus(id: string) {
+    const [row] = await db
+      .select({ status: schema.whatsappMessage.status })
+      .from(schema.whatsappMessage)
+      .where(eq(schema.whatsappMessage.id, id));
+    return row.status;
+  }
+
+  it("queues automations instead of claiming they were sent", async () => {
+    const ctx = await ownerContext("wa-h-auto@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550001", "Bia", "Souza");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+
+    const sent = await whatsapp.sendTemplateToStudent(
+      ctx,
+      studentId,
+      "handoff_diet",
+    );
+
+    expect(await messageStatus(sent!.messageId)).toBe("queued");
+    const queued = await whatsapp.listQueued(ctx);
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({
+      id: sent!.messageId,
+      name: "Bia Souza",
+      phone: normalizePhone("11955550001"),
+      body: "Bia, dieta nova!",
+    });
+    expect(await whatsapp.countQueued(ctx)).toBe(1);
+  });
+
+  it("lets the composer prepare free text with the window closed", async () => {
+    const ctx = await ownerContext("wa-h-window@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550002");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    const sent = await whatsapp.sendTemplateToStudent(
+      ctx,
+      studentId,
+      "handoff_diet",
+    );
+
+    const msg = await whatsapp.sendMessage(ctx, sent!.conversationId, {
+      type: "text",
+      body: "Oi!",
+    });
+
+    expect(msg!.status).toBe("queued");
+  });
+
+  it("still enforces the window under the dev provider", async () => {
+    const ctx = await ownerContext("wa-h-dev@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550003");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    const sent = await whatsapp.sendTemplateToStudent(
+      ctx,
+      studentId,
+      "handoff_diet",
+    );
+
+    vi.stubEnv("WHATSAPP_PROVIDER", "dev");
+    await expect(
+      whatsapp.sendMessage(ctx, sent!.conversationId, {
+        type: "text",
+        body: "Oi!",
+      }),
+    ).rejects.toMatchObject({ code: "window_closed" });
+  });
+
+  it("replaces an older unopened message of the same template only", async () => {
+    const ctx = await ownerContext("wa-h-super@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550004");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    await addBaseTemplate("handoff_workout", "Treino", "{nome}, treino novo!");
+
+    const first = await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_diet");
+    const other = await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_workout");
+    const second = await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_diet");
+
+    expect(await messageStatus(first!.messageId)).toBe("dismissed");
+    expect(await messageStatus(other!.messageId)).toBe("queued");
+    expect(await messageStatus(second!.messageId)).toBe("queued");
+  });
+
+  it("stops offering messages older than 7 days", async () => {
+    const ctx = await ownerContext("wa-h-age@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550005");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    const sent = await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_diet");
+
+    await db
+      .update(schema.whatsappMessage)
+      .set({ createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) })
+      .where(eq(schema.whatsappMessage.id, sent!.messageId));
+
+    expect(await whatsapp.listQueued(ctx)).toHaveLength(0);
+    expect(await whatsapp.countQueued(ctx)).toBe(0);
+  });
+
+  it("marks handoff and dismiss idempotently, and they leave the queue", async () => {
+    const ctx = await ownerContext("wa-h-actions@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550006");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    await addBaseTemplate("handoff_workout", "Treino", "{nome}, treino novo!");
+    const opened = await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_diet");
+    const dropped = await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_workout");
+
+    expect((await whatsapp.markHandedOff(ctx, opened!.messageId))!.status).toBe("handed_off");
+    expect((await whatsapp.markHandedOff(ctx, opened!.messageId))!.status).toBe("handed_off");
+    expect((await whatsapp.dismissQueued(ctx, opened!.messageId))!.status).toBe("handed_off");
+
+    expect((await whatsapp.dismissQueued(ctx, dropped!.messageId))!.status).toBe("dismissed");
+    expect((await whatsapp.markHandedOff(ctx, dropped!.messageId))!.status).toBe("dismissed");
+
+    expect(await whatsapp.listQueued(ctx)).toHaveLength(0);
+  });
+
+  it("keeps the queue inside the clinic", async () => {
+    const a = await ownerContext("wa-h-iso-a@example.com", "clinica");
+    const b = await ownerContext("wa-h-iso-b@example.com", "clinica");
+    const studentId = await addStudent(a, "11955550007");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    const sent = await whatsapp.sendTemplateToStudent(a, studentId, "handoff_diet");
+
+    expect(await whatsapp.listQueued(b)).toHaveLength(0);
+    expect(await whatsapp.countQueued(b)).toBe(0);
+    expect(await whatsapp.markHandedOff(b, sent!.messageId)).toBeNull();
+    expect(await whatsapp.dismissQueued(b, sent!.messageId)).toBeNull();
+    expect(await messageStatus(sent!.messageId)).toBe("queued");
+  });
+
+  it("counts queued and unanswered together for the sidebar", async () => {
+    const ctx = await ownerContext("wa-h-count@example.com", "clinica");
+    const studentId = await addStudent(ctx, "11955550008");
+    await addBaseTemplate("handoff_diet", "Dieta", "{nome}, dieta nova!");
+    await whatsapp.sendTemplateToStudent(ctx, studentId, "handoff_diet");
+    await whatsapp.ingestInboundMessage(ctx, { from: "11955550009", body: "oi" });
+
+    expect(await whatsapp.countAwaitingCoach(ctx)).toBe(2);
   });
 });

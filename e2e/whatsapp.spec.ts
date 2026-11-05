@@ -1,24 +1,23 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * The coach WhatsApp inbox. Runs in the `coach` project against the seeded
- * coach's session (Clínica plan → WhatsApp enabled) + the real DB. Asserts the
- * seeded conversations, an open-window free-text send round-trip, the
- * closed-window template fallback, and captures the desktop + mobile screenshots
- * as a byproduct (see the screenshots rule in AGENTS.md).
+ * The coach WhatsApp inbox in handoff mode, which is what coaches see in
+ * production. Runs in the `coach` project against the seeded coach's session +
+ * the real DB. Asserts a prepared message reaches the queue with a correct wa.me
+ * link, that opening and dismissing update it, and captures the desktop + mobile
+ * screenshots as a byproduct (see the screenshots rule in AGENTS.md).
  */
 test.describe("coach whatsapp inbox", () => {
-  test("open-window send, closed-window templates, both viewports", async ({
+  test("prepares, opens and dismisses messages, both viewports", async ({
     page,
+    context,
   }) => {
-    const reply = `Boa, Ana! ${Date.now().toString().slice(-5)}`;
+    const openedText = `Boa, Ana! ${Date.now().toString().slice(-5)}`;
+    const dismissedText = `Descartar ${Date.now().toString().slice(-5)}`;
 
-    // --- Desktop ---
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/coach/whatsapp");
 
-    // Dismiss the cookie banner — it's pinned to the bottom and would otherwise
-    // intercept clicks on the composer's send button.
     const cookieAccept = page.getByRole("button", { name: "Aceitar" });
     if (await cookieAccept.isVisible().catch(() => false)) {
       await cookieAccept.click();
@@ -27,42 +26,62 @@ test.describe("coach whatsapp inbox", () => {
     await expect(
       page.getByRole("heading", { name: "WhatsApp", exact: true }),
     ).toBeVisible();
+    await expect(page.getByTestId("wa-handoff-banner")).toBeVisible();
 
-    // Explicitly open the seeded aluno's OPEN-window thread. Don't rely on it
-    // being the auto-selected (newest) conversation: event automations
-    // (diet/workout published, check-in feedback) can append template-only
-    // threads that sort ahead of it. Its window stays open regardless — a
-    // template send never touches `lastInboundAt`.
-    await page.getByText("Ana Aluna").first().click();
+    await page.getByTestId("wa-conversation").filter({ hasText: "Ana Aluna" }).click();
+    await expect(page.getByTestId("wa-window-badge")).toHaveCount(0);
 
-    await expect(page.getByTestId("wa-window-badge")).toBeVisible();
     const composer = page.getByTestId("wa-composer-text");
-    await expect(composer).toBeVisible();
-    await composer.fill(reply);
-    // Send with Enter rather than the send button: the button sits at the
-    // bottom edge where the (async) cookie banner can still intercept a click.
+    await composer.fill(openedText);
     await composer.press("Enter");
-    // The sent text lands in the thread (and the list preview) — first() is enough.
-    await expect(page.getByText(reply).first()).toBeVisible();
+
+    const queue = page.getByTestId("wa-queue");
+    const openedItem = queue
+      .getByTestId("wa-queue-item")
+      .filter({ hasText: openedText });
+    await expect(openedItem).toBeVisible();
+
+    const link = openedItem.getByTestId("wa-queue-open");
+    const href = await link.getAttribute("href");
+    const url = new URL(href!);
+    expect(url.hostname).toBe("wa.me");
+    expect(url.pathname).toBe("/5511999990000");
+    expect(url.searchParams.get("text")).toBe(openedText);
 
     await page.screenshot({
       path: "test-results/screens/coach-whatsapp-desktop.png",
       fullPage: true,
     });
 
-    // The seeded CLOSED-window conversation → the template-only composer.
-    await page.getByText("Claro! Consigo terça").click();
-    await expect(page.getByTestId("wa-closed-banner")).toBeVisible();
-    await expect(page.getByTestId("wa-template").first()).toBeVisible();
+    await context.route("https://wa.me/**", (route) =>
+      route.fulfill({ status: 200, body: "whatsapp" }),
+    );
+    const popupPromise = context.waitForEvent("page");
+    await link.click();
+    const popup = await popupPromise;
+    await popup.close();
 
-    // --- Mobile: list first, then tap into a thread ---
+    await expect(openedItem).toHaveCount(0);
+    await expect(
+      page.getByText("Aberta no WhatsApp", { exact: false }).first(),
+    ).toBeVisible();
+
+    await composer.fill(dismissedText);
+    await composer.press("Enter");
+    const dismissedItem = queue
+      .getByTestId("wa-queue-item")
+      .filter({ hasText: dismissedText });
+    await expect(dismissedItem).toBeVisible();
+    await dismissedItem.getByTestId("wa-queue-dismiss").click();
+    await expect(dismissedItem).toHaveCount(0);
+
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/coach/whatsapp");
     await expect(
       page.getByRole("heading", { name: "WhatsApp", exact: true }),
     ).toBeVisible();
-    await page.getByText("Ana Aluna").first().click();
-    await expect(page.getByTestId("wa-window-badge")).toBeVisible();
+    await expect(page.getByTestId("wa-handoff-banner")).toBeVisible();
+    await expect(page.getByTestId("wa-conversation").first()).toBeVisible();
 
     await page.screenshot({
       path: "test-results/screens/coach-whatsapp-mobile.png",

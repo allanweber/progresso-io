@@ -1412,7 +1412,8 @@ function ReviewForm({
           onChange={(e) => setFeedback(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Enviado ao aluno no portal e no WhatsApp.
+          Aparece no portal na hora. O aviso fica pronto para você enviar no
+          WhatsApp.
         </p>
       </div>
 
@@ -1584,7 +1585,7 @@ function ManualCheckinDialog({
             Presencial por padrão; mude para Online se o aluno passou os dados
             por outro canal. Use a data de hoje para uma avaliação agora, ou uma
             data passada para importar um check-in antigo — só um check-in de
-            hoje avisa o aluno no WhatsApp.
+            hoje prepara o aviso para você enviar no WhatsApp.
           </p>
         </DialogHeader>
 

@@ -138,7 +138,11 @@ export function formatPhone(normalized: string | null | undefined): string {
  * A WhatsApp deep link ("click to chat") for a normalized number — handy for the
  * profile's WhatsApp button. Empty string when there's no number.
  */
-export function whatsappHref(normalized: string | null | undefined): string {
+export function whatsappHref(
+  normalized: string | null | undefined,
+  text?: string,
+): string {
   const d = (normalized ?? "").replace(/\D/g, "");
-  return d ? `https://wa.me/${d}` : "";
+  if (!d) return "";
+  return text ? `https://wa.me/${d}?text=${encodeURIComponent(text)}` : `https://wa.me/${d}`;
 }
