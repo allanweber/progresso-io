@@ -273,7 +273,7 @@ export function ExerciseCatalog({
               }
             >
               <SelectTrigger
-                className="h-10 w-full rounded-xl"
+                className="w-full"
                 aria-label="Origem"
               >
                 <SelectValue />
@@ -289,7 +289,7 @@ export function ExerciseCatalog({
               onValueChange={(v: string) => setClinic(v === "all" ? "" : v)}
             >
               <SelectTrigger
-                className="h-10 w-full rounded-xl"
+                className="w-full"
                 aria-label="Clínica"
               >
                 <SelectValue />
@@ -312,7 +312,7 @@ export function ExerciseCatalog({
           }
         >
           <SelectTrigger
-            className="h-10 w-full rounded-xl"
+            className="w-full"
             aria-label="Categoria"
           >
             <SelectValue />
@@ -333,7 +333,7 @@ export function ExerciseCatalog({
           }
         >
           <SelectTrigger
-            className="h-10 w-full rounded-xl"
+            className="w-full"
             aria-label="Músculo"
           >
             <SelectValue />
@@ -354,7 +354,7 @@ export function ExerciseCatalog({
           }
         >
           <SelectTrigger
-            className="h-10 w-full rounded-xl"
+            className="w-full"
             aria-label="Equipamento"
           >
             <SelectValue />
@@ -374,7 +374,7 @@ export function ExerciseCatalog({
             setLevel(v === "all" ? "" : (v as ExerciseLevel))
           }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl" aria-label="Nível">
+          <SelectTrigger className="w-full" aria-label="Nível">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -392,7 +392,7 @@ export function ExerciseCatalog({
             onValueChange={(v: string) => setIncludeArchived(v === "all")}
           >
             <SelectTrigger
-              className="h-10 w-full rounded-xl"
+              className="w-full"
               aria-label="Status"
             >
               <SelectValue />
@@ -411,7 +411,7 @@ export function ExerciseCatalog({
             }
           >
             <SelectTrigger
-              className="h-10 w-full rounded-xl"
+              className="w-full"
               aria-label="openGym"
             >
               <SelectValue />
@@ -425,7 +425,7 @@ export function ExerciseCatalog({
         )}
       </div>
       {!admin && (
-        <label className="flex h-10 cursor-pointer items-center gap-2 text-sm text-foreground">
+        <label className="flex h-11 cursor-pointer items-center gap-2 text-sm text-foreground">
           <input
             type="checkbox"
             checked={openGymOnly}

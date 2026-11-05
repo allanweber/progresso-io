@@ -923,7 +923,7 @@ function SortableMeal({
           {...attributes}
           {...listeners}
           aria-label="Reordenar refeição"
-          className="mt-2 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          className="mt-3 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
         >
           <GripVertical className="size-5" />
         </button>
@@ -953,7 +953,7 @@ function SortableMeal({
                 onClick={onDuplicate}
                 aria-label={`Duplicar refeição${meal.name.trim() ? ` ${meal.name.trim()}` : ""}`}
                 title="Duplicar refeição"
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-primary hover:text-primary"
+                className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-border text-muted-foreground hover:border-primary hover:text-primary"
               >
                 <Copy className="size-4" />
               </button>
@@ -962,7 +962,7 @@ function SortableMeal({
               type="button"
               onClick={onRemove}
               aria-label="Remover refeição"
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
+              className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
             >
               <Trash2 className="size-4" />
             </button>

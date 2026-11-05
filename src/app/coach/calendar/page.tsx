@@ -237,14 +237,14 @@ export default function CoachCalendarPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex overflow-hidden rounded-lg border border-border">
+          <div className="inline-flex h-10 overflow-hidden rounded-lg border border-border">
             {(["month", "week", "day"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
                 className={cn(
-                  "px-3 py-1.5 text-body-dense font-medium transition-colors",
+                  "h-full px-3 text-body-dense font-medium transition-colors",
                   view === v
                     ? "bg-primary text-white"
                     : "bg-white text-muted-foreground hover:bg-surface-light",
@@ -994,7 +994,7 @@ function EventDialog({
           ) : (
             <span />
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 max-sm:[&>*]:flex-1">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>

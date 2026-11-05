@@ -524,7 +524,7 @@ export function DashboardShell({
               type="button"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="flex size-11 items-center justify-center gap-1.5 rounded-md border-[1.5px] border-input text-body-dense font-medium text-text-secondary transition-colors hover:bg-secondary disabled:opacity-60 sm:size-auto sm:px-3 sm:py-2"
+              className="flex size-11 items-center justify-center gap-1.5 rounded-md border-[1.5px] border-input text-body-dense font-medium text-text-secondary transition-colors hover:bg-secondary disabled:opacity-60 sm:h-9 sm:w-auto sm:px-3"
             >
               <LogOut className="size-4" />
               <span className="hidden sm:inline">Sair</span>

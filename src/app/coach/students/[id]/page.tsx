@@ -228,7 +228,7 @@ export default function StudentProfilePage() {
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2.5">
+      <div className="mt-5 flex flex-wrap gap-2.5 max-sm:[&>*]:flex-1">
         <Button asChild variant="outline">
           <Link href={`/coach/students/${student.id}/edit`}>
             <Pencil className="size-4" />

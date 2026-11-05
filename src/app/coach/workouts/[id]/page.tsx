@@ -119,7 +119,7 @@ export default function WorkoutDetailPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
               <Button
                 variant="outline"
                 size="sm"

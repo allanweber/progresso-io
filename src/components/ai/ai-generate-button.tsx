@@ -84,6 +84,7 @@ type Props = {
   defaultObjective?: string | null;
   /** Called after a successful generation so the page can refetch. */
   onGenerated: () => void;
+  size?: "default" | "sm";
 };
 
 const NOUN = { workout: "treino", diet: "dieta" } as const;
@@ -108,6 +109,7 @@ export function AiGenerateButton({
   hasDraft,
   defaultObjective,
   onGenerated,
+  size = "default",
 }: Props) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -332,6 +334,8 @@ export function AiGenerateButton({
       <div className="flex flex-col items-center gap-1">
         <Button
           variant="outline"
+          size={size}
+          className="max-sm:w-full"
           disabled={blocked !== null || anamnesis.isLoading}
           onClick={() => {
             setError(null);

@@ -181,7 +181,7 @@ function AnamnesesMaintenance() {
             </SelectContent>
           </Select>
         </div>
-        <Button type="button" onClick={() => setImportOpen(true)}>
+        <Button type="button" className="h-11" onClick={() => setImportOpen(true)}>
           <Download className="size-4" />
           Importar starters
         </Button>
@@ -701,7 +701,7 @@ function TemplateMaintenance({
             </SelectContent>
           </Select>
         </div>
-        <Button type="button" onClick={() => setImportOpen(true)}>
+        <Button type="button" className="h-11" onClick={() => setImportOpen(true)}>
           <Download className="size-4" />
           Importar starters
         </Button>

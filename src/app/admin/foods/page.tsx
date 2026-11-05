@@ -199,7 +199,7 @@ export default function AdminFoodsPage() {
             setOrigin(v === "all" ? "" : (v as AdminFoodOrigin))
           }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -212,7 +212,7 @@ export default function AdminFoodsPage() {
           value={clinic || "all"}
           onValueChange={(v) => setClinic(v === "all" ? "" : v)}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -228,7 +228,7 @@ export default function AdminFoodsPage() {
           value={group || "all"}
           onValueChange={(v) => setGroup(v === "all" ? "" : v)}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -244,7 +244,7 @@ export default function AdminFoodsPage() {
           value={type || "all"}
           onValueChange={(v) => setType(v === "all" ? "" : (v as FoodType))}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -257,7 +257,7 @@ export default function AdminFoodsPage() {
           value={includeArchived ? "all" : "active"}
           onValueChange={(v) => setIncludeArchived(v === "all")}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

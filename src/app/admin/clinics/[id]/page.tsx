@@ -514,7 +514,7 @@ function PlanForm({
     >
       <form.Field name="plan">
         {(field) => (
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="plan-select">Plano</Label>
             <Select
               value={field.state.value}
@@ -549,7 +549,7 @@ function PlanForm({
 
       <form.Subscribe selector={(s) => s.values.plan}>
         {(plan) => (
-          <Button type="submit" disabled={mutation.isPending || plan === currentPlan}>
+          <Button type="submit" className="h-11" disabled={mutation.isPending || plan === currentPlan}>
             {mutation.isPending ? "Salvando…" : "Salvar plano"}
           </Button>
         )}
@@ -807,7 +807,7 @@ function InvoiceDialog({
                         onClick={() => field.removeValue(i)}
                         disabled={field.state.value.length === 1}
                         aria-label={`Remover item ${i + 1}`}
-                        className="text-destructive hover:text-destructive"
+                        className="size-11 shrink-0 text-destructive hover:text-destructive"
                       >
                         <Trash2 className="size-4" />
                       </Button>

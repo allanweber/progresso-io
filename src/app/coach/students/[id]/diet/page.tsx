@@ -298,7 +298,7 @@ export default function StudentDietPage() {
             Rascunho não publicado — o aluno ainda não vê esta dieta. Publique
             para deixá-la ativa.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+          <div className="mt-4 flex flex-wrap justify-center gap-2.5 max-sm:[&>*]:flex-1">
             <Button onClick={() => setEditing(true)}>
               <Pencil className="size-4" />
               Continuar editando
@@ -325,7 +325,7 @@ export default function StudentDietPage() {
           <p className="text-sm text-muted-foreground">
             Este aluno ainda não tem uma dieta.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+          <div className="mt-4 flex flex-wrap justify-center gap-2.5 max-sm:[&>*]:flex-1">
             <Button onClick={() => setDialog("blank")}>
               <Plus className="size-4" />
               Criar dieta nova
@@ -534,8 +534,8 @@ function CurrentView({
   return (
     <div className="mt-6 space-y-4">
       {/* Start a different diet */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-rest">
-        <span className="text-sm font-medium text-foreground">Nova dieta:</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl max-sm:[&>button]:flex-1 max-sm:[&>div]:flex-1 border border-dashed border-border bg-white px-4 py-3 shadow-rest">
+        <span className="text-sm font-medium text-foreground max-sm:basis-full">Nova dieta:</span>
         <Button
           variant="outline"
           size="sm"
@@ -562,9 +562,10 @@ function CurrentView({
           kind="diet"
           hasDraft={hasDraft}
           defaultObjective={goal}
+          size="sm"
           onGenerated={onGenerated}
         />
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground max-sm:basis-full">
           {hasDraft
             ? "Publique ou descarte o rascunho atual antes de começar outra dieta."
             : "Vira a dieta atual quando você publicar; a atual vai para o histórico."}
@@ -580,7 +581,7 @@ function CurrentView({
             Versão {current.version} · publicada em {fmtDate(current.publishedAt)}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
           {hasDraft ? (
             <Button onClick={onContinueDraft}>
               <Pencil className="size-4" />

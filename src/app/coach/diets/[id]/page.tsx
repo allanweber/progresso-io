@@ -110,7 +110,7 @@ export default function DietDetailPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
               {/* Copy works for any visible diet — a base template becomes an
                   editable clinic-owned copy; a clinic diet is duplicated. */}
               <Button
