@@ -21,12 +21,17 @@ test.describe("coach whatsapp inbox", () => {
     ).toBeVisible();
     await expect(page.getByTestId("wa-handoff-banner")).toBeVisible();
 
-    await page.getByTestId("wa-conversation").filter({ hasText: "Ana Aluna" }).click();
+    await expect(page.getByTestId("wa-coming-soon-banner")).toContainText(
+      "em desenvolvimento",
+    );
+    await expect(page.getByTestId("wa-conversation")).toHaveCount(0);
     await expect(page.getByTestId("wa-window-badge")).toHaveCount(0);
 
+    const student = page.getByTestId("wa-student");
+    await student.selectOption({ label: "Ana Aluna" });
     const composer = page.getByTestId("wa-composer-text");
     await composer.fill(openedText);
-    await composer.press("Enter");
+    await page.getByTestId("wa-send").click();
 
     const queue = page.getByTestId("wa-queue");
     const openedItem = queue
@@ -37,8 +42,8 @@ test.describe("coach whatsapp inbox", () => {
     const link = openedItem.getByTestId("wa-queue-open");
     const href = await link.getAttribute("href");
     const url = new URL(href!);
-    expect(url.hostname).toBe("wa.me");
-    expect(url.pathname).toBe("/5511999990000");
+    expect(url.origin + url.pathname).toBe("https://web.whatsapp.com/send");
+    expect(url.searchParams.get("phone")).toBe("5511999990000");
     expect(url.searchParams.get("text")).toBe(openedText);
 
     await page.screenshot({
@@ -46,7 +51,7 @@ test.describe("coach whatsapp inbox", () => {
       fullPage: true,
     });
 
-    await context.route("https://wa.me/**", (route) =>
+    await context.route("https://web.whatsapp.com/**", (route) =>
       route.fulfill({ status: 200, body: "whatsapp" }),
     );
     const popupPromise = context.waitForEvent("page");
@@ -56,11 +61,11 @@ test.describe("coach whatsapp inbox", () => {
 
     await expect(openedItem).toHaveCount(0);
     await expect(
-      page.getByText("Aberta no WhatsApp", { exact: false }).first(),
+      page.getByTestId("wa-recent-item").filter({ hasText: openedText }),
     ).toBeVisible();
 
     await composer.fill(dismissedText);
-    await composer.press("Enter");
+    await page.getByTestId("wa-send").click();
     const dismissedItem = queue
       .getByTestId("wa-queue-item")
       .filter({ hasText: dismissedText });
@@ -74,7 +79,7 @@ test.describe("coach whatsapp inbox", () => {
       page.getByRole("heading", { name: "WhatsApp", exact: true }),
     ).toBeVisible();
     await expect(page.getByTestId("wa-handoff-banner")).toBeVisible();
-    await expect(page.getByTestId("wa-conversation").first()).toBeVisible();
+    await expect(page.getByTestId("wa-queue")).toBeVisible();
 
     await page.screenshot({
       path: "test-results/screens/coach-whatsapp-mobile.png",

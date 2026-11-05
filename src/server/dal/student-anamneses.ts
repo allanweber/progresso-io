@@ -11,6 +11,8 @@ import type {
 } from "@/lib/student-anamneses";
 import type { Student, StudentAnamnesis } from "@/db/schema";
 import type { TenantContext } from "@/server/tenant";
+import { ANAMNESIS_MESSAGE_KEYS } from "@/lib/whatsapp-inbox";
+import { withdrawQueued } from "./whatsapp";
 
 /** Serializes a row to the client DTO (Dates → ISO strings). */
 export function toStudentAnamnesisDto(
@@ -127,6 +129,7 @@ export async function assignAnamnesis(
       set: values,
     })
     .returning();
+  await withdrawQueued(ctx, studentId, ANAMNESIS_MESSAGE_KEYS);
   return { ok: true, studentAnamnesis: row };
 }
 
@@ -163,6 +166,9 @@ export async function saveAnswers(
       ),
     )
     .returning();
+  if (row && completing) {
+    await withdrawQueued(ctx, studentId, ANAMNESIS_MESSAGE_KEYS);
+  }
   return row ?? null;
 }
 
@@ -278,6 +284,12 @@ export async function submitFill(
       name: schema.studentAnamnesis.name,
     });
   if (!row) return null;
+
+  await withdrawQueued(
+    { db, clinicId: row.clinicId },
+    row.studentId,
+    ANAMNESIS_MESSAGE_KEYS,
+  );
 
   const [student] = await db
     .select({

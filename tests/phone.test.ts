@@ -6,6 +6,7 @@ import {
   normalizePhone,
   phonesMatch,
   whatsappHref,
+  whatsappWebHref,
 } from "@/lib/phone";
 
 /**
@@ -103,6 +104,18 @@ describe("isValidPhone / whatsappHref", () => {
     expect(whatsappHref("5511999990000")).toBe("https://wa.me/5511999990000");
     expect(whatsappHref(null)).toBe("");
     expect(whatsappHref("", "oi")).toBe("");
+  });
+
+  it("links to WhatsApp Web with the number and text intact", () => {
+    const text = "Olá, João & Cia! 💪\nVeja: https://x.io/a?b=1&c=2";
+    const url = new URL(whatsappWebHref("+55 11 99999-0000", text));
+    expect(url.origin + url.pathname).toBe("https://web.whatsapp.com/send");
+    expect(url.searchParams.get("phone")).toBe("5511999990000");
+    expect(url.searchParams.get("text")).toBe(text);
+    expect(whatsappWebHref("5511999990000")).toBe(
+      "https://web.whatsapp.com/send?phone=5511999990000",
+    );
+    expect(whatsappWebHref(null, "oi")).toBe("");
   });
 
   it("encodes prefilled text so it survives the URL intact", () => {

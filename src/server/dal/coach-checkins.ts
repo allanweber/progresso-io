@@ -9,7 +9,10 @@ import type {
   CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
 import type { Modality } from "@/db/schema";
+import { todayYmd } from "@/lib/calendar";
 import { CHECKIN_POSE_VALUES } from "@/lib/student-checkins";
+import { CHECKIN_REMINDER_MESSAGE_KEYS } from "@/lib/whatsapp-inbox";
+import { withdrawQueued } from "./whatsapp";
 import type {
   AssessmentPointDto,
   CheckinDetailDto,
@@ -369,7 +372,7 @@ export async function createCoachCheckin(
   const date = input.date;
   const snapshot = await resolvePlanSnapshot(ctx, studentId, date);
 
-  return ctx.db.transaction(async (tx) => {
+  const created = await ctx.db.transaction(async (tx) => {
     const txCtx: TenantContext = { ...ctx, db: tx as unknown as typeof ctx.db };
 
     const [checkin] = await tx
@@ -420,6 +423,11 @@ export async function createCoachCheckin(
       createdAt: checkin.createdAt.toISOString(),
     } satisfies CheckinDto;
   });
+
+  if (date === todayYmd()) {
+    await withdrawQueued(ctx, studentId, CHECKIN_REMINDER_MESSAGE_KEYS);
+  }
+  return created;
 }
 
 export type SubmitFeedbackInput = {

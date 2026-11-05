@@ -146,3 +146,13 @@ export function whatsappHref(
   if (!d) return "";
   return text ? `https://wa.me/${d}?text=${encodeURIComponent(text)}` : `https://wa.me/${d}`;
 }
+
+export function whatsappWebHref(
+  normalized: string | null | undefined,
+  text?: string,
+): string {
+  const d = (normalized ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  const base = `https://web.whatsapp.com/send?phone=${d}`;
+  return text ? `${base}&text=${encodeURIComponent(text)}` : base;
+}

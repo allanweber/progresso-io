@@ -145,6 +145,17 @@ export type TemplateVars = { nome?: string; periodo?: string; link?: string };
  * don't belong in the picker. Only templates whose placeholders are all
  * fillable from the conversation (`{nome}` alone) qualify.
  */
+export const ANAMNESIS_MESSAGE_KEYS = [
+  "anamnesis_welcome",
+  "anamnesis_reminder",
+] as const;
+export const PORTAL_INVITE_MESSAGE_KEYS = ["welcome_access"] as const;
+export const CHECKIN_REMINDER_MESSAGE_KEYS = [
+  "checkin_reminder",
+  "checkin_overdue",
+  "student_inactive",
+] as const;
+
 export const COMPOSER_TEMPLATE_KEYS: ReadonlySet<string> = new Set([
   "session_confirm",
 ]);
@@ -252,6 +263,7 @@ export type WhatsAppQueuedMessageDto = {
 export type WhatsAppInboxDto = {
   conversations: WhatsAppConversationDto[];
   queued: WhatsAppQueuedMessageDto[];
+  recentlyOpened: WhatsAppQueuedMessageDto[];
   templates: WhatsAppTemplateDto[];
   connection: WhatsAppConnectionDto;
   /**

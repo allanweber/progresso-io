@@ -1,6 +1,6 @@
-import { and, count, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 
-import { schema, type DB } from "@/db";
+import { schema, type Database, type DB } from "@/db";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { captureOutbox } from "@/lib/test-outbox";
 import { studentInitials } from "@/lib/students";
@@ -311,6 +311,7 @@ export async function getInbox(
   return {
     conversations: rows.map((r) => toConversationDto(r, now)),
     queued: await listQueued(ctx),
+    recentlyOpened: await listRecentlyOpened(ctx),
     templates: await listResolvedTemplates(ctx),
     connection: await getConnection(ctx),
   };
@@ -495,6 +496,7 @@ export async function sendTemplateToStudent(
     .select({
       phone: schema.students.phone,
       firstName: schema.students.firstName,
+      modality: schema.students.modality,
     })
     .from(schema.students)
     .where(
@@ -503,7 +505,7 @@ export async function sendTemplateToStudent(
         eq(schema.students.clinicId, ctx.clinicId),
       ),
     );
-  if (!student?.phone) return null;
+  if (!student?.phone || student.modality !== "online") return null;
 
   const tpl = await resolveTemplate(ctx, key);
   if (!tpl) return null;
@@ -771,6 +773,39 @@ export async function listQueued(
   ctx: TenantContext,
   limit = 50,
 ): Promise<WhatsAppQueuedMessageDto[]> {
+  return selectQueueItems(
+    ctx,
+    activeQueueFilter(ctx),
+    asc(schema.whatsappMessage.createdAt),
+    limit,
+  );
+}
+
+export async function listRecentlyOpened(
+  ctx: TenantContext,
+  limit = 10,
+): Promise<WhatsAppQueuedMessageDto[]> {
+  return selectQueueItems(
+    ctx,
+    and(
+      eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+      eq(schema.whatsappMessage.status, "handed_off"),
+      gte(
+        schema.whatsappMessage.createdAt,
+        new Date(Date.now() - WHATSAPP_QUEUE_MAX_AGE_MS),
+      ),
+    ),
+    desc(schema.whatsappMessage.createdAt),
+    limit,
+  );
+}
+
+async function selectQueueItems(
+  ctx: TenantContext,
+  filter: SQL | undefined,
+  order: SQL,
+  limit: number,
+): Promise<WhatsAppQueuedMessageDto[]> {
   const rows = await ctx.db
     .select({
       id: schema.whatsappMessage.id,
@@ -792,8 +827,8 @@ export async function listQueued(
       schema.students,
       eq(schema.students.id, schema.whatsappConversation.studentId),
     )
-    .where(activeQueueFilter(ctx))
-    .orderBy(schema.whatsappMessage.createdAt)
+    .where(filter)
+    .orderBy(order)
     .limit(limit);
 
   return rows.map((r) => {
@@ -858,6 +893,37 @@ async function resolveQueued(
 
 export function markHandedOff(ctx: TenantContext, messageId: string) {
   return resolveQueued(ctx, messageId, "handed_off");
+}
+
+export async function withdrawQueued(
+  ctx: { db: Database; clinicId: string },
+  studentId: string,
+  templateKeys?: readonly string[],
+): Promise<void> {
+  await ctx.db
+    .update(schema.whatsappMessage)
+    .set({ status: "dismissed" })
+    .where(
+      and(
+        eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+        eq(schema.whatsappMessage.status, "queued"),
+        inArray(
+          schema.whatsappMessage.conversationId,
+          ctx.db
+            .select({ id: schema.whatsappConversation.id })
+            .from(schema.whatsappConversation)
+            .where(
+              and(
+                eq(schema.whatsappConversation.clinicId, ctx.clinicId),
+                eq(schema.whatsappConversation.studentId, studentId),
+              ),
+            ),
+        ),
+        templateKeys
+          ? inArray(schema.whatsappMessage.templateKey, [...templateKeys])
+          : undefined,
+      ),
+    );
 }
 
 export function dismissQueued(ctx: TenantContext, messageId: string) {

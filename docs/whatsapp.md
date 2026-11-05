@@ -1,6 +1,7 @@
 # WhatsApp inbox (coach) + admin overview
 
-The coach's WhatsApp surface at `/coach/whatsapp` — a two-pane inbox
+The coach's WhatsApp surface at `/coach/whatsapp` — under a provider that can
+receive messages (see Handoff mode for today's production page), a two-pane inbox
 (conversation list + chat) with the **24h customer-service window** and the
 **pre-approved template** fallback baked in. It's a **paid-tier** feature (Free
 excluded), gated exactly like the Calendar. The platform admin gets a per-tenant
@@ -16,11 +17,19 @@ through a guarded dev endpoint.
 
 ## Handoff mode (production today)
 
-`WHATSAPP_PROVIDER=handoff`, the default in `docker-compose.yml`. Nothing is sent
+The default when `WHATSAPP_PROVIDER` is unset or unknown; `dev` must be chosen
+explicitly, and is what the tests and simulator use. Nothing is sent
 by the server. Every outbound message, from an automation or the composer, is
 saved as `queued` and offered in the **Prontos para enviar** list at
-`/coach/whatsapp`. **Abrir no WhatsApp** is a `wa.me` link with the text filled in
-(`whatsappHref(phone, text)` in `src/lib/phone.ts`); the coach presses send there.
+`/coach/whatsapp`. With a mouse, **Abrir no WhatsApp Web** opens
+`web.whatsapp.com/send` in a reused `whatsapp-web` tab (`whatsappWebHref`). On a
+touch device, **Abrir no WhatsApp** uses `wa.me` (`whatsappHref`), which opens the
+app. Both are in `src/lib/phone.ts` and fill in the text; the coach presses send.
+
+In this mode the page is a send list, not a chat: **Prontos para enviar**,
+**Abertas recentemente** (last 10 opened in the past 7 days, with **Abrir de
+novo**), and **Nova mensagem**, which requires explicitly choosing a student. The
+two-pane inbox below only renders under the other providers.
 
 | Status | Meaning |
 | --- | --- |
@@ -36,6 +45,13 @@ saved as `queued` and offered in the **Prontos para enviar** list at
   DAL skips the check and the UI hides the window badge and banner.
 - **Replacement:** queuing a template dismisses older `queued` rows with the same
   `templateKey` on that conversation.
+- **In-person students:** `sendTemplateToStudent` prepares nothing for them,
+  because they have no portal. The coach can still write to them by hand.
+- **Withdrawn messages:** `withdrawQueued` dismisses waiting messages that stopped
+  applying. It covers the anamnese being filled or its template replaced, the
+  portal invite being accepted, a check-in submitted or recorded for today, and
+  the student becoming inactive, archived, in-person or changing number. Replacing
+  the template also prepares a new link, and e-mails it.
 - **Reminders aren't re-queued:** the dedupe in the reminder and nudge jobs counts
   message rows, so an unopened item still counts within its period.
 - **The coach's count:** the sidebar badge and dashboard tile read
@@ -134,8 +150,8 @@ included, with the per-clinic `clinic.whatsapp_override` still applying.
 - `parseInboundWebhook(payload)` → normalized inbound/status events.
 
 `getWhatsAppProvider()` picks the implementation from `WHATSAPP_PROVIDER`
-(unset/unknown → the `dev` provider, which logs and returns `delivered: false`,
-so nothing breaks for lack of configuration). A real vendor becomes **one new
+(unset/unknown → `handoff`; only an explicit `dev` selects the provider that logs
+and returns `delivered: false`). A real vendor becomes **one new
 file + one `case`**, with zero caller changes. The onboarding helper
 (`sendStudentOnboardingWhatsApp` in `src/lib/whatsapp.ts`, still used for the
 anamnese-fill invite) routes through the same port, as does the template send

@@ -3,6 +3,8 @@ import { and, asc, count, desc, eq, gt, isNull, ne } from "drizzle-orm";
 import { type Database, schema } from "@/db";
 import type { Modality, Sex, Student, StudentStatus } from "@/db/schema";
 import type { TenantContext } from "@/server/tenant";
+import { PORTAL_INVITE_MESSAGE_KEYS } from "@/lib/whatsapp-inbox";
+import { withdrawQueued } from "./whatsapp";
 
 /**
  * Reference DAL module. Every function is scoped to `ctx.clinicId`: there is no
@@ -519,6 +521,19 @@ export async function updateStudent(
   if (input.status !== undefined) patch.status = input.status;
   if (input.coachId !== undefined) patch.coachId = input.coachId;
 
+  const [previous] =
+    input.phone !== undefined
+      ? await ctx.db
+          .select({ phone: schema.students.phone })
+          .from(schema.students)
+          .where(
+            and(
+              eq(schema.students.clinicId, ctx.clinicId),
+              eq(schema.students.id, id),
+            ),
+          )
+      : [];
+
   const [student] = await ctx.db
     .update(schema.students)
     .set(patch)
@@ -529,7 +544,16 @@ export async function updateStudent(
       ),
     )
     .returning();
-  return student ?? null;
+  if (!student) return null;
+
+  if (
+    student.status !== "active" ||
+    student.modality !== "online" ||
+    (previous && previous.phone !== student.phone)
+  ) {
+    await withdrawQueued(ctx, id);
+  }
+  return student;
 }
 
 /** Sets a student's lifecycle status (active / inactive / archived). */
@@ -602,4 +626,9 @@ export async function linkStudentAccount(
         eq(schema.students.id, args.studentId),
       ),
     );
+  await withdrawQueued(
+    { db, clinicId: args.clinicId },
+    args.studentId,
+    PORTAL_INVITE_MESSAGE_KEYS,
+  );
 }

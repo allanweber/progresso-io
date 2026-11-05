@@ -144,14 +144,14 @@ export function getWhatsAppProvider(): WhatsAppProvider {
   switch (name) {
     // case "meta": return metaProvider;
     // case "twilio": return twilioProvider;
-    case "handoff":
-      return handoffProvider;
     case "dev":
+      return devProvider;
+    case "handoff":
     case undefined:
     case "":
-      return devProvider;
+      return handoffProvider;
     default:
       logger.warn("whatsapp.provider.unknown", { name });
-      return devProvider;
+      return handoffProvider;
   }
 }

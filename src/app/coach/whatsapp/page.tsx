@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MessageText } from "@/components/whatsapp/message-text";
 import { apiFetch, ApiError } from "@/lib/api-client";
-import { whatsappHref } from "@/lib/phone";
+import { whatsappHref, whatsappWebHref } from "@/lib/phone";
 import {
   COMPOSER_TEMPLATE_KEYS,
   isQueueItemActive,
@@ -29,6 +29,10 @@ import {
 
 const POLL_MS = 10_000;
 
+const subscribeToNothing = () => () => {};
+const hasMousePointer = () => !window.matchMedia("(pointer: coarse)").matches;
+const assumeMousePointer = () => true;
+
 /** HH:MM (24h) for a message timestamp, locale-proof. */
 function messageTime(iso: string): string {
   const d = new Date(iso);
@@ -39,6 +43,11 @@ function messageTime(iso: string): string {
 
 export default function CoachWhatsappPage() {
   const queryClient = useQueryClient();
+  const useWeb = useSyncExternalStore(
+    subscribeToNothing,
+    hasMousePointer,
+    assumeMousePointer,
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
@@ -46,6 +55,7 @@ export default function CoachWhatsappPage() {
   const inbox = useQuery({
     queryKey: ["coach-whatsapp"],
     queryFn: () => apiFetch<WhatsAppInboxDto>("/api/coach/whatsapp"),
+    staleTime: 0,
     refetchInterval: POLL_MS,
   });
 
@@ -63,7 +73,7 @@ export default function CoachWhatsappPage() {
     queryKey: ["coach-whatsapp", effectiveId],
     queryFn: () =>
       apiFetch<WhatsAppThreadDto>(`/api/coach/whatsapp/${effectiveId}`),
-    enabled: !!effectiveId,
+    enabled: !!effectiveId && inbox.data?.deliveryMode !== "handoff",
     refetchInterval: POLL_MS,
   });
 
@@ -93,6 +103,32 @@ export default function CoachWhatsappPage() {
         `/api/coach/whatsapp/messages/${id}`,
         { method: "POST", body: JSON.stringify({ action }) },
       ),
+    onMutate: async ({ id, action }) => {
+      await queryClient.cancelQueries({
+        queryKey: ["coach-whatsapp"],
+        exact: true,
+      });
+      const previous = queryClient.getQueryData<WhatsAppInboxDto>([
+        "coach-whatsapp",
+      ]);
+      if (previous) {
+        const item = previous.queued.find((m) => m.id === id);
+        queryClient.setQueryData<WhatsAppInboxDto>(["coach-whatsapp"], {
+          ...previous,
+          queued: previous.queued.filter((m) => m.id !== id),
+          recentlyOpened:
+            action === "handoff" && item
+              ? [item, ...previous.recentlyOpened].slice(0, 10)
+              : previous.recentlyOpened,
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["coach-whatsapp"], context.previous);
+      }
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-whatsapp"] });
       queryClient.invalidateQueries({ queryKey: ["coach-wa-waiting-count"] });
@@ -117,21 +153,296 @@ export default function CoachWhatsappPage() {
 
   if (planLocked) return <WhatsappUpsell />;
 
-  return (
-    <div className="flex h-[calc(100dvh-8rem)] min-h-[32rem] flex-col gap-3">
-      {handoff ? (
+  if (!inbox.data) {
+    return (
+      <p
+        role={inbox.isError ? "alert" : undefined}
+        className="p-6 text-sm text-muted-foreground"
+      >
+        {inbox.isError
+          ? "Não foi possível carregar o WhatsApp. Tente de novo."
+          : "Carregando…"}
+      </p>
+    );
+  }
+
+  if (handoff) {
+    const recentlyOpened = inbox.data.recentlyOpened;
+    const conversations = inbox.data.conversations;
+    const messageHref = useWeb ? whatsappWebHref : whatsappHref;
+    const linkTarget = useWeb
+      ? { target: "whatsapp-web" }
+      : { target: "_blank", rel: "noopener noreferrer" };
+    return (
+      <div className="flex flex-col gap-4">
         <div
-          data-testid="wa-handoff-banner"
-          className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-foreground"
+          data-testid="wa-coming-soon-banner"
+          className="flex items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]"
         >
-          <MessageCircle className="mt-0.5 size-4 flex-shrink-0 text-primary" />
+          <Construction className="mt-0.5 size-4 flex-shrink-0" />
           <p>
-            <strong>Você envia pelo seu WhatsApp.</strong> O Progresso prepara a
-            mensagem e um toque abre o WhatsApp com tudo escrito. É só apertar
-            enviar. As respostas chegam no seu WhatsApp, não aqui.
+            <strong>Integração direta com o WhatsApp em desenvolvimento.</strong>{" "}
+            Ela chegará no futuro. Por enquanto, as mensagens são enviadas por
+            você, pelo seu próprio WhatsApp.
           </p>
         </div>
-      ) : inbox.data && !inbox.data.deliveryEnabled ? (
+
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-80">
+            <h1 className="font-heading text-xl font-semibold tracking-tight">
+              WhatsApp
+            </h1>
+            <p
+              data-testid="wa-handoff-banner"
+              className="mt-1 text-sm text-muted-foreground"
+            >
+              {useWeb
+                ? "Deixe o WhatsApp Web conectado. O Progresso prepara a mensagem, um clique abre a conversa com tudo escrito e você só aperta enviar. As respostas chegam no seu WhatsApp, não aqui."
+                : "O Progresso prepara a mensagem, um toque abre o seu WhatsApp com tudo escrito e você só aperta enviar. As respostas chegam no seu WhatsApp, não aqui."}
+            </p>
+          </div>
+          {useWeb && (
+            <Button asChild variant="outline" size="sm">
+              <a
+                href="https://web.whatsapp.com"
+                data-testid="wa-web-open"
+                {...linkTarget}
+              >
+                <ExternalLink className="size-3.5" />
+                Abrir WhatsApp Web
+              </a>
+            </Button>
+          )}
+        </div>
+
+        {queueAction.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            Não foi possível atualizar a mensagem. Tente de novo.
+          </p>
+        )}
+
+        <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <section
+              data-testid="wa-queue"
+              aria-labelledby="wa-queue-title"
+              className="rounded-2xl border border-border bg-white"
+            >
+              <h2
+                id="wa-queue-title"
+                className="border-b border-border px-4 py-3 text-sm font-semibold"
+              >
+                Prontos para enviar ({queued.length})
+              </h2>
+              {queued.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Nada para enviar agora.
+                </p>
+              ) : (
+                <ul>
+                  {queued.map((m) => (
+                    <li
+                      key={m.id}
+                      data-testid="wa-queue-item"
+                      className="border-t border-border/60 px-4 py-3 first:border-t-0"
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <div className="truncate text-sm font-semibold">
+                          {m.name}
+                        </div>
+                        <time
+                          dateTime={m.createdAt}
+                          data-testid="wa-queue-time"
+                          className="flex-shrink-0 text-xs text-muted-foreground"
+                        >
+                          Preparada em{" "}
+                          {new Date(m.createdAt).toLocaleString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </time>
+                      </div>
+                      <p className="mb-2 mt-0.5 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                        <MessageText text={m.body} />
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 max-sm:[&>*]:flex-1">
+                        <Button asChild size="sm">
+                          <a
+                            href={messageHref(m.phone, m.body)}
+                            {...linkTarget}
+                            data-testid="wa-queue-open"
+                            onClick={() =>
+                              queueAction.mutate({ id: m.id, action: "handoff" })
+                            }
+                          >
+                            <ExternalLink className="size-3.5" />
+                            {useWeb ? "Abrir no WhatsApp Web" : "Abrir no WhatsApp"}
+                          </a>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          data-testid="wa-queue-dismiss"
+                          onClick={() =>
+                            queueAction.mutate({ id: m.id, action: "dismiss" })
+                          }
+                        >
+                          <X className="size-3.5" />
+                          Descartar
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {recentlyOpened.length > 0 && (
+              <section
+                data-testid="wa-recent"
+                aria-labelledby="wa-recent-title"
+                className="rounded-2xl border border-border bg-white"
+              >
+                <h2
+                  id="wa-recent-title"
+                  className="border-b border-border px-4 py-3 text-sm font-semibold"
+                >
+                  Abertas recentemente
+                </h2>
+                <ul>
+                  {recentlyOpened.map((m) => (
+                    <li
+                      key={m.id}
+                      data-testid="wa-recent-item"
+                      className="flex items-center gap-3 border-t border-border/60 px-4 py-3 first:border-t-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">
+                          {m.name}
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {m.body}
+                        </p>
+                      </div>
+                      <a
+                        href={messageHref(m.phone, m.body)}
+                        {...linkTarget}
+                        data-testid="wa-recent-open"
+                        className="flex-shrink-0 text-xs font-semibold text-primary underline"
+                      >
+                        Abrir de novo
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+
+          <section
+            aria-labelledby="wa-new-title"
+            className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4"
+          >
+            <h2 id="wa-new-title" className="text-sm font-semibold">
+              Nova mensagem
+            </h2>
+            {conversations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum aluno disponível ainda.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="wa-student" className="text-xs font-medium">
+                    Aluno
+                  </label>
+                  <select
+                    id="wa-student"
+                    data-testid="wa-student"
+                    value={selectedId ?? ""}
+                    onChange={(e) => {
+                      setSelectedId(e.target.value || null);
+                      setSendError(null);
+                    }}
+                    className="h-10 rounded-lg border border-border bg-white px-3 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                  >
+                    <option value="">Escolha um aluno</option>
+                    {conversations.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="wa-text" className="text-xs font-medium">
+                    Mensagem
+                  </label>
+                  <textarea
+                    id="wa-text"
+                    data-testid="wa-composer-text"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    rows={3}
+                    className="resize-y rounded-lg border border-border bg-white px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  data-testid="wa-send"
+                  disabled={!selectedId || !draft.trim() || send.isPending}
+                  onClick={() =>
+                    send.mutate({ type: "text", body: draft.trim() })
+                  }
+                >
+                  <Send className="size-4" />
+                  Preparar mensagem
+                </Button>
+                {composerTemplates.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-semibold text-foreground">
+                      Usar um template
+                    </summary>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {composerTemplates.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          data-testid="wa-template"
+                          disabled={!selectedId || send.isPending}
+                          onClick={() =>
+                            send.mutate({ type: "template", templateKey: t.key })
+                          }
+                          className="rounded-lg border border-border px-3 py-2 text-left transition-colors hover:bg-primary-light/30 disabled:opacity-60"
+                        >
+                          <div className="font-semibold">{t.title}</div>
+                          <div className="mt-0.5 text-muted-foreground">
+                            {t.body}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                {sendError && (
+                  <p role="alert" className="text-xs text-destructive">
+                    {sendError}
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100dvh-8rem)] min-h-[32rem] flex-col gap-3">
+      {!inbox.data.deliveryEnabled ? (
         <div className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
           <Construction className="mt-0.5 size-4 flex-shrink-0" />
           <p>
@@ -149,13 +460,7 @@ export default function CoachWhatsappPage() {
         <h1 className="font-heading text-xl font-semibold tracking-tight">
           WhatsApp
         </h1>
-        {handoff ? (
-          <span className="text-xs text-muted-foreground">
-            envio pelo seu WhatsApp
-          </span>
-        ) : (
-          <ConnectionDot connected={inbox.data?.connection.status === "connected"} />
-        )}
+        <ConnectionDot connected={inbox.data.connection.status === "connected"} />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
@@ -165,57 +470,13 @@ export default function CoachWhatsappPage() {
             selectedId ? "hidden md:block" : "block"
           }`}
         >
-          {queueAction.isError && (
-            <p role="alert" className="px-4 pt-3 text-xs text-destructive">
-              Não foi possível atualizar a mensagem. Tente de novo.
-            </p>
-          )}
-          {queued.length > 0 && (
-            <section
-              data-testid="wa-queue"
-              aria-labelledby="wa-queue-title"
-              className="border-b border-border bg-primary-light/30"
-            >
-              <h2
-                id="wa-queue-title"
-                className="px-4 pb-1 pt-3 text-xs font-semibold text-foreground"
-              >
-                Prontos para enviar ({queued.length})
-              </h2>
-              <ul>
-                {queued.map((m) => (
-                  <li
-                    key={m.id}
-                    data-testid="wa-queue-item"
-                    className="border-t border-border/60 px-4 py-3 first:border-t-0"
-                  >
-                    <div className="truncate text-sm font-semibold">{m.name}</div>
-                    <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">
-                      {m.body}
-                    </p>
-                    <QueueActions
-                      href={whatsappHref(m.phone, m.body)}
-                      onOpen={() =>
-                        queueAction.mutate({ id: m.id, action: "handoff" })
-                      }
-                      onDismiss={() =>
-                        queueAction.mutate({ id: m.id, action: "dismiss" })
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {inbox.isLoading ? (
-            <p className="p-4 text-sm text-muted-foreground">Carregando…</p>
-          ) : inbox.data && inbox.data.conversations.length === 0 ? (
+          {inbox.data.conversations.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
               Nenhuma conversa ainda.
             </p>
           ) : (
             <ul>
-              {inbox.data?.conversations.map((c) => {
+              {inbox.data.conversations.map((c) => {
                 const open = isWindowOpen(c.lastInboundAt);
                 return (
                   <li key={c.id}>
@@ -245,20 +506,18 @@ export default function CoachWhatsappPage() {
                         <p className="truncate text-xs text-muted-foreground">
                           {c.lastMessagePreview ?? "—"}
                         </p>
-                        {!handoff && (
+                        <span
+                          className={`mt-1 inline-flex items-center gap-1 text-caption font-semibold ${
+                            open ? "text-primary" : "text-destructive"
+                          }`}
+                        >
                           <span
-                            className={`mt-1 inline-flex items-center gap-1 text-caption font-semibold ${
-                              open ? "text-primary" : "text-destructive"
+                            className={`size-1.5 rounded-full ${
+                              open ? "bg-primary" : "bg-destructive"
                             }`}
-                          >
-                            <span
-                              className={`size-1.5 rounded-full ${
-                                open ? "bg-primary" : "bg-destructive"
-                              }`}
-                            />
-                            {open ? "janela aberta" : "janela fechada"}
-                          </span>
-                        )}
+                          />
+                          {open ? "janela aberta" : "janela fechada"}
+                        </span>
                       </div>
                     </button>
                   </li>
@@ -299,67 +558,27 @@ export default function CoachWhatsappPage() {
                     {active.phoneDisplay}
                   </div>
                 </div>
-                {!handoff && (
-                  <span
-                    data-testid="wa-window-badge"
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold ${
-                      windowOpen
-                        ? "bg-primary-light text-primary"
-                        : "bg-destructive/10 text-destructive"
-                    }`}
-                  >
-                    ⏱ {windowLabel(active.lastInboundAt)}
-                  </span>
-                )}
+                <span
+                  data-testid="wa-window-badge"
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold ${
+                    windowOpen
+                      ? "bg-primary-light text-primary"
+                      : "bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  ⏱ {windowLabel(active.lastInboundAt)}
+                </span>
               </div>
 
               {/* Messages */}
               <MessageList
                 messages={thread.data?.messages ?? []}
                 loading={thread.isLoading}
-                phone={active.phone}
-                onQueueAction={(id, action) =>
-                  queueAction.mutate({ id, action })
-                }
               />
 
               {/* Composer */}
               <div className="flex-shrink-0 border-t border-border bg-muted/40 p-3">
-                {handoff && composerTemplates.length > 0 && (
-                  <details className="mb-2 text-xs">
-                    <summary className="cursor-pointer font-semibold text-foreground">
-                      Usar um template
-                    </summary>
-                    <div className="mt-2 flex max-h-40 flex-col gap-2 overflow-y-auto">
-                      {composerTemplates.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          data-testid="wa-template"
-                          disabled={send.isPending}
-                          onClick={() =>
-                            send.mutate({
-                              type: "template",
-                              templateKey: t.key,
-                            })
-                          }
-                          className="flex items-center gap-3 rounded-xl bg-white px-3.5 py-2.5 text-left shadow-sm transition-colors hover:bg-primary-light/30 disabled:opacity-60"
-                        >
-                          <div className="flex-1">
-                            <div className="text-xs font-semibold">{t.title}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              {t.body}
-                            </div>
-                          </div>
-                          <span className="flex-shrink-0 text-caption font-semibold text-primary">
-                            Preparar →
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </details>
-                )}
-                {handoff || windowOpen ? (
+                {windowOpen ? (
                   <div className="flex items-end gap-2">
                     <textarea
                       data-testid="wa-composer-text"
@@ -372,11 +591,7 @@ export default function CoachWhatsappPage() {
                             send.mutate({ type: "text", body: draft.trim() });
                         }
                       }}
-                      placeholder={
-                        handoff
-                          ? "Escreva a mensagem que vai enviar…"
-                          : "Escreva uma mensagem…"
-                      }
+                      placeholder="Escreva uma mensagem…"
                       rows={1}
                       className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-white px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                     />
@@ -385,8 +600,8 @@ export default function CoachWhatsappPage() {
                       size="icon"
                       className="size-10 rounded-full"
                       data-testid="wa-send"
-                      aria-label={handoff ? "Preparar mensagem" : "Enviar mensagem"}
-                      title={handoff ? "Preparar mensagem" : "Enviar mensagem"}
+                      aria-label="Enviar mensagem"
+                      title="Enviar mensagem"
                       disabled={!draft.trim() || send.isPending}
                       onClick={() =>
                         send.mutate({ type: "text", body: draft.trim() })
@@ -469,43 +684,6 @@ function ConnectionDot({ connected }: { connected: boolean }) {
   );
 }
 
-function QueueActions({
-  href,
-  onOpen,
-  onDismiss,
-}: {
-  href: string;
-  onOpen: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button asChild size="sm">
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="wa-queue-open"
-          onClick={onOpen}
-        >
-          <ExternalLink className="size-3.5" />
-          Abrir no WhatsApp
-        </a>
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        data-testid="wa-queue-dismiss"
-        onClick={onDismiss}
-      >
-        <X className="size-3.5" />
-        Descartar
-      </Button>
-    </div>
-  );
-}
-
 function Avatar({ initials }: { initials: string }) {
   return (
     <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold uppercase text-white">
@@ -517,13 +695,9 @@ function Avatar({ initials }: { initials: string }) {
 function MessageList({
   messages,
   loading,
-  phone,
-  onQueueAction,
 }: {
   messages: WhatsAppMessageDto[];
   loading: boolean;
-  phone: string;
-  onQueueAction: (id: string, action: "handoff" | "dismiss") => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -571,25 +745,6 @@ function MessageList({
                       : ""}
               {messageTime(m.createdAt)}
             </div>
-            {m.status === "queued" && isQueueItemActive(m.createdAt) && (
-              <div className="mt-2">
-                <QueueActions
-                  href={whatsappHref(phone, m.body)}
-                  onOpen={() => onQueueAction(m.id, "handoff")}
-                  onDismiss={() => onQueueAction(m.id, "dismiss")}
-                />
-              </div>
-            )}
-            {m.status === "handed_off" && (
-              <a
-                href={whatsappHref(phone, m.body)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 block text-right text-eyebrow font-semibold text-primary underline"
-              >
-                Abrir de novo
-              </a>
-            )}
           </div>
         </div>
       ))}

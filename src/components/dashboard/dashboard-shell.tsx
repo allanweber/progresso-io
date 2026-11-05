@@ -393,8 +393,8 @@ export function DashboardShell({
                       <span className="sr-only">
                         {countPt(
                           waWaitingCount,
-                          "conversa aguardando resposta",
-                          "conversas aguardando resposta",
+                          "item aguardando você",
+                          "itens aguardando você",
                         )}
                       </span>
                     </span>

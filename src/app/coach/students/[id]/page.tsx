@@ -137,7 +137,7 @@ export default function StudentProfilePage() {
   });
   const replaceTemplate = useMutation({
     mutationFn: () =>
-      apiFetch(`/api/students/${id}/anamnesis/template`, {
+      apiFetch<{ inviteSent: boolean }>(`/api/students/${id}/anamnesis/template`, {
         method: "PUT",
         body: JSON.stringify({ anamnesisId: templateId }),
       }),
@@ -461,13 +461,23 @@ export default function StudentProfilePage() {
                     </Button>
                   )}
               </div>
-              {resendAnamnesis.isSuccess && (
+              {replaceTemplate.data?.inviteSent && !resendAnamnesis.isSuccess && (
                 <p className="mt-3 text-body-dense font-medium text-primary">
-                  Link da anamnese pronto para enviar no{" "}
+                  Template trocado. Novo link da anamnese pronto para enviar no{" "}
                   <Link href="/coach/whatsapp" className="underline">
                     WhatsApp
                   </Link>
                   .
+                </p>
+              )}
+              {resendAnamnesis.isSuccess && (
+                <p className="mt-3 text-body-dense font-medium text-primary">
+                  Novo link da anamnese pronto para enviar no{" "}
+                  <Link href="/coach/whatsapp" className="underline">
+                    WhatsApp
+                  </Link>
+                  . Ele substitui a mensagem anterior, se ainda não tiver sido
+                  aberta.
                 </p>
               )}
               {resendAnamnesis.isError && (

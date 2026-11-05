@@ -797,6 +797,10 @@ describe("handoff mode (coach sends through wa.me)", () => {
     expect(await whatsapp.markHandedOff(b, sent!.messageId)).toBeNull();
     expect(await whatsapp.dismissQueued(b, sent!.messageId)).toBeNull();
     expect(await messageStatus(sent!.messageId)).toBe("queued");
+
+    await whatsapp.markHandedOff(a, sent!.messageId);
+    expect(await whatsapp.listRecentlyOpened(a)).toHaveLength(1);
+    expect(await whatsapp.listRecentlyOpened(b)).toHaveLength(0);
   });
 
   it("counts queued and unanswered together for the sidebar", async () => {
