@@ -313,7 +313,7 @@ export default function StudentWorkoutPage() {
             Rascunho não publicado — o aluno ainda não vê este treino. Publique para
             deixá-lo ativo.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+          <div className="mt-4 flex flex-wrap justify-center gap-2.5 max-sm:[&>*]:flex-1">
             <Button onClick={() => setEditing(true)}>
               <Pencil className="size-4" />
               Continuar editando
@@ -339,7 +339,7 @@ export default function StudentWorkoutPage() {
           <p className="text-sm text-muted-foreground">
             Este aluno ainda não tem um treino.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+          <div className="mt-4 flex flex-wrap justify-center gap-2.5 max-sm:[&>*]:flex-1">
             <Button onClick={() => setDialog("blank")}>
               <Plus className="size-4" />
               Criar treino novo
@@ -532,8 +532,8 @@ function CurrentView({
 
   return (
     <div className="mt-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-border bg-white px-4 py-3 shadow-rest">
-        <span className="text-sm font-medium text-foreground">Novo treino:</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl max-sm:[&>button]:flex-1 max-sm:[&>div]:flex-1 border border-dashed border-border bg-white px-4 py-3 shadow-rest">
+        <span className="text-sm font-medium text-foreground max-sm:basis-full">Novo treino:</span>
         <Button variant="outline" size="sm" onClick={onNewBlank} disabled={busy || hasDraft}>
           <Plus className="size-4" />
           Em branco
@@ -550,9 +550,10 @@ function CurrentView({
           kind="workout"
           hasDraft={hasDraft}
           defaultObjective={goal}
+          size="sm"
           onGenerated={onGenerated}
         />
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground max-sm:basis-full">
           {hasDraft
             ? "Publique ou descarte o rascunho atual antes de começar outro treino."
             : "Vira o treino atual quando você publicar; o atual vai para o histórico."}
@@ -568,7 +569,7 @@ function CurrentView({
             Versão {current.version} · publicada em {fmtDate(current.publishedAt)}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
           {hasDraft ? (
             <Button onClick={onContinueDraft}>
               <Pencil className="size-4" />

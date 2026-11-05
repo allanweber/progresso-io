@@ -197,6 +197,7 @@ function FallbackModelsField({
                     variant="ghost"
                     size="sm"
                     aria-label={`Remover alternativa ${i + 1}`}
+                    className="size-11 shrink-0"
                     onClick={() => field.removeValue(i)}
                   >
                     <Trash2 className="size-4 text-destructive" />

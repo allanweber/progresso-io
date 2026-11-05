@@ -12,6 +12,7 @@ import {
 } from "@/server/api";
 import { logger } from "@/server/observability";
 import { withCoach } from "@/server/guard";
+import { sendAnamnesisInvite } from "@/server/onboarding";
 
 /**
  * Swaps the template on a student's anamnese ("usar outro template"). Snapshots
@@ -42,8 +43,23 @@ export const PUT = withCoach<Params>(
     );
     if (!result.ok) return apiError("Anamnese selecionada não encontrada.", 422);
     logger.info("studentAnamnesis.template_replaced", { studentId: id });
+
+    let inviteSent = false;
+    if (student.modality === "online") {
+      try {
+        const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin;
+        inviteSent = (await sendAnamnesisInvite(ctx, id, base)).ok;
+      } catch (error) {
+        logger.error("studentAnamnesis.invite_failed", {
+          err: error,
+          studentId: id,
+        });
+      }
+    }
+
     return NextResponse.json({
       anamnesis: toStudentAnamnesisDto(result.studentAnamnesis),
+      inviteSent,
     });
   },
 );

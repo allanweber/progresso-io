@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 
 /**
  * App-wide client providers. Wraps everything in a TanStack Query client — the
@@ -13,19 +17,30 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  * lingers across account switches — see the sign-out control in the dashboard.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // Tenant data changes on the server (other coaches, invites); keep
-            // it modestly fresh and refetch on focus for a live-feeling roster.
-            staleTime: 30_000,
-            retry: 1,
-          },
+  const [queryClient] = useState(() => {
+    const client: QueryClient = new QueryClient({
+      mutationCache: new MutationCache({
+        onSuccess: () => {
+          void client.invalidateQueries({
+            queryKey: ["coach-wa-waiting-count"],
+          });
+          client.removeQueries({
+            queryKey: ["coach-whatsapp"],
+            type: "inactive",
+          });
         },
       }),
-  );
+      defaultOptions: {
+        queries: {
+          // Tenant data changes on the server (other coaches, invites); keep
+          // it modestly fresh and refetch on focus for a live-feeling roster.
+          staleTime: 30_000,
+          retry: 1,
+        },
+      },
+    });
+    return client;
+  });
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

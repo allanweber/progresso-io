@@ -28,20 +28,20 @@ export function Hero() {
       <div className="mx-auto max-w-[760px] text-center">
         <Badge className="mb-6">
           <MessageCircle className="size-3.5" strokeWidth={2.5} />
-          WhatsApp integrado ao seu workflow
+          WhatsApp no seu dia a dia
         </Badge>
 
         <h1 className="mb-5 font-heading text-[clamp(38px,5vw,60px)] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
           Gerencie seus alunos.
           <br />
-          <span className="text-primary">Automatize o WhatsApp.</span>
+          <span className="text-primary">Agilize o WhatsApp.</span>
           <br />
           Cresça de verdade.
         </h1>
 
         <p className="mx-auto mb-9 max-w-[520px] text-[clamp(16px,2vw,19px)] leading-[1.65] text-text-secondary">
-          Progresso IO reúne treinos, dietas, check-ins e mensagens automáticas
-          em um único lugar. Menos tempo no celular, mais resultado para seus
+          Progresso IO reúne treinos, dietas, check-ins e mensagens prontas para
+          enviar em um único lugar. Menos tempo no celular, mais resultado para seus
           alunos.
         </p>
 

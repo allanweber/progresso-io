@@ -49,6 +49,7 @@ services:
     # pattern as TUNNEL_TOKEN below). Required for auth to work:
     environment:
       - NODE_ENV=production
+      - WHATSAPP_PROVIDER=${WHATSAPP_PROVIDER:-handoff}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - DATABASE_URL=${DATABASE_URL}

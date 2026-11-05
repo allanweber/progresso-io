@@ -16,6 +16,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    env: { WHATSAPP_PROVIDER: "dev" },
     // Component tests default to jsdom; the Better Auth integration test opts
     // into the node environment via a `// @vitest-environment node` directive.
     environment: "jsdom",

@@ -2,6 +2,12 @@
 
 A coaching platform where coaches in a clinic prescribe workouts and diets to their alunos and follow their progress.
 
+## Messaging
+
+**Handoff**:
+Sending a WhatsApp message by opening it, already written, in the coach's own WhatsApp through a `wa.me` link. The coach presses send, so the app knows it was opened, not that it was delivered.
+_Avoid_: Sent, delivered, automatic sending
+
 ## Training
 
 **Workout**:

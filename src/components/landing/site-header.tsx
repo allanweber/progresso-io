@@ -11,9 +11,9 @@ const navLinks = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border-light bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1120px] items-center gap-8 px-6">
-        <Link href="/" className="mr-auto flex-shrink-0">
-          <Logo />
+      <div className="mx-auto flex h-16 max-w-[1120px] items-center gap-3 px-4 sm:gap-8 sm:px-6">
+        <Link href="/" aria-label="Progresso IO" className="mr-auto flex-shrink-0">
+          <Logo className="max-[379px]:hidden" />
         </Link>
 
         <nav className="hidden items-center gap-8 sm:flex">

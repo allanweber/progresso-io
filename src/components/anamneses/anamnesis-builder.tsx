@@ -655,7 +655,7 @@ function SortableSection({
           {...attributes}
           {...listeners}
           aria-label={`Reordenar a seção ${section.title || "sem título"}`}
-          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing sm:size-9"
+          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing"
         >
           <GripVertical className="size-5" />
         </button>
@@ -875,7 +875,7 @@ function SortableQuestion({
           {...attributes}
           {...listeners}
           aria-label={`Reordenar ${named}`}
-          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing sm:size-9"
+          className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing"
         >
           <GripVertical className="size-4" />
         </button>
@@ -908,7 +908,7 @@ function SortableQuestion({
               >
                 <SelectTrigger
                   aria-label={`Tipo de resposta de ${named}`}
-                  className="h-11 min-w-0 flex-1 sm:h-9 sm:w-32 sm:flex-none"
+                  className="min-w-0 flex-1 sm:w-32 sm:flex-none"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -930,7 +930,7 @@ function SortableQuestion({
                   }}
                   aria-expanded={formatOpen}
                   aria-label={`Formato da resposta de ${named}`}
-                  className={`flex h-11 shrink-0 items-center rounded-[10px] border px-3 text-label font-medium transition-colors sm:h-9 ${
+                  className={`flex h-11 shrink-0 items-center rounded-[10px] border px-3 text-label font-medium transition-colors ${
                     question.mask
                       ? "border-primary text-primary-deep"
                       : "border-border text-muted-foreground hover:border-primary hover:text-primary"
@@ -946,7 +946,7 @@ function SortableQuestion({
                 type="button"
                 onClick={onRemove}
                 aria-label={`Remover ${named}`}
-                className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:size-9"
+                className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
               >
                 <X className="size-4" />
               </button>
@@ -964,7 +964,7 @@ function SortableQuestion({
               >
                 <SelectTrigger
                   aria-label={`Máscara da resposta de ${named}`}
-                  className="h-11 w-full sm:h-9 sm:w-44"
+                  className="w-full sm:w-44"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -990,7 +990,7 @@ function SortableQuestion({
                         e.target.value === "" ? undefined : Number(e.target.value),
                       )
                     }
-                    className="h-11 w-24 sm:h-9 sm:w-20"
+                    className="w-24 sm:w-20"
                   />
                   <Input
                     type="number"
@@ -1003,7 +1003,7 @@ function SortableQuestion({
                         e.target.value === "" ? undefined : Number(e.target.value),
                       )
                     }
-                    className="h-11 w-24 sm:h-9 sm:w-20"
+                    className="w-24 sm:w-20"
                   />
                 </>
               )}

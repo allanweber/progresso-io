@@ -195,7 +195,7 @@ export default function AdminStudentsPage() {
           value={clinicId || "all"}
           onValueChange={(v) => setClinicId(v === "all" ? "" : v)}
         >
-          <SelectTrigger className="h-10 w-full rounded-[10px]" aria-label="Filtrar por clínica">
+          <SelectTrigger className="w-full" aria-label="Filtrar por clínica">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -213,7 +213,7 @@ export default function AdminStudentsPage() {
           onChange={(e) => setEmailInput(e.target.value)}
           placeholder="Filtrar por e-mail…"
           aria-label="Filtrar por e-mail"
-          className="h-10"
+          className="h-11"
         />
       </div>
 

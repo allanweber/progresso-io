@@ -1115,7 +1115,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                   return (
                     <div className="space-y-1.5">
                       <Label htmlFor="feedbackWhatsappReminder">
-                        Lembrete automático por WhatsApp
+                        Lembrete preparado para envio no WhatsApp
                       </Label>
                       <button
                         id="feedbackWhatsappReminder"
@@ -1146,8 +1146,8 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                         </span>
                         <span className="text-body text-text-secondary">
                           {on
-                            ? "Ativo · envia 24h antes do check-in"
-                            : "Inativo · sem lembrete automático"}
+                            ? "Ativo · prepara o lembrete para você enviar"
+                            : "Inativo · sem lembrete"}
                         </span>
                       </button>
                     </div>

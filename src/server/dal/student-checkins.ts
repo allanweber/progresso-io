@@ -12,7 +12,9 @@ import type {
 } from "@/lib/student-checkins";
 import type { TenantContext } from "@/server/tenant";
 
+import { CHECKIN_REMINDER_MESSAGE_KEYS } from "@/lib/whatsapp-inbox";
 import { createNotification } from "./notifications";
+import { withdrawQueued } from "./whatsapp";
 
 /** Maps a `checkin_assessment` row to its DTO (only measured sites present). */
 export function toAssessmentDto(row: {
@@ -389,6 +391,7 @@ export async function createStudentCheckin(
       checkinDate: date,
     },
   });
+  await withdrawQueued(ctx, student.id, CHECKIN_REMINDER_MESSAGE_KEYS);
 
   return dto;
 }

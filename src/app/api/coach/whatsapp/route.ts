@@ -21,10 +21,12 @@ export const GET = withCoach("coach.whatsapp.inbox", async (_request, ctx) => {
   if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();
 
   const inbox = await whatsapp.getInbox(ctx);
+  const provider = getWhatsAppProvider();
   return NextResponse.json({
     ...inbox,
     // Whether the active provider can actually deliver. `false` on the dev
     // provider (no vendor wired) → drives the "nothing is delivered yet" banner.
-    deliveryEnabled: getWhatsAppProvider().canDeliver,
+    deliveryEnabled: provider.canDeliver,
+    deliveryMode: provider.deliveryMode,
   });
 });

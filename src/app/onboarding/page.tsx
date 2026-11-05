@@ -146,7 +146,9 @@ function Shell({
 }) {
   return (
     <div className="flex min-h-screen flex-col items-center px-4 py-8 sm:px-6 sm:py-12">
-      <Logo size={30} className="mb-8" />
+      <div className="mb-8">
+        <Logo size={30} />
+      </div>
       <div className={cn("w-full", wide ? "max-w-3xl" : "max-w-[560px]")}>
         {children}
       </div>
@@ -474,11 +476,11 @@ function SetupGuide({
                 {(field) => (
                   <ToggleRow
                     id="whatsappReminder"
-                    label="Lembrete automático por WhatsApp"
+                    label="Lembrete preparado para envio no WhatsApp"
                     on={field.state.value}
                     onChange={() => field.handleChange(!field.state.value)}
-                    onText="Ativo · envia 24h antes do check-in"
-                    offText="Inativo · sem lembrete automático"
+                    onText="Ativo · prepara o lembrete para você enviar"
+                    offText="Inativo · sem lembrete"
                   />
                 )}
               </form.Field>

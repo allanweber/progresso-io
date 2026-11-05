@@ -101,7 +101,8 @@ export async function runInvoiceReminders(
 
       let channel: InvoiceReminderChannel | null = null;
 
-      if (phone && (await plans.canUseWhatsapp(ctx))) {
+      const provider = getWhatsAppProvider();
+      if (provider.canDeliver && phone && (await plans.canUseWhatsapp(ctx))) {
         const tpl = await whatsapp.resolveTemplate(ctx, "invoice_due");
         if (tpl) {
           const renderedBody = renderTemplate(tpl.body, {
@@ -109,7 +110,7 @@ export async function runInvoiceReminders(
             periodo,
             link: dashboardUrl,
           });
-          await getWhatsAppProvider().sendTemplateMessage(
+          await provider.sendTemplateMessage(
             phone,
             tpl.key,
             renderedBody,

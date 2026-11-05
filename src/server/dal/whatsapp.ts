@@ -1,12 +1,13 @@
-import { and, count, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 
-import { schema, type DB } from "@/db";
+import { schema, type Database, type DB } from "@/db";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { captureOutbox } from "@/lib/test-outbox";
 import { studentInitials } from "@/lib/students";
 import {
   isWindowOpen,
   renderTemplate,
+  WHATSAPP_QUEUE_MAX_AGE_MS,
   WHATSAPP_WINDOW_MS,
   type AdminWhatsAppOverviewDto,
   type TemplateVars,
@@ -14,11 +15,16 @@ import {
   type WhatsAppConversationDto,
   type WhatsAppInboxDto,
   type WhatsAppMessageDto,
+  type WhatsAppMessageStatus,
+  type WhatsAppQueuedMessageDto,
   type WhatsAppSendInput,
   type WhatsAppTemplateDto,
   type WhatsAppThreadDto,
 } from "@/lib/whatsapp-inbox";
-import { getWhatsAppProvider } from "@/lib/whatsapp-provider";
+import {
+  getWhatsAppProvider,
+  type WhatsAppProvider,
+} from "@/lib/whatsapp-provider";
 import type { TenantContext } from "@/server/tenant";
 import { createNotification } from "./notifications";
 
@@ -61,6 +67,30 @@ function preview(body: string): string {
 
 function toIso(d: Date | null): string | null {
   return d ? d.toISOString() : null;
+}
+
+function initialOutboundStatus(
+  provider: WhatsAppProvider,
+): WhatsAppMessageStatus {
+  return provider.deliveryMode === "handoff" ? "queued" : "sent";
+}
+
+async function supersedeQueued(
+  ctx: TenantContext,
+  conversationId: string,
+  templateKey: string,
+): Promise<void> {
+  await ctx.db
+    .update(schema.whatsappMessage)
+    .set({ status: "dismissed" })
+    .where(
+      and(
+        eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+        eq(schema.whatsappMessage.conversationId, conversationId),
+        eq(schema.whatsappMessage.templateKey, templateKey),
+        eq(schema.whatsappMessage.status, "queued"),
+      ),
+    );
 }
 
 /** The row shape shared by conversation reads (conversation + optional student). */
@@ -266,7 +296,7 @@ export async function listResolvedTemplates(
  */
 export async function getInbox(
   ctx: TenantContext,
-): Promise<Omit<WhatsAppInboxDto, "deliveryEnabled">> {
+): Promise<Omit<WhatsAppInboxDto, "deliveryEnabled" | "deliveryMode">> {
   const now = Date.now();
   const rows = await ctx.db
     .select(conversationColumns)
@@ -280,6 +310,8 @@ export async function getInbox(
 
   return {
     conversations: rows.map((r) => toConversationDto(r, now)),
+    queued: await listQueued(ctx),
+    recentlyOpened: await listRecentlyOpened(ctx),
     templates: await listResolvedTemplates(ctx),
     connection: await getConnection(ctx),
   };
@@ -373,12 +405,13 @@ export async function sendMessage(
   if (!conv) return null;
 
   const provider = getWhatsAppProvider();
+  const handoff = provider.deliveryMode === "handoff";
   let renderedBody: string;
   let templateKey: string | null = null;
   let providerMessageId: string | undefined;
 
   if (input.type === "text") {
-    if (!isWindowOpen(toIso(conv.lastInboundAt))) {
+    if (!handoff && !isWindowOpen(toIso(conv.lastInboundAt))) {
       throw new WhatsAppSendError("window_closed");
     }
     renderedBody = input.body!.trim();
@@ -399,6 +432,7 @@ export async function sendMessage(
       tpl.key,
       renderedBody,
     ));
+    if (handoff) await supersedeQueued(ctx, conversationId, tpl.key);
   }
 
   const now = new Date();
@@ -411,7 +445,7 @@ export async function sendMessage(
       type: input.type,
       body: renderedBody,
       templateKey,
-      status: "sent",
+      status: initialOutboundStatus(provider),
       providerMessageId: providerMessageId ?? null,
       createdByUserId: ctx.userId,
     })
@@ -462,6 +496,7 @@ export async function sendTemplateToStudent(
     .select({
       phone: schema.students.phone,
       firstName: schema.students.firstName,
+      modality: schema.students.modality,
     })
     .from(schema.students)
     .where(
@@ -470,7 +505,7 @@ export async function sendTemplateToStudent(
         eq(schema.students.clinicId, ctx.clinicId),
       ),
     );
-  if (!student?.phone) return null;
+  if (!student?.phone || student.modality !== "online") return null;
 
   const tpl = await resolveTemplate(ctx, key);
   if (!tpl) return null;
@@ -491,7 +526,8 @@ export async function sendTemplateToStudent(
     });
   }
 
-  const { providerMessageId } = await getWhatsAppProvider().sendTemplateMessage(
+  const provider = getWhatsAppProvider();
+  const { providerMessageId } = await provider.sendTemplateMessage(
     student.phone,
     tpl.key,
     renderedBody,
@@ -515,6 +551,10 @@ export async function sendTemplateToStudent(
     conv = created;
   }
 
+  if (provider.deliveryMode === "handoff") {
+    await supersedeQueued(ctx, conv.id, tpl.key);
+  }
+
   const now = new Date();
   const [msg] = await ctx.db
     .insert(schema.whatsappMessage)
@@ -525,7 +565,7 @@ export async function sendTemplateToStudent(
       type: "template",
       body: renderedBody,
       templateKey: tpl.key,
-      status: "sent",
+      status: initialOutboundStatus(provider),
       providerMessageId: providerMessageId ?? null,
       createdByUserId: ctx.userId,
     })
@@ -715,6 +755,179 @@ export async function countWaiting(ctx: TenantContext): Promise<number> {
       ),
     );
   return row?.n ?? 0;
+}
+
+function activeQueueFilter(ctx: TenantContext) {
+  return and(
+    eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+    eq(schema.whatsappMessage.direction, "outbound"),
+    eq(schema.whatsappMessage.status, "queued"),
+    gte(
+      schema.whatsappMessage.createdAt,
+      new Date(Date.now() - WHATSAPP_QUEUE_MAX_AGE_MS),
+    ),
+  );
+}
+
+export async function listQueued(
+  ctx: TenantContext,
+  limit = 50,
+): Promise<WhatsAppQueuedMessageDto[]> {
+  return selectQueueItems(
+    ctx,
+    activeQueueFilter(ctx),
+    asc(schema.whatsappMessage.createdAt),
+    limit,
+  );
+}
+
+export async function listRecentlyOpened(
+  ctx: TenantContext,
+  limit = 10,
+): Promise<WhatsAppQueuedMessageDto[]> {
+  return selectQueueItems(
+    ctx,
+    and(
+      eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+      eq(schema.whatsappMessage.status, "handed_off"),
+      gte(
+        schema.whatsappMessage.createdAt,
+        new Date(Date.now() - WHATSAPP_QUEUE_MAX_AGE_MS),
+      ),
+    ),
+    desc(schema.whatsappMessage.createdAt),
+    limit,
+  );
+}
+
+async function selectQueueItems(
+  ctx: TenantContext,
+  filter: SQL | undefined,
+  order: SQL,
+  limit: number,
+): Promise<WhatsAppQueuedMessageDto[]> {
+  const rows = await ctx.db
+    .select({
+      id: schema.whatsappMessage.id,
+      conversationId: schema.whatsappMessage.conversationId,
+      body: schema.whatsappMessage.body,
+      templateKey: schema.whatsappMessage.templateKey,
+      createdAt: schema.whatsappMessage.createdAt,
+      studentId: schema.whatsappConversation.studentId,
+      phone: schema.whatsappConversation.phone,
+      studentFirst: schema.students.firstName,
+      studentLast: schema.students.lastName,
+    })
+    .from(schema.whatsappMessage)
+    .innerJoin(
+      schema.whatsappConversation,
+      eq(schema.whatsappConversation.id, schema.whatsappMessage.conversationId),
+    )
+    .leftJoin(
+      schema.students,
+      eq(schema.students.id, schema.whatsappConversation.studentId),
+    )
+    .where(filter)
+    .orderBy(order)
+    .limit(limit);
+
+  return rows.map((r) => {
+    const named = r.studentId && r.studentFirst && r.studentLast;
+    return {
+      id: r.id,
+      conversationId: r.conversationId,
+      studentId: r.studentId,
+      name: named
+        ? `${r.studentFirst} ${r.studentLast}`
+        : formatPhone(r.phone) || r.phone,
+      initials: named
+        ? studentInitials(r.studentFirst!, r.studentLast!)
+        : r.phone.slice(-2),
+      phone: r.phone,
+      body: r.body,
+      templateKey: r.templateKey,
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+}
+
+export async function countQueued(ctx: TenantContext): Promise<number> {
+  const [row] = await ctx.db
+    .select({ n: count() })
+    .from(schema.whatsappMessage)
+    .where(activeQueueFilter(ctx));
+  return row?.n ?? 0;
+}
+
+export async function countAwaitingCoach(ctx: TenantContext): Promise<number> {
+  const [waiting, queued] = await Promise.all([
+    countWaiting(ctx),
+    countQueued(ctx),
+  ]);
+  return waiting + queued;
+}
+
+async function resolveQueued(
+  ctx: TenantContext,
+  messageId: string,
+  next: "handed_off" | "dismissed",
+): Promise<WhatsAppMessageDto | null> {
+  const scope = and(
+    eq(schema.whatsappMessage.id, messageId),
+    eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+    eq(schema.whatsappMessage.direction, "outbound"),
+  );
+  const [updated] = await ctx.db
+    .update(schema.whatsappMessage)
+    .set({ status: next })
+    .where(and(scope, eq(schema.whatsappMessage.status, "queued")))
+    .returning(messageColumns);
+  if (updated) return toMessageDto(updated);
+
+  const [existing] = await ctx.db
+    .select(messageColumns)
+    .from(schema.whatsappMessage)
+    .where(scope);
+  return existing ? toMessageDto(existing) : null;
+}
+
+export function markHandedOff(ctx: TenantContext, messageId: string) {
+  return resolveQueued(ctx, messageId, "handed_off");
+}
+
+export async function withdrawQueued(
+  ctx: { db: Database; clinicId: string },
+  studentId: string,
+  templateKeys?: readonly string[],
+): Promise<void> {
+  await ctx.db
+    .update(schema.whatsappMessage)
+    .set({ status: "dismissed" })
+    .where(
+      and(
+        eq(schema.whatsappMessage.clinicId, ctx.clinicId),
+        eq(schema.whatsappMessage.status, "queued"),
+        inArray(
+          schema.whatsappMessage.conversationId,
+          ctx.db
+            .select({ id: schema.whatsappConversation.id })
+            .from(schema.whatsappConversation)
+            .where(
+              and(
+                eq(schema.whatsappConversation.clinicId, ctx.clinicId),
+                eq(schema.whatsappConversation.studentId, studentId),
+              ),
+            ),
+        ),
+        templateKeys
+          ? inArray(schema.whatsappMessage.templateKey, [...templateKeys])
+          : undefined,
+      ),
+    );
+}
+
+export function dismissQueued(ctx: TenantContext, messageId: string) {
+  return resolveQueued(ctx, messageId, "dismissed");
 }
 
 /**

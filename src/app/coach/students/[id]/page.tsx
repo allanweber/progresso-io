@@ -137,7 +137,7 @@ export default function StudentProfilePage() {
   });
   const replaceTemplate = useMutation({
     mutationFn: () =>
-      apiFetch(`/api/students/${id}/anamnesis/template`, {
+      apiFetch<{ inviteSent: boolean }>(`/api/students/${id}/anamnesis/template`, {
         method: "PUT",
         body: JSON.stringify({ anamnesisId: templateId }),
       }),
@@ -228,7 +228,7 @@ export default function StudentProfilePage() {
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2.5">
+      <div className="mt-5 flex flex-wrap gap-2.5 max-sm:[&>*]:flex-1">
         <Button asChild variant="outline">
           <Link href={`/coach/students/${student.id}/edit`}>
             <Pencil className="size-4" />
@@ -284,8 +284,11 @@ export default function StudentProfilePage() {
 
       {invite.isSuccess && (
         <p className="mt-3 text-body-dense font-medium text-primary">
-          Convite enviado por WhatsApp
-          {student.email ? " e e-mail" : ""}.
+          Convite pronto para enviar no{" "}
+          <Link href="/coach/whatsapp" className="underline">
+            WhatsApp
+          </Link>
+          {student.email ? " e enviado por e-mail" : ""}.
         </p>
       )}
       {(invite.isError || archive.isError || reactivate.isError) && (
@@ -458,9 +461,23 @@ export default function StudentProfilePage() {
                     </Button>
                   )}
               </div>
+              {replaceTemplate.data?.inviteSent && !resendAnamnesis.isSuccess && (
+                <p className="mt-3 text-body-dense font-medium text-primary">
+                  Template trocado. Novo link da anamnese pronto para enviar no{" "}
+                  <Link href="/coach/whatsapp" className="underline">
+                    WhatsApp
+                  </Link>
+                  .
+                </p>
+              )}
               {resendAnamnesis.isSuccess && (
                 <p className="mt-3 text-body-dense font-medium text-primary">
-                  Link da anamnese enviado por WhatsApp.
+                  Novo link da anamnese pronto para enviar no{" "}
+                  <Link href="/coach/whatsapp" className="underline">
+                    WhatsApp
+                  </Link>
+                  . Ele substitui a mensagem anterior, se ainda não tiver sido
+                  aberta.
                 </p>
               )}
               {resendAnamnesis.isError && (

@@ -358,7 +358,7 @@ function BaseSubstitutes({
                 </div>
                 <Button
                   type="button"
-                  size="sm"
+                  className="h-11"
                   onClick={submitAdd}
                   disabled={addMutation.isPending}
                 >

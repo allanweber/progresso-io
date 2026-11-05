@@ -172,7 +172,7 @@ export default defineConfig({
     // The standalone server built by `scripts/e2e.mjs` — the same artifact that
     // gets deployed. It takes its port from the environment, not a flag.
     command: "node .next/standalone/server.js",
-    env: { PORT: String(PORT) },
+    env: { PORT: String(PORT), WHATSAPP_PROVIDER: "handoff" },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

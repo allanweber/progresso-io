@@ -149,7 +149,7 @@ export default function AnamnesisDetailPage() {
                 are the secondary pair; Excluir is set apart at the end so an
                 irreversible action never sits in the same rhythm as the two
                 safe ones. */}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2 max-sm:[&>*]:flex-1">
               <Button onClick={() => setAssignOpen(true)}>
                 <UserPlus className="size-4" />
                 Usar com um aluno

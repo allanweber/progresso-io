@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { eq } from "drizzle-orm";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
@@ -15,6 +15,35 @@ import type { TenantContext } from "@/server/tenant";
 import { clearTrial, createTestDb, type TestDb } from "./pglite";
 
 process.env.BETTER_AUTH_SECRET ||= "integration-test-secret-0123456789abcdef";
+
+const delivering = vi.hoisted(() => ({
+  enabled: true,
+  sendTemplateMessage: vi.fn<
+    (to: string, key: string, body: string) => Promise<{ delivered: boolean }>
+  >(async () => ({ delivered: true })),
+}));
+
+vi.mock("@/lib/whatsapp-provider", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/whatsapp-provider")>();
+  return {
+    ...actual,
+    getWhatsAppProvider: () =>
+      delivering.enabled
+        ? {
+            ...actual.getWhatsAppProvider(),
+            canDeliver: true,
+            deliveryMode: "api",
+            sendTemplateMessage: delivering.sendTemplateMessage,
+          }
+        : actual.getWhatsAppProvider(),
+  };
+});
+
+afterEach(() => {
+  delivering.enabled = true;
+  delivering.sendTemplateMessage.mockClear();
+});
 
 let auth: ReturnType<typeof createAuth>;
 let db: TestDb;
@@ -99,18 +128,37 @@ describe("runInvoiceReminders — channel selection", () => {
       ctx.userId,
     );
 
-    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
     const result = await runInvoiceReminders(appUrl, h, today);
-    const loggedTemplate = infoSpy.mock.calls
-      .map((c) => c.map(String).join(" "))
-      .find((line) => line.includes("invoice_due"));
-    infoSpy.mockRestore();
 
     expect(result).toMatchObject({ invoicesProcessed: 1, whatsappSent: 1, emailSent: 0 });
     const rows = await reminderRows(invoice!.id);
     expect(rows).toMatchObject([{ reminderDate: today, channel: "whatsapp" }]);
 
-    expect(loggedTemplate).toContain("vence em 3 dias");
+    expect(delivering.sendTemplateMessage.mock.calls[0][2]).toContain(
+      "vence em 3 dias",
+    );
+  });
+
+  it("falls back to e-mail when the provider can't actually deliver", async () => {
+    delivering.enabled = false;
+    const ctx = await ownerContext(
+      "inv-handoff@example.com",
+      "solo",
+      "+55 11 98888-0009",
+    );
+    const invoice = await billing.createInvoice(
+      h,
+      ctx.clinicId,
+      invoiceInput(),
+      ctx.userId,
+    );
+
+    const result = await runInvoiceReminders(appUrl, h, today);
+
+    expect(result.whatsappSent).toBe(0);
+    expect(delivering.sendTemplateMessage).not.toHaveBeenCalled();
+    const rows = await reminderRows(invoice!.id);
+    expect(rows).toMatchObject([{ reminderDate: today, channel: "email" }]);
   });
 
   it("falls back to e-mail for a Free clinic", async () => {

@@ -84,10 +84,14 @@ updates — none are marketing).
 | Authentication | ~$0.0315 | none (no OTP) |
 | Service (in-window, free-form) | **Free** | coach's free-text inbox replies |
 
-A further discount exists — **utility templates delivered inside an open 24h
-window are free** — but most of our sends are *proactive* (scheduled reminder,
-publish pings, onboarding) with no open window, so we price them all as **paid
-utility**: the conservative upper bound. In-window sends only make it cheaper.
+**Meta's October 2026 changes, not yet reflected in the tables below:** per Meta's
+pricing page, since Oct 1, 2026 utility templates inside an open window are
+charged, and only the first 1,000 service messages per number each month are free.
+That page lists Brazil utility at 0.68¢. Verify against the BRL rate card before
+relying on any figure here. Most of our sends are *proactive* (scheduled reminder,
+publish pings, onboarding), so we price them all as **paid utility**. None of this
+is spent while production runs the `handoff` provider, and once clinics connect
+they would pay Meta directly (`docs/adr/0002-whatsapp-official-cloud-api-with-handoff-bridge.md`).
 
 ### 1.4 Cost — base case (all Utility, $0.0080/msg)
 

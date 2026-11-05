@@ -338,7 +338,7 @@ export default function LibraryFoodsPage() {
           value={group || "all"}
           onValueChange={(v) => setGroup(v === "all" ? "" : v)}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -354,7 +354,7 @@ export default function LibraryFoodsPage() {
           value={type || "all"}
           onValueChange={(v) => setType(v === "all" ? "" : (v as FoodType))}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -369,8 +369,8 @@ export default function LibraryFoodsPage() {
           aria-pressed={favoritesOnly}
           className={
             favoritesOnly
-              ? "flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-warn-bg px-3 text-sm font-medium text-warn-fg"
-              : "flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-white px-3 text-sm font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
+              ? "flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-amber-300 bg-warn-bg px-3 text-sm font-medium text-warn-fg"
+              : "flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-border bg-white px-3 text-sm font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
           }
         >
           <Star

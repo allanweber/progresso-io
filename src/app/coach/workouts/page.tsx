@@ -123,7 +123,7 @@ export default function WorkoutsListPage() {
           value={includeArchived ? "all" : "active"}
           onValueChange={(v) => setIncludeArchived(v === "all")}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl sm:w-56">
+          <SelectTrigger className="w-full sm:w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

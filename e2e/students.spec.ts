@@ -115,7 +115,7 @@ test.describe("student management", () => {
     // Portal access is sent on the first diet/workout published, or on demand via
     // the profile's "Enviar convite" button — used here to get the invite link.
     await page.getByRole("button", { name: "Enviar convite" }).click();
-    await expect(page.getByText(/Convite enviado por WhatsApp/)).toBeVisible();
+    await expect(page.getByText(/Convite pronto para enviar no/)).toBeVisible();
 
     const invite = await waitForMessage(request, email, "invite");
     expect(invite.url).toBeTruthy();
