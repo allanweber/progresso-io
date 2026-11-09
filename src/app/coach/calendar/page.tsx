@@ -229,7 +229,7 @@ export default function CoachCalendarPage() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground sm:text-[28px]">
+          <h1 className="font-heading text-headline font-bold text-foreground">
             Calendário
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">

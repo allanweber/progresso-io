@@ -56,7 +56,7 @@ export function BrandPanel() {
       </div>
 
       <div className="relative max-md:hidden">
-        <h2 className="mb-7 font-heading text-[26px] font-bold leading-[1.25] tracking-[-0.02em] text-white">
+        <h2 className="mb-7 font-heading text-headline font-bold leading-[1.25] tracking-[-0.02em] text-white">
           Tudo que um coach
           <br />
           precisa, em um só lugar.

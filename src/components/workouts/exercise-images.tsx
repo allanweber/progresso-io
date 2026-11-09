@@ -207,6 +207,7 @@ export function ExerciseImages({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                loading="lazy"
                 src={src}
                 alt={name}
                 onError={() => onErr(src)}
@@ -222,7 +223,7 @@ export function ExerciseImages({
         onClick={() => setZoomed(index)}
         aria-label="Ampliar imagem"
         title="Ampliar"
-        className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+        className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/45 before:absolute before:-inset-1.5 before:content-[''] text-white backdrop-blur-sm transition-colors hover:bg-black/60"
       >
         <Expand className="size-4" />
       </button>
@@ -234,7 +235,7 @@ export function ExerciseImages({
             onClick={() => go(index - 1)}
             disabled={index === 0}
             aria-label="Imagem anterior"
-            className="absolute left-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
+            className="absolute left-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 before:absolute before:-inset-1.5 before:content-[''] text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
           >
             <ChevronLeft className="size-5" />
           </button>
@@ -243,21 +244,26 @@ export function ExerciseImages({
             onClick={() => go(index + 1)}
             disabled={index === shown.length - 1}
             aria-label="Próxima imagem"
-            className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
+            className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 before:absolute before:-inset-1.5 before:content-[''] text-white backdrop-blur-sm transition-opacity hover:bg-black/60 disabled:opacity-0"
           >
             <ChevronRight className="size-5" />
           </button>
-          <div className="pointer-events-none absolute inset-x-0 bottom-2.5 flex justify-center gap-1.5">
+          <div className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center">
             {shown.map((src, i) => (
               <button
                 key={src}
                 type="button"
                 onClick={() => go(i)}
                 aria-label={`Ir para a imagem ${i + 1}`}
-                className={`pointer-events-auto h-1.5 rounded-full transition-all ${
-                  i === index ? "w-5 bg-white" : "w-1.5 bg-white/60"
-                }`}
-              />
+                aria-current={i === index ? "true" : undefined}
+                className="pointer-events-auto flex h-6 min-w-6 items-center justify-center"
+              >
+                <span
+                  className={`h-1.5 rounded-full transition-colors ${
+                    i === index ? "w-5 bg-white" : "w-1.5 bg-white/60"
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </>
@@ -333,7 +339,7 @@ export function ExerciseImageButton({
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={thumb} alt={name} className="size-full object-cover" />
+        <img src={thumb} alt={name} loading="lazy" className="size-full object-cover" />
         <span className="absolute inset-0 hidden items-center justify-center bg-black/45 text-white group-hover:flex group-focus-visible:flex">
           <Expand className="size-3.5" />
         </span>

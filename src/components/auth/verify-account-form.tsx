@@ -23,7 +23,7 @@ export function VerifyAccountForm({ email }: { email: string }) {
         <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary-light">
           <MailCheck className="size-[22px] text-primary" strokeWidth={2} />
         </div>
-        <h1 className="mb-1.5 font-heading text-[22px] font-bold text-foreground">
+        <h1 className="mb-1.5 font-heading text-headline font-bold text-foreground">
           Confirme sua conta
         </h1>
         <p className="text-sm leading-[1.6] text-muted-foreground">

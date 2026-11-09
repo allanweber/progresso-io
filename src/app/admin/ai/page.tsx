@@ -863,7 +863,7 @@ export default function AdminAiPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-[28px]">
+        <h1 className="font-heading text-headline font-bold">
           IA
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">

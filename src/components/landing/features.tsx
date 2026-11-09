@@ -139,8 +139,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
 
       <h3
         className={cn(
-          "mb-2 font-heading font-bold text-foreground",
-          featured ? "text-lg" : "text-[17px]",
+          "mb-2 font-heading text-title font-bold text-foreground",
         )}
       >
         {title}

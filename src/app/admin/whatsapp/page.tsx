@@ -59,7 +59,7 @@ export default function AdminWhatsappPage() {
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-[28px]">
+          <h1 className="font-heading text-headline font-bold">
             WhatsApp
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

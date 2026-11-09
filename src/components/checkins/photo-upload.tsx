@@ -186,7 +186,7 @@ export function PhotoUploadSlot({
             onClick={onRemove}
             disabled={disabled}
             aria-label={`Remover ${label}`}
-            className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 disabled:opacity-50"
+            className="absolute right-1.5 top-1.5 flex size-8 items-center justify-center rounded-full bg-black/55 before:absolute before:-inset-1.5 before:content-[''] text-white backdrop-blur-sm transition-colors hover:bg-black/75 disabled:opacity-50"
           >
             <X className="size-3.5" />
           </button>
@@ -271,6 +271,7 @@ export function CheckinPhotoGrid({
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
               <img
+                loading="lazy"
                 src={`${basePath}/${p.id}`}
                 alt={CHECKIN_POSE_LABELS[p.pose]}
                 className="h-full w-full object-cover"
