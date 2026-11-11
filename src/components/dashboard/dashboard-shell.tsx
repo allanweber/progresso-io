@@ -231,7 +231,7 @@ export function DashboardShell({
       return {
         tone: "danger" as const,
         title: "Seu teste grátis terminou.",
-        body: "Você voltou ao plano Free (até 3 alunos). Seus alunos atuais continuam ativos — para cadastrar novos e liberar WhatsApp, Agenda e microsite, assine um plano.",
+        body: "Você voltou ao plano Free (até 5 alunos). Seus alunos atuais continuam ativos — para cadastrar novos e liberar Agenda, microsite e mais gerações com IA, assine um plano.",
       };
     }
     if (trial.active) {

@@ -91,7 +91,7 @@ export type Plan = {
   tagline: string;
   price: string;
   priceSuffix?: string;
-  features: { label: string; included: boolean }[];
+  features: { label: string; included: boolean; soon?: boolean }[];
   cta: { label: string; href: string };
   popular?: boolean;
   dark?: boolean;
@@ -104,10 +104,11 @@ export const plans: Plan[] = [
     price: "R$ 0",
     priceSuffix: "/mês",
     features: [
-      { label: "Até 3 alunos", included: true },
+      { label: "Até 5 alunos", included: true },
       { label: "1 coach", included: true },
       { label: "Treinos e dietas", included: true },
-      { label: "WhatsApp integrado", included: false },
+      { label: "WhatsApp Web integrado", included: true },
+      { label: "1 geração com IA por mês", included: true },
       { label: "Calendário", included: false },
     ],
     cta: { label: "Começar grátis", href: "/register" },
@@ -120,9 +121,10 @@ export const plans: Plan[] = [
     features: [
       { label: "Até 50 alunos", included: true },
       { label: "1 coach", included: true },
-      { label: "WhatsApp integrado", included: true },
-      { label: "Substituições", included: true },
       { label: "Calendário completo", included: true },
+      { label: "Portal do aluno com sua marca", included: true },
+      { label: "10 gerações com IA por mês", included: true },
+      { label: "WhatsApp automático", included: true, soon: true },
     ],
     cta: { label: "Começar grátis", href: "/register" },
     popular: true,
@@ -136,7 +138,9 @@ export const plans: Plan[] = [
       { label: "Até 100 alunos", included: true },
       { label: "Até 3 coaches", included: true },
       { label: "Tudo do Solo", included: true },
-      { label: "Relatórios avançados", included: true },
+      { label: "Arquivar alunos", included: true },
+      { label: "25 gerações com IA por mês", included: true },
+      { label: "Relatórios avançados", included: true, soon: true },
       { label: "Suporte prioritário", included: true },
     ],
     cta: { label: "Começar grátis", href: "/register" },

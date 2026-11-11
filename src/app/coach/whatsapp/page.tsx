@@ -9,7 +9,6 @@ import {
   Lock,
   MessageCircle,
   Send,
-  Sparkles,
   X,
 } from "lucide-react";
 
@@ -761,18 +760,15 @@ function WhatsappUpsell() {
           <MessageCircle className="size-7 text-primary" />
         </div>
         <h2 className="font-heading text-xl font-bold text-foreground">
-          O WhatsApp é um recurso dos planos pagos
+          O WhatsApp está desativado nesta clínica
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Faça upgrade para o Solo ou Clínica e converse com seus alunos pelo
-          WhatsApp — com mensagens prontas direto no painel.
+          Fale com o suporte para reativar as mensagens prontas para seus
+          alunos.
         </p>
         <div className="mt-6">
           <Button asChild>
-            <Link href="/coach/settings">
-              <Sparkles className="size-4" />
-              Ver planos
-            </Link>
+            <Link href="/contact">Falar com o suporte</Link>
           </Button>
         </div>
       </div>

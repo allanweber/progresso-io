@@ -639,7 +639,7 @@ async function seed() {
     // every Free clinic uncapped model calls on a fresh seed.
     aiGenerations: number | null;
   }[] = [
-    { plan: "free", maxStudents: 3, maxCoaches: 1, whatsapp: false, archive: false, calendar: false, aiGenerations: 1 },
+    { plan: "free", maxStudents: 5, maxCoaches: 1, whatsapp: true, archive: false, calendar: false, aiGenerations: 1 },
     { plan: "solo", maxStudents: 50, maxCoaches: 1, whatsapp: true, archive: false, calendar: true, aiGenerations: 10 },
     { plan: "clinica", maxStudents: 100, maxCoaches: 3, whatsapp: true, archive: true, calendar: true, aiGenerations: 25 },
     { plan: "enterprise", maxStudents: null, maxCoaches: null, whatsapp: true, archive: true, calendar: true, aiGenerations: null },

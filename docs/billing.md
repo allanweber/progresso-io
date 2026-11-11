@@ -41,7 +41,8 @@ Automating this is **item 0** in `docs/growth-roadmap.md` ("Assinatura & paywall
 Every clinic created at sign-up starts on **`free` with `clinic.trial_ends_at`
 set 14 days out**, matching what `/register` advertises ("14 dias grátis, sem
 cartão"). While that date is in the future **and the plan is still `free`**, the
-clinic resolves to **Solo** limits — 50 alunos, WhatsApp, Agenda, microsite.
+clinic resolves to **Solo** limits — 50 alunos, Agenda, microsite, 10 AI
+generations.
 
 The trial is **not a plan value**, deliberately:
 
@@ -50,7 +51,7 @@ The trial is **not a plan value**, deliberately:
 - Expiry is a **date comparison inside `getPlanLimits`** — correct even if no job
   ever runs. A cron is only ever needed for a "faltam N dias" nudge, never for
   correctness.
-- Expiry is **non-destructive**. The cap drops back to 3, but the student cap is
+- Expiry is **non-destructive**. The cap drops back to 5, but the student cap is
   only checked when *creating* a student, so alunos added during the trial stay
   active and their portals keep working — the clinic simply can't add more.
 
