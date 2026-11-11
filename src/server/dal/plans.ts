@@ -26,7 +26,7 @@ import type { TenantContext } from "@/server/tenant";
  * at least 50 so a coach can move a real roster in during the trial. The stored `plan` is never mutated, so
  * expiry is a pure date comparison that stays correct even if no cron ever
  * runs, and `clinic_plan_change` keeps auditing only real plan changes.
- * Expiry is **non-destructive**: the cap drops back to 3 but the student cap is
+ * Expiry is **non-destructive**: the cap drops back to 5 but the student cap is
  * only checked when *creating* a student, so alunos added during the trial stay
  * active and their portals keep working.
  */

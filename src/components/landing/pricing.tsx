@@ -86,6 +86,11 @@ function PlanCard({ plan }: { plan: Plan }) {
               strokeWidth={2.5}
             />
             {feature.label}
+            {feature.soon && (
+              <span className="rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
+                em breve
+              </span>
+            )}
           </div>
         ))}
       </div>

@@ -5,17 +5,17 @@ import { plans, whatsapp } from "@/server/dal";
 import { forbidden } from "@/server/api";
 import { withCoach } from "@/server/guard";
 
-/** 403 shown when the clinic's plan doesn't include WhatsApp (Free). */
+/** 403 shown when WhatsApp is switched off for this clinic (admin override). */
 export function whatsappLocked() {
   return forbidden(
-    "Seu plano não inclui o WhatsApp. Faça upgrade para conversar com seus alunos.",
+    "O WhatsApp está desativado para esta clínica. Fale com o suporte para reativá-lo.",
   );
 }
 
 /**
  * Coach WhatsApp inbox: the conversation list + templates + this clinic's
- * connection. Coach-only, gated on the plan's `whatsapp` capability (Free
- * excluded), tenant-scoped through the DAL. No external input to validate.
+ * connection. Coach-only, gated on the plan's `whatsapp` capability (every plan
+ * has it; only an admin override turns it off), tenant-scoped through the DAL. No external input to validate.
  */
 export const GET = withCoach("coach.whatsapp.inbox", async (_request, ctx) => {
   if (!(await plans.canUseWhatsapp(ctx))) return whatsappLocked();

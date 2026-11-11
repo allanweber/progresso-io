@@ -368,9 +368,9 @@ fixed stack ≈ **3 Solo clinics** (R$537 > R$477).
 
 | Plan | Monthly | Annual (~2 mo free) | Includes |
 | --- | --- | --- | --- |
-| **Free** | R$0 | — | 1 coach, 3 alunos, 14-day trial of paid features — acquisition hook |
-| **Solo** | **R$179** | **R$1.790** (~R$149/mo) | 1 coach, 50 alunos, WhatsApp + Calendar + branded microsite |
-| **Clínica** | **R$379** | **R$3.790** (~R$316/mo) | up to 3 coaches, 100 alunos, all features |
+| **Free** | R$0 | — | 1 coach, 5 alunos, WhatsApp handoff, 1 AI generation/mo, 14-day trial of paid features — acquisition hook |
+| **Solo** | **R$179** | **R$1.790** (~R$149/mo) | 1 coach, 50 alunos, Calendar + branded microsite, 10 AI generations/mo; automatic WhatsApp when the Cloud API ships |
+| **Clínica** | **R$379** | **R$3.790** (~R$316/mo) | up to 3 coaches, 100 alunos, archive, 25 AI generations/mo, all features |
 | **Enterprise** | sob consulta | — | 3+ coaches / 100+ alunos, priority support, custom |
 
 (R$197 / R$397 are viable premium anchors — a few points more margin at some
@@ -649,9 +649,9 @@ Preços justificados por custo e mercado — **já aplicados** em `PLAN_PRICE_CE
 
 | Plano | Mensal | Anual (~2 meses grátis) | Inclui |
 | --- | --- | --- | --- |
-| **Free** | R$ 0 | — | 1 coach, 3 alunos, teste de 14 dias dos recursos pagos |
-| **Solo** | **R$ 179** | **R$ 1.790** (~R$ 149/mês) | 1 coach, 50 alunos, WhatsApp + Agenda + microsite |
-| **Clínica** | **R$ 379** | **R$ 3.790** (~R$ 316/mês) | até 3 coaches, 100 alunos, tudo |
+| **Free** | R$ 0 | — | 1 coach, 5 alunos, WhatsApp Web, 1 geração IA/mês, teste de 14 dias dos recursos pagos |
+| **Solo** | **R$ 179** | **R$ 1.790** (~R$ 149/mês) | 1 coach, 50 alunos, Agenda + microsite, 10 gerações IA/mês; WhatsApp automático quando a Cloud API sair |
+| **Clínica** | **R$ 379** | **R$ 3.790** (~R$ 316/mês) | até 3 coaches, 100 alunos, arquivar, 25 gerações IA/mês, tudo |
 | **Enterprise** | sob consulta | — | 3+ coaches / 100+ alunos, suporte prioritário |
 
 ### 6.3 Margem nos preços atuais

@@ -98,11 +98,17 @@ beforeAll(async () => {
 });
 
 describe("whatsapp plan gate", () => {
-  it("excludes Free and includes the paid plans", async () => {
+  it("includes every plan, Free too, and only an admin override turns it off", async () => {
     const free = await ownerContext("wa-free@example.com", "free");
     const solo = await ownerContext("wa-solo@example.com", "solo");
-    expect(await plans.canUseWhatsapp(free)).toBe(false);
+    const off = await ownerContext("wa-off@example.com", "solo");
+    await db
+      .update(schema.clinic)
+      .set({ whatsappOverride: false })
+      .where(eq(schema.clinic.id, off.clinicId));
+    expect(await plans.canUseWhatsapp(free)).toBe(true);
     expect(await plans.canUseWhatsapp(solo)).toBe(true);
+    expect(await plans.canUseWhatsapp(off)).toBe(false);
   });
 });
 
@@ -529,7 +535,7 @@ describe("scheduled check-in reminders", () => {
     expect(after!.messages.length).toBe(countBefore);
   });
 
-  it("skips clinics whose preferred day isn't today, and Free clinics", async () => {
+  it("skips clinics whose preferred day isn't today, and clinics with WhatsApp switched off", async () => {
     await addBaseTemplate(
       "checkin_reminder",
       "Lembrete",
@@ -549,11 +555,10 @@ describe("scheduled check-in reminders", () => {
       .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
       .where(eq(schema.students.id, otherStudent));
 
-    // Free clinic on the right day → gated out.
     const free = await ownerContext("wa-cron-free@example.com", "free");
     await db
       .update(schema.clinic)
-      .set({ feedbackPreferredDay: weekdayNameOf(today) })
+      .set({ feedbackPreferredDay: weekdayNameOf(today), whatsappOverride: false })
       .where(eq(schema.clinic.id, free.clinicId));
     const freeStudent = await addStudent(free, "11955550008", "Gil");
     await db

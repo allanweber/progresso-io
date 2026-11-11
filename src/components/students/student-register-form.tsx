@@ -399,7 +399,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
               ? "O aluno não recebe acesso ao portal. Após registrar, você preenche a anamnese dele."
               : hasWhatsapp
                 ? "O link da anamnese fica pronto para você enviar no WhatsApp. O convite ao portal é preparado quando você publicar a primeira dieta ou treino."
-                : "O acesso ao portal é enviado por e-mail quando você publicar a primeira dieta ou treino. As mensagens prontas para o WhatsApp estão disponíveis nos planos pagos."}
+                : "O acesso ao portal é enviado por e-mail quando você publicar a primeira dieta ou treino. As mensagens prontas para o WhatsApp estão desativadas nesta clínica."}
           </div>
         )}
       </form.Subscribe>

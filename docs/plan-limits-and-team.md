@@ -10,12 +10,27 @@ removes coaches.
 `plan_limit` is reference data (not tenant-scoped), keyed by the lowercase plan
 name, so limits are edited in the database rather than hardcoded. Seeded values:
 
-| Plan       | `max_students` | `max_coaches` | `whatsapp` | `calendar` |
-| ---------- | -------------: | ------------: | :--------: | :--------: |
-| free       |              3 |             1 |   false    |   false    |
-| solo       |             50 |             1 |    true    |    true    |
-| clinica    |            100 |             3 |    true    |    true    |
-| enterprise |     null (∞)   |    null (∞)   |    true    |    true    |
+| Plan       | `max_students` | `max_coaches` | `whatsapp` | `calendar` | `archive` | `ai_generations` /mo | Branded portal |
+| ---------- | -------------: | ------------: | :--------: | :--------: | :-------: | -------------------: | :------------: |
+| free       |              5 |             1 |    true    |   false    |   false   |                    1 |       no       |
+| solo       |             50 |             1 |    true    |    true    |   false   |                   10 |      yes       |
+| clinica    |            100 |             3 |    true    |    true    |   true    |                   25 |      yes       |
+| enterprise |     null (∞)   |    null (∞)   |    true    |    true    |   true    |             null (∞) |      yes       |
+
+The branded portal is not a `plan_limit` column: it is `BRANDED_PORTAL_PLANS` in
+`src/lib/clinic-settings.ts`. Free's values were set by migration `0049`
+(3 → 5 alunos, WhatsApp on).
+
+### Why Free sits at 5 alunos
+
+Free must stop **just below a real business** so growth itself pushes the coach
+to Solo. At ~R$150/aluno, 5 alunos is ~R$750/mo of coaching revenue: enough to run
+a few real clients end to end, not enough to live on. A coach with a real
+business (~10+ alunos, R$1.500+/mo) hits the cap as soon as they add their
+roster, and at that size Solo (R$179) is a small share of what they bill. The
+upgrade levers beyond the cap are Calendário, the branded portal, AI
+generations (1 → 10) and, once it ships, automatic WhatsApp. The 14-day trial
+grants Solo limits, so every coach sees the paid tier before landing on Free.
 
 `null` means **unlimited** — for a cap that's explicitly uncapped, and also when
 no row exists (a missing limit must never block). Read them through
@@ -89,13 +104,24 @@ per-clinic-overridable via `clinic.archive_override`, resolved in
 
 ### WhatsApp gate
 
-WhatsApp is a paid-plan channel. `plans.canUseWhatsapp(ctx)` guards the three
-send sites; a **free** clinic simply skips WhatsApp and falls back to e-mail:
+Today WhatsApp is the **handoff** (`wa.me` / WhatsApp Web, see
+`docs/adr/0002-whatsapp-official-cloud-api-with-handoff-bridge.md`): the app
+prepares each message and the coach sends it from their own number. It costs us
+nothing per message, so **every plan includes it, Free too**, and Free keeps it
+after the Cloud API ships. The `whatsapp` capability is therefore `true` on every
+plan; `plans.canUseWhatsapp(ctx)` still guards every send site so a platform
+admin can switch it off for one clinic (`clinic.whatsapp_override = false`).
+When it is off, the clinic falls back to e-mail:
 
-- the anamnese-fill link at registration (WhatsApp-only → skipped for free; the
-  student is still registered),
+- the anamnese-fill link at registration (WhatsApp-only → skipped; the student
+  is still registered),
 - the portal-access invite (always e-mailed too, so onboarding still works),
 - check-in feedback (stays visible in the portal).
+
+**When the Cloud API ships**, automatic sending (Meta bills per template) is
+the paid part: add a separate capability for it (Solo and up) rather than
+reusing `whatsapp`, which must stay `true` on Free for the handoff. The landing
+already lists "WhatsApp automático" as *em breve* on Solo.
 
 ## Coach team ("Equipe de coaches")
 

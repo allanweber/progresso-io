@@ -17,11 +17,11 @@ export type PlanMeta = {
 };
 
 export const PLAN_META: Record<Plan, PlanMeta> = {
-  free: { id: "free", name: "Free", desc: "Até 3 alunos", price: "R$ 0" },
+  free: { id: "free", name: "Free", desc: "Até 5 alunos", price: "R$ 0" },
   solo: {
     id: "solo",
     name: "Solo",
-    desc: "Até 50 alunos + WhatsApp",
+    desc: "Até 50 alunos + Calendário",
     price: "R$ 179",
     popular: true,
   },

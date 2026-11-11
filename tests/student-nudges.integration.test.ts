@@ -124,8 +124,12 @@ beforeAll(async () => {
 });
 
 describe("runStudentInactivityNudges — plan gating", () => {
-  it("sends nothing at all for a Free clinic, however overdue the student", async () => {
+  it("sends nothing at all for a clinic with WhatsApp switched off, however overdue the student", async () => {
     const ctx = await ownerContext("nudge-free@example.com", "free");
+    await db
+      .update(schema.clinic)
+      .set({ whatsappOverride: false })
+      .where(eq(schema.clinic.id, ctx.clinicId));
     const studentId = await activeStudent(ctx, addDays(today, -30));
 
     await runStudentInactivityNudges(h, today);

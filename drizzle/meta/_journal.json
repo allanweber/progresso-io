@@ -344,6 +344,13 @@
       "when": 1793871105070,
       "tag": "0048_superset_links_items",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794400431190,
+      "tag": "0049_free_plan_limits",
+      "breakpoints": true
     }
   ]
 }
