@@ -491,6 +491,7 @@ export function WorkoutExerciseDetail({
                             {thumb ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
+                                loading="lazy"
                                 src={thumb}
                                 alt=""
                                 className="size-9 shrink-0 rounded-md object-cover"

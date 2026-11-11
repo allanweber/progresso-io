@@ -725,6 +725,7 @@ function ComparePhoto({
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- private API stream */}
           <img
+            loading="lazy"
             src={`/api/students/${studentId}/checkin/${set.checkinId}/photo/${photoId}`}
             alt={CHECKIN_POSE_LABELS[pose]}
             className="h-full w-full object-cover"

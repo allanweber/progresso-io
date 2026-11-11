@@ -93,7 +93,7 @@ function AccountStep({
       }}
     >
       <div className="mb-6">
-        <h1 className="mb-1 font-heading text-[22px] font-bold text-foreground">
+        <h1 className="mb-1 font-heading text-headline font-bold text-foreground">
           Crie sua conta
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -159,7 +159,7 @@ function PlanStep({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="mb-1 font-heading text-[22px] font-bold text-foreground">
+        <h1 className="mb-1 font-heading text-headline font-bold text-foreground">
           Escolha seu plano
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -248,7 +248,7 @@ function ConfirmStep({
       <div className="mx-auto mb-4 flex size-[60px] items-center justify-center rounded-full bg-[#DCFCE7]">
         <Check className="size-7 text-primary" strokeWidth={2.5} />
       </div>
-      <h1 className="mb-1.5 font-heading text-[22px] font-bold text-foreground">
+      <h1 className="mb-1.5 font-heading text-headline font-bold text-foreground">
         Tudo pronto para começar
       </h1>
       <p className="mb-6 text-sm text-muted-foreground">

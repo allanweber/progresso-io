@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <h1 className="font-heading text-[32px] font-bold tracking-[-0.02em] text-foreground">
+      <h1 className="font-heading text-headline font-bold tracking-[-0.02em] text-foreground">
         Contato
       </h1>
       <p className="mt-2 text-sm leading-[1.7] text-muted-foreground">

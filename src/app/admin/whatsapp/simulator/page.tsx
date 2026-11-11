@@ -140,7 +140,7 @@ export default async function AdminWhatsappSimulatorPage({
   return (
     <div className="mx-auto max-w-5xl">
       <div className="flex items-center gap-3">
-        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-[28px]">
+        <h1 className="font-heading text-headline font-bold">
           Simulador de WhatsApp
         </h1>
         <span className="rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-xs font-semibold text-[#B45309]">

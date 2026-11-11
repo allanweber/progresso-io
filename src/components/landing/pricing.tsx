@@ -58,7 +58,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         <span
           className={cn(
             "font-heading font-bold",
-            plan.dark ? "text-[22px] leading-tight text-white" : "text-[32px] text-foreground",
+            plan.dark ? "text-headline text-white" : "text-figure text-foreground",
           )}
         >
           {plan.price}

@@ -8,7 +8,7 @@ export function CallToAction() {
         <h2 className="mb-4 font-heading text-[clamp(28px,4vw,44px)] font-bold tracking-[-0.02em] text-white">
           Pronto para transformar sua gestão?
         </h2>
-        <p className="mx-auto mb-9 max-w-[500px] text-[17px] text-white/80">
+        <p className="mx-auto mb-9 max-w-[500px] text-title leading-relaxed text-white/80">
           14 dias grátis. Sem cartão. Sem compromisso. Configure em menos de 5
           minutos.
         </p>

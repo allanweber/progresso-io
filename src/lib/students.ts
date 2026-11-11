@@ -44,10 +44,10 @@ export const STUDENT_STATE_STYLES: Record<
   StudentStateKey,
   { color: string; bg: string }
 > = {
-  active: { color: "#047857", bg: "#DCFCE7" },
-  inactive: { color: "#92400E", bg: "#FEF3C7" },
-  invited: { color: "#1D4ED8", bg: "#DBEAFE" },
-  archived: { color: "#64748B", bg: "#F1F5F9" },
+  active: { color: "var(--primary-deep)", bg: "var(--primary-light)" },
+  inactive: { color: "var(--warn-fg)", bg: "var(--warn-bg)" },
+  invited: { color: "#1D4ED8", bg: "var(--info-bg)" },
+  archived: { color: "var(--neutral-fg)", bg: "var(--neutral-bg)" },
 };
 
 type StudentStateInput = {

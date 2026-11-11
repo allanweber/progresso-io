@@ -38,7 +38,8 @@ colors:
   # Categorical sets (see § Categorical Sets). Hue is the identifier here, not
   # brand voice — each lives in one module and never spreads.
   state-invited: "#1d4ed8"
-  technique-giant: "#0d9488"
+  technique-dropset: "#dc2626"
+  technique-tripledrop: "#b91c1c"
   technique-gvt: "#1d4ed8"
   technique-fs7: "#c026d3"
   technique-restpause: "#ea580c"
@@ -310,8 +311,8 @@ module each, and none may spread beyond it.
   by a unit test in `tests/students.test.ts`. **Do not convert these to
   saturated fills** — that was tried, and not one of the eight cleared AA.
 - **Workout techniques** (`WORKOUT_TECHNIQUES`, `src/lib/workout-techniques.ts`)
-  — eight hues identifying a prescription technique (bi-set, giant set, GVT,
-  FS7, rest-pause, cluster…). The hue *is* the identifier a coach learns, the
+  — six hues identifying a prescription technique (drop set, triple drop, GVT,
+  FS7, rest-pause, cluster). The hue *is* the identifier a coach learns, the
   same way a map legend works; collapsing them to emerald would delete the
   information. Always paired with a label or icon, never colour alone.
 

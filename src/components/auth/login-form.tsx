@@ -29,7 +29,7 @@ export function LoginForm({
   return (
     <div className="w-full max-w-[380px]">
       <div className="mb-8">
-        <h1 className="mb-1.5 font-heading text-[26px] font-bold tracking-[-0.02em] text-foreground">
+        <h1 className="mb-1.5 font-heading text-headline font-bold tracking-[-0.02em] text-foreground">
           Bem-vindo de volta
         </h1>
         <p className="text-sm text-muted-foreground">
