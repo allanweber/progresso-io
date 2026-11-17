@@ -252,7 +252,7 @@ export const resendOtp = withAction(
 
     try {
       if (parsed.data.type === "forget-password") {
-        await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
+        await auth.api.requestPasswordResetEmailOTP({ body: { email: parsed.data.email } });
       } else {
         await auth.api.sendVerificationOTP({
           body: { email: parsed.data.email, type: "email-verification" },
@@ -289,7 +289,7 @@ export const requestPasswordReset = withAction(
     }
 
     try {
-      await auth.api.forgetPasswordEmailOTP({ body: { email: parsed.data.email } });
+      await auth.api.requestPasswordResetEmailOTP({ body: { email: parsed.data.email } });
     } catch (error) {
       logger.warn("auth.password_reset_request.failed", { code: errorCode(error) });
       return authError(error);
