@@ -9,174 +9,70 @@ export function readExerciseCatalog(path) {
     .map((l) => JSON.parse(l));
 }
 
-export async function seedExerciseCatalog(query, exercises, { keepCodes = new Set() } = {}) {
-  const baseRows = await query(
-    "select code, opengym_id from exercise where code is not null and clinic_id is null",
+export async function seedExerciseCatalog(query, exercises) {
+  const rows = await query(
+    `insert into exercise (
+      code, name, name_en, search_text, description, category, level, force, mechanic, equipment,
+      primary_muscles, secondary_muscles, instructions, instructions_en, images, image_credits, source, opengym_id
+    )
+    select
+      e.code, e.name, e.name_en, unaccent(lower(concat_ws(' ', e.name, e.name_en))), e.description,
+      e.category, e.level, e.force, e.mechanic, e.equipment,
+      array(select jsonb_array_elements_text(e.primary_muscles)),
+      array(select jsonb_array_elements_text(e.secondary_muscles)),
+      array(select jsonb_array_elements_text(e.instructions)),
+      array(select jsonb_array_elements_text(e.instructions_en)),
+      array(select jsonb_array_elements_text(e.images)),
+      e.image_credits, e.source, e.opengym_id
+    from jsonb_to_recordset($1::jsonb) as e(
+      code text, name text, name_en text, description text, category text, level text, force text,
+      mechanic text, equipment text, primary_muscles jsonb, secondary_muscles jsonb, instructions jsonb,
+      instructions_en jsonb, images jsonb, image_credits jsonb, source text, opengym_id text
+    )
+    on conflict (code) do nothing
+    returning id`,
+    [
+      JSON.stringify(
+        exercises.map((e) => ({
+          code: e.code,
+          name: e.name,
+          name_en: e.nameEn ?? null,
+          description: e.description ?? null,
+          category: e.category,
+          level: e.level,
+          force: e.force ?? null,
+          mechanic: e.mechanic ?? null,
+          equipment: e.equipment ?? null,
+          primary_muscles: e.primaryMuscles,
+          secondary_muscles: e.secondaryMuscles ?? [],
+          instructions: e.instructions ?? [],
+          instructions_en: e.instructionsEn ?? [],
+          images: e.images ?? [],
+          image_credits: e.imageCredits ?? {},
+          source: e.source,
+          opengym_id: e.openGymId ?? null,
+        })),
+      ),
+    ],
   );
-  const linkedCode = new Map(baseRows.map((r) => [r.code, r.opengym_id]));
-  const takenRows = await query(
-    "select opengym_id from exercise where opengym_id is not null",
-  );
-  const taken = new Set(takenRows.map((r) => r.opengym_id));
-
-  let inserted = 0;
-  let linked = 0;
-  for (const e of exercises) {
-    const openGymId = e.openGymId && !taken.has(e.openGymId) ? e.openGymId : null;
-    if (!linkedCode.has(e.code)) {
-      const rows = await query(
-        `insert into exercise (
-          code, name, name_en, search_text, category, level, force, mechanic, equipment,
-          primary_muscles, secondary_muscles, instructions, instructions_en, images, image_credits, source, opengym_id
-        ) values ($1, $2, $15, unaccent(lower(concat_ws(' ', $2::text, $15::text))), $3, $4, $5, $6, $7, $8, $9, $10, $16, $11, $12, $13, $14)
-        on conflict (code) do nothing
-        returning id`,
-        [
-          e.code,
-          e.name,
-          e.category,
-          e.level,
-          e.force,
-          e.mechanic,
-          e.equipment,
-          e.primaryMuscles,
-          e.secondaryMuscles,
-          e.instructions,
-          e.images,
-          JSON.stringify(e.imageCredits ?? {}),
-          e.source ?? "free-exercise-db",
-          openGymId,
-          e.nameEn ?? null,
-          e.instructionsEn ?? [],
-        ],
-      );
-      if (rows.length === 0) continue;
-      inserted++;
-      if (openGymId) taken.add(openGymId);
-      continue;
-    }
-    if (!openGymId || linkedCode.get(e.code) !== null || keepCodes.has(e.code)) continue;
-    const rows = await query(
-      `update exercise set opengym_id = $1
-       where code = $2 and clinic_id is null and opengym_id is null and not archived
-       returning id`,
-      [openGymId, e.code],
-    );
-    if (rows.length === 0) continue;
-    linked++;
-    taken.add(openGymId);
-  }
-  return { inserted, linked };
+  return { inserted: rows.length };
 }
 
-export async function backfillExerciseEnglish(query, exercises) {
-  const missing = new Set(
-    (await query("select code from exercise where code is not null and name_en is null")).map((r) => r.code),
+export async function seedExerciseSubstitutionEdges(query, rules) {
+  const rows = await query(
+    `insert into exercise_substitution (clinic_id, exercise_id, substitute_exercise_id)
+     select null, x.id, s.id
+     from jsonb_to_recordset($1::jsonb) as r(exercise text, substitute text)
+     join exercise x on x.code = r.exercise and x.clinic_id is null
+     join exercise s on s.code = r.substitute and s.clinic_id is null
+     where x.id <> s.id
+     on conflict do nothing
+     returning id`,
+    [
+      JSON.stringify(
+        rules.flatMap((r) => (r.substitutes ?? []).map((substitute) => ({ exercise: r.exercise, substitute }))),
+      ),
+    ],
   );
-  const rows = exercises
-    .filter((e) => e.nameEn && missing.has(e.code))
-    .map((e) => ({ code: e.code, name_en: e.nameEn, instructions_en: e.instructionsEn ?? [] }));
-  if (!rows.length) return 0;
-  const updated = await query(
-    `update exercise x set
-       name_en = v.name_en,
-       instructions_en = array(select jsonb_array_elements_text(v.instructions_en)),
-       search_text = unaccent(lower(concat_ws(' ', x.name, v.name_en))),
-       updated_at = now()
-     from jsonb_to_recordset($1::jsonb) as v(code text, name_en text, instructions_en jsonb)
-     where x.code = v.code and x.name_en is null
-     returning x.id`,
-    [JSON.stringify(rows)],
-  );
-  return updated.length;
-}
-
-export async function repointExercise(query, from, to) {
-  const changed = async (text) => (await query(text, [from, to])).length;
-  let moved = await changed(
-    "update workout_exercise set exercise_id = $2 where exercise_id = $1 returning id",
-  );
-  await query(
-    `delete from workout_exercise_substitute s using workout_exercise w
-     where s.workout_exercise_id = w.id and s.substitute_exercise_id in ($1, $2) and w.exercise_id = $2`,
-    [from, to],
-  );
-  await query(
-    `delete from workout_exercise_substitute s
-     where s.substitute_exercise_id = $1 and exists (
-       select 1 from workout_exercise_substitute t
-       where t.workout_exercise_id = s.workout_exercise_id and t.substitute_exercise_id = $2)`,
-    [from, to],
-  );
-  moved += await changed(
-    "update workout_exercise_substitute set substitute_exercise_id = $2 where substitute_exercise_id = $1 returning id",
-  );
-  await query(
-    `delete from exercise_substitution
-     where (exercise_id = $1 and substitute_exercise_id = $2) or (exercise_id = $2 and substitute_exercise_id = $1)`,
-    [from, to],
-  );
-  await query(
-    `delete from exercise_substitution s
-     where s.exercise_id = $1 and exists (
-       select 1 from exercise_substitution t
-       where t.exercise_id = $2 and t.substitute_exercise_id = s.substitute_exercise_id
-         and t.clinic_id is not distinct from s.clinic_id)`,
-    [from, to],
-  );
-  await query(
-    `delete from exercise_substitution s
-     where s.substitute_exercise_id = $1 and exists (
-       select 1 from exercise_substitution t
-       where t.substitute_exercise_id = $2 and t.exercise_id = s.exercise_id
-         and t.clinic_id is not distinct from s.clinic_id)`,
-    [from, to],
-  );
-  moved += await changed(
-    "update exercise_substitution set exercise_id = $2 where exercise_id = $1 returning id",
-  );
-  moved += await changed(
-    "update exercise_substitution set substitute_exercise_id = $2 where substitute_exercise_id = $1 returning id",
-  );
-  return moved;
-}
-
-export async function seedExerciseSubstitutionEdges(query, rules, { removedEdges = new Set() } = {}) {
-  const codeRows = await query(
-    "select id, code from exercise where code is not null and not archived",
-  );
-  const idByCode = new Map(codeRows.map((r) => [r.code, r.id]));
-  const edgeRows = await query(
-    "select exercise_id, substitute_exercise_id from exercise_substitution where clinic_id is null",
-  );
-  const have = new Set(edgeRows.map((r) => `${r.exercise_id}:${r.substitute_exercise_id}`));
-
-  const from = [];
-  const to = [];
-  let skipped = 0;
-  for (const rule of rules) {
-    const exerciseId = idByCode.get(rule.exercise);
-    for (const subCode of rule.substitutes ?? []) {
-      const substituteId = idByCode.get(subCode);
-      if (removedEdges.has(`${rule.exercise}:${subCode}`)) continue;
-      if (!exerciseId || !substituteId || substituteId === exerciseId) {
-        skipped++;
-        continue;
-      }
-      const key = `${exerciseId}:${substituteId}`;
-      if (have.has(key)) continue;
-      have.add(key);
-      from.push(exerciseId);
-      to.push(substituteId);
-    }
-  }
-
-  for (let i = 0; i < from.length; i += 500) {
-    await query(
-      `insert into exercise_substitution (clinic_id, exercise_id, substitute_exercise_id)
-       select null, f, t from unnest($1::uuid[], $2::uuid[]) as u(f, t)`,
-      [from.slice(i, i + 500), to.slice(i, i + 500)],
-    );
-  }
-  return { inserted: from.length, skipped };
+  return { inserted: rows.length };
 }

@@ -39,12 +39,12 @@ import { hydrateStructure as hydrateWorkoutStructure } from "./student-workouts"
  */
 async function ownStudentId(ctx: TenantContext): Promise<string | null> {
   const [row] = await ctx.db
-    .select({ id: schema.students.id })
-    .from(schema.students)
+    .select({ id: schema.student.id })
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.userId, ctx.userId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.userId, ctx.userId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     );
   return row?.id ?? null;
@@ -57,9 +57,9 @@ export async function getMyProfile(
   const coach = aliasedTable(schema.user, "coach");
   const [row] = await ctx.db
     .select({
-      firstName: schema.students.firstName,
-      lastName: schema.students.lastName,
-      goal: schema.students.goal,
+      firstName: schema.student.firstName,
+      lastName: schema.student.lastName,
+      goal: schema.student.goal,
       coachName: coach.name,
       clinicName: schema.clinic.name,
       feedbackFrequency: schema.clinic.feedbackFrequency,
@@ -69,13 +69,13 @@ export async function getMyProfile(
       intendedPlan: schema.clinic.intendedPlan,
       trialEndsAt: schema.clinic.trialEndsAt,
     })
-    .from(schema.students)
-    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.students.clinicId))
-    .leftJoin(coach, eq(coach.id, schema.students.coachId))
+    .from(schema.student)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.student.clinicId))
+    .leftJoin(coach, eq(coach.id, schema.student.coachId))
     .where(
       and(
-        eq(schema.students.userId, ctx.userId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.userId, ctx.userId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     );
   if (!row) return null;

@@ -167,6 +167,7 @@ describe("derived check-in markers", () => {
       studentId: student.id,
       date: addDays(todayYmd(), -120),
       author: "student",
+      modality: "online",
       weightKg: 80,
     });
 
@@ -257,9 +258,9 @@ describe("derived check-in markers", () => {
       email: "arquivado@example.com",
     });
     await db
-      .update(schema.students)
+      .update(schema.student)
       .set({ status: "archived" })
-      .where(eq(schema.students.id, student.id));
+      .where(eq(schema.student.id, student.id));
 
     const calendar = await calendarEvents.getCalendar(ctx, WIDE_RANGE);
     expect(

@@ -78,6 +78,7 @@ async function giveDietVersion(
       studentDietId: d.id,
       status,
       version: status === "published" ? 1 : null,
+      publishedAt: status === "published" ? new Date() : null,
       tree: EMPTY_DIET,
       ...(updatedAt ? { updatedAt } : {}),
     })
@@ -131,9 +132,9 @@ describe("getCoachDashboard", () => {
     const baseMs = Date.UTC(2026, 0, 1);
     for (const [i, s] of [s1, s2, s3, s4].entries()) {
       await db
-        .update(schema.students)
+        .update(schema.student)
         .set({ createdAt: new Date(baseMs + i * 60_000) })
-        .where(eq(schema.students.id, s.id));
+        .where(eq(schema.student.id, s.id));
     }
 
     await giveActiveDiet(ctx, s1.id);

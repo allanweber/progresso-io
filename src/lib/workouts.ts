@@ -117,12 +117,6 @@ export function resolveSets(reps: WorkoutReps, sets: number): number {
   return r.kind === "pyramid" ? r.values.length : sets;
 }
 
-/**
- * Coerces a stored/unknown reps value into the current `WorkoutReps` shape.
- * Tolerates the **legacy** range shape (`{ kind: "range", min, max }`, before
- * reps became a sequence) so workouts saved by an earlier version still read —
- * no data migration needed. Anything unrecognisable degrades to `Falha`.
- */
 export function normalizeReps(reps: unknown): WorkoutReps {
   if (reps && typeof reps === "object") {
     const r = reps as Record<string, unknown>;
@@ -134,10 +128,6 @@ export function normalizeReps(reps: unknown): WorkoutReps {
       if (Array.isArray(r.values) && r.values.every((v) => typeof v === "number")) {
         const values = r.values as number[];
         if (values.length >= 1) return { kind, values };
-      }
-      // Legacy min/max pair → a two-position sequence.
-      if (typeof r.min === "number" && typeof r.max === "number") {
-        return { kind, values: [r.min, r.max] };
       }
     }
     if (r.kind === "duration" && typeof r.seconds === "number") {

@@ -11,7 +11,7 @@ rest are placeholders for features not built yet.
 
 | Section | State | Backing |
 | --- | --- | --- |
-| **Clínica** | Real | `clinic.name`, `clinic.portal_subdomain` |
+| **Clínica** | Real | `clinic.name`, `clinic.portal_slug` |
 | **Preferências de feedback** | Real | `clinic.feedback_frequency`, `clinic.feedback_preferred_day`, `clinic.feedback_whatsapp_reminder` |
 | **Plano atual** | Real (read-only) | `clinic.plan` (chosen at sign-up) |
 | **WhatsApp Business** | *Em breve* | — |
@@ -20,10 +20,10 @@ rest are placeholders for features not built yet.
 ### Clínica
 
 - **Nome da clínica** → `clinic.name` (required, ≤ 80 chars).
-- **Subdomínio do portal** → `clinic.portal_subdomain`. **Optional**; when set it
+- **Subdomínio do portal** → `clinic.portal_slug`. **Optional**; when set it
   must be a slug (`[a-z0-9]` in hyphen-separated groups, 3–30 chars) and is
   **globally unique** across the platform (partial unique index
-  `clinic_portal_subdomain_uq`, only enforced when present — blank clinics never
+  `clinic_portal_slug_uq`, only enforced when present — blank clinics never
   collide). Nothing routes on it yet; it is stored so the future
   portal-subdomain feature has it. A duplicate surfaces as a field error
   (`Este subdomínio já está em uso.`).
@@ -66,11 +66,10 @@ Follows the written-in-stone frontend rules:
 
 ## Data model
 
-New columns on `clinic` (migration `0018_adorable_anthem.sql`), all backfilled
-with defaults so existing clinics keep saving:
+Columns on `clinic` (migration `0000_init`):
 
 ```
-portal_subdomain          text            -- nullable; partial unique when set
+portal_slug          text            -- nullable; partial unique when set
 feedback_frequency        text  NOT NULL  DEFAULT 'semanal'
 feedback_preferred_day    text  NOT NULL  DEFAULT 'monday'
 feedback_whatsapp_reminder boolean NOT NULL DEFAULT true

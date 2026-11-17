@@ -142,8 +142,8 @@ const conversationColumns = {
   lastMessagePreview: schema.whatsappConversation.lastMessagePreview,
   lastMessageDirection: schema.whatsappConversation.lastMessageDirection,
   unreadCount: schema.whatsappConversation.unreadCount,
-  studentFirst: schema.students.firstName,
-  studentLast: schema.students.lastName,
+  studentFirst: schema.student.firstName,
+  studentLast: schema.student.lastName,
 } as const;
 
 function toMessageDto(r: {
@@ -302,8 +302,8 @@ export async function getInbox(
     .select(conversationColumns)
     .from(schema.whatsappConversation)
     .leftJoin(
-      schema.students,
-      eq(schema.students.id, schema.whatsappConversation.studentId),
+      schema.student,
+      eq(schema.student.id, schema.whatsappConversation.studentId),
     )
     .where(eq(schema.whatsappConversation.clinicId, ctx.clinicId))
     .orderBy(desc(schema.whatsappConversation.lastMessageAt));
@@ -326,8 +326,8 @@ export async function getThread(
     .select(conversationColumns)
     .from(schema.whatsappConversation)
     .leftJoin(
-      schema.students,
-      eq(schema.students.id, schema.whatsappConversation.studentId),
+      schema.student,
+      eq(schema.student.id, schema.whatsappConversation.studentId),
     )
     .where(
       and(
@@ -389,12 +389,12 @@ export async function sendMessage(
       id: schema.whatsappConversation.id,
       phone: schema.whatsappConversation.phone,
       lastInboundAt: schema.whatsappConversation.lastInboundAt,
-      studentFirst: schema.students.firstName,
+      studentFirst: schema.student.firstName,
     })
     .from(schema.whatsappConversation)
     .leftJoin(
-      schema.students,
-      eq(schema.students.id, schema.whatsappConversation.studentId),
+      schema.student,
+      eq(schema.student.id, schema.whatsappConversation.studentId),
     )
     .where(
       and(
@@ -494,15 +494,15 @@ export async function sendTemplateToStudent(
 ): Promise<{ conversationId: string; messageId: string } | null> {
   const [student] = await ctx.db
     .select({
-      phone: schema.students.phone,
-      firstName: schema.students.firstName,
-      modality: schema.students.modality,
+      phone: schema.student.phone,
+      firstName: schema.student.firstName,
+      modality: schema.student.modality,
     })
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.id, studentId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.id, studentId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     );
   if (!student?.phone || student.modality !== "online") return null;
@@ -624,15 +624,15 @@ export async function ingestInboundMessage(
   if (!conv) {
     const [student] = await ctx.db
       .select({
-        id: schema.students.id,
-        firstName: schema.students.firstName,
-        lastName: schema.students.lastName,
+        id: schema.student.id,
+        firstName: schema.student.firstName,
+        lastName: schema.student.lastName,
       })
-      .from(schema.students)
+      .from(schema.student)
       .where(
         and(
-          eq(schema.students.clinicId, ctx.clinicId),
-          eq(schema.students.phone, phone),
+          eq(schema.student.clinicId, ctx.clinicId),
+          eq(schema.student.phone, phone),
         ),
       );
     const [created] = await ctx.db
@@ -684,14 +684,14 @@ export async function ingestInboundMessage(
     if (!contactName && conv.studentId) {
       const [s] = await ctx.db
         .select({
-          firstName: schema.students.firstName,
-          lastName: schema.students.lastName,
+          firstName: schema.student.firstName,
+          lastName: schema.student.lastName,
         })
-        .from(schema.students)
+        .from(schema.student)
         .where(
           and(
-            eq(schema.students.id, conv.studentId),
-            eq(schema.students.clinicId, ctx.clinicId),
+            eq(schema.student.id, conv.studentId),
+            eq(schema.student.clinicId, ctx.clinicId),
           ),
         );
       if (s) contactName = `${s.firstName} ${s.lastName}`;
@@ -725,8 +725,8 @@ export async function listWaiting(
     .select(conversationColumns)
     .from(schema.whatsappConversation)
     .leftJoin(
-      schema.students,
-      eq(schema.students.id, schema.whatsappConversation.studentId),
+      schema.student,
+      eq(schema.student.id, schema.whatsappConversation.studentId),
     )
     .where(
       and(
@@ -815,8 +815,8 @@ async function selectQueueItems(
       createdAt: schema.whatsappMessage.createdAt,
       studentId: schema.whatsappConversation.studentId,
       phone: schema.whatsappConversation.phone,
-      studentFirst: schema.students.firstName,
-      studentLast: schema.students.lastName,
+      studentFirst: schema.student.firstName,
+      studentLast: schema.student.lastName,
     })
     .from(schema.whatsappMessage)
     .innerJoin(
@@ -824,8 +824,8 @@ async function selectQueueItems(
       eq(schema.whatsappConversation.id, schema.whatsappMessage.conversationId),
     )
     .leftJoin(
-      schema.students,
-      eq(schema.students.id, schema.whatsappConversation.studentId),
+      schema.student,
+      eq(schema.student.id, schema.whatsappConversation.studentId),
     )
     .where(filter)
     .orderBy(order)

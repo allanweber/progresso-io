@@ -76,7 +76,7 @@ export async function studentLinkBase(
   return (
     baseUrl +
     portalPathPrefix({
-      portalSubdomain: clinic.portalSubdomain,
+      portalSlug: clinic.portalSlug,
       effectivePlan: effectivePlanOf(clinic, new Date()),
     })
   );
@@ -162,7 +162,7 @@ export async function sendPortalInvite(
   const base = clinic
     ? baseUrl +
       portalPathPrefix({
-        portalSubdomain: clinic.portalSubdomain,
+        portalSlug: clinic.portalSlug,
         effectivePlan: effectivePlanOf(clinic, new Date()),
       })
     : baseUrl;

@@ -37,7 +37,7 @@ function alunoCtx(clinicId: string, userId: string): TenantContext {
 const today = () => new Date().toISOString().slice(0, 10);
 const fourPhotos = schema.CHECKIN_POSES.map((pose) => ({
   pose,
-  r2Key: `checkins/test-${pose}.webp`,
+  storageKey: `checkins/test-${pose}.webp`,
 }));
 
 beforeAll(async () => {
@@ -62,7 +62,7 @@ beforeAll(async () => {
   alunoCtxA = alunoCtx(clinicA.id, "aluno-a");
 
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       coachId: "coach-a",
@@ -71,7 +71,7 @@ beforeAll(async () => {
       lastName: "Silva",
       phone: "+5511999990000",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentA = sa.id;
 });
 
@@ -123,6 +123,7 @@ describe("coach check-in DAL", () => {
           circumferences: { cintura: 79 },
           skinfolds: { tricipital: 13 },
           bodyFatPct: 18.5,
+          protocol: "personalizada",
         },
       },
     );
@@ -150,7 +151,7 @@ describe("coach check-in DAL", () => {
     // A second feedback REPLACES the assessment (upsert on the unique checkin).
     await coachCheckins.submitFeedback(coachCtxA, studentA, created!.id, {
       feedback: "Ajuste: subir carga.",
-      assessment: { circumferences: { cintura: 78 }, skinfolds: {}, bodyFatPct: null },
+      assessment: { circumferences: { cintura: 78 }, skinfolds: {}, bodyFatPct: null, protocol: "personalizada" },
     });
     const after = await coachCheckins.getStudentCheckin(coachCtxA, studentA, created!.id);
     expect(after!.feedback).toBe("Ajuste: subir carga.");
@@ -173,6 +174,7 @@ describe("coach check-in DAL", () => {
         circumferences: { quadril: 98 },
         skinfolds: { abdominal: 20 },
         bodyFatPct: 17.9,
+        protocol: "personalizada",
       },
     });
     expect(created).toMatchObject({
@@ -264,6 +266,7 @@ describe("coach check-in DAL", () => {
         circumferences: { cintura: 80 },
         skinfolds: {},
         bodyFatPct: null,
+        protocol: "personalizada",
       },
     });
 
@@ -311,6 +314,7 @@ describe("coach check-in DAL", () => {
         circumferences: { cintura: 92 },
         skinfolds: {},
         bodyFatPct: null,
+        protocol: "personalizada",
       },
     });
     expect(created!.date).toBe("2024-03-11");
@@ -475,7 +479,7 @@ describe("coach check-in DAL", () => {
       .select()
       .from(schema.studentCheckinPhoto)
       .where(eq(schema.studentCheckinPhoto.id, left.id));
-    expect(stored.r2Key).toBe("checkins/test-lado_esquerdo.webp");
+    expect(stored.storageKey).toBe("checkins/test-lado_esquerdo.webp");
     expect(stored.pose).toBe("lado_direito");
 
     // Another clinic's coach cannot touch it, and neither can a bad photo id.
@@ -505,7 +509,7 @@ describe("coach check-in DAL", () => {
       modality: "in_person",
       weightKg: null,
       note: "Uma foto só.",
-      photos: [{ pose: "frente", r2Key: "checkins/test-only.webp" }],
+      photos: [{ pose: "frente", storageKey: "checkins/test-only.webp" }],
       assessment: null,
     });
     const detail = await coachCheckins.getStudentCheckin(
@@ -547,6 +551,7 @@ describe("coach check-in DAL", () => {
         circumferences: { cintura: 90 },
         skinfolds: {},
         bodyFatPct: null,
+        protocol: "personalizada",
       },
     });
     const before = await coachCheckins.getStudentCheckin(
@@ -566,12 +571,13 @@ describe("coach check-in DAL", () => {
         modality: "in_person",
         weightKg: 76.4,
         note: "Depois da correção.",
-        photos: [{ pose: "frente", r2Key: "checkins/test-new-frente.webp" }],
+        photos: [{ pose: "frente", storageKey: "checkins/test-new-frente.webp" }],
         removePoses: ["costas"],
         assessment: {
           circumferences: { cintura: 88 },
           skinfolds: {},
           bodyFatPct: null,
+          protocol: "personalizada",
         },
       },
     );
@@ -622,6 +628,7 @@ describe("coach check-in DAL", () => {
           circumferences: { cintura: 88 },
           skinfolds: {},
           bodyFatPct: null,
+          protocol: "personalizada",
         },
       },
     );

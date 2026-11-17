@@ -614,7 +614,7 @@ function PlanUsageRows() {
 
 type SettingsFormValues = {
   name: string;
-  portalSubdomain: string;
+  portalSlug: string;
   headline: string;
   description: string;
   whatsapp: string;
@@ -630,7 +630,7 @@ type SettingsFormValues = {
 function toValues(dto: ClinicSettingsDto): SettingsFormValues {
   return {
     name: dto.name,
-    portalSubdomain: dto.portalSubdomain ?? "",
+    portalSlug: dto.portalSlug ?? "",
     headline: dto.headline ?? "",
     description: dto.description ?? "",
     whatsapp: dto.whatsapp ?? "",
@@ -815,10 +815,10 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                 <div className="space-y-1.5">
                   <Label>Logo</Label>
                   <div className="flex items-center gap-3">
-                    {initial.hasLogo && initial.portalSubdomain ? (
+                    {initial.hasLogo && initial.portalSlug ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={clinicLogoUrl(initial.portalSubdomain)}
+                        src={clinicLogoUrl(initial.portalSlug)}
                         alt="Logo da clínica"
                         className="size-14 rounded-xl border border-border object-cover"
                       />
@@ -862,12 +862,12 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                 </div>
 
                 {/* Slug */}
-                <form.Field name="portalSubdomain">
+                <form.Field name="portalSlug">
                   {(field) => {
-                    const err = fieldError(field, serverErrors?.portalSubdomain);
+                    const err = fieldError(field, serverErrors?.portalSlug);
                     return (
                       <div className="space-y-1.5">
-                        <Label htmlFor="portalSubdomain">Endereço do portal</Label>
+                        <Label htmlFor="portalSlug">Endereço do portal</Label>
                         {/* Kept hand-rolled only for the `app.progresso.io/`
                             affix, which the shared Input cannot carry — but it
                             now wears the system's interactive stroke (1.5px)
@@ -884,21 +884,21 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                             app.progresso.io/
                           </span>
                           <input
-                            id="portalSubdomain"
+                            id="portalSlug"
                             value={field.state.value}
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="studio-forja"
                             aria-invalid={err ? true : undefined}
                             aria-describedby={
-                              err ? "portalSubdomain-error" : undefined
+                              err ? "portalSlug-error" : undefined
                             }
                             className="h-full w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
                           />
                         </div>
                         {err ? (
                           <p
-                            id="portalSubdomain-error"
+                            id="portalSlug-error"
                             className="text-body-dense text-destructive"
                           >
                             {err}
@@ -1021,7 +1021,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
                         </div>
                         <p className="text-label text-muted-foreground">
                           Colore os botões e destaques do seu portal público
-                          (app.progresso.io/{initial.portalSubdomain || "sua-clinica"}).
+                          (app.progresso.io/{initial.portalSlug || "sua-clinica"}).
                           Sem cor escolhida, usamos o verde padrão.
                         </p>
                         {err ? (

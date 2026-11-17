@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import { z } from "zod";
 import {
   CATEGORIES,
@@ -18,7 +19,7 @@ import {
   PTBR_FILE,
   readJson,
 } from "./exercisedb-vocab.mjs";
-import { readExerciseCatalog, repointExercise } from "./seed-exercises.mjs";
+import { readExerciseCatalog } from "./seed-exercises.mjs";
 
 export const OPS_FILE = join(DATA, "exercise-maintenance.json");
 export const ADDED_IMAGES_DIR = join(DATA, "exercise-images-added");
@@ -89,58 +90,50 @@ const OPPOSITE = {
   "remove-substitute": "add-substitute",
 };
 
-export function recordOp(ops, committed, op) {
-  const open = (o) => !committed.has(o.id) && o.code === op.code;
+export function recordOp(ops, op) {
+  const same = (o) => o.code === op.code;
   if (op.type === "update") {
-    const pending = ops.find((o) => open(o) && o.type === "update");
+    const pending = ops.find((o) => same(o) && o.type === "update");
     if (pending) {
       return ops.map((o) => (o === pending ? { ...o, at: op.at, fields: { ...o.fields, ...op.fields } } : o));
     }
     return [...ops, op];
   }
   if (op.type === "link") {
-    return [...ops.filter((o) => !(open(o) && o.type === "link")), op];
+    return [...ops.filter((o) => !(same(o) && o.type === "link")), op];
   }
   if (OPPOSITE[op.type]) {
-    const same = (o) => open(o) && (o.substitute ?? null) === (op.substitute ?? null);
-    const opposite = ops.find((o) => same(o) && o.type === OPPOSITE[op.type]);
+    const pair = (o) => same(o) && (o.substitute ?? null) === (op.substitute ?? null);
+    const opposite = ops.find((o) => pair(o) && o.type === OPPOSITE[op.type]);
     if (opposite) return ops.filter((o) => o !== opposite);
-    if (ops.some((o) => same(o) && o.type === op.type)) return ops;
+    if (ops.some((o) => pair(o) && o.type === op.type)) return ops;
   }
   return [...ops, op];
 }
 
-export function removeOp(ops, committed, id) {
-  if (committed.has(id)) return { ok: false, error: "Operação já commitada não pode ser removida." };
+export function removeOp(ops, id) {
   const op = ops.find((o) => o.id === id);
   if (!op) return { ok: false, error: "Operação não encontrada." };
-  const drop = (o) =>
-    o.id === id || (op.type === "create" && !committed.has(o.id) && (o.code === op.code || o.substitute === op.code));
+  const drop = (o) => o.id === id || (op.type === "create" && (o.code === op.code || o.substitute === op.code));
   const removed = ops.filter(drop);
   const keys = new Set(removed.filter((o) => o.type === "add-image").map((o) => o.key));
   const kept = ops
     .filter((o) => !drop(o))
     .map((o) =>
-      !committed.has(o.id) && o.type === "update" && o.fields.images?.some((k) => keys.has(k))
+      o.type === "update" && o.fields.images?.some((k) => keys.has(k))
         ? { ...o, fields: { ...o.fields, images: o.fields.images.filter((k) => !keys.has(k)) } }
         : o,
     );
   return { ok: true, ops: kept, removed };
 }
 
-export function discardPending(ops, committed) {
-  return { ops: ops.filter((o) => committed.has(o.id)), removed: ops.filter((o) => !committed.has(o.id)) };
-}
-
-export function pendingChanges(ops, committed) {
+export function pendingChanges(ops) {
   const state = buildState([]);
   const changes = [];
   for (const o of ops) {
-    if (!committed.has(o.id)) {
-      const current = state.get(o.code);
-      const fields = o.type === "update" ? Object.keys(o.fields) : o.type === "link" ? ["openGymId"] : null;
-      changes.push({ ...o, before: fields && Object.fromEntries(fields.map((k) => [k, current?.[k] ?? null])) });
-    }
+    const current = state.get(o.code);
+    const fields = o.type === "update" ? Object.keys(o.fields) : o.type === "link" ? ["openGymId"] : null;
+    changes.push({ ...o, before: fields && Object.fromEntries(fields.map((k) => [k, current?.[k] ?? null])) });
     applyOpToState(state, o);
   }
   return changes;
@@ -205,16 +198,16 @@ export function loadOpenGymCatalog() {
   });
 }
 
-export function loadCatalogState() {
-  const rules = existsSync(SUBSTITUTIONS_FILE) ? readJson(SUBSTITUTIONS_FILE).substitutions : [];
+export function loadCatalogState({ catalogFile = CATALOG_FILE, substitutionsFile = SUBSTITUTIONS_FILE } = {}) {
+  const rules = existsSync(substitutionsFile) ? readJson(substitutionsFile).substitutions : [];
   const subs = new Map(rules.map((r) => [r.exercise, r.substitutes ?? []]));
   return new Map(
-    readExerciseCatalog(CATALOG_FILE).map((e) => [
+    readExerciseCatalog(catalogFile).map((e) => [
       e.code,
       {
         code: e.code,
         name: e.name,
-        description: null,
+        description: e.description ?? null,
         nameEn: e.nameEn ?? null,
         instructionsEn: e.instructionsEn ?? [],
         category: e.category,
@@ -229,7 +222,7 @@ export function loadCatalogState() {
         imageCredits: e.imageCredits ?? {},
         source: e.source,
         openGymId: e.openGymId ?? null,
-        noMatch: false,
+        noMatch: e.noMatch ?? false,
         archived: false,
         mergedInto: null,
         substitutes: [...(subs.get(e.code) ?? [])],
@@ -310,175 +303,56 @@ export function applyOpToState(state, op) {
   return true;
 }
 
-export function buildState(ops) {
-  const state = loadCatalogState();
+export function buildState(ops, files) {
+  const state = loadCatalogState(files);
   for (const op of ops) applyOpToState(state, op);
   return state;
 }
 
-export function maintenanceSeedGuards(ops, catalog) {
-  const linkedIds = new Set(ops.filter((o) => o.type === "link" && o.openGymId).map((o) => o.openGymId));
-  const keepCodes = new Set(ops.filter((o) => o.type === "link").map((o) => o.code));
-  for (const e of catalog) if (e.openGymId && linkedIds.has(e.openGymId)) keepCodes.add(e.code);
-  const removedEdges = new Set(
-    ops.filter((o) => o.type === "remove-substitute").map((o) => `${o.code}:${o.substitute}`),
-  );
-  return { keepCodes, removedEdges };
+function catalogEntry(s) {
+  return {
+    code: s.code,
+    name: s.name,
+    nameEn: s.nameEn,
+    description: s.description,
+    instructions: s.instructions,
+    instructionsEn: s.instructionsEn,
+    category: s.category,
+    level: s.level,
+    force: s.force,
+    mechanic: s.mechanic,
+    equipment: s.equipment,
+    primaryMuscles: s.primaryMuscles,
+    secondaryMuscles: s.secondaryMuscles,
+    images: s.images,
+    imageCredits: s.imageCredits,
+    openGymId: s.openGymId,
+    noMatch: s.noMatch,
+    source: s.source,
+  };
 }
 
-const COLUMNS = {
-  name: "name",
-  nameEn: "name_en",
-  instructionsEn: "instructions_en",
-  description: "description",
-  instructions: "instructions",
-  category: "category",
-  level: "level",
-  force: "force",
-  mechanic: "mechanic",
-  equipment: "equipment",
-  primaryMuscles: "primary_muscles",
-  secondaryMuscles: "secondary_muscles",
-  images: "images",
-};
-
-async function baseRow(query, code) {
-  const [row] = await query(
-    "select id, opengym_id, source from exercise where code = $1 and clinic_id is null",
-    [code],
-  );
-  return row;
+function writeAtomic(file, body) {
+  const tmp = `${file}.tmp`;
+  writeFileSync(tmp, body);
+  renameSync(tmp, file);
 }
 
-async function applyOpToDb(query, op, uploadImage) {
-  if (op.type === "create") {
-    const f = op.fields;
-    const rows = await query(
-      `insert into exercise (
-        code, name, name_en, search_text, description, category, level, force, mechanic, equipment,
-        primary_muscles, secondary_muscles, instructions, instructions_en, images, source
-      ) values ($1, $2, $13, unaccent(lower(concat_ws(' ', $2::text, $13::text))), $3, $4, $5, $6, $7, $8, $9, $10, $14, $11, $12, 'custom')
-      on conflict (code) do nothing
-      returning id`,
-      [
-        op.code,
-        f.name,
-        f.description ?? null,
-        f.category,
-        f.level,
-        f.force ?? null,
-        f.mechanic ?? null,
-        f.equipment ?? null,
-        f.primaryMuscles,
-        f.secondaryMuscles ?? [],
-        f.instructions ?? [],
-        f.images ?? [],
-        f.nameEn ?? null,
-        f.instructionsEn ?? [],
-      ],
-    );
-    return rows.length ? null : "código já existe";
-  }
-
-  const row = await baseRow(query, op.code);
-  if (!row) return "exercício não encontrado";
-
-  if (op.type === "update") {
-    const sets = [];
-    const params = [row.id];
-    const text = { name: "name", nameEn: "name_en" };
-    for (const [field, value] of Object.entries(op.fields)) {
-      params.push(value);
-      sets.push(`${COLUMNS[field]} = $${params.length}`);
-      if (field in text) text[field] = `$${params.length}::text`;
-    }
-    if ("name" in op.fields || "nameEn" in op.fields) {
-      sets.push(`search_text = unaccent(lower(concat_ws(' ', ${text.name}, ${text.nameEn})))`);
-    }
-    if (sets.length) {
-      await query(`update exercise set ${sets.join(", ")}, updated_at = now() where id = $1`, params);
-    }
-    return null;
-  }
-  if (op.type === "archive" || op.type === "unarchive") {
-    await query("update exercise set archived = $2, updated_at = now() where id = $1", [
-      row.id,
-      op.type === "archive",
-    ]);
-    return null;
-  }
-  if (op.type === "add-image") {
-    await uploadImage(op.key);
-    await query(
-      `update exercise set images = array_append(images, $2),
-         image_credits = case when $3::jsonb is null then image_credits else image_credits || jsonb_build_object($2, $3::jsonb) end,
-         updated_at = now()
-       where id = $1 and not ($2 = any(images))`,
-      [row.id, op.key, op.credit ? JSON.stringify(op.credit) : null],
-    );
-    return null;
-  }
-  if (op.type === "add-substitute" || op.type === "remove-substitute") {
-    const sub = await baseRow(query, op.substitute);
-    if (!sub) return "substituto não encontrado";
-    if (sub.id === row.id) return "mesmo exercício";
-    if (op.type === "remove-substitute") {
-      await query(
-        "delete from exercise_substitution where clinic_id is null and exercise_id = $1 and substitute_exercise_id = $2",
-        [row.id, sub.id],
-      );
-      return null;
-    }
-    await query(
-      `insert into exercise_substitution (clinic_id, exercise_id, substitute_exercise_id)
-       select null, $1, $2 where not exists (
-         select 1 from exercise_substitution
-         where clinic_id is null and exercise_id = $1 and substitute_exercise_id = $2)`,
-      [row.id, sub.id],
-    );
-    return null;
-  }
-  if (op.type === "link") {
-    if (op.openGymId === null) {
-      await query("update exercise set opengym_id = null, updated_at = now() where id = $1", [row.id]);
-      return null;
-    }
-    if (row.opengym_id === op.openGymId) return null;
-    const [holder] = await query("select id, source, clinic_id from exercise where opengym_id = $1", [
-      op.openGymId,
-    ]);
-    if (holder && holder.clinic_id !== null) return "openGym id em exercício de clínica";
-    if (holder) {
-      const merge = holder.source === "exercisedb";
-      await query(
-        `update exercise set opengym_id = null, archived = archived or $2, updated_at = now() where id = $1`,
-        [holder.id, merge],
-      );
-      if (merge) await repointExercise(query, holder.id, row.id);
-    }
-    await query("update exercise set opengym_id = $2, updated_at = now() where id = $1", [
-      row.id,
-      op.openGymId,
-    ]);
-    return null;
-  }
-  return `tipo desconhecido: ${op.type}`;
+export function writeCatalog(state, { catalogFile = CATALOG_FILE, substitutionsFile = SUBSTITUTIONS_FILE } = {}) {
+  const kept = [...state.values()].filter((s) => !s.archived).sort((a, b) => a.code.localeCompare(b.code));
+  const lines = kept.map((s) => JSON.stringify(catalogEntry(s))).join("\n") + "\n";
+  writeAtomic(catalogFile, gzipSync(Buffer.from(lines, "utf8")));
+  const live = new Set(kept.map((s) => s.code));
+  const substitutions = kept
+    .map((s) => ({ exercise: s.code, substitutes: s.substitutes.filter((c) => live.has(c)) }))
+    .filter((r) => r.substitutes.length > 0);
+  const doc = existsSync(substitutionsFile) ? readJson(substitutionsFile) : {};
+  writeAtomic(substitutionsFile, JSON.stringify({ ...doc, substitutions }, null, 2) + "\n");
+  return { exercises: kept.length, substitutions: substitutions.length };
 }
 
-export async function applyExerciseMaintenance(query, ops, { uploadImage = async () => {} } = {}) {
-  const doneRows = await query("select id from exercise_maintenance_op");
-  const done = new Set(doneRows.map((r) => r.id));
-  const result = { applied: 0, skipped: [] };
-  for (const op of ops) {
-    if (done.has(op.id)) continue;
-    const reason = await applyOpToDb(query, op, uploadImage);
-    await query("insert into exercise_maintenance_op (id, status, detail) values ($1, $2, $3)", [
-      op.id,
-      reason ? "skipped" : "applied",
-      reason,
-    ]);
-    if (reason) result.skipped.push({ id: op.id, code: op.code, type: op.type, reason });
-    else result.applied++;
-  }
+export function foldOps(ops, files) {
+  const result = writeCatalog(buildState(ops, files), files);
+  writeOps([], files?.opsFile);
   return result;
 }

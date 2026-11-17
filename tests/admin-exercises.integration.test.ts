@@ -31,6 +31,7 @@ async function addExercise(e: {
       code: e.code ?? null,
       name: e.name,
       searchText: sql`unaccent(lower(${e.name}))`,
+      source: "free-exercise-db",
       category: e.category ?? "strength",
       level: "intermediate",
       equipment: e.equipment ?? null,

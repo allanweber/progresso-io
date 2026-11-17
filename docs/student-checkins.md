@@ -36,7 +36,7 @@ student_checkin
 student_checkin_photo
   id, clinic_id, checkin_id (cascade),
   pose 'frente'|'costas'|'lado_esquerdo'|'lado_direito',
-  r2_key, sort_order
+  storage_key, sort_order
   unique (checkin_id, pose)   -- one photo per pose per check-in
 ```
 

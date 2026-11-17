@@ -4,11 +4,10 @@
 // This runs AUTOMATICALLY on deploy — scripts/migrate.mjs calls
 // uploadExerciseImages() right after seeding — so no manual step is needed.
 //
-// Image source: the images are NOT committed to the repo (100 MB of binaries).
-// Instead the keys come from the seed catalog, and each image is read from a
-// local folder if present (drizzle/data/exercises-images/, populated by
-// `pnpm db:fetch-exercise-images` for a fast local upload) or streamed from
-// the free-exercise-db CDN otherwise (the deploy path — nothing to clone).
+// Image source: the images are NOT committed to the repo. The keys come from
+// the seed catalog; an `added/` image is read from
+// drizzle/data/exercise-images-added/, every other one is streamed from the
+// free-exercise-db CDN.
 //
 // Required env (see .env.example): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
 // R2_SECRET_ACCESS_KEY, R2_BUCKET. Optional: R2_PREFIX. When any is missing the
@@ -16,7 +15,7 @@
 //
 // Idempotent: after a full upload it writes a small manifest object; subsequent
 // runs see the manifest (a single HEAD) and skip. Delete it to force a re-upload.
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
@@ -25,7 +24,7 @@ import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s
 import { imageContentType, imageSourceUrl } from "./lib/exercise-image-sources.mjs";
 
 const CATALOG = join(process.cwd(), "drizzle", "data", "exercises-catalog.ndjson.gz");
-const IMAGES_DIR = join(process.cwd(), "drizzle", "data", "exercises-images");
+const ADDED_IMAGES_DIR = join(process.cwd(), "drizzle", "data", "exercise-images-added");
 const MANIFEST_KEY = ".exercises-manifest.json";
 const CONCURRENCY = 16;
 
@@ -38,10 +37,9 @@ function imageKeys() {
     .flatMap((l) => JSON.parse(l).images ?? []);
 }
 
-/** Loads one image as a Buffer — from the local folder if present, else the CDN. */
+/** Loads one image as a Buffer — an added image from disk, else the CDN. */
 async function loadImage(key) {
-  const local = join(IMAGES_DIR, key);
-  if (existsSync(local)) return readFileSync(local);
+  if (key.startsWith("added/")) return readFileSync(join(ADDED_IMAGES_DIR, key.slice("added/".length)));
   const res = await fetch(imageSourceUrl(key));
   if (!res.ok) throw new Error(`source ${res.status} for ${key}`);
   return Buffer.from(await res.arrayBuffer());
@@ -61,25 +59,6 @@ function r2Client() {
       requestChecksumCalculation: "WHEN_REQUIRED",
       responseChecksumValidation: "WHEN_REQUIRED",
     }),
-  };
-}
-
-export function addedImageUploader(fileFor, { log = console.log } = {}) {
-  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = process.env;
-  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
-    return async (key) => log(`• R2 not configured — image ${key} attached but not uploaded.`);
-  }
-  const { s3, prefix } = r2Client();
-  return async (key) => {
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: prefix + key,
-        Body: readFileSync(fileFor(key)),
-        ContentType: imageContentType(key),
-        CacheControl: "public, max-age=31536000, immutable",
-      }),
-    );
   };
 }
 
@@ -128,8 +107,7 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
     // No manifest (or not readable) — do a full upload below.
   }
 
-  const source = existsSync(IMAGES_DIR) ? "local folder" : "source CDN";
-  log(`Uploading ${keys.length} exercise images to R2 "${R2_BUCKET}" (from ${source})…`);
+  log(`Uploading ${keys.length} exercise images to R2 "${R2_BUCKET}"…`);
   let done = 0;
   let cursor = 0;
   async function worker() {
@@ -164,11 +142,4 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
 
   log(`✓ Uploaded ${done} exercise images.`);
   return { skipped: false, uploaded: done };
-}
-
-// Allow running the uploader directly: `pnpm db:upload-exercise-images`.
-if (import.meta.url === `file://${process.argv[1]}`) {
-  await import("dotenv/config");
-  const result = await uploadExerciseImages();
-  if (result.skipped && result.reason === "no-config") process.exitCode = 1;
 }

@@ -54,7 +54,7 @@ merged from the stored data (they win over a library sub for the same exercise).
 
 ## Schema
 
-Tables (`src/db/schema.ts`), migration `0011_workouts`:
+Tables (`src/db/schema.ts`), migration `0000_init`:
 
 - **`workout`** — `clinic_id` (NULL = a future base template), `coach_id`,
   `name`, `notes`, `archived`, timestamps.

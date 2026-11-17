@@ -507,17 +507,11 @@ export function WorkoutBuilder({
       if (!raw) return;
       const saved = JSON.parse(raw) as Draft;
       if (saved && Array.isArray(saved.sessions)) {
-        // A draft written before the ficha padrão existed has no `defaults` —
-        // recover it from the exercises rather than dropping the row.
-        const sessions = saved.sessions.map((s) => ({
-          ...s,
-          defaults: s.defaults ?? inferDefaults(s.exercises ?? []),
-        }));
         form.setFieldValue("name", saved.name ?? "");
         form.setFieldValue("notes", saved.notes ?? "");
         form.setFieldValue("cardio", saved.cardio ?? "");
         /* eslint-disable react-hooks/set-state-in-effect */
-        setSessions(sessions);
+        setSessions(saved.sessions);
         setRecovered(true);
         /* eslint-enable react-hooks/set-state-in-effect */
         dirtyRef.current = true;

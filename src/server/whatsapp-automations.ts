@@ -131,16 +131,16 @@ export async function runCheckinReminders(
     const [activeStudents, lastCheckins, remindedRows] = await Promise.all([
       database
         .select({
-          id: schema.students.id,
-          firstName: schema.students.firstName,
-          createdAt: schema.students.createdAt,
+          id: schema.student.id,
+          firstName: schema.student.firstName,
+          createdAt: schema.student.createdAt,
         })
-        .from(schema.students)
+        .from(schema.student)
         .where(
           and(
-            eq(schema.students.clinicId, clinic.id),
-            eq(schema.students.status, "active"),
-            isNotNull(schema.students.phone),
+            eq(schema.student.clinicId, clinic.id),
+            eq(schema.student.status, "active"),
+            isNotNull(schema.student.phone),
           ),
         ),
       database

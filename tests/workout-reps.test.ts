@@ -29,23 +29,10 @@ describe("normalizeReps (backward compatibility)", () => {
     );
   });
 
-  it("upgrades the legacy range shape { min, max } to a sequence", () => {
-    // Workouts saved before reps became a sequence.
-    expect(normalizeReps({ kind: "range", min: 8, max: 12 })).toEqual({
-      kind: "range",
-      values: [8, 12],
-    });
-  });
-
   it("degrades unrecognisable data to Falha instead of throwing", () => {
     expect(normalizeReps(null)).toEqual({ kind: "failure" });
     expect(normalizeReps({ kind: "range" })).toEqual({ kind: "failure" });
     expect(normalizeReps({})).toEqual({ kind: "failure" });
-  });
-
-  it("formatReps renders a legacy range without crashing", () => {
-    // The bug: a stored { kind:"range", min, max } crashed the detail render.
-    expect(formatReps({ kind: "range", min: 8, max: 10 } as never)).toBe("8-10");
   });
 
   it("formats a duration in seconds, minutes or mm:ss", () => {

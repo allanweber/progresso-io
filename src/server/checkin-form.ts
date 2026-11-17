@@ -82,30 +82,28 @@ export async function parseCoachCheckinForm(
     return { ok: false, response: validationError(parsed.error) };
   }
 
-  // Optional assessment, carried as a JSON field.
   const rawAssessment = form.get("assessment");
-  let assessmentInput: unknown = {};
+  let assessment: AssessmentWriteInput = null;
   if (typeof rawAssessment === "string" && rawAssessment.trim() !== "") {
+    let assessmentInput: unknown;
     try {
       assessmentInput = JSON.parse(rawAssessment);
     } catch {
       return { ok: false, response: apiError("Avaliação inválida.", 400) };
     }
-  }
-  const parsedAssessment = assessmentSchema.safeParse(assessmentInput);
-  if (!parsedAssessment.success) {
-    return { ok: false, response: validationError(parsedAssessment.error) };
-  }
-  const assessment: AssessmentWriteInput = assessmentHasValues(
-    parsedAssessment.data,
-  )
-    ? {
+    const parsedAssessment = assessmentSchema.safeParse(assessmentInput);
+    if (!parsedAssessment.success) {
+      return { ok: false, response: validationError(parsedAssessment.error) };
+    }
+    if (assessmentHasValues(parsedAssessment.data)) {
+      assessment = {
         circumferences: parsedAssessment.data.circumferences,
         skinfolds: parsedAssessment.data.skinfolds,
         bodyFatPct: parsedAssessment.data.bodyFatPct,
         protocol: parsedAssessment.data.protocol,
-      }
-    : null;
+      };
+    }
+  }
 
   // Optional photos (0–4); each must be a valid, small (compressed) image.
   const photoFiles: { pose: CheckinPose; file: File }[] = [];
@@ -148,7 +146,7 @@ export async function storeCheckinPhotos(
   const stored: CheckinPhotoInput[] = [];
   for (const { pose, file } of files) {
     const buffer = Buffer.from(await file.arrayBuffer());
-    stored.push({ pose, r2Key: await putCheckinPhoto(buffer, file.type) });
+    stored.push({ pose, storageKey: await putCheckinPhoto(buffer, file.type) });
   }
   return stored;
 }

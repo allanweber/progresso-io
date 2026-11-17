@@ -24,12 +24,12 @@ async function studentExists(
   studentId: string,
 ): Promise<boolean> {
   const [row] = await ctx.db
-    .select({ id: schema.students.id })
-    .from(schema.students)
+    .select({ id: schema.student.id })
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.id, studentId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.id, studentId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     )
     .limit(1);

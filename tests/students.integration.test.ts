@@ -384,7 +384,7 @@ describe("onboarding: anamnese invite vs portal access", () => {
     async function setPortal(slug: string | null, plan: schema.Plan) {
       await db
         .update(schema.clinic)
-        .set({ portalSubdomain: slug, plan, trialEndsAt: null })
+        .set({ portalSlug: slug, plan, trialEndsAt: null })
         .where(eq(schema.clinic.id, ctx.clinicId));
     }
 
@@ -411,7 +411,7 @@ describe("onboarding: anamnese invite vs portal access", () => {
       await db
         .update(schema.clinic)
         .set({
-          portalSubdomain: "studio-forja",
+          portalSlug: "studio-forja",
           plan: "free",
           intendedPlan: "clinica",
           trialEndsAt: new Date(Date.now() + 86_400_000),
@@ -473,9 +473,9 @@ describe("onboarding: anamnese invite vs portal access", () => {
     const student = await onlineStudentWithAnamnesis("already-active@example.com");
     // Simulate an activated login.
     await db
-      .update(schema.students)
+      .update(schema.student)
       .set({ userId: ctx.userId })
-      .where(eq(schema.students.id, student.id));
+      .where(eq(schema.student.id, student.id));
 
     const result = await sendPortalInvite(ctx, student.id, base);
     expect(result).toEqual({ ok: false, reason: "already_active" });

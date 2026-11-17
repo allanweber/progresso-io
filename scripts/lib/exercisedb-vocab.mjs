@@ -4,7 +4,6 @@ import { join } from "node:path";
 export const DATA = join(process.cwd(), "drizzle", "data");
 export const EXERCISEDB_FILE = join(DATA, "exercisedb-src", "exercisedb.json");
 export const EXERCISEDB_PTBR_FILE = join(DATA, "exercisedb-src", "exercisedb-ptbr.json");
-export const FREE_DB_FILE = join(DATA, "exercises-src", "free-exercise-db.json");
 export const PTBR_FILE = join(DATA, "exercises-src", "exercicios-ptbr-full.json");
 export const MATCHES_FILE = join(DATA, "opengym-matches.json");
 

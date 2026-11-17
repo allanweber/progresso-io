@@ -287,9 +287,8 @@ function requireOnlineContact(requireContact: boolean) {
  * Wraps a student schema so `sex` and `birthDate` may be **absent** from the
  * payload, not merely blank.
  *
- * Both fields are optional by design, and a schema that still demanded the keys
- * would break every caller written before they existed — a JSON body without
- * them is not a malformed request, it is a coach who never filled them in. The
+ * Both fields are optional by design — a JSON body without them is not a
+ * malformed request, it is a coach who never filled them in. The
  * forms are unaffected: they hold every key already, and their validator has to
  * keep the exact value type they hold, which is why the base object cannot use
  * `.default()` for this.

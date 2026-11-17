@@ -10,18 +10,11 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
 import {
-  addedImageFile,
-  applyExerciseMaintenance,
-  maintenanceSeedGuards,
-  readOps,
-} from "./lib/exercise-maintenance.mjs";
-import {
-  backfillExerciseEnglish,
   readExerciseCatalog,
   seedExerciseCatalog,
   seedExerciseSubstitutionEdges,
 } from "./lib/seed-exercises.mjs";
-import { addedImageUploader, uploadExerciseImages } from "./upload-exercise-images.mjs";
+import { uploadExerciseImages } from "./upload-exercise-images.mjs";
 
 const CATALOG = "./drizzle/data/taco-catalog.ndjson.gz";
 const SUPPLEMENT = "./drizzle/data/taco-supplement.json";
@@ -292,7 +285,7 @@ async function seedMeasures(sql) {
   );
 }
 
-async function seedExercises(sql, guards) {
+async function seedExercises(sql) {
   let exercises;
   try {
     exercises = readExerciseCatalog(EXERCISES);
@@ -300,17 +293,11 @@ async function seedExercises(sql, guards) {
     console.log(`• No exercise artifact at ${EXERCISES} — skipping exercise seed.`);
     return;
   }
-  const { inserted, linked, english } = await sql.begin(async (tx) => {
-    const query = (text, params) => tx.unsafe(text, params);
-    const seeded = await seedExerciseCatalog(query, exercises, guards);
-    return { ...seeded, english: await backfillExerciseEnglish(query, exercises) };
-  });
-  console.log(
-    `✓ Exercise catalog: ${inserted} new, ${linked} linked to openGym, ${english} given English names (of ${exercises.length}).`,
-  );
+  const { inserted } = await seedExerciseCatalog((text, params) => sql.unsafe(text, params), exercises);
+  console.log(`✓ Exercise catalog: ${inserted} new (of ${exercises.length}).`);
 }
 
-async function seedExerciseSubstitutions(sql, guards) {
+async function seedExerciseSubstitutions(sql) {
   let doc;
   try {
     doc = JSON.parse(readFileSync(EXERCISE_SUBS, "utf8"));
@@ -318,26 +305,11 @@ async function seedExerciseSubstitutions(sql, guards) {
     console.log(`• No exercise substitutions at ${EXERCISE_SUBS} — skipping.`);
     return;
   }
-  const { inserted, skipped } = await sql.begin((tx) =>
-    seedExerciseSubstitutionEdges(
-      (text, params) => tx.unsafe(text, params),
-      doc.substitutions ?? [],
-      guards,
-    ),
+  const { inserted } = await seedExerciseSubstitutionEdges(
+    (text, params) => sql.unsafe(text, params),
+    doc.substitutions ?? [],
   );
-  console.log(
-    `✓ Base exercise substitutions: ${inserted} new${skipped ? ` (${skipped} skipped)` : ""}.`,
-  );
-}
-
-async function seedExerciseMaintenance(sql, ops) {
-  if (ops.length === 0) return;
-  const uploadImage = addedImageUploader(addedImageFile);
-  const { applied, skipped } = await sql.begin((tx) =>
-    applyExerciseMaintenance((text, params) => tx.unsafe(text, params), ops, { uploadImage }),
-  );
-  console.log(`✓ Exercise maintenance: ${applied} operations applied, ${skipped.length} skipped.`);
-  for (const s of skipped) console.warn(`  • skipped ${s.id} (${s.type} ${s.code}): ${s.reason}`);
+  console.log(`✓ Base exercise substitutions: ${inserted} new.`);
 }
 
 /**
@@ -393,15 +365,8 @@ try {
   await seedSupplement(sql);
   await seedSubstitutions(sql);
   await seedMeasures(sql);
-  const maintenanceOps = readOps();
-  let catalog = [];
-  try {
-    catalog = readExerciseCatalog(EXERCISES);
-  } catch {}
-  const guards = maintenanceSeedGuards(maintenanceOps, catalog);
-  await seedExercises(sql, guards);
-  await seedExerciseSubstitutions(sql, guards);
-  await seedExerciseMaintenance(sql, maintenanceOps);
+  await seedExercises(sql);
+  await seedExerciseSubstitutions(sql);
   await seedWhatsappTemplates(sql);
   // Push the exercise images to R2 (idempotent; skips when R2 isn't configured
   // or already uploaded). Non-fatal: a failed upload must not fail the deploy —

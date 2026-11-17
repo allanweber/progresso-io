@@ -8,16 +8,10 @@ same exercise `id` (873 rows in each, a perfect 1:1 join):
 | `free-exercise-db.json` | [yuhonas/free-exercise-db](https://github.com/yuhonas/free-exercise-db) (`dist/exercises.json`) | The Unlicense (public domain) | Stable enum values (category, level, force, mechanic, equipment, muscles) and the image keys. Also the source of the exercise **images**. |
 | `exercicios-ptbr-full.json` | [joao-gugel/exercicios-bd-ptbr](https://github.com/joao-gugel/exercicios-bd-ptbr) (`exercises/exercises-ptbr-full-translation.json`) | Translation of the above | The Brazilian-Portuguese `name` and `instructions`. |
 
-## Pipeline
-
-1. `pnpm db:transform-exercises` — joins the two files on `id`, keeping PT-BR
-   text from the translation and normalized enum slugs from free-exercise-db,
-   and writes `drizzle/data/exercises-catalog.ndjson.gz` (the seed artifact).
-2. `pnpm db:fetch-exercise-images` — downloads every image referenced by the
-   artifact into `drizzle/data/exercises-images/<id>/<n>.jpg` (versioned in the
-   repo, so the seed is self-contained and no CDN is hit at deploy time).
-3. `pnpm db:upload-exercise-images` — uploads that local image folder to the
-   Cloudflare R2 bucket the app serves images from (see `.env.example`).
+These files are the provenance of the catalog. The curated result lives in
+`../exercises-catalog.ndjson.gz` (see `docs/exercise-catalog.md`); the
+maintenance tool (`pnpm db:maintain-exercises`) reads the PT-BR translation for
+names.
 
 ## ExerciseDB (openGym ids)
 
@@ -29,36 +23,10 @@ exercise ids of the openGym app. The media in that repository (© Gym visual) is
 not covered by its MIT licence and is never fetched or stored here. See
 `docs/adr/0001-seed-opengym-mit-subset-into-our-catalog.md`.
 
-1. `pnpm db:fetch-exercisedb` — downloads the dataset and writes the text-only copy.
-2. `pnpm db:match-opengym-exercises` — proposes, for each ExerciseDB exercise, the
-   free-exercise-db exercise that is the same one (exact name match, else Claude
-   via OpenRouter picking among heuristic candidates) into
-   `../opengym-matches.json`. Reviewed by hand; a match is fixed by editing `code`.
-3. `pnpm db:enrich-exercisedb` — for the unmatched ones, Claude writes the PT-BR
-   name and instructions and classifies them into our enums, into
-   `../exercisedb-src/exercisedb-ptbr.json`. Reviewed by hand.
-4. `pnpm db:transform-exercises` then `pnpm db:build-exercise-substitutions` — the
-   catalog artifact gains `openGymId` on matched rows and the new rows
-   (`code` = `exercisedb-<id>`, no images).
-
-Steps 2 and 3 resume where they stopped and need `LLM_API_KEY`.
-
-## wger images (ExerciseDB exercises)
-
-61 ExerciseDB exercises are illustrated with images from [wger](https://wger.de),
-licensed CC-BY-SA 3.0/4.0 (attribution + share-alike; a few are AI-generated and
-flagged so). Each image keeps its original file, and its author, licence and wger
-page are stored in `exercise.image_credits` and shown under the exercise's images.
-
-1. `../wger-matches.json` — hand-reviewed pairs of an image-less ExerciseDB
-   exercise and the wger exercise that is the same movement. Only exact
-   equivalents are listed; a variant (other equipment, grip or stance) is not.
-2. `pnpm db:fetch-wger-images` — reads the wger API and writes
-   `../wger-images.json` (up to 2 images per exercise: key, source URL, credit).
-3. `pnpm db:transform-exercises` — puts those keys and credits on the rows.
-
-`pnpm db:fetch-exercise-images` and the R2 upload take each wger key from its
-wger URL and every other key from free-exercise-db.
+The maintenance tool reads this file, `exercisedb-ptbr.json` (PT-BR names,
+instructions and enum classification for the unmatched ones) and
+`../opengym-matches.json` (the free-exercise-db exercise each one matches) to
+offer the openGym catalog when linking an exercise.
 
 ```
 MIT License

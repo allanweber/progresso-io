@@ -511,7 +511,7 @@ async function seedAlunoCheckins(
         clinicId,
         checkinId,
         pose,
-        r2Key: `checkins/seed-${date}-${pose}.webp`,
+        storageKey: `checkins/seed-${date}-${pose}.webp`,
         sortOrder: i,
       })),
     );
@@ -542,6 +542,7 @@ async function seedAlunoCheckins(
         studentId,
         date,
         author: "student",
+        modality: "online",
         authorUserId,
         weightKg: p.weightKg,
         note: p.note,
@@ -563,6 +564,8 @@ async function seedAlunoCheckins(
         circumferences: { cintura: 82, abdomen: 86, quadril: 100, braco_direito: 34, torax: 97, coxa_direita: 57 },
         skinfolds: { tricipital: 16, subescapular: 18, suprailiaca: 20, abdominal: 24, coxa: 22 },
         bodyFatPct: 21.5,
+        bodyFatSource: "manual",
+        protocol: "personalizada",
         recordedByUserId: coachUserId,
       });
     }
@@ -605,6 +608,8 @@ async function seedAlunoCheckins(
     circumferences: { cintura: 79, abdomen: 82, quadril: 98, braco_direito: 34.5, torax: 96, coxa_direita: 56 },
     skinfolds: { tricipital: 13, subescapular: 15, suprailiaca: 17, abdominal: 20, coxa: 19 },
     bodyFatPct: 18.5,
+    bodyFatSource: "manual",
+    protocol: "personalizada",
     recordedByUserId: coachUserId,
   });
 
@@ -710,7 +715,7 @@ async function seed() {
       // supersedes it (a trial only applies while the plan is still `free`).
       // Cleared anyway so the demo data says exactly what it means.
       trialEndsAt: null,
-      portalSubdomain: "studio-forja",
+      portalSlug: "studio-forja",
       headline: "Treinamento e nutrição personalizados",
       description:
         "Acompanhamento individual de treino e dieta, com check-ins e ajustes contínuos.",
@@ -761,17 +766,17 @@ async function seed() {
   // Link the aluno to the coach inside the clinic.
   const link = await db
     .select()
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.clinicId, coachClinic.id),
-        eq(schema.students.email, alunoEmail),
+        eq(schema.student.clinicId, coachClinic.id),
+        eq(schema.student.email, alunoEmail),
       ),
     );
   let studentId = link[0]?.id;
   if (!studentId) {
     const [row] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({
         clinicId: coachClinic.id,
         coachId: coach.id,
@@ -783,7 +788,7 @@ async function seed() {
         status: "active",
         modality: "online",
       })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     studentId = row.id;
     console.info("✓ linked aluno to coach");
   }
@@ -816,9 +821,9 @@ async function seed() {
   // profile cards and the bell have real content. Idempotent: skipped once the
   // aluno already has a completed anamnese.
   await db
-    .update(schema.students)
+    .update(schema.student)
     .set({ phone: normalizePhone("11999990000") })
-    .where(and(eq(schema.students.id, studentId), isNull(schema.students.phone)));
+    .where(and(eq(schema.student.id, studentId), isNull(schema.student.phone)));
 
   const studentAnamneses = await import("@/server/dal/student-anamneses");
   const notificationsDal = await import("@/server/dal/notifications");
@@ -1138,8 +1143,7 @@ async function seed() {
   // `upstreamProvider` differs between rows on purpose: the same model slug is
   // served by several hosts at different prices, and the Modelos tab exists to
   // make that visible. None of them carries a reported cost, so the demo also
-  // exercises the `provider_price` estimate path — which is the one that has to
-  // keep working for rows written before the OpenRouter switch.
+  // exercises the `provider_price` estimate path.
   const existingAiGenerations = await db
     .select({ id: schema.aiGeneration.id })
     .from(schema.aiGeneration)

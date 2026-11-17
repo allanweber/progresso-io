@@ -115,9 +115,9 @@ describe("coach team (roster + ownership + removal)", () => {
       firstName: "B", lastName: "Dois", coachId: coach2,
     });
     await db
-      .update(schema.students)
+      .update(schema.student)
       .set({ status: "archived" })
-      .where(eq(schema.students.id, archived.id));
+      .where(eq(schema.student.id, archived.id));
     await studentsDal.createStudent(owner, {
       firstName: "C", lastName: "Três", coachId: owner.userId,
     });
@@ -148,9 +148,9 @@ describe("coach team (roster + ownership + removal)", () => {
     expect(user).toBeUndefined(); // hard-deleted
 
     const [moved] = await db
-      .select({ coachId: schema.students.coachId })
-      .from(schema.students)
-      .where(eq(schema.students.id, s.id));
+      .select({ coachId: schema.student.coachId })
+      .from(schema.student)
+      .where(eq(schema.student.id, s.id));
     expect(moved.coachId).toBe(owner.userId); // transferred to the owner
   });
 

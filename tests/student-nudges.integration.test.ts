@@ -54,7 +54,7 @@ async function activeStudent(
 ): Promise<string> {
   phoneCounter += 1;
   const [student] = await h
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: ctx.clinicId,
       firstName: "Aluno",
@@ -63,7 +63,7 @@ async function activeStudent(
       status: "active",
       createdAt: new Date(`${createdAt}T00:00:00Z`),
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   return student.id;
 }
 
@@ -73,6 +73,7 @@ async function checkinOn(ctx: TenantContext, studentId: string, date: string) {
     studentId,
     date,
     author: "student",
+    modality: "online",
   });
 }
 

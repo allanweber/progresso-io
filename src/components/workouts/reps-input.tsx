@@ -16,7 +16,6 @@ import {
 import {
   DEFAULT_DURATION_SECONDS,
   formatSeconds,
-  normalizeReps,
   type WorkoutReps,
 } from "@/lib/workouts";
 
@@ -151,14 +150,12 @@ function SequenceEditor({
  * stores and the API validates.
  */
 export function RepsInput({
-  value: rawValue,
+  value,
   onChange,
 }: {
   value: WorkoutReps;
   onChange: (reps: WorkoutReps) => void;
 }) {
-  // Tolerate a legacy stored shape when editing an older workout.
-  const value = normalizeReps(rawValue);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (

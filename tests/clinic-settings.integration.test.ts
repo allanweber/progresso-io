@@ -45,12 +45,12 @@ describe("clinic settings", () => {
     expect(before!.feedbackFrequency).toBe("semanal");
     expect(before!.feedbackPreferredDay).toBe("monday");
     expect(before!.feedbackWhatsappReminder).toBe(true);
-    expect(before!.portalSubdomain).toBeNull();
+    expect(before!.portalSlug).toBeNull();
     const originalPlan = before!.plan;
 
     await clinics.updateClinicSettings(ctx, {
       name: "Studio Forja",
-      portalSubdomain: "studio-forja",
+      portalSlug: "studio-forja",
       headline: null,
       description: null,
       whatsapp: null,
@@ -66,7 +66,7 @@ describe("clinic settings", () => {
     const after = await clinics.getClinicSettings(ctx);
     expect(after).toMatchObject({
       name: "Studio Forja",
-      portalSubdomain: "studio-forja",
+      portalSlug: "studio-forja",
       feedbackFrequency: "mensal",
       feedbackPreferredDay: "friday",
       feedbackWhatsappReminder: false,
@@ -82,7 +82,7 @@ describe("clinic settings", () => {
 
     await clinics.updateClinicSettings(ctxA, {
       name: "Clínica B",
-      portalSubdomain: "clinica-b",
+      portalSlug: "clinica-b",
       headline: null,
       description: null,
       whatsapp: null,
@@ -98,7 +98,7 @@ describe("clinic settings", () => {
     // B's write did not leak into C's clinic.
     const cSettings = await clinics.getClinicSettings(ctxB);
     expect(cSettings!.name).not.toBe("Clínica B");
-    expect(cSettings!.portalSubdomain).toBeNull();
+    expect(cSettings!.portalSlug).toBeNull();
 
     // The subdomain is taken from another clinic's point of view…
     expect(await clinics.isSubdomainTaken(ctxB, "clinica-b")).toBe(true);
@@ -135,7 +135,7 @@ describe("public branded portal", () => {
     const ctx = await coachContext("brand-a@example.com", "Brand A");
     await clinics.updateClinicSettings(ctx, {
       name: "Brand A",
-      portalSubdomain: "brand-a",
+      portalSlug: "brand-a",
       ...branding,
     });
 
@@ -168,7 +168,7 @@ describe("public branded portal", () => {
       .where(eq(schema.clinic.id, ctx.clinicId));
     await clinics.updateClinicSettings(ctx, {
       name: "Brand B",
-      portalSubdomain: "brand-b",
+      portalSlug: "brand-b",
       ...branding,
     });
     expect(await clinics.getPublicClinicBySlug(h, "brand-b")).not.toBeNull();
@@ -191,7 +191,7 @@ describe("public branded portal", () => {
     const ctx = await coachContext("brand-c@example.com", "Brand C");
     await clinics.updateClinicSettings(ctx, {
       name: "Brand C",
-      portalSubdomain: "brand-c",
+      portalSlug: "brand-c",
       ...branding,
     });
 
@@ -211,6 +211,6 @@ describe("public branded portal", () => {
       .set({ trialEndsAt: new Date(Date.now() - 86_400_000) })
       .where(eq(schema.clinic.id, ctx.clinicId));
     expect(await clinics.getPublicClinicBySlug(h, "brand-c")).toBeNull();
-    expect((await clinics.getClinicSettings(ctx))!.portalSubdomain).toBe("brand-c");
+    expect((await clinics.getClinicSettings(ctx))!.portalSlug).toBe("brand-c");
   });
 });

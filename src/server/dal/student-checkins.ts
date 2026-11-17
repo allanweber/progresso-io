@@ -30,9 +30,6 @@ export function toAssessmentDto(row: {
     circumferences: row.circumferences ?? {},
     skinfolds: row.skinfolds ?? {},
     bodyFatPct: row.bodyFatPct,
-    // Both null on every row written before the AI evaluation existed. That is
-    // the honest answer: those assessments were taken with the flat form and
-    // nobody recorded where their percentage came from.
     bodyFatSource: row.bodyFatSource,
     protocol: row.protocol,
   };
@@ -61,15 +58,15 @@ async function ownStudent(
 ): Promise<{ id: string; firstName: string; lastName: string } | null> {
   const [row] = await ctx.db
     .select({
-      id: schema.students.id,
-      firstName: schema.students.firstName,
-      lastName: schema.students.lastName,
+      id: schema.student.id,
+      firstName: schema.student.firstName,
+      lastName: schema.student.lastName,
     })
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.userId, ctx.userId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.userId, ctx.userId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     );
   return row ?? null;
@@ -311,7 +308,7 @@ export function toPlanRefs(row: PlanSnapshotRow): {
   };
 }
 
-export type CheckinPhotoInput = { pose: CheckinPose; r2Key: string };
+export type CheckinPhotoInput = { pose: CheckinPose; storageKey: string };
 
 export type CreateCheckinInput = {
   weightKg: number;
@@ -360,7 +357,7 @@ export async function createStudentCheckin(
           clinicId: ctx.clinicId,
           checkinId: checkin.id,
           pose: p.pose,
-          r2Key: p.r2Key,
+          storageKey: p.storageKey,
           sortOrder: i,
         })),
       );
@@ -538,13 +535,13 @@ export async function getMyCheckinPhoto(
   ctx: TenantContext,
   checkinId: string,
   photoId: string,
-): Promise<{ r2Key: string; pose: CheckinPose } | null> {
+): Promise<{ storageKey: string; pose: CheckinPose } | null> {
   const studentId = await ownStudentId(ctx);
   if (!studentId) return null;
 
   const [row] = await ctx.db
     .select({
-      r2Key: schema.studentCheckinPhoto.r2Key,
+      storageKey: schema.studentCheckinPhoto.storageKey,
       pose: schema.studentCheckinPhoto.pose,
     })
     .from(schema.studentCheckinPhoto)

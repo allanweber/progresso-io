@@ -31,7 +31,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 const fourPhotos = schema.CHECKIN_POSES.map((pose) => ({
   pose,
-  r2Key: `checkins/test-${pose}.webp`,
+  storageKey: `checkins/test-${pose}.webp`,
 }));
 
 beforeAll(async () => {
@@ -57,7 +57,7 @@ beforeAll(async () => {
   strangerCtxA = alunoCtx(clinicA.id, "stranger");
 
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       coachId: "coach-a",
@@ -66,10 +66,10 @@ beforeAll(async () => {
       lastName: "Silva",
       email: "ana@example.com",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentA = sa.id;
 
-  await db.insert(schema.students).values({
+  await db.insert(schema.student).values({
     clinicId: clinicB.id,
     coachId: "coach-b",
     userId: "aluno-b",
@@ -126,6 +126,7 @@ describe("student check-ins", () => {
       studentId: studentA,
       date: today(),
       author: "coach",
+      modality: "online",
       authorUserId: "coach-a",
       weightKg: null,
       note: "Ótima evolução, seguir assim.",
@@ -162,7 +163,7 @@ describe("student check-ins", () => {
       created!.id,
       photoId,
     );
-    expect(photo?.r2Key).toContain("checkins/");
+    expect(photo?.storageKey).toContain("checkins/");
 
     // Another clinic's aluno can read neither the detail nor a photo.
     expect(await studentCheckins.getMyCheckin(alunoCtxB, created!.id)).toBeNull();

@@ -46,7 +46,7 @@ export async function preparePhotos(
   const prepared: PreparedPhoto[] = [];
   for (const photo of photos) {
     try {
-      const stored = await readCheckinPhoto(photo.r2Key);
+      const stored = await readCheckinPhoto(photo.storageKey);
       if (!stored) continue;
       const resized = await sharp(stored.body)
         // `inside` never enlarges a small photo and never crops a large one:

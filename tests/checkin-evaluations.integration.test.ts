@@ -58,6 +58,7 @@ async function makeCheckin(
       studentId,
       date: "2026-03-01",
       author: "student",
+      modality: "online",
       weightKg: 82.4,
       note: "Semana boa.",
       ...values,
@@ -85,7 +86,7 @@ beforeAll(async () => {
   coachB = ctx(clinicB.id, "coach-b");
 
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       coachId: "coach-a",
@@ -95,18 +96,18 @@ beforeAll(async () => {
       sex: "feminino",
       birthDate: "1994-05-20",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentA = sa.id;
 
   const [sb] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicB.id,
       coachId: "coach-b",
       firstName: "Bruno",
       lastName: "Outro",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentB = sb.id;
 });
 
@@ -118,6 +119,7 @@ describe("evaluation context", () => {
       checkinId,
       studentId: studentA,
       assessedAt: "2026-03-01",
+      protocol: "personalizada",
       circumferences: { cintura: 88 },
       skinfolds: { tricipital: 10 },
     });
@@ -140,9 +142,9 @@ describe("evaluation context", () => {
 
   it("has no previous check-in on the first one — nothing to compare with", async () => {
     const [fresh] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Nova", lastName: "Aluna" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     const checkinId = await makeCheckin(coachA.clinicId, fresh.id);
 
     const context = await checkinEvaluations.getEvaluationContext(
@@ -157,9 +159,9 @@ describe("evaluation context", () => {
 
   it("orders history by (date, created_at) so same-day entries do not flip", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Serie", lastName: "Teste" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
 
     await makeCheckin(coachA.clinicId, s.id, { date: "2026-01-01", weightKg: 90 });
     await makeCheckin(coachA.clinicId, s.id, { date: "2026-02-01", weightKg: 88 });
@@ -179,9 +181,9 @@ describe("evaluation context", () => {
 
   it("caps the series at six readings", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Longa", lastName: "Serie" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     let last = "";
     for (let i = 1; i <= 9; i++) {
       last = await makeCheckin(coachA.clinicId, s.id, {
@@ -206,9 +208,9 @@ describe("evaluation context", () => {
 describe("the coach's notes as context", () => {
   it("sends the coach's own notes, oldest → newest", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Notas", lastName: "Contexto" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
 
     await studentNotes.createNote(coachA, {
       studentId: s.id,
@@ -234,9 +236,9 @@ describe("the coach's notes as context", () => {
 
   it("excludes notes that came from a previous AI evaluation", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Sem", lastName: "Eco" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
 
     await studentNotes.createNote(coachA, {
       studentId: s.id,
@@ -264,9 +266,9 @@ describe("the coach's notes as context", () => {
 
   it("keeps the five most recent, not the five oldest", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Muitas", lastName: "Notas" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
 
     for (let i = 1; i <= 8; i++) {
       await studentNotes.createNote(coachA, {
@@ -293,9 +295,9 @@ describe("the coach's notes as context", () => {
 
   it("truncates a very long note instead of dropping it", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Longa", lastName: "Nota" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
 
     await studentNotes.createNote(coachA, {
       studentId: s.id,
@@ -592,9 +594,9 @@ describe("student notes", () => {
 
   it("lists newest first, with manual and AI notes on one timeline", async () => {
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Time", lastName: "Line" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
 
     await studentNotes.createNote(coachA, {
       studentId: s.id,
@@ -681,9 +683,9 @@ describe("student notes", () => {
   it("only links a check-in that belongs to the same aluno", async () => {
     const mine = await makeCheckin(coachA.clinicId, studentA);
     const [other] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({ clinicId: coachA.clinicId, firstName: "Outro", lastName: "Aluno" })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     const theirs = await makeCheckin(coachA.clinicId, other.id);
 
     expect(

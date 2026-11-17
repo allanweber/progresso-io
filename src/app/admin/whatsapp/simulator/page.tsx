@@ -46,24 +46,24 @@ function hhmm(iso: string): string {
 async function loadStudents() {
   return db
     .select({
-      studentId: schema.students.id,
-      firstName: schema.students.firstName,
-      lastName: schema.students.lastName,
-      phone: schema.students.phone,
-      clinicId: schema.students.clinicId,
+      studentId: schema.student.id,
+      firstName: schema.student.firstName,
+      lastName: schema.student.lastName,
+      phone: schema.student.phone,
+      clinicId: schema.student.clinicId,
       clinicName: schema.clinic.name,
       coachName: schema.user.name,
     })
-    .from(schema.students)
-    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.students.clinicId))
-    .leftJoin(schema.user, eq(schema.user.id, schema.students.coachId))
+    .from(schema.student)
+    .innerJoin(schema.clinic, eq(schema.clinic.id, schema.student.clinicId))
+    .leftJoin(schema.user, eq(schema.user.id, schema.student.coachId))
     .where(
       and(
-        eq(schema.students.status, "active"),
-        isNotNull(schema.students.phone),
+        eq(schema.student.status, "active"),
+        isNotNull(schema.student.phone),
       ),
     )
-    .orderBy(schema.clinic.name, schema.students.firstName);
+    .orderBy(schema.clinic.name, schema.student.firstName);
 }
 
 /** Send a message AS the selected student → lands in their coach's inbox. */
@@ -85,11 +85,11 @@ async function sendAsStudent(formData: FormData) {
 
   const [student] = await db
     .select({
-      clinicId: schema.students.clinicId,
-      phone: schema.students.phone,
+      clinicId: schema.student.clinicId,
+      phone: schema.student.phone,
     })
-    .from(schema.students)
-    .where(eq(schema.students.id, parsed.data.studentId));
+    .from(schema.student)
+    .where(eq(schema.student.id, parsed.data.studentId));
 
   if (student?.phone) {
     // Inject into the student's OWN clinic so it reaches that clinic's coach.

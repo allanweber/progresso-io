@@ -72,9 +72,9 @@ async function makeClinic(
   await clearTrial(db, clinicId);
 
   const [student] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({ clinicId, firstName: "Aluno", lastName: name, modality: "online" })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   return {
     ctx: { db: h, clinicId, userId: user.id, role: "coach" },
     studentId: student.id,
@@ -460,6 +460,7 @@ describe("catalog block", () => {
         code: "b_squat",
         name: "Agachamento",
         searchText: "agachamento",
+        source: "free-exercise-db",
         category: "strength",
         level: "beginner",
         equipment: "barbell",
@@ -472,6 +473,7 @@ describe("catalog block", () => {
         code: "a_bench",
         name: "Supino",
         searchText: "supino",
+        source: "free-exercise-db",
         category: "strength",
         level: "beginner",
         equipment: "barbell",
@@ -490,6 +492,7 @@ describe("catalog block", () => {
         code: "1",
         description: "Arroz integral cozido",
         searchText: "arroz integral cozido",
+        source: "TACO",
         groupId: group.id,
         type: "ingrediente",
         energyKcal: 124,
@@ -502,6 +505,7 @@ describe("catalog block", () => {
         code: "2",
         description: "Alimento sem macros",
         searchText: "alimento sem macros",
+        source: "TACO",
         groupId: group.id,
         type: "ingrediente",
         energyKcal: null,
@@ -514,6 +518,7 @@ describe("catalog block", () => {
         code: "3",
         description: "Arroz integral cozido",
         searchText: "arroz integral cozido",
+        source: "TACO",
         groupId: group.id,
         type: "ingrediente",
         energyKcal: 124,
@@ -573,6 +578,7 @@ describe("catalog block", () => {
       code: null,
       name: "Exercício da clínica",
       searchText: "exercicio da clinica",
+      source: "free-exercise-db",
       category: "strength",
       level: "beginner",
       primaryMuscles: ["chest"],

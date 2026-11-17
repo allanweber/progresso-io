@@ -37,7 +37,7 @@ totals stay live while editing (on save only `foodId` + `grams` are sent).
 
 ## Schema
 
-Four tables (`src/db/schema.ts`), migration `0007_diets`:
+Four tables (`src/db/schema.ts`), migration `0000_init`:
 
 - **`diet`** — `clinic_id` (nullable), `coach_id` (nullable), `name`, `notes`
   (nullable), `archived` (soft-delete), timestamps.
@@ -53,7 +53,7 @@ Four tables (`src/db/schema.ts`), migration `0007_diets`:
 `grams` is always the canonical amount. When the quantity was entered by a
 household measure, `measure_label` + `measure_grams` snapshot that unit (grams
 per one measure) so the item can be shown as "2 fatias" and re-edited in that
-unit later (migration `0009_diet_item_measure`). `NULL` means plain grams.
+unit later (migration `0000_init`). `NULL` means plain grams.
 
 The child tables carry no `clinic_id`; they inherit tenancy through their FK to
 `diet` (the DAL scopes by the parent diet). Deleting a diet cascades to the whole

@@ -22,7 +22,7 @@ export const GET = withStudent<Params>(
     const photo = await studentCheckins.getMyCheckinPhoto(ctx, id, photoId);
     if (!photo) return notFound("Foto não encontrada.");
 
-    const found = await readCheckinPhoto(photo.r2Key);
+    const found = await readCheckinPhoto(photo.storageKey);
     const { body, contentType } =
       found ?? checkinPhotoPlaceholder(CHECKIN_POSE_LABELS[photo.pose]);
 

@@ -38,6 +38,7 @@ async function addFood(f: {
     .values({
       description: f.description,
       searchText: sql`unaccent(lower(${f.description}))`,
+      source: "TACO",
       groupId: group.id,
       type: "ingrediente",
       clinicId: f.clinicId ?? null,
@@ -115,24 +116,24 @@ beforeAll(async () => {
   });
 
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       firstName: "Ana",
       lastName: "Silva",
       email: "ana@example.com",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentA = sa.id;
   const [sb] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicB.id,
       firstName: "Bruno",
       lastName: "Costa",
       email: "bruno@example.com",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentB = sb.id;
 });
 
@@ -402,14 +403,14 @@ describe("catalog substitutes are derived live on read", () => {
   it("shows a food's current catalog substitutes, reflecting later changes", async () => {
     // A fresh student so this doesn't disturb the shared studentA state.
     const [s] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({
         clinicId: ctxA.clinicId,
         firstName: "Caio",
         lastName: "Dias",
         email: "caio@example.com",
       })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     const student = s.id;
 
     await studentDiets.createBlankDraft(ctxA, student, "Com subs");
@@ -455,14 +456,14 @@ describe("publishing a diet draft that changed nothing", () => {
 
   beforeAll(async () => {
     const [row] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({
         clinicId: ctxA.clinicId,
         firstName: "Carla",
         lastName: "Dias",
         email: "carla-dieta@example.com",
       })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     studentC = row.id;
     await studentDiets.createBlankDraft(ctxA, studentC, "Cutting");
     await studentDiets.publishDraft(ctxA, studentC, mealPayload(200, "Cutting"));

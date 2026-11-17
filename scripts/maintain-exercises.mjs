@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
@@ -7,11 +6,10 @@ import { z } from "zod";
 import {
   addedImageFile,
   buildState,
-  discardPending,
+  foldOps,
   loadOpenGymCatalog,
   newOpId,
   opInput,
-  OPS_FILE,
   pendingChanges,
   PROPOSALS_FILE,
   readOps,
@@ -31,25 +29,7 @@ const openGymIds = new Set(openGym.map((c) => c.id));
 const proposals = existsSync(PROPOSALS_FILE) ? readJson(PROPOSALS_FILE) : { same: {}, close: {} };
 let ops = readOps();
 
-function committedIds() {
-  try {
-    const text = execFileSync("git", ["show", `HEAD:${OPS_FILE.slice(process.cwd().length + 1)}`], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return new Set((JSON.parse(text).ops ?? []).map((o) => o.id));
-  } catch {
-    return new Set();
-  }
-}
-
-const snapshot = () => {
-  const committed = committedIds();
-  return {
-    exercises: [...buildState(ops).values()],
-    ops: ops.map((o) => ({ ...o, committed: committed.has(o.id) })),
-  };
-};
+const snapshot = () => ({ exercises: [...buildState(ops).values()], ops });
 
 const send = (res, status, body) => {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -104,7 +84,7 @@ function record(input) {
   }
   const error = checkOp(parsed.data, state);
   if (error) return { status: 409, body: { error } };
-  ops = recordOp(ops, committedIds(), { id: newOpId(), at: new Date().toISOString(), ...parsed.data });
+  ops = recordOp(ops, { id: newOpId(), at: new Date().toISOString(), ...parsed.data });
   writeOps(ops);
   return { status: 200, body: { ...snapshot(), code: parsed.data.code } };
 }
@@ -118,10 +98,9 @@ function archiveAll(body) {
   const codes = [...new Set(parsed.data.codes)];
   const missing = codes.find((c) => !state.has(c));
   if (missing) return { status: 404, body: { error: `Exercício não encontrado: ${missing}` } };
-  const committed = committedIds();
   const at = new Date().toISOString();
   for (const code of codes.filter((c) => !state.get(c).archived)) {
-    ops = recordOp(ops, committed, { id: newOpId(), at, type: "archive", code });
+    ops = recordOp(ops, { id: newOpId(), at, type: "archive", code });
   }
   writeOps(ops);
   return { status: 200, body: snapshot() };
@@ -174,14 +153,19 @@ function drop(next, removed) {
 }
 
 function deleteOp(id) {
-  const result = removeOp(ops, committedIds(), id);
+  const result = removeOp(ops, id);
   if (!result.ok) return { status: 409, body: { error: result.error } };
   return drop(result.ops, result.removed);
 }
 
 function deletePending() {
-  const result = discardPending(ops, committedIds());
-  return drop(result.ops, result.removed);
+  return drop([], ops);
+}
+
+function fold() {
+  const result = foldOps(ops);
+  ops = [];
+  return { status: 200, body: { ...snapshot(), ...result } };
 }
 
 createServer(async (req, res) => {
@@ -227,7 +211,12 @@ createServer(async (req, res) => {
     return;
   }
   if (req.method === "GET" && url.pathname === "/api/pending") {
-    send(res, 200, { changes: pendingChanges(ops, committedIds()) });
+    send(res, 200, { changes: pendingChanges(ops) });
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/api/fold") {
+    const result = fold();
+    send(res, result.status, result.body);
     return;
   }
   if (req.method === "DELETE" && url.pathname === "/api/ops") {
@@ -244,5 +233,5 @@ createServer(async (req, res) => {
   send(res, 404, { error: "Não encontrado." });
 }).listen(PORT, "127.0.0.1", () => {
   console.log(`Exercise maintenance: http://localhost:${PORT}`);
-  console.log(`  ${ops.length} operations · saving to drizzle/data/exercise-maintenance.json`);
+  console.log(`  ${ops.length} pending operations · applied to drizzle/data/exercises-catalog.ndjson.gz on fold`);
 });

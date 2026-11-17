@@ -248,14 +248,14 @@ describe("workout template DAL", () => {
 
     // Referenced by a student workout → in_use.
     const [student] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({
         clinicId: ctxA.clinicId,
         firstName: "Ana",
         lastName: "S",
         email: "ana@example.com",
       })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     await studentWorkouts.createFromTemplate(ctxA, student.id, id);
     expect(await workouts.deleteWorkout(ctxA, id)).toEqual({
       ok: false,
