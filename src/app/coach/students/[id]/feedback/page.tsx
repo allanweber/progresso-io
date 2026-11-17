@@ -1000,14 +1000,9 @@ function EditCheckinForm({
       fd.set("modality", value.modality);
       fd.set("weightKg", value.weightKg.trim());
       fd.set("note", value.note.trim());
-      fd.set(
-        "assessment",
-        JSON.stringify(
-          assessmentFormHasValues(assessment)
-            ? assessmentFormToPayload(assessment)
-            : {},
-        ),
-      );
+      if (assessmentFormHasValues(assessment)) {
+        fd.set("assessment", JSON.stringify(assessmentFormToPayload(assessment)));
+      }
       // Only poses the coach actually cleared — a pose that got a new file is a
       // replacement, which the API handles from the file alone.
       fd.set(
