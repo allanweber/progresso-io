@@ -18,8 +18,7 @@ name, so limits are edited in the database rather than hardcoded. Seeded values:
 | enterprise |     null (∞)   |    null (∞)   |    true    |    true    |   true    |             null (∞) |      yes       |
 
 The branded portal is not a `plan_limit` column: it is `BRANDED_PORTAL_PLANS` in
-`src/lib/clinic-settings.ts`. Free's values were set by migration `0049`
-(3 → 5 alunos, WhatsApp on).
+`src/lib/clinic-settings.ts`.
 
 ### Why Free sits at 5 alunos
 
@@ -51,10 +50,8 @@ default**; a value wins for that clinic only, without changing its plan.
 `plan_limit`. Backed by `PUT /api/admin/clinics/[id]/limits` (admin-gated); the
 effective limits + plan defaults come back on `GET /api/admin/clinics/[id]`.
 
-The plan defaults themselves live in `plan_limit` and are established by the
-seed (fresh DBs) and by migration `0025`, which **upserts** the canonical values
-so a deployed environment with a missing/`NULL` `plan_limit` row (e.g. Solo left
-at unlimited after `0024`) is corrected on migrate.
+The plan defaults themselves live in `plan_limit` and are inserted by migration
+`0000_init`.
 
 ### Enforcement is soft (never destructive)
 
@@ -181,7 +178,7 @@ clinic-bootstrap hook so the new clinic starts on the chosen plan instead of the
 ## Files
 
 - Schema: `plan_limit` (+`max_coaches`, `whatsapp`), `coach_invitation`
-  (migration `0024`).
+  (migration `0000_init`).
 - DAL: `plans.ts` (capabilities), `coaches.ts` (roster, owner check, removal),
   `coach-invitations.ts` (invite lifecycle).
 - lib: `coaches.ts` (DTOs, zod, seat math — pure/testable).

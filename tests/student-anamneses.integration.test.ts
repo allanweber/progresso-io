@@ -58,12 +58,12 @@ beforeAll(async () => {
   ctxB = ctxFor(clinicB.id, "user-b");
 
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({ clinicId: clinicA.id, firstName: "Ana", lastName: "Aluna", phone: "5511999990000" })
     .returning();
   studentA = sa.id;
   const [sb] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({ clinicId: clinicB.id, firstName: "Bia", lastName: "Beta", phone: "5511888880000" })
     .returning();
   studentB = sb.id;

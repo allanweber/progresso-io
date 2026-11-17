@@ -91,8 +91,8 @@ describe("admin clinics manager", () => {
     expect(
       await db
         .select()
-        .from(schema.students)
-        .where(eq(schema.students.id, student.id)),
+        .from(schema.student)
+        .where(eq(schema.student.id, student.id)),
     ).toHaveLength(0);
     // The owner's login is gone too.
     expect(await admin.getUserById(h, victim.userId)).toBeNull();

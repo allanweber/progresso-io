@@ -99,11 +99,11 @@ export async function findPendingByToken(
   rawToken: string,
 ): Promise<{ invitation: Invitation; student: Student } | null> {
   const [row] = await db
-    .select({ invitation: schema.invitation, student: schema.students })
+    .select({ invitation: schema.invitation, student: schema.student })
     .from(schema.invitation)
     .innerJoin(
-      schema.students,
-      eq(schema.students.id, schema.invitation.studentId),
+      schema.student,
+      eq(schema.student.id, schema.invitation.studentId),
     )
     .where(
       and(

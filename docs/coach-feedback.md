@@ -26,7 +26,7 @@ their clinic**, never another's.
 ## Data model
 
 No new check-in table — feedback lives on the existing `student_checkin` row
-(migration `0020_odd_hellcat.sql`):
+(migration `0000_init`):
 
 ```
 student_checkin  (+ columns)

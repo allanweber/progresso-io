@@ -47,7 +47,7 @@ hard-deleted exercise shows an "Exercício indisponível" placeholder.
 
 ## Schema
 
-Two tables (`src/db/schema.ts`), migration `0011_workouts`:
+Two tables (`src/db/schema.ts`), migration `0000_init`:
 
 - **`student_workout`** — `clinic_id` (tenant), `student_id`, `name`,
   `source_workout_id` (provenance to the copied template, `on delete set null`),

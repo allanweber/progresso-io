@@ -146,8 +146,8 @@ describe("student archive capability + hard delete", () => {
 
     const rows = await h
       .select()
-      .from(schema.students)
-      .where(eq(schema.students.id, s.id));
+      .from(schema.student)
+      .where(eq(schema.student.id, s.id));
     expect(rows).toHaveLength(0);
 
     // Already gone (and never in another clinic) → false, not a throw.

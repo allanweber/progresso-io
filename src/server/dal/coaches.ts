@@ -75,18 +75,18 @@ export async function listClinicCoaches(ctx: TenantContext): Promise<ClinicCoach
       ),
     ctx.db
       .select({
-        coachId: schema.students.coachId,
-        n: count(schema.students.id),
+        coachId: schema.student.coachId,
+        n: count(schema.student.id),
       })
-      .from(schema.students)
+      .from(schema.student)
       .where(
         and(
-          eq(schema.students.clinicId, ctx.clinicId),
-          ne(schema.students.status, "archived"),
-          isNotNull(schema.students.coachId),
+          eq(schema.student.clinicId, ctx.clinicId),
+          ne(schema.student.status, "archived"),
+          isNotNull(schema.student.coachId),
         ),
       )
-      .groupBy(schema.students.coachId),
+      .groupBy(schema.student.coachId),
     getClinicOwnerId(ctx),
   ]);
 
@@ -153,12 +153,12 @@ export async function removeCoach(
   await ctx.db.transaction(async (tx) => {
     // Transfer this coach's alunos to the owner so none is left unassigned.
     await tx
-      .update(schema.students)
+      .update(schema.student)
       .set({ coachId: ownerId })
       .where(
         and(
-          eq(schema.students.clinicId, ctx.clinicId),
-          eq(schema.students.coachId, coachUserId),
+          eq(schema.student.clinicId, ctx.clinicId),
+          eq(schema.student.coachId, coachUserId),
         ),
       );
     // Hard-delete the account (login gone; content authorship nulled via FKs).

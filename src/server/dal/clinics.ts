@@ -110,7 +110,7 @@ export async function getClinicSettings(
   if (!clinic) return null;
   return {
     name: clinic.name,
-    portalSubdomain: clinic.portalSubdomain,
+    portalSlug: clinic.portalSlug,
     headline: clinic.headline,
     description: clinic.description,
     whatsapp: clinic.whatsapp,
@@ -144,7 +144,7 @@ export async function isSubdomainTaken(
     .from(schema.clinic)
     .where(
       and(
-        eq(schema.clinic.portalSubdomain, subdomain),
+        eq(schema.clinic.portalSlug, subdomain),
         ne(schema.clinic.id, ctx.clinicId),
       ),
     )
@@ -166,7 +166,7 @@ export async function updateClinicSettings(
     .update(schema.clinic)
     .set({
       name: values.name,
-      portalSubdomain: values.portalSubdomain,
+      portalSlug: values.portalSlug,
       headline: values.headline,
       description: values.description,
       whatsapp: values.whatsapp,
@@ -245,7 +245,7 @@ export async function getPublicClinicBySlug(
   const [c] = await db
     .select({
       name: schema.clinic.name,
-      slug: schema.clinic.portalSubdomain,
+      slug: schema.clinic.portalSlug,
       plan: schema.clinic.plan,
       intendedPlan: schema.clinic.intendedPlan,
       trialEndsAt: schema.clinic.trialEndsAt,
@@ -258,7 +258,7 @@ export async function getPublicClinicBySlug(
       accentColor: schema.clinic.accentColor,
     })
     .from(schema.clinic)
-    .where(eq(schema.clinic.portalSubdomain, slug))
+    .where(eq(schema.clinic.portalSlug, slug))
     .limit(1);
   // No row, or the clinic downgraded off a paid plan (a running trial counts as
   // paid) → the portal is unpublished.
@@ -294,7 +294,7 @@ export async function getPublicLogoKeyBySlug(
       trialEndsAt: schema.clinic.trialEndsAt,
     })
     .from(schema.clinic)
-    .where(eq(schema.clinic.portalSubdomain, slug))
+    .where(eq(schema.clinic.portalSlug, slug))
     .limit(1);
   if (!c || !canUseBrandedPortal(effectivePlanOf(c, new Date()))) return null;
   return c.logoKey;

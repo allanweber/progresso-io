@@ -92,8 +92,7 @@ export type CheckinSkinfolds = Partial<Record<SkinfoldSite, number>>;
  * - `completa`      — all 14 circumferences + all 7 folds. The full avaliação.
  * - `basica`        — the four circumferences that actually move, no folds.
  * - `so_peso`       — no measurements at all; weight and photos carry it.
- * - `personalizada` — every site available, none implied. The escape hatch, and
- *   what every row written before presets existed reads as.
+ * - `personalizada` — every site available, none implied. The escape hatch.
  *
  * Declared here rather than in the schema because the form, the zod parse and
  * the preset selector are all client-side, and `@/db/schema` must not be
@@ -228,13 +227,7 @@ export const assessmentSchema = z.object({
   circumferences: siteRecordSchema(CIRCUMFERENCE_SITES, 300),
   skinfolds: siteRecordSchema(SKINFOLD_SITES, 300),
   bodyFatPct: measureField(70).default(null),
-  /**
-   * The preset the coach filled it with. Stored so a historic assessment
-   * renders as the protocol it was taken with rather than as an incomplete
-   * version of whatever the clinic uses today. Optional: a client that does not
-   * send one leaves the column null, exactly like every pre-existing row.
-   */
-  protocol: z.enum(ASSESSMENT_PRESETS).nullable().default(null),
+  protocol: z.enum(ASSESSMENT_PRESETS),
 });
 
 export type AssessmentInput = z.input<typeof assessmentSchema>;
@@ -259,8 +252,6 @@ export type CheckinAssessmentDto = {
   circumferences: CheckinCircumferences;
   skinfolds: CheckinSkinfolds;
   bodyFatPct: number | null;
-  /** Where the percentage came from. NULL on rows written before this existed. */
   bodyFatSource: BodyFatSource | null;
-  /** The preset it was taken with. NULL on rows that predate presets. */
-  protocol: AssessmentPreset | null;
+  protocol: AssessmentPreset;
 };

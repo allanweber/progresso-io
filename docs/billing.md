@@ -122,7 +122,7 @@ fatura PDF attached** otherwise (Free plan, or a paid clinic that never
 filled the number in). Idempotent per (invoice, calendar day) via the
 `invoice_reminder` table — see `docs/whatsapp.md` for the full mechanics.
 
-## Data (migration `0023`)
+## Data (migration `0000_init`)
 
 - **`invoice`** — one row per invoice: a platform-wide sequential `number`,
   `status` (`pending` / `paid` / `canceled`), `competencia` / `issued_at` /
@@ -134,7 +134,7 @@ filled the number in). Idempotent per (invoice, calendar day) via the
   `position`), cascade-deleted with the invoice.
 - **`clinic_plan_change`** — the plan audit trail (`from_plan`, `to_plan`,
   `changed_by`, `note`, `created_at`).
-- **`invoice_reminder`** (migration `0042`) — idempotency + audit trail for the
+- **`invoice_reminder`** (migration `0000_init`) — idempotency + audit trail for the
   proactive reminder above: one row per `(invoice_id, step)` once sent, with
   which `channel` fired.
 

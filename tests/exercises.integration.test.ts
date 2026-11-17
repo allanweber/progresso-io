@@ -38,6 +38,7 @@ async function addExercise(e: {
       name: e.name,
       nameEn: e.nameEn ?? null,
       searchText: sql`unaccent(lower(concat_ws(' ', ${e.name}::text, ${e.nameEn ?? null}::text)))`,
+      source: "free-exercise-db",
       category: e.category ?? "strength",
       level: e.level ?? "beginner",
       force: e.force ?? null,
@@ -95,7 +96,7 @@ beforeAll(async () => {
     secondaryMuscles: ["glutes", "hamstrings"],
     instructions: ["Posicione a barra.", "Agache.", "Suba."],
     images: ["Barbell_Squat/0.jpg", "Barbell_Squat/1.jpg"],
-    openGymId: "edb_0043",
+    openGymId: "0043",
   });
   await addExercise({
     code: "Running",

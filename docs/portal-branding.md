@@ -18,7 +18,7 @@ it ships entirely in the app.
 
 ## Data
 
-Branding lives on the `clinic` row (migration `0022`): `portal_subdomain` (the
+Branding lives on the `clinic` row (migration `0000_init`): `portal_slug` (the
 slug, already existed) plus `logo_key`, `headline`, `description`, `whatsapp`,
 `instagram`, `site_url`, `accent_color` — all optional. The coach edits them in
 **Configurações → Portal do aluno**; the logo uploads to the shared storage

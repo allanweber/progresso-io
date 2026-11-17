@@ -219,13 +219,13 @@ export async function findByFillToken(
   const [row] = await db
     .select({
       studentAnamnesis: schema.studentAnamnesis,
-      student: schema.students,
+      student: schema.student,
       clinicName: schema.clinic.name,
     })
     .from(schema.studentAnamnesis)
     .innerJoin(
-      schema.students,
-      eq(schema.students.id, schema.studentAnamnesis.studentId),
+      schema.student,
+      eq(schema.student.id, schema.studentAnamnesis.studentId),
     )
     .innerJoin(
       schema.clinic,
@@ -293,11 +293,11 @@ export async function submitFill(
 
   const [student] = await db
     .select({
-      firstName: schema.students.firstName,
-      lastName: schema.students.lastName,
+      firstName: schema.student.firstName,
+      lastName: schema.student.lastName,
     })
-    .from(schema.students)
-    .where(eq(schema.students.id, row.studentId));
+    .from(schema.student)
+    .where(eq(schema.student.id, row.studentId));
 
   return {
     clinicId: row.clinicId,

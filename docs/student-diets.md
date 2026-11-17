@@ -58,7 +58,7 @@ them via the shared `DietMealsView`.
 
 ## Schema
 
-Two tables (`src/db/schema.ts`), migration `0010_student_diets`:
+Two tables (`src/db/schema.ts`), migration `0000_init`:
 
 - **`student_diet`** — the named plan: `clinic_id` (tenant), `student_id`,
   `name`, `source_diet_id` (nullable, provenance to the copied template — `on

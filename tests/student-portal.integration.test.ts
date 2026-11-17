@@ -50,6 +50,7 @@ async function addFood(f: {
     .values({
       description: f.description,
       searchText: sql`unaccent(lower(${f.description}))`,
+      source: "TACO",
       groupId: group.id,
       type: "ingrediente",
       clinicId: f.clinicId ?? null,
@@ -121,7 +122,7 @@ beforeAll(async () => {
   // studentA belongs to clinic A, is coached by coach-a, and is linked to the
   // aluno-a login, with a goal (for the profile card).
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       coachId: "coach-a",
@@ -131,11 +132,11 @@ beforeAll(async () => {
       email: "ana@example.com",
       goal: "hipertrofia",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentA = sa.id;
 
   // studentB belongs to clinic B, linked to aluno-b — but has no diet.
-  await db.insert(schema.students).values({
+  await db.insert(schema.student).values({
     clinicId: clinicB.id,
     coachId: "coach-b",
     userId: "aluno-b",

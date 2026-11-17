@@ -31,7 +31,7 @@ the whole questionnaire is one self-contained JSON document.
 
 ## Schema
 
-One table (`src/db/schema.ts`), migration `0013_anamneses`:
+One table (`src/db/schema.ts`), migration `0000_init`:
 
 - **`anamnesis`** — `clinic_id` (**NOT NULL** — always a clinic's own),
   `coach_id` (author, nullable), `name`, `description`, `objective`, `modality`,
@@ -57,17 +57,6 @@ touch its own clinic's anamneses:
 
 The starter set lives in `drizzle/data/anamneses/*.json` (the single source of
 truth) and is imported by `src/server/anamneses/starter-templates.ts`.
-
-## Backfilling existing clinics
-
-New clinics get their anamneses at creation (the sign-up hook). Clinics created
-**before** this feature have none — the **data migration `0014_backfill_anamneses`**
-seeds them. Because the migrator applies each migration exactly once (tracked in
-the journal), this runs **once, at the next deploy**, and never again — no manual
-command. It inserts the starter set only for clinics that have **no** anamnese
-yet (a `WHERE NOT EXISTS` guard), so a clinic already seeded by the hook is left
-untouched. The migration's contents are generated from the same
-`drizzle/data/anamneses/*.json` starter files.
 
 ## API (`/api/anamneses`)
 
@@ -123,9 +112,8 @@ student snapshots survive — `student_anamnesis.source_anamnesis_id` nulls), an
 **import** selected system starters into one clinic — idempotent by `source_key`
 (starters the clinic already has are skipped). See `docs/admin-maintenance.md`.
 
-The one-time backfill migration (`0014`) that seeded existing clinics is
-**blanked to a no-op**: new clinics get starters from the sign-up hook, and an
-admin provisions/repairs any clinic from the maintenance page instead.
+New clinics get starters from the sign-up hook, and an admin provisions/repairs
+any clinic from the maintenance page.
 
 Validation lives in `@/lib/anamneses` (`validateAnswer` / `validateAnswers`,
 client-safe). It's enforced **on both fill surfaces** — the coach fill page and

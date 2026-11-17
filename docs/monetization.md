@@ -204,7 +204,7 @@ the platform level for years.**
 ## 3. Relational data (PostgreSQL)
 
 Distinct from R2: Postgres holds **metadata and text**, never the image bytes
-(those are R2; the DB only stores the `r2_key` string). So per-student the
+(those are R2; the DB only stores the `storage_key` string). So per-student the
 relational footprint is small — but it is priced completely differently: managed
 Postgres bills by **provisioned instance + allocated storage**, not per-GB usage.
 

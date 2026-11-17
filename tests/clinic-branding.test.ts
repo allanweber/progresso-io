@@ -17,7 +17,7 @@ import {
 function base(over: Record<string, unknown> = {}) {
   return {
     name: "Studio Forja",
-    portalSubdomain: "",
+    portalSlug: "",
     headline: "",
     description: "",
     whatsapp: "",
@@ -34,25 +34,25 @@ function base(over: Record<string, unknown> = {}) {
 
 describe("portal slug validation", () => {
   it("accepts a valid slug", () => {
-    const r = clinicSettingsSchema.safeParse(base({ portalSubdomain: "studio-forja" }));
+    const r = clinicSettingsSchema.safeParse(base({ portalSlug: "studio-forja" }));
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.portalSubdomain).toBe("studio-forja");
+    if (r.success) expect(r.data.portalSlug).toBe("studio-forja");
   });
 
   it("lowercases and trims", () => {
-    const r = clinicSettingsSchema.safeParse(base({ portalSubdomain: "  Studio-Forja  " }));
-    expect(r.success && r.data.portalSubdomain).toBe("studio-forja");
+    const r = clinicSettingsSchema.safeParse(base({ portalSlug: "  Studio-Forja  " }));
+    expect(r.success && r.data.portalSlug).toBe("studio-forja");
   });
 
   it("treats empty as null", () => {
-    const r = clinicSettingsSchema.safeParse(base({ portalSubdomain: "" }));
-    expect(r.success && r.data.portalSubdomain).toBeNull();
+    const r = clinicSettingsSchema.safeParse(base({ portalSlug: "" }));
+    expect(r.success && r.data.portalSlug).toBeNull();
   });
 
   it.each(["admin", "login", "api", "coach", "student", "www", "app"])(
     "rejects reserved slug %s",
     (slug) => {
-      expect(clinicSettingsSchema.safeParse(base({ portalSubdomain: slug })).success).toBe(
+      expect(clinicSettingsSchema.safeParse(base({ portalSlug: slug })).success).toBe(
         false,
       );
     },
@@ -61,7 +61,7 @@ describe("portal slug validation", () => {
   it.each(["ab", "-abc", "abc-", "a--b", "abc_def", "ABC!"])(
     "rejects malformed slug %s",
     (slug) => {
-      expect(clinicSettingsSchema.safeParse(base({ portalSubdomain: slug })).success).toBe(
+      expect(clinicSettingsSchema.safeParse(base({ portalSlug: slug })).success).toBe(
         false,
       );
     },
@@ -112,7 +112,7 @@ describe("portalPathPrefix", () => {
   it("puts student links under the portal when it is published", () => {
     expect(
       portalPathPrefix({
-        portalSubdomain: "studio-forja",
+        portalSlug: "studio-forja",
         effectivePlan: "solo",
       }),
     ).toBe("/studio-forja");
@@ -120,7 +120,7 @@ describe("portalPathPrefix", () => {
 
   it("is empty when the clinic has no slug", () => {
     expect(
-      portalPathPrefix({ portalSubdomain: null, effectivePlan: "clinica" }),
+      portalPathPrefix({ portalSlug: null, effectivePlan: "clinica" }),
     ).toBe("");
   });
 
@@ -132,7 +132,7 @@ describe("portalPathPrefix", () => {
    */
   it("is empty when the effective plan cannot publish a portal", () => {
     expect(
-      portalPathPrefix({ portalSubdomain: "studio-forja", effectivePlan: "free" }),
+      portalPathPrefix({ portalSlug: "studio-forja", effectivePlan: "free" }),
     ).toBe("");
   });
 
@@ -140,7 +140,7 @@ describe("portalPathPrefix", () => {
     // The caller resolves `effectivePlanOf` first, so a clinic stored as `free`
     // with a live trial arrives here as Solo/Clínica and gets its own address.
     expect(
-      portalPathPrefix({ portalSubdomain: "studio-forja", effectivePlan: "clinica" }),
+      portalPathPrefix({ portalSlug: "studio-forja", effectivePlan: "clinica" }),
     ).toBe("/studio-forja");
   });
 });

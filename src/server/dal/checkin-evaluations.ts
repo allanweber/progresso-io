@@ -38,7 +38,7 @@ export type EvaluationSeriesPoint = {
 };
 
 /** A photo to send, identified by pose so the prompt can name what it is. */
-export type EvaluationPhoto = { pose: CheckinPose; r2Key: string };
+export type EvaluationPhoto = { pose: CheckinPose; storageKey: string };
 
 /** One of the coach's own notes, as the prompt shows it. */
 export type EvaluationNote = { date: string; body: string };
@@ -129,16 +129,16 @@ export async function getEvaluationContext(
       createdAt: schema.studentCheckin.createdAt,
       weightKg: schema.studentCheckin.weightKg,
       note: schema.studentCheckin.note,
-      firstName: schema.students.firstName,
-      lastName: schema.students.lastName,
-      goal: schema.students.goal,
-      sex: schema.students.sex,
-      birthDate: schema.students.birthDate,
+      firstName: schema.student.firstName,
+      lastName: schema.student.lastName,
+      goal: schema.student.goal,
+      sex: schema.student.sex,
+      birthDate: schema.student.birthDate,
     })
     .from(schema.studentCheckin)
     .innerJoin(
-      schema.students,
-      eq(schema.students.id, schema.studentCheckin.studentId),
+      schema.student,
+      eq(schema.student.id, schema.studentCheckin.studentId),
     )
     .where(
       and(
@@ -167,7 +167,7 @@ export async function getEvaluationContext(
   const photos = await ctx.db
     .select({
       pose: schema.studentCheckinPhoto.pose,
-      r2Key: schema.studentCheckinPhoto.r2Key,
+      storageKey: schema.studentCheckinPhoto.storageKey,
     })
     .from(schema.studentCheckinPhoto)
     .where(

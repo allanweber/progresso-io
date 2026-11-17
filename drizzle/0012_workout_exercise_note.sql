@@ -1,1 +1,0 @@
-ALTER TABLE "workout_exercise" ADD COLUMN "note" text;

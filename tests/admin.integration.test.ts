@@ -119,8 +119,8 @@ describe("admin: hard delete", () => {
     // Gone from students…
     const rows = await db
       .select()
-      .from(schema.students)
-      .where(eq(schema.students.id, student.id));
+      .from(schema.student)
+      .where(eq(schema.student.id, student.id));
     expect(rows).toHaveLength(0);
     // …and its invitations cascaded away.
     const invites = await db

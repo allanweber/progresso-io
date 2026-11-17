@@ -89,7 +89,7 @@ itself (`clinic.plan`, read live by every `plan_limit` gate), the `invoice` /
 `invoice_line_item` schema with derived totals, the `clinic_plan_change` audit
 trail, and the coach's read-only **Faturas** page. See `docs/billing.md`.
 
-#### Phase 1 — cobrança manual · ✅ Implemented (migration `0030`)
+#### Phase 1 — cobrança manual · ✅ Implemented (migration `0000_init`)
 
 - **Trial de 14 dias.** Advertised at `/register` (*"14 dias grátis, sem
   cartão"*) and, until this shipped, implemented nowhere — we were selling

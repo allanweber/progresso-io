@@ -56,7 +56,7 @@ beforeAll(async () => {
     .where(eq(schema.anamnesis.sourceKey, "hipertrofia"));
   starterAnamnesisId = starter.id;
   const [student] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({ clinicId: clinicA, firstName: "Ana", lastName: "Aluna" })
     .returning();
   await db.insert(schema.studentAnamnesis).values({

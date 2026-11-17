@@ -228,8 +228,8 @@ function load(data) {
   state.exercises = data.exercises.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   state.byCode = new Map(state.exercises.map((e) => [e.code, e]));
   state.ops = data.ops;
-  const pending = state.ops.filter((o) => !o.committed).length;
-  $("count").textContent = `${state.ops.length} operações · ${pending} não commitadas`;
+  const pending = state.ops.length;
+  $("count").textContent = `${pending} alterações pendentes`;
   $("count").className = pending ? "count has" : "count";
 }
 
@@ -277,12 +277,13 @@ function renderPending() {
   for (const o of state.pending) groups.set(o.code, [...(groups.get(o.code) ?? []), o]);
   const total = state.pending.length;
   $("editor").innerHTML = `<section class="panel block">
-    <div class="head"><h3 class="grow">Não commitadas <span class="chip info">${total}</span></h3>
+    <div class="head"><h3 class="grow">Pendentes <span class="chip info">${total}</span></h3>
+      ${total ? `<button data-pending-fold>Aplicar ao catálogo</button>` : ""}
       ${!total ? "" : state.confirmDiscard
         ? `<button class="danger" data-pending-all-confirm>Confirmar: descartar ${total}</button><button data-pending-all-cancel>Cancelar</button>`
         : `<button class="danger" data-pending-all>Descartar todas</button>`}
       <button data-pending-close>Fechar</button></div>
-    <p class="muted small">Ainda não estão no git. Descartar remove a alteração do arquivo de manutenção; uma alteração já commitada não pode ser descartada aqui.</p>
+    <p class="muted small">Aplicar grava as alterações em exercises-catalog.ndjson.gz e exercise-substitutions.json, que são o catálogo semeado no deploy. Descartar remove a alteração pendente.</p>
     ${[...groups].map(([code, list]) => `<div class="pending">
       <div><b>${esc(state.byCode.get(code)?.name ?? list.find((o) => o.type === "create")?.fields.name ?? code)}</b>
         <span class="muted small">${esc(code)}</span>
@@ -427,7 +428,7 @@ function importedBlock(e) {
             : `<button data-merge-into="${esc(x.code)}">Mesclar neste</button>`}</div>
           <div class="muted small">${esc(x.nameEn ?? "")} · ${esc(L.equipment[x.equipment] ?? "Sem equipamento")} · ${esc(x.code)}</div>
           <div class="small">${x.primaryMuscles.map((m) => esc(L.muscles[m] ?? m)).join(", ")}</div>
-          ${confirming ? `<div class="notice" style="grid-column: 1 / -1">"${esc(x.name)}" recebe o #${esc(e.openGymId)}; "${esc(e.name)}" será arquivado e todos os treinos e substituições que o usam passarão para "${esc(x.name)}". A mesclagem não pode ser desfeita depois de commitada.</div>` : ""}
+          ${confirming ? `<div class="notice" style="grid-column: 1 / -1">"${esc(x.name)}" recebe o #${esc(e.openGymId)}; "${esc(e.name)}" sai do catálogo e as substituições que o usam passam para "${esc(x.name)}". A mesclagem não pode ser desfeita depois de aplicada.</div>` : ""}
         </div>`;
       }).join("") || `<div class="empty">Nenhum exercício nosso sem vínculo encontrado.</div>`}
     </div>
@@ -554,10 +555,10 @@ function renderEditor() {
     </section>
     <section class="panel block">
       <h3>Histórico</h3>
-      <div class="history">${history.map((o) => `<div><span class="chip ${o.committed ? "neutral" : "info"}">${o.committed ? "commitada" : "pendente"}</span>
+      <div class="history">${history.map((o) => `<div><span class="chip info">pendente</span>
         <span>${esc(L.op[o.type] ?? o.type)}${o.type === "update" ? `: ${esc(Object.keys(o.fields).join(", "))}` : ""}${o.type === "link" ? ` ${o.openGymId ? `#${esc(o.openGymId)}` : "sem equivalente"}` : ""}${o.substitute ? ` ${esc(state.byCode.get(o.code === e.code ? o.substitute : o.code)?.name ?? "")}` : ""}</span>
         <span class="muted">${new Date(o.at).toLocaleString("pt-BR")}</span>
-        ${o.committed ? "" : `<button class="icon" data-undo="${esc(o.id)}">Desfazer</button>`}</div>`).join("") || `<span class="muted">Nenhuma alteração.</span>`}</div>
+        <button class="icon" data-undo="${esc(o.id)}">Desfazer</button></div>`).join("") || `<span class="muted">Nenhuma alteração.</span>`}</div>
     </section>`;
 }
 
@@ -655,7 +656,8 @@ const editorClick = async (ev) => {
     if ("pendingAll" in d) { state.confirmDiscard = true; return renderPending(); }
     state.confirmDiscard = false;
     if ("pendingAllCancel" in d) return renderPending();
-    const discarded = "pendingAllConfirm" in d ? await call("DELETE", "/api/ops")
+    const discarded = "pendingFold" in d ? await call("POST", "/api/fold")
+      : "pendingAllConfirm" in d ? await call("DELETE", "/api/ops")
       : d.pendingDiscard ? await call("DELETE", `/api/ops/${d.pendingDiscard}`) : null;
     if (!discarded) return renderPending();
     await loadPending();
@@ -702,7 +704,7 @@ const editorClick = async (ev) => {
   } else if (d.imgMove !== undefined) ok = await update({ images: moved(e.images, +d.imgMove, +d.dir) });
   else if (d.imgRemove !== undefined) {
     const key = e.images[+d.imgRemove];
-    const pending = state.ops.find((o) => o.type === "add-image" && o.key === key && !o.committed);
+    const pending = state.ops.find((o) => o.type === "add-image" && o.key === key);
     ok = pending ? await call("DELETE", `/api/ops/${pending.id}`) : await update({ images: e.images.filter((k) => k !== key) });
   } else if ("imgAdd" in d) {
     const file = $("img-file").files[0];

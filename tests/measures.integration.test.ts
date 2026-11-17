@@ -26,6 +26,7 @@ async function addFood(description: string, clinicId: string | null) {
     .values({
       description,
       searchText: sql`unaccent(lower(${description}))`,
+      source: "custom",
       groupId: group.id,
       type: "ingrediente",
       clinicId,

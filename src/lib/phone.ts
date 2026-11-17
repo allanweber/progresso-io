@@ -93,8 +93,7 @@ export function isValidPhone(raw: string | null | undefined): boolean {
  *
  * The tolerance is deliberate: the coach and the aluno type the same number in
  * different shapes — with or without `+55`, with or without the trunk `0`, with
- * or without the mobile 9th digit — and numbers stored before this module
- * canonicalized trunk prefixes still carry the old shape. Where this is used to
+ * or without the mobile 9th digit. Where this is used to
  * gate access (the anamnese fill link) the number is a second factor behind a
  * single-use token and the attempts are rate-limited, so trading exactness for
  * "the aluno's own number is accepted" is the right call.

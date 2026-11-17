@@ -34,6 +34,7 @@ async function addFood(f: {
       code: f.code ?? null,
       description: f.description,
       searchText: sql`unaccent(lower(${f.description}))`,
+      source: "TACO",
       groupId: group.id,
       type: f.type ?? "ingrediente",
       clinicId: f.clinicId ?? null,

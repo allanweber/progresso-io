@@ -52,12 +52,12 @@ async function studentInClinic(
   studentId: string,
 ): Promise<boolean> {
   const [row] = await ctx.db
-    .select({ id: schema.students.id })
-    .from(schema.students)
+    .select({ id: schema.student.id })
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.id, studentId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.id, studentId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     );
   return Boolean(row);
@@ -68,15 +68,8 @@ export type AssessmentWriteInput = {
   circumferences: CheckinCircumferences;
   skinfolds: CheckinSkinfolds;
   bodyFatPct: number | null;
-  /**
-   * How the coach arrived at that percentage. Optional because the answer for
-   * every hand-filled assessment is the same one — the coach typed it — and the
-   * upsert fills that in. Only the AI accept path has something else to say
-   * (`skinfolds` or `estimate`).
-   */
-  bodyFatSource?: BodyFatSource | null;
-  /** The form preset it was filled with, or null for a custom set of sites. */
-  protocol?: AssessmentPreset | null;
+  bodyFatSource?: BodyFatSource;
+  protocol: AssessmentPreset;
 } | null;
 
 /** Inserts or replaces the one assessment of a check-in (unique per check-in). */
@@ -91,9 +84,6 @@ async function upsertAssessment(
 ): Promise<void> {
   const { assessment } = args;
   if (!assessment) return;
-  // No percentage, no source: the column says where a number came from, and
-  // there is no number. Otherwise the caller's answer stands, and a caller that
-  // has nothing to say means the coach typed it in themselves.
   const source =
     assessment.bodyFatPct === null
       ? null
@@ -109,7 +99,7 @@ async function upsertAssessment(
       skinfolds: assessment.skinfolds,
       bodyFatPct: assessment.bodyFatPct,
       bodyFatSource: source,
-      protocol: assessment.protocol ?? null,
+      protocol: assessment.protocol,
       recordedByUserId: ctx.userId,
     })
     .onConflictDoUpdate({
@@ -120,7 +110,7 @@ async function upsertAssessment(
         skinfolds: assessment.skinfolds,
         bodyFatPct: assessment.bodyFatPct,
         bodyFatSource: source,
-        protocol: assessment.protocol ?? null,
+        protocol: assessment.protocol,
         recordedByUserId: ctx.userId,
       },
     });
@@ -170,6 +160,7 @@ export async function setAssessmentBodyFat(
       assessedAt: checkin.date,
       bodyFatPct: values.bodyFatPct,
       bodyFatSource: values.bodyFatSource,
+      protocol: "personalizada",
       recordedByUserId: ctx.userId,
     })
     .onConflictDoUpdate({
@@ -317,10 +308,10 @@ export async function getStudentCheckinPhoto(
   studentId: string,
   checkinId: string,
   photoId: string,
-): Promise<{ r2Key: string; pose: CheckinPose } | null> {
+): Promise<{ storageKey: string; pose: CheckinPose } | null> {
   const [row] = await ctx.db
     .select({
-      r2Key: schema.studentCheckinPhoto.r2Key,
+      storageKey: schema.studentCheckinPhoto.storageKey,
       pose: schema.studentCheckinPhoto.pose,
     })
     .from(schema.studentCheckinPhoto)
@@ -396,7 +387,7 @@ export async function createCoachCheckin(
           clinicId: ctx.clinicId,
           checkinId: checkin.id,
           pose: p.pose,
-          r2Key: p.r2Key,
+          storageKey: p.storageKey,
           sortOrder: i,
         })),
       );
@@ -560,7 +551,7 @@ export async function updateCheckin(
   const existing = await ctx.db
     .select({
       pose: schema.studentCheckinPhoto.pose,
-      r2Key: schema.studentCheckinPhoto.r2Key,
+      storageKey: schema.studentCheckinPhoto.storageKey,
     })
     .from(schema.studentCheckinPhoto)
     .where(
@@ -577,7 +568,7 @@ export async function updateCheckin(
   ]);
   const orphanedKeys = existing
     .filter((p) => vacating.has(p.pose))
-    .map((p) => p.r2Key);
+    .map((p) => p.storageKey);
 
   await ctx.db.transaction(async (tx) => {
     const txCtx: TenantContext = { ...ctx, db: tx as unknown as typeof ctx.db };
@@ -617,7 +608,7 @@ export async function updateCheckin(
           clinicId: ctx.clinicId,
           checkinId,
           pose: p.pose,
-          r2Key: p.r2Key,
+          storageKey: p.storageKey,
           sortOrder: poseOrder(p.pose),
         })),
       );
@@ -646,14 +637,6 @@ export async function updateCheckin(
   if (!detail) return null;
   return { detail, orphanedKeys };
 }
-
-/**
- * A pose value no photo can legitimately hold — used for a single statement
- * while two photos trade places. `unique(checkin_id, pose)` is not deferrable,
- * so "A takes B's pose, B takes A's" cannot be done in two updates without
- * colliding halfway; parking A here frees the slot for B first.
- */
-const PARKED_POSE = "__swapping__" as CheckinPose;
 
 /** A pose's canonical position in the grid (frente, costas, esquerdo, direito). */
 function poseOrder(pose: CheckinPose): number {
@@ -725,10 +708,7 @@ export async function movePhotoToPose(
   if (source.pose === targetPose) return checkinPhotos(ctx, checkinId);
 
   const [occupant] = await ctx.db
-    .select({
-      id: schema.studentCheckinPhoto.id,
-      sortOrder: schema.studentCheckinPhoto.sortOrder,
-    })
+    .select()
     .from(schema.studentCheckinPhoto)
     .where(
       and(
@@ -747,20 +727,16 @@ export async function movePhotoToPose(
         .where(eq(schema.studentCheckinPhoto.id, source.id));
       return;
     }
-    // Taken: park, hand over, then land — three statements so the unique
-    // (checkin, pose) constraint is satisfied after every one of them.
     await tx
-      .update(schema.studentCheckinPhoto)
-      .set({ pose: PARKED_POSE })
-      .where(eq(schema.studentCheckinPhoto.id, source.id));
-    await tx
-      .update(schema.studentCheckinPhoto)
-      .set({ pose: source.pose, sortOrder: source.sortOrder })
+      .delete(schema.studentCheckinPhoto)
       .where(eq(schema.studentCheckinPhoto.id, occupant.id));
     await tx
       .update(schema.studentCheckinPhoto)
       .set({ pose: targetPose, sortOrder: occupant.sortOrder })
       .where(eq(schema.studentCheckinPhoto.id, source.id));
+    await tx
+      .insert(schema.studentCheckinPhoto)
+      .values({ ...occupant, pose: source.pose, sortOrder: source.sortOrder });
   });
 
   return checkinPhotos(ctx, checkinId);
@@ -802,7 +778,7 @@ export async function deleteCheckin(
 
   // Read the keys BEFORE the delete cascades the photo rows away.
   const photos = await ctx.db
-    .select({ r2Key: schema.studentCheckinPhoto.r2Key })
+    .select({ storageKey: schema.studentCheckinPhoto.storageKey })
     .from(schema.studentCheckinPhoto)
     .where(
       and(
@@ -820,7 +796,7 @@ export async function deleteCheckin(
       ),
     );
 
-  return photos.map((p) => p.r2Key);
+  return photos.map((p) => p.storageKey);
 }
 
 /**

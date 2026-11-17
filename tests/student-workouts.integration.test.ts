@@ -115,7 +115,7 @@ beforeAll(async () => {
   triceps = await addExercise("Triceps corda");
 
   const [sa] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       userId: "aluno-a",
@@ -123,9 +123,9 @@ beforeAll(async () => {
       lastName: "Silva",
       email: "ana@example.com",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentA = sa.id;
-  await db.insert(schema.students).values({
+  await db.insert(schema.student).values({
     clinicId: clinicB.id,
     userId: "aluno-b",
     firstName: "Bruno",
@@ -305,14 +305,14 @@ describe("publishing a workout draft that changed nothing", () => {
 
   beforeAll(async () => {
     const [row] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({
         clinicId: coachA.clinicId,
         firstName: "Carla",
         lastName: "Dias",
         email: "carla@example.com",
       })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     studentC = row.id;
     await studentWorkouts.createBlankDraft(coachA, studentC, "Hipertrofia");
     await studentWorkouts.publishDraft(coachA, studentC, wk("Hipertrofia"));

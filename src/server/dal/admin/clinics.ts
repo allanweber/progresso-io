@@ -73,7 +73,7 @@ export async function listAllClinics(db: DB): Promise<AdminClinicRow[]> {
         where u.clinic_id = ${schema.clinic.id} and u.role = 'coach'
       )`,
       studentCount: sql<number>`(
-        select count(*)::int from students s where s.clinic_id = ${schema.clinic.id}
+        select count(*)::int from ${schema.student} where ${schema.student.clinicId} = ${schema.clinic.id}
       )`,
     })
     .from(schema.clinic)
@@ -104,7 +104,7 @@ export async function getClinicAdminRow(
         where u.clinic_id = ${schema.clinic.id} and u.role = 'coach'
       )`,
       studentCount: sql<number>`(
-        select count(*)::int from students s where s.clinic_id = ${schema.clinic.id}
+        select count(*)::int from ${schema.student} where ${schema.student.clinicId} = ${schema.clinic.id}
       )`,
     })
     .from(schema.clinic)
@@ -172,18 +172,18 @@ export async function listAllStudents(
 ): Promise<AdminStudentRow[]> {
   const conditions: SQL[] = [];
   if (filters.clinicId) {
-    conditions.push(eq(schema.students.clinicId, filters.clinicId));
+    conditions.push(eq(schema.student.clinicId, filters.clinicId));
   }
   if (filters.email) {
-    conditions.push(ilike(schema.students.email, `%${filters.email}%`));
+    conditions.push(ilike(schema.student.email, `%${filters.email}%`));
   }
 
   const rows = await db
-    .select({ student: schema.students, clinicName: schema.clinic.name })
-    .from(schema.students)
-    .innerJoin(schema.clinic, eq(schema.students.clinicId, schema.clinic.id))
+    .select({ student: schema.student, clinicName: schema.clinic.name })
+    .from(schema.student)
+    .innerJoin(schema.clinic, eq(schema.student.clinicId, schema.clinic.id))
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(schema.clinic.name, desc(schema.students.createdAt));
+    .orderBy(schema.clinic.name, desc(schema.student.createdAt));
 
   return rows.map((r) => ({
     ...r.student,
@@ -212,12 +212,12 @@ export async function hardDeleteStudent(
   return db.transaction(async (tx) => {
     const [student] = await tx
       .select()
-      .from(schema.students)
-      .where(eq(schema.students.id, studentId));
+      .from(schema.student)
+      .where(eq(schema.student.id, studentId));
     if (!student) return { deleted: false, deletedUser: false };
 
     // The student row first — its invitations cascade away with it.
-    await tx.delete(schema.students).where(eq(schema.students.id, studentId));
+    await tx.delete(schema.student).where(eq(schema.student.id, studentId));
 
     // Then the aluno's login, if any — sessions and accounts cascade from it.
     let deletedUser = false;

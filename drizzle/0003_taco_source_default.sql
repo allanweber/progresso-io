@@ -1,1 +1,0 @@
-ALTER TABLE "food" ALTER COLUMN "source" SET DEFAULT 'TACO';

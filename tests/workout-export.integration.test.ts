@@ -183,7 +183,7 @@ beforeAll(async () => {
   exported = (await workouts.exportOpenGymPlan(ctxA, workoutId, NOW))!;
 
   const [student] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: clinicA.id,
       userId: "aluno-a",
@@ -191,7 +191,7 @@ beforeAll(async () => {
       lastName: "Silva",
       email: "ana@example.com",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   studentId = student.id;
   const draft = await studentWorkouts.createFromTemplate(ctxA, studentId, workoutId);
   if (!draft.ok) throw new Error("student draft not created");

@@ -44,9 +44,9 @@ export type StudentRoster = Student & {
 export async function listStudents(ctx: TenantContext): Promise<StudentRoster[]> {
   const rows = await ctx.db
     .select()
-    .from(schema.students)
-    .where(eq(schema.students.clinicId, ctx.clinicId))
-    .orderBy(desc(schema.students.createdAt));
+    .from(schema.student)
+    .where(eq(schema.student.clinicId, ctx.clinicId))
+    .orderBy(desc(schema.student.createdAt));
 
   // Student ids with a still-valid, unaccepted invite (one round-trip).
   const pending = await ctx.db
@@ -74,11 +74,11 @@ export async function getStudent(
 ): Promise<Student | null> {
   const [student] = await ctx.db
     .select()
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.clinicId, ctx.clinicId),
-        eq(schema.students.id, id),
+        eq(schema.student.clinicId, ctx.clinicId),
+        eq(schema.student.id, id),
       ),
     );
   return student ?? null;
@@ -117,11 +117,11 @@ export async function findStudentByEmail(
 ): Promise<Student | null> {
   const [student] = await ctx.db
     .select()
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.clinicId, ctx.clinicId),
-        eq(schema.students.email, email),
+        eq(schema.student.clinicId, ctx.clinicId),
+        eq(schema.student.email, email),
       ),
     );
   return student ?? null;
@@ -138,11 +138,11 @@ export async function findStudentByPhone(
 ): Promise<Student | null> {
   const [student] = await ctx.db
     .select()
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.clinicId, ctx.clinicId),
-        eq(schema.students.phone, phone),
+        eq(schema.student.clinicId, ctx.clinicId),
+        eq(schema.student.phone, phone),
       ),
     );
   return student ?? null;
@@ -154,12 +154,12 @@ export async function findStudentByPhone(
  */
 export async function countStudents(ctx: TenantContext): Promise<number> {
   const rows = await ctx.db
-    .select({ id: schema.students.id })
-    .from(schema.students)
+    .select({ id: schema.student.id })
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.clinicId, ctx.clinicId),
-        ne(schema.students.status, "archived"),
+        eq(schema.student.clinicId, ctx.clinicId),
+        ne(schema.student.status, "archived"),
       ),
     );
   return rows.length;
@@ -261,20 +261,20 @@ export async function getCoachDashboard(
   ] = await Promise.all([
     ctx.db
       .select({
-        id: schema.students.id,
-        firstName: schema.students.firstName,
-        lastName: schema.students.lastName,
-        goal: schema.students.goal,
-        createdAt: schema.students.createdAt,
+        id: schema.student.id,
+        firstName: schema.student.firstName,
+        lastName: schema.student.lastName,
+        goal: schema.student.goal,
+        createdAt: schema.student.createdAt,
       })
-      .from(schema.students)
+      .from(schema.student)
       .where(
         and(
-          eq(schema.students.clinicId, ctx.clinicId),
-          eq(schema.students.status, "active"),
+          eq(schema.student.clinicId, ctx.clinicId),
+          eq(schema.student.status, "active"),
         ),
       )
-      .orderBy(desc(schema.students.createdAt)),
+      .orderBy(desc(schema.student.createdAt)),
     ctx.db
       .select({ studentId: schema.studentDiet.studentId })
       .from(schema.studentDiet)
@@ -300,13 +300,13 @@ export async function getCoachDashboard(
         studentId: schema.studentCheckin.studentId,
         date: schema.studentCheckin.date,
         weightKg: schema.studentCheckin.weightKg,
-        firstName: schema.students.firstName,
-        lastName: schema.students.lastName,
+        firstName: schema.student.firstName,
+        lastName: schema.student.lastName,
       })
       .from(schema.studentCheckin)
       .innerJoin(
-        schema.students,
-        eq(schema.students.id, schema.studentCheckin.studentId),
+        schema.student,
+        eq(schema.student.id, schema.studentCheckin.studentId),
       )
       .where(
         and(
@@ -324,8 +324,8 @@ export async function getCoachDashboard(
         id: schema.studentDietVersion.id,
         studentId: schema.studentDiet.studentId,
         updatedAt: schema.studentDietVersion.updatedAt,
-        firstName: schema.students.firstName,
-        lastName: schema.students.lastName,
+        firstName: schema.student.firstName,
+        lastName: schema.student.lastName,
       })
       .from(schema.studentDietVersion)
       .innerJoin(
@@ -333,14 +333,14 @@ export async function getCoachDashboard(
         eq(schema.studentDiet.id, schema.studentDietVersion.studentDietId),
       )
       .innerJoin(
-        schema.students,
-        eq(schema.students.id, schema.studentDiet.studentId),
+        schema.student,
+        eq(schema.student.id, schema.studentDiet.studentId),
       )
       .where(
         and(
           eq(schema.studentDiet.clinicId, ctx.clinicId),
           eq(schema.studentDietVersion.status, "draft"),
-          eq(schema.students.status, "active"),
+          eq(schema.student.status, "active"),
         ),
       )
       .orderBy(asc(schema.studentDietVersion.updatedAt))
@@ -351,8 +351,8 @@ export async function getCoachDashboard(
         id: schema.studentWorkoutVersion.id,
         studentId: schema.studentWorkout.studentId,
         updatedAt: schema.studentWorkoutVersion.updatedAt,
-        firstName: schema.students.firstName,
-        lastName: schema.students.lastName,
+        firstName: schema.student.firstName,
+        lastName: schema.student.lastName,
       })
       .from(schema.studentWorkoutVersion)
       .innerJoin(
@@ -363,14 +363,14 @@ export async function getCoachDashboard(
         ),
       )
       .innerJoin(
-        schema.students,
-        eq(schema.students.id, schema.studentWorkout.studentId),
+        schema.student,
+        eq(schema.student.id, schema.studentWorkout.studentId),
       )
       .where(
         and(
           eq(schema.studentWorkout.clinicId, ctx.clinicId),
           eq(schema.studentWorkoutVersion.status, "draft"),
-          eq(schema.students.status, "active"),
+          eq(schema.student.status, "active"),
         ),
       )
       .orderBy(asc(schema.studentWorkoutVersion.updatedAt))
@@ -397,14 +397,14 @@ export async function getCoachDashboard(
         eq(schema.studentDiet.id, schema.studentDietVersion.studentDietId),
       )
       .innerJoin(
-        schema.students,
-        eq(schema.students.id, schema.studentDiet.studentId),
+        schema.student,
+        eq(schema.student.id, schema.studentDiet.studentId),
       )
       .where(
         and(
           eq(schema.studentDiet.clinicId, ctx.clinicId),
           eq(schema.studentDietVersion.status, "draft"),
-          eq(schema.students.status, "active"),
+          eq(schema.student.status, "active"),
         ),
       ),
     ctx.db
@@ -418,14 +418,14 @@ export async function getCoachDashboard(
         ),
       )
       .innerJoin(
-        schema.students,
-        eq(schema.students.id, schema.studentWorkout.studentId),
+        schema.student,
+        eq(schema.student.id, schema.studentWorkout.studentId),
       )
       .where(
         and(
           eq(schema.studentWorkout.clinicId, ctx.clinicId),
           eq(schema.studentWorkoutVersion.status, "draft"),
-          eq(schema.students.status, "active"),
+          eq(schema.student.status, "active"),
         ),
       ),
   ]);
@@ -481,7 +481,7 @@ export async function createStudent(
   input: StudentInput,
 ): Promise<Student> {
   const [student] = await ctx.db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       // clinicId always comes from the tenant context, never from the caller.
       clinicId: ctx.clinicId,
@@ -524,23 +524,23 @@ export async function updateStudent(
   const [previous] =
     input.phone !== undefined
       ? await ctx.db
-          .select({ phone: schema.students.phone })
-          .from(schema.students)
+          .select({ phone: schema.student.phone })
+          .from(schema.student)
           .where(
             and(
-              eq(schema.students.clinicId, ctx.clinicId),
-              eq(schema.students.id, id),
+              eq(schema.student.clinicId, ctx.clinicId),
+              eq(schema.student.id, id),
             ),
           )
       : [];
 
   const [student] = await ctx.db
-    .update(schema.students)
+    .update(schema.student)
     .set(patch)
     .where(
       and(
-        eq(schema.students.clinicId, ctx.clinicId),
-        eq(schema.students.id, id),
+        eq(schema.student.clinicId, ctx.clinicId),
+        eq(schema.student.id, id),
       ),
     )
     .returning();
@@ -589,17 +589,17 @@ export async function hardDeleteStudent(
 ): Promise<boolean> {
   return ctx.db.transaction(async (tx) => {
     const [student] = await tx
-      .select({ id: schema.students.id, userId: schema.students.userId })
-      .from(schema.students)
+      .select({ id: schema.student.id, userId: schema.student.userId })
+      .from(schema.student)
       .where(
         and(
-          eq(schema.students.clinicId, ctx.clinicId),
-          eq(schema.students.id, id),
+          eq(schema.student.clinicId, ctx.clinicId),
+          eq(schema.student.id, id),
         ),
       );
     if (!student) return false;
 
-    await tx.delete(schema.students).where(eq(schema.students.id, id));
+    await tx.delete(schema.student).where(eq(schema.student.id, id));
     if (student.userId) {
       await tx.delete(schema.user).where(eq(schema.user.id, student.userId));
     }
@@ -618,12 +618,12 @@ export async function linkStudentAccount(
   args: { clinicId: string; studentId: string; userId: string },
 ): Promise<void> {
   await db
-    .update(schema.students)
+    .update(schema.student)
     .set({ userId: args.userId, status: "active", updatedAt: new Date() })
     .where(
       and(
-        eq(schema.students.clinicId, args.clinicId),
-        eq(schema.students.id, args.studentId),
+        eq(schema.student.clinicId, args.clinicId),
+        eq(schema.student.id, args.studentId),
       ),
     );
   await withdrawQueued(

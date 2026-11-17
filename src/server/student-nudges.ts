@@ -48,17 +48,17 @@ export async function runStudentInactivityNudges(
       await Promise.all([
         database
           .select({
-            id: schema.students.id,
-            firstName: schema.students.firstName,
-            lastName: schema.students.lastName,
-            createdAt: schema.students.createdAt,
+            id: schema.student.id,
+            firstName: schema.student.firstName,
+            lastName: schema.student.lastName,
+            createdAt: schema.student.createdAt,
           })
-          .from(schema.students)
+          .from(schema.student)
           .where(
             and(
-              eq(schema.students.clinicId, clinic.id),
-              eq(schema.students.status, "active"),
-              isNotNull(schema.students.phone),
+              eq(schema.student.clinicId, clinic.id),
+              eq(schema.student.status, "active"),
+              isNotNull(schema.student.phone),
             ),
           ),
         database

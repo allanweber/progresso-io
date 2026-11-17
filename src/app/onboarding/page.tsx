@@ -73,7 +73,7 @@ type GuideValues = {
   feedbackFrequency: FeedbackFrequency;
   feedbackPreferredDay: Weekday;
   feedbackWhatsappReminder: boolean;
-  portalSubdomain: string;
+  portalSlug: string;
   headline: string;
   accentColor: string;
   invites: { name: string; email: string }[];
@@ -83,7 +83,7 @@ type GuideValues = {
 function settingsPayload(dto: ClinicSettingsDto, values: GuideValues) {
   return {
     name: dto.name,
-    portalSubdomain: values.portalSubdomain,
+    portalSlug: values.portalSlug,
     headline: values.headline,
     description: dto.description ?? "",
     whatsapp: dto.whatsapp ?? "",
@@ -189,7 +189,7 @@ function SetupGuide({
       feedbackFrequency: settings.feedbackFrequency,
       feedbackPreferredDay: settings.feedbackPreferredDay,
       feedbackWhatsappReminder: settings.feedbackWhatsappReminder,
-      portalSubdomain: settings.portalSubdomain ?? "",
+      portalSlug: settings.portalSlug ?? "",
       headline: settings.headline ?? "",
       accentColor: settings.accentColor ?? "",
       invites: [
@@ -304,7 +304,7 @@ function SetupGuide({
       feedbackFrequency: values.feedbackFrequency,
       feedbackPreferredDay: values.feedbackPreferredDay,
       feedbackWhatsappReminder: values.feedbackWhatsappReminder,
-      portalSubdomain: values.portalSubdomain || null,
+      portalSlug: values.portalSlug || null,
       headline: values.headline || null,
       accentColor: values.accentColor || null,
     });
@@ -563,27 +563,27 @@ function SetupGuide({
             />
 
             <div className="flex flex-col gap-5">
-              <form.Field name="portalSubdomain">
+              <form.Field name="portalSlug">
                 {(field) => (
                   <div className="space-y-1.5">
-                    <Label htmlFor="portalSubdomain">Endereço do portal</Label>
+                    <Label htmlFor="portalSlug">Endereço do portal</Label>
                     <div className="flex items-center gap-2">
                       <span className="shrink-0 text-body-dense text-muted-foreground">
                         app.progresso.io/
                       </span>
                       <Input
-                        id="portalSubdomain"
+                        id="portalSlug"
                         placeholder="minha-clinica"
                         aria-invalid={
-                          fieldErrors?.portalSubdomain ? true : undefined
+                          fieldErrors?.portalSlug ? true : undefined
                         }
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                       />
                     </div>
-                    {fieldErrors?.portalSubdomain ? (
+                    {fieldErrors?.portalSlug ? (
                       <p className="text-body-dense text-destructive">
-                        {fieldErrors.portalSubdomain}
+                        {fieldErrors.portalSlug}
                       </p>
                     ) : null}
                   </div>

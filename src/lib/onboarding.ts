@@ -175,7 +175,7 @@ export function settingsChanges(
     | "feedbackFrequency"
     | "feedbackPreferredDay"
     | "feedbackWhatsappReminder"
-    | "portalSubdomain"
+    | "portalSlug"
     | "headline"
     | "accentColor"
   >,
@@ -203,11 +203,11 @@ export function settingsChanges(
       to: after.feedbackWhatsappReminder ? "Ativo" : "Inativo",
     });
   }
-  if ((before.portalSubdomain ?? "") !== (after.portalSubdomain ?? "")) {
+  if ((before.portalSlug ?? "") !== (after.portalSlug ?? "")) {
     changes.push({
       label: "Endereço do portal",
-      from: portalValue(before.portalSubdomain),
-      to: portalValue(after.portalSubdomain),
+      from: portalValue(before.portalSlug),
+      to: portalValue(after.portalSlug),
     });
   }
   if ((before.headline ?? "") !== (after.headline ?? "")) {

@@ -18,10 +18,10 @@ import type { TenantContext } from "@/server/tenant";
 import { createTestDb, type TestDb } from "./pglite";
 
 const PHOTOS = [
-  { pose: "frente", r2Key: "f" },
-  { pose: "costas", r2Key: "b" },
-  { pose: "lado_esquerdo", r2Key: "l" },
-  { pose: "lado_direito", r2Key: "r" },
+  { pose: "frente", storageKey: "f" },
+  { pose: "costas", storageKey: "b" },
+  { pose: "lado_esquerdo", storageKey: "l" },
+  { pose: "lado_direito", storageKey: "r" },
 ] as const;
 
 const SECTIONS = [
@@ -60,7 +60,7 @@ async function student(
 ) {
   sequence += 1;
   const [row] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: ctx.clinicId,
       firstName: "Bia",
@@ -70,7 +70,7 @@ async function student(
       modality,
       userId,
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   return row.id;
 }
 
@@ -288,9 +288,9 @@ describe("messages that stopped applying", () => {
     const id = await student(ctx);
     const diet = await queue(ctx, id, "diet_published");
     const [current] = await db
-      .select({ phone: schema.students.phone })
-      .from(schema.students)
-      .where(eq(schema.students.id, id));
+      .select({ phone: schema.student.phone })
+      .from(schema.student)
+      .where(eq(schema.student.id, id));
 
     await students.updateStudent(ctx, id, { phone: current.phone, firstName: "Ana" });
     expect(await statusOf(diet)).toBe("queued");

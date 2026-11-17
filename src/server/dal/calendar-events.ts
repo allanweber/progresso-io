@@ -54,12 +54,12 @@ async function assertStudentInClinic(
   studentId: string,
 ): Promise<void> {
   const [row] = await ctx.db
-    .select({ id: schema.students.id })
-    .from(schema.students)
+    .select({ id: schema.student.id })
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.id, studentId),
-        eq(schema.students.clinicId, ctx.clinicId),
+        eq(schema.student.id, studentId),
+        eq(schema.student.clinicId, ctx.clinicId),
       ),
     );
   if (!row) throw new CalendarValidationError("invalid_student");
@@ -87,13 +87,13 @@ export async function getCalendar(
       endTime: schema.calendarEvent.endTime,
       notes: schema.calendarEvent.notes,
       studentId: schema.calendarEvent.studentId,
-      studentFirst: schema.students.firstName,
-      studentLast: schema.students.lastName,
+      studentFirst: schema.student.firstName,
+      studentLast: schema.student.lastName,
     })
     .from(schema.calendarEvent)
     .leftJoin(
-      schema.students,
-      eq(schema.students.id, schema.calendarEvent.studentId),
+      schema.student,
+      eq(schema.student.id, schema.calendarEvent.studentId),
     )
     .where(
       and(
@@ -129,16 +129,16 @@ export async function getCalendar(
 
   const activeStudents = await ctx.db
     .select({
-      id: schema.students.id,
-      firstName: schema.students.firstName,
-      lastName: schema.students.lastName,
-      createdAt: schema.students.createdAt,
+      id: schema.student.id,
+      firstName: schema.student.firstName,
+      lastName: schema.student.lastName,
+      createdAt: schema.student.createdAt,
     })
-    .from(schema.students)
+    .from(schema.student)
     .where(
       and(
-        eq(schema.students.clinicId, ctx.clinicId),
-        eq(schema.students.status, "active"),
+        eq(schema.student.clinicId, ctx.clinicId),
+        eq(schema.student.status, "active"),
       ),
     );
 

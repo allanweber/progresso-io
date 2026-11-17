@@ -46,7 +46,7 @@ export const PUT = withCoach("coach.settings.update", async (request, ctx) => {
   // Free clinics can still save name + feedback prefs, but not any branding value.
   if (!canUseBrandedPortal(effectivePlanOf(clinic, new Date()))) {
     const wantsBranding = Boolean(
-      data.portalSubdomain ||
+      data.portalSlug ||
         data.headline ||
         data.description ||
         data.whatsapp ||
@@ -64,11 +64,11 @@ export const PUT = withCoach("coach.settings.update", async (request, ctx) => {
 
   // Slug is unique across the platform; surface a duplicate under its field.
   if (
-    data.portalSubdomain &&
-    (await clinics.isSubdomainTaken(ctx, data.portalSubdomain))
+    data.portalSlug &&
+    (await clinics.isSubdomainTaken(ctx, data.portalSlug))
   ) {
     const m = "Este endereço já está em uso.";
-    return fieldConflict(m, { portalSubdomain: m });
+    return fieldConflict(m, { portalSlug: m });
   }
 
   const updated = await clinics.updateClinicSettings(ctx, data);
@@ -79,7 +79,7 @@ export const PUT = withCoach("coach.settings.update", async (request, ctx) => {
 function toDto(c: Clinic): ClinicSettingsDto {
   return {
     name: c.name,
-    portalSubdomain: c.portalSubdomain,
+    portalSlug: c.portalSlug,
     headline: c.headline,
     description: c.description,
     whatsapp: c.whatsapp,

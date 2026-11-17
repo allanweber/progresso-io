@@ -85,10 +85,7 @@ export function assessmentFormFromDto(
     circumferences: circ,
     skinfolds: skin,
     bodyFatPct: dto.bodyFatPct !== null ? formatCheckinWeight(dto.bodyFatPct) : "",
-    // A row taken before presets existed has no protocol. It was filled on the
-    // flat all-sites form, so `personalizada` is what it shows as — and showing
-    // every site is also the only way its values all remain visible.
-    protocol: dto.protocol ?? "personalizada",
+    protocol: dto.protocol,
   };
 }
 

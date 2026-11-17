@@ -145,7 +145,7 @@ export const clinicSettingsSchema = z.object({
     .trim()
     .min(1, "Informe o nome da clínica.")
     .max(80, "Nome muito longo."),
-  portalSubdomain: subdomainSchema,
+  portalSlug: subdomainSchema,
   // Branded-portal fields (all optional).
   headline: optionalText(120),
   description: optionalText(600),
@@ -176,7 +176,7 @@ export type ClinicSettingsValues = z.output<typeof clinicSettingsSchema>;
  */
 export type ClinicSettingsDto = {
   name: string;
-  portalSubdomain: string | null;
+  portalSlug: string | null;
   headline: string | null;
   description: string | null;
   whatsapp: string | null;
@@ -268,8 +268,7 @@ const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
  * Returns undefined when there is no usable accent, so the caller passes no
  * `style` at all and the page keeps the default palette. The value is re-checked
  * against `#RRGGBB` here even though the settings schema enforces it on write —
- * this string goes straight into a style attribute, and a row written before that
- * validation existed must not be the thing that finds out.
+ * this string goes straight into a style attribute.
  */
 export function accentThemeVars(
   accent: string | null,
@@ -302,11 +301,11 @@ export function accentThemeVars(
  * links just as it brands its portal.
  */
 export function portalPathPrefix(clinic: {
-  portalSubdomain: string | null;
+  portalSlug: string | null;
   effectivePlan: Plan;
 }): string {
-  return clinic.portalSubdomain && canUseBrandedPortal(clinic.effectivePlan)
-    ? `/${clinic.portalSubdomain}`
+  return clinic.portalSlug && canUseBrandedPortal(clinic.effectivePlan)
+    ? `/${clinic.portalSlug}`
     : "";
 }
 

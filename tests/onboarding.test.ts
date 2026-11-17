@@ -18,7 +18,7 @@ import { STARTER_CATALOG, STARTER_KEYS } from "@/server/starters/catalog";
 
 const settings: ClinicSettingsDto = {
   name: "Studio Forja",
-  portalSubdomain: "studio-forja",
+  portalSlug: "studio-forja",
   headline: "Treino e nutrição",
   description: null,
   whatsapp: null,
@@ -40,7 +40,7 @@ const unchanged = {
   feedbackFrequency: settings.feedbackFrequency,
   feedbackPreferredDay: settings.feedbackPreferredDay,
   feedbackWhatsappReminder: settings.feedbackWhatsappReminder,
-  portalSubdomain: settings.portalSubdomain,
+  portalSlug: settings.portalSlug,
   headline: settings.headline,
   accentColor: settings.accentColor,
 };
@@ -144,7 +144,7 @@ describe("settingsChanges", () => {
     // before it happens — it takes their microsite offline.
     const changes = settingsChanges(settings, {
       ...unchanged,
-      portalSubdomain: null,
+      portalSlug: null,
     });
     expect(changes).toEqual([
       { label: "Endereço do portal", from: "studio-forja", to: "vazio" },

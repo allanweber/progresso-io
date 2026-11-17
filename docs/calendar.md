@@ -83,7 +83,7 @@ plan_default`. The coach layout hides the "Calendário" nav item when the plan
 doesn't include it; the page itself shows an **upsell empty-state** if a Free
 coach hits the route directly (the API answers 403). A platform admin can toggle
 the override per clinic on `/admin/clinics/[id]` → "Limites desta clínica"
-("Calendário"). Seeded by migration `0027` (upsert-safe) and the seed defaults.
+("Calendário"). Seeded by migration `0000_init` (upsert-safe) and the seed defaults.
 
 ## API
 
@@ -129,7 +129,7 @@ on `/coach/calendar`, which is the page built to show it.
 ## Files
 
 - Schema: `calendar_event` (+`plan_limit.calendar`, `clinic.calendar_override`),
-  migration `0027`.
+  migration `0000_init`.
 - lib: `calendar.ts` (types, zod, PT-BR labels + colours, BRT date math,
   `computeCheckinDue`); `plans.ts` (`PLAN_DEFAULT_CALENDAR`).
 - DAL: `calendar-events.ts` (merged read + CRUD), `plans.ts`

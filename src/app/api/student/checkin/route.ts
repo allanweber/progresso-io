@@ -66,8 +66,8 @@ export const POST = withStudent(
     const stored: CheckinPhotoInput[] = [];
     for (const { pose, file } of photos) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const r2Key = await putCheckinPhoto(buffer, file.type);
-      stored.push({ pose, r2Key });
+      const storageKey = await putCheckinPhoto(buffer, file.type);
+      stored.push({ pose, storageKey });
     }
 
     const created = await studentCheckins.createStudentCheckin(ctx, {

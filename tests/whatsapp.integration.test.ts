@@ -69,7 +69,7 @@ async function addStudent(
   lastName = "Silva",
 ): Promise<string> {
   const [s] = await db
-    .insert(schema.students)
+    .insert(schema.student)
     .values({
       clinicId: ctx.clinicId,
       firstName,
@@ -77,7 +77,7 @@ async function addStudent(
       phone: normalizePhone(phone),
       status: "active",
     })
-    .returning({ id: schema.students.id });
+    .returning({ id: schema.student.id });
   return s.id;
 }
 
@@ -453,7 +453,7 @@ describe("sendTemplateToStudent", () => {
   it("no-ops (null) when the student has no phone or the template is unknown", async () => {
     const ctx = await ownerContext("wa-send-tpl-none@example.com", "clinica");
     const [noPhone] = await db
-      .insert(schema.students)
+      .insert(schema.student)
       .values({
         clinicId: ctx.clinicId,
         firstName: "Sem",
@@ -461,7 +461,7 @@ describe("sendTemplateToStudent", () => {
         phone: null,
         status: "active",
       })
-      .returning({ id: schema.students.id });
+      .returning({ id: schema.student.id });
     await addBaseTemplate("diet_published", "D", "{nome}, dieta no ar");
 
     expect(
@@ -495,9 +495,9 @@ describe("scheduled check-in reminders", () => {
     const studentId = await addStudent(ctx, "11955550001", "Dora");
     // Registered long ago, never checked in → overdue for a weekly check-in.
     await db
-      .update(schema.students)
+      .update(schema.student)
       .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
-      .where(eq(schema.students.id, studentId));
+      .where(eq(schema.student.id, studentId));
     return { ctx, studentId };
   }
 
@@ -551,9 +551,9 @@ describe("scheduled check-in reminders", () => {
       .where(eq(schema.clinic.id, other.clinicId));
     const otherStudent = await addStudent(other, "11955550009", "Zed");
     await db
-      .update(schema.students)
+      .update(schema.student)
       .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
-      .where(eq(schema.students.id, otherStudent));
+      .where(eq(schema.student.id, otherStudent));
 
     const free = await ownerContext("wa-cron-free@example.com", "free");
     await db
@@ -562,9 +562,9 @@ describe("scheduled check-in reminders", () => {
       .where(eq(schema.clinic.id, free.clinicId));
     const freeStudent = await addStudent(free, "11955550008", "Gil");
     await db
-      .update(schema.students)
+      .update(schema.student)
       .set({ createdAt: new Date("2026-01-05T12:00:00Z") })
-      .where(eq(schema.students.id, freeStudent));
+      .where(eq(schema.student.id, freeStudent));
 
     await runCheckinReminders(h, today);
 
