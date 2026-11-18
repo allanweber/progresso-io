@@ -238,9 +238,10 @@ The messages a clinic sends on its own behalf, all through the resolver above
   daily. Idempotent within a period.
 
   Triggered by **`POST /api/cron/whatsapp-reminders`**, guarded by a shared
-  secret: `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret`). With no
-  `CRON_SECRET` set it only runs under the dev flag (`WHATSAPP_ALLOW_SIMULATE=1`)
-  so it stays triggerable in testing; in production without a secret it refuses.
+  secret: `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret`). The route
+  compares the secret in constant time. If `CRON_SECRET` is not set, the route
+  refuses every request in every environment. To run it locally, set a
+  `CRON_SECRET` and send it in the header.
   In production the actual daily trigger is the `cron` service in
   `docker-compose.yml` (`Dockerfile`'s `cron` build target) — a small
   cron+curl container on the private `progresso` network that `POST`s this

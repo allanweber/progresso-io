@@ -51,7 +51,9 @@ Set on both the app and the build (see `.env.example` → "Sentry"):
   `worker-src blob:` are only added when the DSN is configured).
 - `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` — source-map upload at
   build time. Optional: a build without the auth token still succeeds and just
-  skips the upload.
+  skips the upload. The Docker build gets `SENTRY_AUTH_TOKEN` as a BuildKit
+  secret (`sentry_auth_token` in `docker-compose.yml`), not as a build argument.
+  Thus the token is not in the image metadata or in the build cache.
 
 ## Console logging
 

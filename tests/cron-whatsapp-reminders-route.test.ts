@@ -71,15 +71,25 @@ describe("POST /api/cron/whatsapp-reminders", () => {
     expect(runInvoiceReminders).not.toHaveBeenCalled();
   });
 
-  it("allows the dev-simulate flag when no secret is set", async () => {
+  it("refuses the dev-simulate flag when no secret is set", async () => {
     process.env.WHATSAPP_ALLOW_SIMULATE = "1";
 
     const res = await route.POST(post(), undefined as never);
 
-    expect(res.status).toBe(200);
-    expect(runCheckinReminders).toHaveBeenCalledTimes(1);
-    expect(runInvoiceReminders).toHaveBeenCalledTimes(1);
-    expect(runStudentInactivityNudges).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(401);
+    expect(runCheckinReminders).not.toHaveBeenCalled();
+    expect(runInvoiceReminders).not.toHaveBeenCalled();
+    expect(runStudentInactivityNudges).not.toHaveBeenCalled();
+  });
+
+  it("refuses an empty x-cron-secret header when no secret is set", async () => {
+    const res = await route.POST(
+      post({ "x-cron-secret": "" }),
+      undefined as never,
+    );
+
+    expect(res.status).toBe(401);
+    expect(runCheckinReminders).not.toHaveBeenCalled();
   });
 
   it("rejects a wrong bearer token when a secret is configured", async () => {
@@ -87,6 +97,18 @@ describe("POST /api/cron/whatsapp-reminders", () => {
 
     const res = await route.POST(
       post({ authorization: "Bearer wrong" }),
+      undefined as never,
+    );
+
+    expect(res.status).toBe(401);
+    expect(runInvoiceReminders).not.toHaveBeenCalled();
+  });
+
+  it("rejects a wrong x-cron-secret of a different length", async () => {
+    process.env.CRON_SECRET = "the-real-secret";
+
+    const res = await route.POST(
+      post({ "x-cron-secret": "the-real-secret-plus-more" }),
       undefined as never,
     );
 

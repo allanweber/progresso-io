@@ -78,9 +78,9 @@ ARG SENTRY_ORG=""
 ENV SENTRY_ORG=$SENTRY_ORG
 ARG SENTRY_PROJECT=""
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
-ARG SENTRY_AUTH_TOKEN=""
-ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
-RUN pnpm build
+RUN --mount=type=secret,id=sentry_auth_token,required=false \
+  SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+  pnpm build
 
 # ---- Migrator ----
 # One-shot image that applies the Drizzle SQL migrations and exits. Run as its
