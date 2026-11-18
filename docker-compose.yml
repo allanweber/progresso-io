@@ -43,7 +43,8 @@ services:
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
         SENTRY_ORG: ${SENTRY_ORG:-}
         SENTRY_PROJECT: ${SENTRY_PROJECT:-}
-        SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
+      secrets:
+        - sentry_auth_token
     restart: unless-stopped
     # Values are set in Dokploy's Environment tab and interpolated here (same
     # pattern as TUNNEL_TOKEN below). Required for auth to work:
@@ -156,6 +157,10 @@ services:
       - "127.0.0.1:15432:5432"
     networks:
       - dokploy-network
+
+secrets:
+  sentry_auth_token:
+    environment: SENTRY_AUTH_TOKEN
 
 networks:
   progresso:

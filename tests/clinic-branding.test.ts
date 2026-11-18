@@ -84,6 +84,24 @@ describe("branding fields", () => {
     ).toBe(true);
     expect(clinicSettingsSchema.safeParse(base({ siteUrl: "notaurl" })).success).toBe(false);
   });
+
+  it.each(["http://studioforja.com.br", "HTTPS://STUDIOFORJA.COM.BR"])(
+    "accepts the http(s) site URL %s",
+    (siteUrl) => {
+      expect(clinicSettingsSchema.safeParse(base({ siteUrl })).success).toBe(true);
+    },
+  );
+
+  it.each([
+    "javascript:alert(1)",
+    "JavaScript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "ftp://studioforja.com.br",
+    "file:///etc/passwd",
+  ])("rejects the non-http(s) site URL %s", (siteUrl) => {
+    expect(clinicSettingsSchema.safeParse(base({ siteUrl })).success).toBe(false);
+  });
 });
 
 describe("public link helpers", () => {

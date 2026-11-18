@@ -134,7 +134,12 @@ const siteUrlSchema = z
   .pipe(
     z.union([
       z.null(),
-      z.string().max(200).url("Informe uma URL válida (com https://)."),
+      z
+        .url({
+          protocol: /^https?$/,
+          error: "Informe uma URL válida (com https://).",
+        })
+        .max(200),
     ]),
   );
 

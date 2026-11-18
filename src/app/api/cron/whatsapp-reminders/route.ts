@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { NextResponse } from "next/server";
 
 import { runInvoiceReminders } from "@/server/billing-reminders";
@@ -14,20 +16,24 @@ import { logger, withRoute } from "@/server/observability";
  *
  * Auth is a shared secret, never a user session: the caller must present
  * `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret: $CRON_SECRET`). If
- * `CRON_SECRET` is unset the route only runs under the dev-simulate flag
- * (`WHATSAPP_ALLOW_SIMULATE=1`) so it stays triggerable in the testing env; in
- * production with no secret configured it refuses.
+ * `CRON_SECRET` is unset the route refuses every request, in every environment.
  */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
+
 function authorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-    const header = request.headers.get("x-cron-secret");
-    return bearer === secret || header === secret;
-  }
-  // No secret configured: only allow in the dev/testing env.
-  return process.env.WHATSAPP_ALLOW_SIMULATE === "1";
+  if (!secret) return false;
+  const auth = request.headers.get("authorization");
+  const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  const header = request.headers.get("x-cron-secret");
+  return (
+    (bearer !== null && safeEqual(bearer, secret)) ||
+    (header !== null && safeEqual(header, secret))
+  );
 }
 
 export const POST = withRoute("cron.whatsapp-reminders", async (request) => {
