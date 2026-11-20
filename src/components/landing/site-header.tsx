@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -10,10 +11,10 @@ const navLinks = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border-light bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-border-light bg-background/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1120px] items-center gap-3 px-4 sm:gap-8 sm:px-6">
         <Link href="/" aria-label="Progresso IO" className="mr-auto flex-shrink-0">
-          <Logo className="max-[379px]:hidden" />
+          <Logo className="max-[459px]:hidden" />
         </Link>
 
         <nav className="hidden items-center gap-8 sm:flex">
@@ -29,6 +30,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2.5 sm:ml-0">
+          <ThemeToggle />
           <Button asChild variant="ghost" size="sm">
             <Link href="/login" className="text-text-secondary">
               Entrar

@@ -32,7 +32,7 @@ export function AssessmentView({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white p-3.5 dark:bg-card">
+    <div className="rounded-xl border border-border bg-card p-3.5">
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-foreground">Avaliação</span>
         {assessment.bodyFatPct !== null ? (

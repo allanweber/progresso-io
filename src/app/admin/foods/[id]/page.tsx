@@ -76,11 +76,11 @@ export default function AdminFoodDetailPage() {
       </Link>
 
       {isLoading ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data ? (
@@ -311,7 +311,7 @@ function BaseSubstitutes({
       </div>
 
       {adding && (
-        <div className="mt-3 rounded-2xl bg-white p-4 shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-4 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">
               Novo substituto base
@@ -397,7 +397,7 @@ function BaseSubstitutes({
                           onClick={() =>
                             setPicked({ id: f.id, description: f.description })
                           }
-                          className="flex w-full items-center justify-between gap-2 border-b border-[#F1F5F9] px-3 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-surface-light"
+                          className="flex w-full items-center justify-between gap-2 border-b border-border-light px-3 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-surface-light"
                         >
                           <span className="min-w-0 break-words text-foreground">
                             {f.description}
@@ -429,7 +429,7 @@ function BaseSubstitutes({
           {food.substitutes.map((s) => (
             <li
               key={s.id}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-rest"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-rest"
             >
               <Link
                 href={`/admin/foods/${s.foodId}`}
@@ -438,7 +438,7 @@ function BaseSubstitutes({
                 {s.description}
               </Link>
               <div className="flex shrink-0 items-center gap-3">
-                <span className="text-sm text-[#475569]">
+                <span className="text-sm text-text-secondary">
                   <span className="font-semibold tabular-nums text-foreground">
                     {formatNutrient(s.grams, "g")}
                   </span>{" "}

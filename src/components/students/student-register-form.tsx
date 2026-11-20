@@ -394,7 +394,7 @@ function RegisterFormBody({ hasWhatsapp }: { hasWhatsapp: boolean }) {
 
       <form.Subscribe selector={(s) => s.values.modality}>
         {(modality) => (
-          <div className="rounded-[10px] bg-[#EFF6FF] px-4 py-3 text-body-dense text-[#1D4ED8]">
+          <div className="rounded-[10px] bg-info-bg px-4 py-3 text-body-dense text-info-fg">
             {modality !== "online"
               ? "O aluno não recebe acesso ao portal. Após registrar, você preenche a anamnese dele."
               : hasWhatsapp

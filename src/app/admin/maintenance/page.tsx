@@ -194,7 +194,7 @@ function AnamnesesMaintenance() {
       )}
 
       {/* Desktop table */}
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-card shadow-rest md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -253,7 +253,7 @@ function AnamnesesMaintenance() {
         {items.map((a) => (
           <li
             key={a.id}
-            className="rounded-2xl bg-white p-4 shadow-rest"
+            className="rounded-2xl bg-card p-4 shadow-rest"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -282,7 +282,7 @@ function AnamnesesMaintenance() {
           </li>
         ))}
         {!list.isLoading && items.length === 0 && (
-          <li className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
+          <li className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
             Nenhuma anamnese encontrada.
           </li>
         )}
@@ -400,7 +400,7 @@ function ClinicsMaintenance() {
       )}
 
       {/* Desktop table */}
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-card shadow-rest md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -470,7 +470,7 @@ function ClinicsMaintenance() {
         {clinics.map((c) => (
           <li
             key={c.id}
-            className="rounded-2xl bg-white p-4 shadow-rest"
+            className="rounded-2xl bg-card p-4 shadow-rest"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -500,7 +500,7 @@ function ClinicsMaintenance() {
           </li>
         ))}
         {!list.isLoading && clinics.length === 0 && (
-          <li className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
+          <li className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
             Nenhuma clínica.
           </li>
         )}
@@ -714,7 +714,7 @@ function TemplateMaintenance({
       )}
 
       {/* Desktop table */}
-      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-card shadow-rest md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -769,7 +769,7 @@ function TemplateMaintenance({
         {items.map((a) => (
           <li
             key={a.id}
-            className="rounded-2xl bg-white p-4 shadow-rest"
+            className="rounded-2xl bg-card p-4 shadow-rest"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -797,7 +797,7 @@ function TemplateMaintenance({
           </li>
         ))}
         {!list.isLoading && items.length === 0 && (
-          <li className="rounded-2xl border border-border bg-white p-6 text-center text-sm text-muted-foreground">
+          <li className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
             {copy.empty}
           </li>
         )}

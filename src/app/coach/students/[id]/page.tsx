@@ -60,6 +60,7 @@ import {
   STUDENT_STATE_STYLES,
   type StudentRosterDto,
 } from "@/lib/students";
+import { tintStyle } from "@/lib/tint";
 
 /** Renders an answer value for display (booleans → Sim/Não). */
 function answerText(v: AnamnesisAnswerValue): string {
@@ -200,11 +201,8 @@ export default function StudentProfilePage() {
 
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <div
-          className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold"
-          style={{
-            background: avatarPalette(student.id).bg,
-            color: avatarPalette(student.id).fg,
-          }}
+          className="tint flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold"
+          style={tintStyle(avatarPalette(student.id).fg, avatarPalette(student.id).bg)}
         >
           {studentInitials(student.firstName, student.lastName)}
         </div>
@@ -346,7 +344,7 @@ export default function StudentProfilePage() {
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Perfil */}
-        <div className="rounded-2xl bg-white p-6 shadow-rest">
+        <div className="rounded-2xl bg-card p-6 shadow-rest">
           <h2 className="font-heading text-base font-semibold text-foreground">
             Perfil
           </h2>
@@ -368,7 +366,7 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Anamnese */}
-        <div className="rounded-2xl bg-white p-6 shadow-rest">
+        <div className="rounded-2xl bg-card p-6 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-heading text-base font-semibold text-foreground">
               Anamnese

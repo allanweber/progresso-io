@@ -115,7 +115,7 @@ export function FoodMeasures({
     `inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
       on
         ? "border-primary bg-primary/5 text-primary"
-        : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+        : "border-border bg-surface-light text-text-secondary hover:border-primary hover:text-primary"
     }`;
 
   return (
@@ -185,7 +185,7 @@ export function FoodMeasures({
       </div>
 
       {adding && (
-        <div className="mt-3 rounded-2xl bg-white p-4 shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-4 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">Nova medida</span>
             <button
@@ -230,7 +230,7 @@ export function FoodMeasures({
                 className="w-28"
               />
             </div>
-            <label className="flex items-center gap-1.5 pb-2 text-body-dense text-[#475569]">
+            <label className="flex items-center gap-1.5 pb-2 text-body-dense text-text-secondary">
               <input
                 type="checkbox"
                 checked={isDefault}

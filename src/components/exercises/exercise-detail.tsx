@@ -149,11 +149,11 @@ export function ExerciseDetail({
       </Link>
 
       {isLoading ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando exercício…
         </div>
       ) : isError ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data ? (
@@ -283,7 +283,7 @@ export function ExerciseDetail({
 
           {/* Description (free text) */}
           {data.description && (
-            <p className="mt-4 text-sm leading-relaxed text-[#334155]">
+            <p className="mt-4 text-sm leading-relaxed text-foreground">
               {data.description}
             </p>
           )}
@@ -377,21 +377,21 @@ export function ExerciseDetail({
 
           {/* Muscles */}
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-4 shadow-rest">
+            <div className="rounded-2xl bg-card p-4 shadow-rest">
               <h2 className="text-sm font-semibold text-foreground">
                 Músculos primários
               </h2>
-              <p className="mt-1 text-body-dense text-[#475569]">
+              <p className="mt-1 text-body-dense text-text-secondary">
                 {data.primaryMuscles.length > 0
                   ? data.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")
                   : "—"}
               </p>
             </div>
-            <div className="rounded-2xl bg-white p-4 shadow-rest">
+            <div className="rounded-2xl bg-card p-4 shadow-rest">
               <h2 className="text-sm font-semibold text-foreground">
                 Músculos secundários
               </h2>
-              <p className="mt-1 text-body-dense text-[#475569]">
+              <p className="mt-1 text-body-dense text-text-secondary">
                 {data.secondaryMuscles.length > 0
                   ? data.secondaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")
                   : "—"}
@@ -429,7 +429,7 @@ export function ExerciseDetail({
                       <li key={s.id}>
                         <Link
                           href={`${backHref}/${s.exerciseId}`}
-                          className="group flex items-center gap-3 rounded-2xl bg-white p-3 shadow-rest transition-colors hover:border-primary"
+                          className="group flex items-center gap-3 rounded-2xl bg-card p-3 shadow-rest transition-colors hover:border-primary"
                         >
                           <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
                             {src ? (
@@ -473,7 +473,7 @@ export function ExerciseDetail({
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
                       {i + 1}
                     </span>
-                    <p className="text-sm leading-relaxed text-[#334155]">
+                    <p className="text-sm leading-relaxed text-foreground">
                       {step}
                     </p>
                   </li>
@@ -602,7 +602,7 @@ function SubstitutionsManager({
       </p>
 
       {adding && (
-        <div className="mt-3 rounded-2xl bg-white p-4 shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-4 shadow-rest">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-foreground">{newLabel}</span>
             <button
@@ -643,7 +643,7 @@ function SubstitutionsManager({
                         type="button"
                         onClick={() => addMutation.mutate(e.id)}
                         disabled={addMutation.isPending}
-                        className="flex w-full items-center justify-between gap-2 border-b border-[#F1F5F9] px-3 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-surface-light disabled:opacity-50"
+                        className="flex w-full items-center justify-between gap-2 border-b border-border-light px-3 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-surface-light disabled:opacity-50"
                       >
                         <span className="min-w-0 break-words text-foreground">
                           {e.name}
@@ -675,7 +675,7 @@ function SubstitutionsManager({
             return (
               <li
                 key={s.id}
-                className="group relative flex items-center gap-3 rounded-2xl bg-white p-3 shadow-rest"
+                className="group relative flex items-center gap-3 rounded-2xl bg-card p-3 shadow-rest"
               >
                 <Link
                   href={`${backHref}/${s.exerciseId}`}

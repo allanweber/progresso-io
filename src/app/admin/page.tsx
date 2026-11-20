@@ -27,7 +27,7 @@ export default async function AdminDashboardPage() {
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Link
           href="/admin/students"
-          className="group rounded-2xl bg-white p-5 shadow-rest transition-colors hover:border-primary"
+          className="group rounded-2xl bg-card p-5 shadow-rest transition-colors hover:border-primary"
         >
           <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-light">
             <Users className="size-5 text-primary" strokeWidth={2} />
@@ -42,7 +42,7 @@ export default async function AdminDashboardPage() {
 
         <Link
           href="/admin/foods"
-          className="group rounded-2xl bg-white p-5 shadow-rest transition-colors hover:border-primary"
+          className="group rounded-2xl bg-card p-5 shadow-rest transition-colors hover:border-primary"
         >
           <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-light">
             <BookOpen className="size-5 text-primary" strokeWidth={2} />
@@ -57,7 +57,7 @@ export default async function AdminDashboardPage() {
 
         <Link
           href="/admin/admins"
-          className="group rounded-2xl bg-white p-5 shadow-rest transition-colors hover:border-primary"
+          className="group rounded-2xl bg-card p-5 shadow-rest transition-colors hover:border-primary"
         >
           <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-light">
             <ShieldCheck className="size-5 text-primary" strokeWidth={2} />

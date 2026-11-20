@@ -60,7 +60,7 @@ function SheetContent({
       <DialogPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed inset-y-0 z-50 flex w-64 flex-col bg-white px-5 py-6 shadow-overlay focus:outline-none",
+          "fixed inset-y-0 z-50 flex w-64 flex-col bg-popover px-5 py-6 shadow-overlay focus:outline-none",
           side === "left" ? "left-0 border-r border-border" : "right-0 border-l border-border",
           className,
         )}

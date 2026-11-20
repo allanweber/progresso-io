@@ -41,19 +41,19 @@ export function LoginForm({
       </div>
 
       {justVerified && (
-        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-body-dense font-medium text-primary">
+        <div className="mb-4 rounded-[10px] bg-ok-bg px-4 py-3 text-body-dense font-medium text-ok-fg">
           Conta confirmada! Entre para continuar.
         </div>
       )}
 
       {justActivated && (
-        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-body-dense font-medium text-primary">
+        <div className="mb-4 rounded-[10px] bg-ok-bg px-4 py-3 text-body-dense font-medium text-ok-fg">
           Acesso ativado! Entre para continuar.
         </div>
       )}
 
       {justReset && (
-        <div className="mb-4 rounded-[10px] bg-[#DCFCE7] px-4 py-3 text-body-dense font-medium text-primary">
+        <div className="mb-4 rounded-[10px] bg-ok-bg px-4 py-3 text-body-dense font-medium text-ok-fg">
           Senha redefinida! Entre com a nova senha.
         </div>
       )}

@@ -25,6 +25,7 @@ import {
 
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { clearAiMemory } from "@/lib/ai-generate-memory";
 import { apiFetch } from "@/lib/api-client";
 import { afterModalCloses } from "@/lib/modal-history";
@@ -432,7 +433,7 @@ export function DashboardShell({
         way without establishing a scrollport, so sticky keeps working.
       */}
       <div className="min-h-screen bg-ground lg:p-3 print:block print:min-h-0 print:bg-white print:p-0">
-        <div className="flex min-h-screen bg-card lg:min-h-[calc(100vh-1.5rem)] lg:overflow-clip lg:rounded-window lg:shadow-window print:block print:min-h-0 print:rounded-none print:shadow-none">
+        <div className="flex min-h-screen bg-background lg:min-h-[calc(100vh-1.5rem)] lg:overflow-clip lg:rounded-window lg:shadow-window print:block print:min-h-0 print:rounded-none print:shadow-none">
         {/* Ten rail links stood between a keyboard user and the content on every
             page. Landmarks technically satisfy 2.4.1; this is the affordance
             people actually reach for. */}
@@ -485,6 +486,7 @@ export function DashboardShell({
           <nav aria-label="Navegação principal" className="flex flex-col text-body">
             {navLinks(closeDrawerAnd)}
           </nav>
+          <ThemeToggle variant="inline" className="mt-auto pt-6 sm:hidden" />
         </SheetContent>
 
         {/* min-w-0 lets this column shrink below its content's intrinsic width,
@@ -494,7 +496,7 @@ export function DashboardShell({
         {/* Height comes from `--header-h` rather than from padding, because the
             notification dropdown pins itself to that same token on mobile. One
             number, one place. */}
-        <header className="flex h-[var(--header-h)] items-center justify-between border-b border-border bg-card px-4 sm:px-6 print:hidden">
+        <header className="flex h-[var(--header-h)] items-center justify-between border-b border-border bg-background px-4 sm:px-6 print:hidden">
           <div className="flex items-center gap-2.5 md:hidden">
             {/* 44px on the phone: PRODUCT.md calls thumb-sized targets a
                 correctness requirement, and this is the only route to every
@@ -520,6 +522,7 @@ export function DashboardShell({
                 {roleLabel} · {user.email}
               </div>
             </div>
+            <ThemeToggle className="hidden sm:flex" />
             <button
               type="button"
               onClick={handleSignOut}
@@ -564,7 +567,7 @@ export function DashboardShell({
             <button
               type="button"
               onClick={() => setSubscribeOpen(true)}
-              className="min-h-11 shrink-0 self-start rounded-md border-[1.5px] border-current px-3 py-1.5 font-medium transition-colors hover:bg-white/60 sm:min-h-0 sm:self-auto"
+              className="min-h-11 shrink-0 self-start rounded-md border-[1.5px] border-current px-3 py-1.5 font-medium transition-colors hover:bg-white/60 dark:hover:bg-white/10 sm:min-h-0 sm:self-auto"
             >
               Assinar
             </button>

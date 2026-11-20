@@ -728,7 +728,7 @@ export function DietBuilder({
         </div>
       )}
 
-      <div className="space-y-4 rounded-2xl bg-white p-5 shadow-rest">
+      <div className="space-y-4 rounded-2xl bg-card p-5 shadow-rest">
         <form.Field name="name">
           {(field) => (
             <Field
@@ -807,7 +807,7 @@ export function DietBuilder({
       <button
         type="button"
         onClick={addMeal}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-white py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
       >
         <Plus className="size-4" />
         Adicionar refeição
@@ -832,7 +832,7 @@ function TotalsBar({ label, totals }: { label: string; totals: Macro }) {
     { label: "Gord", value: formatGrams(totals.fat), className: "text-amber-600" },
   ];
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-white px-5 py-3 shadow-rest">
+    <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-card px-5 py-3 shadow-rest">
       <span className="text-sm font-semibold text-foreground">{label}</span>
       <div className="flex flex-1 flex-wrap justify-end gap-x-5 gap-y-1">
         {cells.map((c) => (
@@ -914,7 +914,7 @@ function SortableMeal({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl bg-white shadow-rest"
+      className="rounded-2xl bg-card shadow-rest"
     >
       <div className="flex items-start gap-2 border-b border-border p-4">
         <button
@@ -975,7 +975,7 @@ function SortableMeal({
                 key={s}
                 type="button"
                 onClick={() => onNameChange(s)}
-                className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary"
+                className="rounded-full border border-border bg-surface-light px-2.5 py-0.5 text-xs font-medium text-text-secondary hover:border-primary hover:text-primary"
               >
                 {s}
               </button>
@@ -1080,7 +1080,7 @@ function SortableMeal({
         )}
 
         {meal.items.length > 0 && (
-          <div className="flex justify-end gap-4 border-t border-[#F1F5F9] pt-2 text-xs">
+          <div className="flex justify-end gap-4 border-t border-border-light pt-2 text-xs">
             <span>
               <span className="font-semibold text-primary">
                 {formatKcal(totals.energyKcal)}
@@ -1282,7 +1282,7 @@ function SortableItem({
           {item.substitutes.map((s) => (
             <li
               key={s.key}
-              className="flex items-center gap-2 text-xs text-[#475569]"
+              className="flex items-center gap-2 text-xs text-text-secondary"
             >
               <span className="text-amber-600">⇄</span>
               <span className="min-w-0 flex-1 truncate">{s.description}</span>

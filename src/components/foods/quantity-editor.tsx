@@ -94,7 +94,7 @@ export function QuantityEditor({
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4 shadow-rest">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-rest">
       {onBack && (
         <button
           type="button"
@@ -123,7 +123,7 @@ export function QuantityEditor({
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                 !activeMeasure
                   ? "border-primary bg-primary/5 text-primary"
-                  : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+                  : "border-border bg-surface-light text-text-secondary hover:border-primary hover:text-primary"
               }`}
             >
               gramas
@@ -138,7 +138,7 @@ export function QuantityEditor({
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     on
                       ? "border-primary bg-primary/5 text-primary"
-                      : "border-border bg-surface-light text-[#475569] hover:border-primary hover:text-primary"
+                      : "border-border bg-surface-light text-text-secondary hover:border-primary hover:text-primary"
                   }`}
                 >
                   {m.label} · {m.grams} g
@@ -153,7 +153,7 @@ export function QuantityEditor({
         <button
           type="button"
           onClick={() => setAmount((v) => Math.max(0, (Number(v) || 0) - step))}
-          className="w-11 shrink-0 rounded-lg border border-border bg-white text-lg font-semibold text-[#334155] hover:border-primary"
+          className="w-11 shrink-0 rounded-lg border border-border bg-card text-lg font-semibold text-foreground hover:border-primary"
           aria-label="Diminuir"
         >
           −
@@ -183,7 +183,7 @@ export function QuantityEditor({
         <button
           type="button"
           onClick={() => setAmount((v) => (Number(v) || 0) + step)}
-          className="w-11 shrink-0 rounded-lg border border-border bg-white text-lg font-semibold text-[#334155] hover:border-primary"
+          className="w-11 shrink-0 rounded-lg border border-border bg-card text-lg font-semibold text-foreground hover:border-primary"
           aria-label="Aumentar"
         >
           +
@@ -203,7 +203,7 @@ export function QuantityEditor({
         {macros.map((m) => (
           <div
             key={m.label}
-            className="rounded-lg border border-[#EEF2F6] bg-surface-light p-2 text-center"
+            className="rounded-lg border border-border-light bg-surface-light p-2 text-center"
           >
             <div className={`text-base font-bold ${m.className}`}>{m.value}</div>
             <div className="mt-0.5 text-eyebrow font-semibold uppercase tracking-wide text-muted-foreground">
@@ -217,7 +217,7 @@ export function QuantityEditor({
         type="button"
         onClick={confirm}
         disabled={g <= 0}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted-foreground"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted-foreground"
       >
         {confirmLabel}
       </button>

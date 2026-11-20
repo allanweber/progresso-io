@@ -442,15 +442,15 @@ export function ExerciseCatalog({
       </p>
 
       {isLoading ? (
-        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando exercícios…
         </div>
       ) : isError ? (
-        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Nenhum exercício encontrado com esses filtros.
         </div>
       ) : (
@@ -466,7 +466,7 @@ export function ExerciseCatalog({
                 <li key={ex.id}>
                   <Link
                     href={`${basePath}/${ex.id}`}
-                    className="group flex h-full gap-3 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
+                    className="group flex h-full gap-3 rounded-2xl bg-card p-4 shadow-rest transition-colors hover:border-primary"
                   >
                     <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-light text-muted-foreground">
                       {!src && ex.primaryMuscles.length > 0 ? (
@@ -527,7 +527,7 @@ export function ExerciseCatalog({
                         )}
                       </div>
                       {ex.primaryMuscles.length > 0 && (
-                        <p className="mt-2 truncate text-body-dense text-[#475569]">
+                        <p className="mt-2 truncate text-body-dense text-text-secondary">
                           {ex.primaryMuscles
                             .map((m) => MUSCLE_LABELS[m])
                             .join(", ")}
@@ -550,7 +550,7 @@ export function ExerciseCatalog({
                 type="button"
                 onClick={() => goToPage(page - 1)}
                 disabled={page <= 1}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Anterior
               </button>
@@ -558,7 +558,7 @@ export function ExerciseCatalog({
                 type="button"
                 onClick={() => goToPage(page + 1)}
                 disabled={page >= totalPages}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Próxima
               </button>

@@ -281,11 +281,13 @@ export function accentThemeVars(
   if (!accent || !HEX_COLOR.test(accent)) return undefined;
   return {
     "--primary": accent,
+    "--primary-foreground": "#ffffff",
+    "--primary-panel": accent,
     "--primary-hover": `color-mix(in srgb, ${accent} 86%, black)`,
     "--primary-deep": `color-mix(in srgb, ${accent} 86%, black)`,
     "--primary-press": `color-mix(in srgb, ${accent} 72%, black)`,
-    "--primary-light": `color-mix(in srgb, ${accent} 8%, white)`,
-    "--primary-light-border": `color-mix(in srgb, ${accent} 30%, white)`,
+    "--primary-light": `color-mix(in srgb, ${accent} 8%, var(--card))`,
+    "--primary-light-border": `color-mix(in srgb, ${accent} 30%, var(--card))`,
     "--ring": accent,
   };
 }

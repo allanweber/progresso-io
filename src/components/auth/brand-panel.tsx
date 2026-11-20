@@ -44,7 +44,7 @@ const highlights: Highlight[] = [
  */
 export function BrandPanel() {
   return (
-    <div className="relative flex w-full shrink-0 flex-col justify-between overflow-hidden bg-primary p-8 max-md:min-h-[200px] max-md:flex-row max-md:items-center max-md:justify-between md:w-[420px] md:p-11">
+    <div className="relative flex w-full shrink-0 flex-col justify-between overflow-hidden bg-primary-panel p-8 max-md:min-h-[200px] max-md:flex-row max-md:items-center max-md:justify-between md:w-[420px] md:p-11">
       {/* Decorative circles */}
       <div className="pointer-events-none absolute -right-20 -top-20 size-[300px] rounded-full bg-white/[0.06]" />
       <div className="pointer-events-none absolute -bottom-16 -left-16 size-[240px] rounded-full bg-white/[0.06]" />

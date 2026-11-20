@@ -86,7 +86,7 @@ export function OtpInput({
           autoFocus={autoFocus && index === 0}
           aria-label={`Dígito ${index + 1}`}
           className={cn(
-            "h-12 w-full rounded-[10px] border-[1.5px] border-input bg-white text-center font-heading text-lg font-bold text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/15 disabled:opacity-50",
+            "h-12 w-full rounded-[10px] border-[1.5px] border-input bg-card text-center font-heading text-lg font-bold text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/15 disabled:opacity-50",
             digit && "border-primary/50",
           )}
         />

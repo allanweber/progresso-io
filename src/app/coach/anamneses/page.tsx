@@ -195,7 +195,7 @@ export default function AnamnesesListPage() {
   });
 
   const panel =
-    "mt-3 rounded-2xl bg-white shadow-rest";
+    "mt-3 rounded-2xl bg-card shadow-rest";
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -286,7 +286,7 @@ export default function AnamnesesListPage() {
               <li key={a.id}>
                 <Link
                   href={`/coach/anamneses/${a.id}`}
-                  className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
+                  className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-rest transition-colors hover:border-primary"
                 >
                   <div className="min-w-0 flex-1">
                     <span className="block font-medium text-foreground">

@@ -46,7 +46,7 @@ export const STUDENT_STATE_STYLES: Record<
 > = {
   active: { color: "var(--primary-deep)", bg: "var(--primary-light)" },
   inactive: { color: "var(--warn-fg)", bg: "var(--warn-bg)" },
-  invited: { color: "#1D4ED8", bg: "var(--info-bg)" },
+  invited: { color: "var(--info-fg)", bg: "var(--info-bg)" },
   archived: { color: "var(--neutral-fg)", bg: "var(--neutral-bg)" },
 };
 

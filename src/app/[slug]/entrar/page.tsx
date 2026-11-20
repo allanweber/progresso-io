@@ -52,7 +52,7 @@ export default async function ClinicLoginPage({
     >
       {/* Branded panel — the clinic's identity. */}
       <div
-        className="flex flex-col items-center justify-center gap-4 bg-primary px-6 py-12 text-center text-white md:w-2/5"
+        className="flex flex-col items-center justify-center gap-4 bg-primary-panel px-6 py-12 text-center text-white md:w-2/5"
       >
         {b.hasLogo ? (
           // eslint-disable-next-line @next/next/no-img-element

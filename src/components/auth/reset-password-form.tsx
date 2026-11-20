@@ -41,7 +41,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
       </div>
 
       <div className="mb-2 space-y-1.5">
-        <span className="block text-body-dense font-semibold text-[#334155]">
+        <span className="block text-body-dense font-semibold text-foreground">
           Código de verificação
         </span>
         <OtpInput value={otp} onChange={setOtp} autoFocus />

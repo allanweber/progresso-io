@@ -109,7 +109,7 @@ function entryStyle(c: CheckinDto): EntryStyle {
     return {
       title: "Anotação do coach",
       tag: "coach",
-      className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40",
+      className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
     };
   }
   // Otherwise the coach SAID which it was when they logged it. This used to be
@@ -127,7 +127,7 @@ function entryStyle(c: CheckinDto): EntryStyle {
         // like an aluno's own card, which this is not.
         title: "Check-in online",
         tag: "coach",
-        className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40",
+        className: "bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
       };
 }
 
@@ -200,7 +200,7 @@ export default function StudentFeedbackPage() {
           {(state.error as Error).message}
         </p>
       ) : checkins.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center ">
           <p className="text-sm text-muted-foreground">
             Nenhum check-in ainda. Quando o aluno enviar um check-in, ele aparece
             aqui para você responder — ou registre um check-in presencial.
@@ -259,7 +259,7 @@ function TimelineCard({
       <button
         type="button"
         onClick={onOpen}
-        className="w-full rounded-2xl bg-white p-4 text-left shadow-rest transition-colors hover:border-primary/40 dark:bg-card"
+        className="w-full rounded-2xl bg-card p-4 text-left shadow-rest transition-colors hover:border-primary/40"
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold">{style.title}</span>
@@ -1330,7 +1330,7 @@ function DeleteCheckin({
         <Button
           type="button"
           size="sm"
-          className="bg-destructive text-white hover:bg-destructive/90"
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           onClick={() => remove.mutate()}
           disabled={remove.isPending}
         >

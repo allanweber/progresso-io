@@ -58,6 +58,7 @@ import {
 import type { CalendarEventType } from "@/db/schema";
 import { fieldError } from "@/lib/form";
 import { cn } from "@/lib/utils";
+import { tintStyle } from "@/lib/tint";
 
 type View = "month" | "week" | "day";
 
@@ -246,8 +247,8 @@ export default function CoachCalendarPage() {
                 className={cn(
                   "h-full px-3 text-body-dense font-medium transition-colors",
                   view === v
-                    ? "bg-primary text-white"
-                    : "bg-white text-muted-foreground hover:bg-surface-light",
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-surface-light",
                 )}
               >
                 {v === "month" ? "Mês" : v === "week" ? "Semana" : "Dia"}
@@ -291,11 +292,11 @@ export default function CoachCalendarPage() {
         {planLocked ? (
           <CalendarUpsell />
         ) : calendar.isLoading ? (
-          <div className="mt-6 rounded-2xl border border-border bg-white px-4 py-16 text-center text-sm text-muted-foreground">
+          <div className="mt-6 rounded-2xl border border-border bg-card px-4 py-16 text-center text-sm text-muted-foreground">
             Carregando…
           </div>
         ) : calendar.isError ? (
-          <div className="mt-6 rounded-2xl border border-border bg-white px-4 py-16 text-center text-sm text-destructive">
+          <div className="mt-6 rounded-2xl border border-border bg-card px-4 py-16 text-center text-sm text-destructive">
             {(calendar.error as Error).message}
           </div>
         ) : view === "month" ? (
@@ -409,7 +410,7 @@ function MonthGrid({
 }) {
   const days = monthGridDays(anchor);
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-rest">
+    <div className="overflow-hidden rounded-2xl bg-card shadow-rest">
       <div className="grid grid-cols-7 border-b border-border">
         {WEEKDAY_SHORT_LABELS.map((label) => (
           <div
@@ -432,8 +433,8 @@ function MonthGrid({
               data={{ date: day, keepTime: true }}
               onEmptyClick={() => onSelectDay(day)}
               className={cn(
-                "group min-h-[92px] border-b border-r border-[#F1F5F9] p-1.5 [&:nth-child(7n)]:border-r-0",
-                inMonth ? "bg-white" : "bg-[#FAFBFC]",
+                "group min-h-[92px] border-b border-r border-border-light p-1.5 [&:nth-child(7n)]:border-r-0",
+                inMonth ? "bg-card" : "bg-surface-light",
               )}
             >
               <div className="mb-1 flex items-center justify-between">
@@ -441,10 +442,10 @@ function MonthGrid({
                   className={cn(
                     "flex size-6 items-center justify-center rounded-full text-label",
                     isToday
-                      ? "bg-primary font-bold text-white"
+                      ? "bg-primary font-bold text-primary-foreground"
                       : inMonth
                         ? "font-medium text-foreground"
-                        : "text-[#CBD5E1]",
+                        : "text-meta/50",
                   )}
                 >
                   {dayNumber(day)}
@@ -474,8 +475,8 @@ function ChipBody({ item }: { item: CalendarItemDto }) {
   const { accent, soft } = itemColors(item);
   return (
     <span
-      className="block truncate rounded border-l-[3px] px-1.5 py-0.5 text-left text-caption font-semibold leading-tight shadow-sm"
-      style={{ background: soft, color: accent, borderColor: accent }}
+      className="tint block truncate rounded border-l-[3px] px-1.5 py-0.5 text-left text-caption font-semibold leading-tight shadow-sm"
+      style={{ ...tintStyle(accent, soft), borderColor: accent }}
     >
       {timePrefix(item)}
       {item.title}
@@ -557,7 +558,7 @@ function TimeGrid({
 }) {
   const cols = days.length;
   return (
-    <div className="mt-5 overflow-hidden rounded-2xl bg-white shadow-rest">
+    <div className="mt-5 overflow-hidden rounded-2xl bg-card shadow-rest">
       {/* Day headers */}
       <div
         className="grid border-b border-border"
@@ -579,7 +580,7 @@ function TimeGrid({
               <div
                 className={cn(
                   "mx-auto mt-1 flex size-7 items-center justify-center rounded-full text-sm font-semibold",
-                  isToday ? "bg-primary text-white" : "text-foreground",
+                  isToday ? "bg-primary text-primary-foreground" : "text-foreground",
                 )}
               >
                 {dayNumber(day)}
@@ -591,7 +592,7 @@ function TimeGrid({
 
       {/* All-day row */}
       <div
-        className="grid border-b border-border bg-[#FAFBFC]"
+        className="grid border-b border-border bg-surface-light"
         style={{ gridTemplateColumns: `56px repeat(${cols}, 1fr)` }}
       >
         <div className="py-2 pl-2 text-eyebrow font-medium uppercase text-meta">
@@ -622,7 +623,7 @@ function TimeGrid({
         {GRID_HOURS.map((hour) => (
           <div
             key={hour}
-            className="grid border-b border-[#F1F5F9]"
+            className="grid border-b border-border-light"
             style={{ gridTemplateColumns: `56px repeat(${cols}, 1fr)` }}
           >
             <div className="py-2 pr-2 text-right text-caption text-meta">
@@ -640,7 +641,7 @@ function TimeGrid({
                   onEmptyClick={() =>
                     onSelectSlot(day, `${String(hour).padStart(2, "0")}:00`)
                   }
-                  className="min-h-[44px] border-l border-[#F1F5F9] p-1"
+                  className="min-h-[44px] border-l border-border-light p-1"
                 >
                   <div className="flex flex-col gap-1">
                     {slot.map((item) => (
@@ -674,7 +675,7 @@ function UpcomingPanel({
 }) {
   const upcoming = items.filter((i) => i.date >= today).slice(0, 12);
   return (
-    <div className="h-fit overflow-hidden rounded-2xl bg-white shadow-rest">
+    <div className="h-fit overflow-hidden rounded-2xl bg-card shadow-rest">
       <div className="border-b border-border px-4 py-3.5">
         <h2 className="font-heading text-subtitle font-semibold text-foreground">
           Próximos 14 dias
@@ -689,7 +690,7 @@ function UpcomingPanel({
           {upcoming.map((item) => {
             const { accent, soft } = itemColors(item);
             return (
-              <li key={item.key} className="border-b border-[#F1F5F9] last:border-0">
+              <li key={item.key} className="border-b border-border-light last:border-0">
                 <button
                   type="button"
                   onClick={() => onOpenItem(item)}
@@ -708,8 +709,8 @@ function UpcomingPanel({
                       {item.startTime ? ` · ${item.startTime}` : ""}
                     </div>
                     <span
-                      className="mt-1 inline-block rounded-full px-2 py-0.5 text-caption font-semibold"
-                      style={{ background: soft, color: accent }}
+                      className="tint mt-1 inline-block rounded-full px-2 py-0.5 text-caption font-semibold"
+                      style={tintStyle(accent, soft)}
                     >
                       {item.overdue ? "Atrasado" : CALENDAR_TYPE_META[item.type].label}
                     </span>
@@ -732,8 +733,8 @@ function Legend() {
         return (
           <div key={type} className="flex items-center gap-1.5">
             <span
-              className="inline-block size-2.5 rounded-[3px] border"
-              style={{ background: meta.soft, borderColor: meta.accent }}
+              className="tint inline-block size-2.5 rounded-[3px] border"
+              style={{ ...tintStyle(meta.accent, meta.soft), borderColor: meta.accent }}
             />
             <span className="text-xs text-muted-foreground">{meta.label}</span>
           </div>
@@ -745,7 +746,7 @@ function Legend() {
 
 function CalendarUpsell() {
   return (
-    <div className="mt-6 rounded-2xl bg-white px-6 py-16 text-center shadow-rest">
+    <div className="mt-6 rounded-2xl bg-card px-6 py-16 text-center shadow-rest">
       <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary-light">
         <CalendarDays className="size-7 text-primary" />
       </div>

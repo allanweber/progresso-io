@@ -600,7 +600,7 @@ function MusclePicker({
               className={
                 active
                   ? "rounded-full border border-primary bg-primary-light px-3 py-1.5 text-body-dense font-medium text-primary"
-                  : "rounded-full border border-border bg-white px-3 py-1.5 text-body-dense text-[#475569] transition-colors hover:border-primary"
+                  : "rounded-full border border-border bg-card px-3 py-1.5 text-body-dense text-text-secondary transition-colors hover:border-primary"
               }
             >
               {o.label}
@@ -672,7 +672,7 @@ function ImageUploader({
                 type="button"
                 onClick={() => onRemoveExisting(key)}
                 aria-label="Remover imagem"
-                className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-[#475569] shadow transition-colors hover:text-destructive"
+                className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-text-secondary shadow transition-colors hover:text-destructive"
               >
                 <X className="size-4" />
               </button>
@@ -695,7 +695,7 @@ function ImageUploader({
               type="button"
               onClick={() => onRemovePending(idx)}
               aria-label="Remover imagem"
-              className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-[#475569] shadow transition-colors hover:text-destructive"
+              className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-text-secondary shadow transition-colors hover:text-destructive"
             >
               <X className="size-4" />
             </button>
@@ -703,7 +703,7 @@ function ImageUploader({
         ))}
 
         {canAdd && (
-          <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-white text-label text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+          <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-card text-label text-muted-foreground transition-colors hover:border-primary hover:text-primary">
             <Upload className="size-5" />
             {busy ? "Enviando…" : "Adicionar"}
             <input

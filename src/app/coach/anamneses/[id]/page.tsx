@@ -103,7 +103,7 @@ export default function AnamnesisDetailPage() {
   });
 
   const panel =
-    "rounded-2xl bg-white shadow-rest";
+    "rounded-2xl bg-card shadow-rest";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -180,14 +180,14 @@ export default function AnamnesisDetailPage() {
           </div>
 
           {data.description && (
-            <p className={`mt-4 rounded-xl border border-border bg-white p-4 text-body text-text-secondary shadow-rest`}>
+            <p className={`mt-4 rounded-xl border border-border bg-card p-4 text-body text-text-secondary shadow-rest`}>
               {data.description}
             </p>
           )}
 
           <div className="mt-4 space-y-4">
             {data.sections.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center text-body text-muted-foreground">
+              <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-body text-muted-foreground">
                 Esta anamnese ainda não tem seções. Use “Editar” para montá-la.
               </div>
             ) : (

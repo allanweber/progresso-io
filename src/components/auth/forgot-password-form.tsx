@@ -21,7 +21,7 @@ export function ForgotPasswordForm() {
 
     return (
       <div className="py-2 text-center">
-        <div className="mx-auto mb-[18px] flex size-14 items-center justify-center rounded-full bg-[#DCFCE7]">
+        <div className="mx-auto mb-[18px] flex size-14 items-center justify-center rounded-full bg-ok-bg">
           <MailCheck className="size-[26px] text-primary" strokeWidth={2.5} />
         </div>
         <h1 className="mb-2 font-heading text-xl font-bold text-foreground">

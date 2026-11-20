@@ -69,7 +69,7 @@ export default function InvoicePrintPage() {
       </div>
 
       {/* The document */}
-      <article className="rounded-2xl bg-white p-8 shadow-rest print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <article className="rounded-2xl bg-card p-8 shadow-rest print:rounded-none print:border-0 print:p-0 print:shadow-none">
         {/* Header */}
         <header className="flex items-start justify-between gap-6 border-b border-border pb-6">
           <div>

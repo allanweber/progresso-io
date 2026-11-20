@@ -37,7 +37,7 @@ function PlanCard({ plan }: { plan: Plan }) {
       )}
     >
       {plan.popular && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-3.5 py-1 text-caption font-bold text-white">
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-3.5 py-1 text-caption font-bold text-primary-foreground">
           Mais popular
         </span>
       )}
@@ -100,7 +100,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         className={cn(
           "mt-auto block rounded-[10px] py-3 text-center text-sm font-semibold transition-colors",
           plan.popular || plan.dark
-            ? "bg-primary text-white hover:bg-primary-hover"
+            ? "bg-primary text-primary-foreground hover:bg-primary-hover"
             : "border-[1.5px] border-border text-text-secondary hover:border-primary hover:text-primary",
         )}
       >

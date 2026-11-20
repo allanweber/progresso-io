@@ -119,7 +119,7 @@ export function FoodComposition({
         ).map(([label, value, unit]) => (
           <div
             key={label}
-            className="rounded-2xl bg-white p-4 shadow-rest"
+            className="rounded-2xl bg-card p-4 shadow-rest"
           >
             <div className="text-xs text-meta">{label}</div>
             <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -141,18 +141,18 @@ export function FoodComposition({
             {sections(food.nutrients).map((sec) => (
               <div
                 key={sec.kind}
-                className="overflow-hidden rounded-2xl bg-white shadow-rest"
+                className="overflow-hidden rounded-2xl bg-card shadow-rest"
               >
-                <div className="border-b border-border bg-surface-light px-4 py-2 text-xs font-semibold text-[#475569]">
+                <div className="border-b border-border bg-surface-light px-4 py-2 text-xs font-semibold text-text-secondary">
                   {sec.label}
                 </div>
                 <dl>
                   {sec.items.map((n) => (
                     <div
                       key={n.id}
-                      className="flex items-center justify-between border-b border-[#F1F5F9] px-4 py-2.5 text-sm last:border-0"
+                      className="flex items-center justify-between border-b border-border-light px-4 py-2.5 text-sm last:border-0"
                     >
-                      <dt className="text-[#475569]">{n.label}</dt>
+                      <dt className="text-text-secondary">{n.label}</dt>
                       <dd className="tabular-nums text-foreground">
                         {formatNutrient(scale(n.value), n.unit, n.isTrace)}
                       </dd>

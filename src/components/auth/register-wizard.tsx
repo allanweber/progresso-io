@@ -34,7 +34,7 @@ export function RegisterWizard() {
     <>
       <StepIndicator labels={steps} current={step} className="mb-9" />
 
-      <div className="w-full max-w-[460px] rounded-2xl bg-white px-10 py-9 shadow-rest">
+      <div className="w-full max-w-[460px] rounded-2xl bg-card px-10 py-9 shadow-rest">
         {step === 1 && (
           <AccountStep
             account={account}
@@ -180,7 +180,7 @@ function PlanStep({
                 "rounded-[10px] border-2 px-4 py-3.5 text-left transition-colors",
                 isSelected
                   ? "border-primary bg-primary-light"
-                  : "border-border bg-white hover:border-primary/40",
+                  : "border-border bg-card hover:border-primary/40",
               )}
             >
               <div className="flex items-start justify-between gap-2">
@@ -188,7 +188,7 @@ function PlanStep({
                   <div className="flex items-center gap-2 font-heading text-subtitle font-bold text-foreground">
                     {option.name}
                     {option.popular && (
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-eyebrow font-bold text-white">
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-eyebrow font-bold text-primary-foreground">
                         popular
                       </span>
                     )}
@@ -245,7 +245,7 @@ function ConfirmStep({
       <input type="hidden" name="password" value={account.password} />
       <input type="hidden" name="plan" value={plan} />
 
-      <div className="mx-auto mb-4 flex size-[60px] items-center justify-center rounded-full bg-[#DCFCE7]">
+      <div className="mx-auto mb-4 flex size-[60px] items-center justify-center rounded-full bg-ok-bg">
         <Check className="size-7 text-primary" strokeWidth={2.5} />
       </div>
       <h1 className="mb-1.5 font-heading text-headline font-bold text-foreground">

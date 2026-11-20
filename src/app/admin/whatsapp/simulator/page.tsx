@@ -143,7 +143,7 @@ export default async function AdminWhatsappSimulatorPage({
         <h1 className="font-heading text-headline font-bold">
           Simulador de WhatsApp
         </h1>
-        <span className="rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-xs font-semibold text-[#B45309]">
+        <span className="rounded-full bg-warn-bg px-2.5 py-0.5 text-xs font-semibold text-warn-fg">
           dev
         </span>
       </div>
@@ -153,7 +153,7 @@ export default async function AdminWhatsappSimulatorPage({
         do aluno, e as respostas do coach aparecem aqui.
       </p>
 
-      <div className="mt-6 flex flex-col overflow-hidden rounded-2xl bg-white shadow-rest md:h-[calc(100dvh-14rem)] md:min-h-[28rem] md:flex-row">
+      <div className="mt-6 flex flex-col overflow-hidden rounded-2xl bg-card shadow-rest md:h-[calc(100dvh-14rem)] md:min-h-[28rem] md:flex-row">
         {/* Student list */}
         <aside
           className={`w-full flex-shrink-0 overflow-y-auto border-b border-border md:w-72 md:border-b-0 md:border-r ${
@@ -194,7 +194,7 @@ export default async function AdminWhatsappSimulatorPage({
         </aside>
 
         {/* Conversation (student side) */}
-        <section className="flex min-h-[24rem] min-w-0 flex-1 flex-col bg-[#ECE6DD]">
+        <section className="flex min-h-[24rem] min-w-0 flex-1 flex-col bg-chat-wall">
           {!selected ? (
             <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
               Selecione um aluno para simular a conversa.
@@ -240,7 +240,7 @@ export default async function AdminWhatsappSimulatorPage({
                       >
                         <div
                           className={`max-w-[75%] rounded-xl px-3 py-2 text-sm leading-snug shadow-sm ${
-                            fromStudent ? "bg-[#D9FDD3]" : "bg-white"
+                            fromStudent ? "bg-chat-out" : "bg-chat-in"
                           }`}
                         >
                           {!fromStudent && (
@@ -277,11 +277,11 @@ export default async function AdminWhatsappSimulatorPage({
                   rows={1}
                   maxLength={4096}
                   placeholder="Escreva como o aluno…"
-                  className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-white px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                  className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-card px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                 />
                 <button
                   type="submit"
-                  className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+                  className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
                 >
                   Enviar
                 </button>

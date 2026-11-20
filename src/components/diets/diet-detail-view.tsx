@@ -52,7 +52,7 @@ function quantityParts(
 function ItemRow({ item }: { item: DietItemDto }) {
   const q = quantityParts(item.grams, item.measureLabel, item.measureGrams);
   return (
-    <li className="flex items-center gap-3 border-b border-[#F1F5F9] px-4 py-2.5 last:border-b-0">
+    <li className="flex items-center gap-3 border-b border-border-light px-4 py-2.5 last:border-b-0">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-foreground">{item.description}</span>
@@ -113,7 +113,7 @@ function ItemRow({ item }: { item: DietItemDto }) {
 export function DietMealsView({ meals }: { meals: DietMealDto[] }) {
   if (meals.length === 0) {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center text-sm text-muted-foreground shadow-rest">
+      <div className="rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground shadow-rest">
         Esta dieta ainda não tem refeições.
       </div>
     );
@@ -123,7 +123,7 @@ export function DietMealsView({ meals }: { meals: DietMealDto[] }) {
       {meals.map((meal) => (
         <div
           key={meal.id}
-          className="overflow-hidden rounded-2xl bg-white shadow-rest"
+          className="overflow-hidden rounded-2xl bg-card shadow-rest"
         >
           <div className="flex items-center gap-2 border-b border-border bg-surface-light px-4 py-3">
             <span className="font-heading font-semibold text-foreground">
@@ -144,7 +144,7 @@ export function DietMealsView({ meals }: { meals: DietMealDto[] }) {
               ))}
             </ul>
           )}
-          <div className="flex justify-end border-t border-[#F1F5F9] px-4 py-2">
+          <div className="flex justify-end border-t border-border-light px-4 py-2">
             <MacroSummary totals={meal.totals} className="justify-end" />
           </div>
         </div>

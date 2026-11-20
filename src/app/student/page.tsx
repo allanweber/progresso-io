@@ -75,6 +75,7 @@ import {
   type CheckinDto,
   type CheckinListDto,
 } from "@/lib/student-checkins";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   anyCompressing as anySlotCompressing,
   appendPhotos,
@@ -199,12 +200,12 @@ export default function StudentPortalPage() {
   const p = profile.data;
 
   return (
-    <div className="posture-reading min-h-screen bg-ground-aluno text-foreground dark:bg-background">
+    <div className="posture-reading min-h-screen bg-ground-aluno text-foreground">
       {/* Desktop top bar. A branded clinic's aluno sees THEIR coach's mark and
           name here, not ours — the portal is the clinic's front door, and the
           Progresso wordmark beside a clinic name only ever read as clutter. An
           unbranded clinic keeps the original chrome exactly. */}
-      <header className="hidden h-[60px] items-center gap-3.5 border-b border-border bg-white px-8 lg:flex dark:bg-card">
+      <header className="hidden h-[60px] items-center gap-3.5 border-b border-border bg-card px-8 lg:flex">
         {p?.clinicHasLogo ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -232,6 +233,7 @@ export default function StudentPortalPage() {
         <div className="flex size-[34px] items-center justify-center rounded-full bg-primary text-body-dense font-semibold text-primary-foreground">
           {p ? initials(p.name) : "…"}
         </div>
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="sm"
@@ -244,7 +246,7 @@ export default function StudentPortalPage() {
       </header>
 
       {/* Mobile header */}
-      <header className="flex items-center gap-3 bg-primary px-5 py-4 text-primary-foreground lg:hidden">
+      <header className="flex items-center gap-3 bg-primary-panel px-5 py-4 text-white lg:hidden">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-subtitle font-semibold">
           {p ? initials(p.name) : "…"}
         </div>
@@ -261,17 +263,18 @@ export default function StudentPortalPage() {
           </div>
         </div>
         {p?.goal ? (
-          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-label font-semibold text-primary">
+          <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-label font-semibold text-primary-panel dark:bg-white/15 dark:text-white">
             {p.goal}
           </span>
         ) : null}
+        <ThemeToggle className="border-white/30 text-white hover:bg-white/20" />
         <Button
           variant="ghost"
           size="icon"
           onClick={handleSignOut}
           disabled={signingOut}
           aria-label="Sair"
-          className="shrink-0 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+          className="shrink-0 text-white hover:bg-white/20 hover:text-white"
         >
           <LogOut className="size-5" />
         </Button>
@@ -281,7 +284,7 @@ export default function StudentPortalPage() {
         <div className="grid items-start gap-6 lg:grid-cols-[262px_1fr]">
           {/* Desktop sidebar */}
           <aside className="sticky top-[88px] hidden flex-col gap-4 lg:flex">
-            <div className="rounded-2xl bg-white p-5 text-center shadow-rest dark:bg-card">
+            <div className="rounded-2xl bg-card p-5 text-center shadow-rest">
               <div className="mx-auto mb-3 flex size-[68px] items-center justify-center rounded-full bg-primary text-headline font-semibold text-primary-foreground">
                 {p ? initials(p.name) : "…"}
               </div>
@@ -302,7 +305,7 @@ export default function StudentPortalPage() {
                 </span>
               ) : null}
             </div>
-            <nav className="flex flex-col gap-0.5 rounded-2xl bg-white p-2 shadow-rest dark:bg-card">
+            <nav className="flex flex-col gap-0.5 rounded-2xl bg-card p-2 shadow-rest">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const active = t.id === tab;
@@ -340,7 +343,7 @@ export default function StudentPortalPage() {
       </div>
 
       {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex border-t border-border bg-white lg:hidden dark:bg-card">
+      <nav className="fixed inset-x-0 bottom-0 z-50 flex border-t border-border bg-card lg:hidden">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = t.id === tab;
@@ -427,7 +430,7 @@ function CheckinTab() {
         <h1 className="font-heading text-headline font-semibold tracking-tight">
           Check-in
         </h1>
-        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-rest dark:bg-card">
+        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-card p-10 text-center shadow-rest">
           <div className="flex size-14 items-center justify-center rounded-full bg-primary-light text-primary">
             <Check className="size-7" />
           </div>
@@ -471,7 +474,7 @@ function CheckinTab() {
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-white p-5 shadow-rest dark:bg-card">
+      <div className="mt-5 flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-rest">
         {/* Weight */}
         <form.Field name="weightKg">
           {(field) => (
@@ -625,7 +628,7 @@ function EvolucaoTab() {
         <h1 className="font-heading text-headline font-semibold tracking-tight">
           Minha evolução
         </h1>
-        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center ">
           <p className="mx-auto max-w-[42ch] text-body text-muted-foreground">
             Você ainda não enviou nenhum check-in. Faça seu primeiro na aba
             Check-in e acompanhe sua evolução aqui.
@@ -648,7 +651,7 @@ function EvolucaoTab() {
 
       {/* Weight chart */}
       {weightSeries.length > 0 ? (
-        <div className="mt-5 rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+        <div className="mt-5 rounded-2xl bg-card p-4 shadow-rest">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="text-label text-muted-foreground">
@@ -687,7 +690,7 @@ function EvolucaoTab() {
       ) : null}
 
       {/* History */}
-      <div className="mt-4 rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+      <div className="mt-4 rounded-2xl bg-card p-4 shadow-rest">
         <div className="mb-1 text-subtitle font-semibold">Histórico de check-ins</div>
         <div className="flex flex-col">
           {checkins.map((c) => (
@@ -716,7 +719,7 @@ function CheckinRow({
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-start gap-3 border-b border-[#F1F5F9] py-2.5 text-left transition-colors last:border-b-0 hover:bg-muted/40 dark:border-border"
+      className="flex items-start gap-3 border-b border-border-light py-2.5 text-left transition-colors last:border-b-0 hover:bg-muted/40"
     >
       <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
       <div className="min-w-0 flex-1">
@@ -922,7 +925,7 @@ function DietTab() {
         <h1 className="font-heading text-headline font-semibold tracking-tight">
           Dieta
         </h1>
-        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center ">
           <p className="mx-auto max-w-[42ch] text-body text-muted-foreground">
             Você ainda não tem uma dieta. Assim que seu coach publicar, ela
             aparece aqui.
@@ -953,7 +956,7 @@ function DietTab() {
           </div>
 
           {/* Total macros + ratio */}
-          <div className="mb-4 rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+          <div className="mb-4 rounded-2xl bg-card p-4 shadow-rest">
             <MacroSummary totals={current.tree.totals} />
             <RatioBar macros={current.tree.totals} className="mt-3.5" />
           </div>
@@ -982,7 +985,7 @@ function DietTab() {
               <button
                 key={r.versionId}
                 onClick={() => setHistoryVersionId(r.versionId)}
-                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-rest transition-colors hover:bg-muted/40 dark:bg-card"
+                className="flex items-center gap-3.5 rounded-xl bg-card p-3.5 text-left shadow-rest transition-colors hover:bg-muted/40"
               >
                 <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-surface-dark-mid font-heading text-label font-bold tabular-nums text-white">
                   v{r.version}
@@ -1041,8 +1044,8 @@ function MealCard({
   onOpenFood: (item: TreeItem) => void;
 }) {
   return (
-    <div className="self-start overflow-hidden rounded-2xl bg-white shadow-rest dark:bg-card">
-      <div className="flex items-baseline gap-2.5 border-b border-[#EEF2F7] px-[18px] py-3.5 dark:border-border">
+    <div className="self-start overflow-hidden rounded-2xl bg-card shadow-rest">
+      <div className="flex items-baseline gap-2.5 border-b border-border-light px-[18px] py-3.5">
         <span className="font-heading text-subtitle font-semibold">
           {meal.name}
         </span>
@@ -1056,7 +1059,7 @@ function MealCard({
           <button
             key={ii}
             onClick={() => onOpenFood(item)}
-            className="flex w-full items-start gap-3 border-b border-[#F4F6FA] px-[18px] py-3 text-left text-body-dense transition-colors last:border-b-0 hover:bg-muted/40 dark:border-border"
+            className="flex w-full items-start gap-3 border-b border-border-light px-[18px] py-3 text-left text-body-dense transition-colors last:border-b-0 hover:bg-muted/40"
           >
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-foreground">
@@ -1184,7 +1187,7 @@ function FoodDetailDialog({
               ))}
             </div>
 
-            <div className="rounded-xl bg-white p-3.5 shadow-rest dark:bg-card">
+            <div className="rounded-xl bg-card p-3.5 shadow-rest">
               <div className="mb-2 text-label font-medium text-muted-foreground">
                 Distribuição de macros
               </div>
@@ -1219,7 +1222,7 @@ function FoodDetailDialog({
                 <div className="mb-2 font-heading text-subtitle font-semibold">
                   Substituições equivalentes
                 </div>
-                <div className="overflow-hidden rounded-xl bg-white shadow-rest dark:bg-card">
+                <div className="overflow-hidden rounded-xl bg-card shadow-rest">
                   {/* Coach-defined equivalences (already scaled, may use a measure). */}
                   {item.substitutes.map((s, si) => {
                     const sq = quantity(
@@ -1230,7 +1233,7 @@ function FoodDetailDialog({
                     return (
                       <div
                         key={`e${si}`}
-                        className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-warn-fg last:border-b-0 dark:border-border"
+                        className="flex items-center gap-2 border-b border-border-light px-3.5 py-3 text-body-dense text-warn-fg last:border-b-0"
                       >
                         <Repeat className="size-3.5 shrink-0" />
                         <span>
@@ -1243,7 +1246,7 @@ function FoodDetailDialog({
                   {catalogSubs(item).map((s) => (
                     <div
                       key={`c${s.foodId}`}
-                      className="flex items-center gap-2 border-b border-[#F4F6FA] px-3.5 py-3 text-body-dense text-warn-fg last:border-b-0 dark:border-border"
+                      className="flex items-center gap-2 border-b border-border-light px-3.5 py-3 text-body-dense text-warn-fg last:border-b-0"
                     >
                       <Repeat className="size-3.5 shrink-0" />
                       <span>
@@ -1308,9 +1311,9 @@ function HistoryVersionDialog({
             {version.data.tree.meals.map((meal, mi) => (
               <div
                 key={mi}
-                className="overflow-hidden rounded-xl bg-white shadow-rest dark:bg-card"
+                className="overflow-hidden rounded-xl bg-card shadow-rest"
               >
-                <div className="border-b border-[#EEF2F7] px-4 py-3 font-heading text-subtitle font-semibold dark:border-border">
+                <div className="border-b border-border-light px-4 py-3 font-heading text-subtitle font-semibold">
                   {meal.name}
                   {meal.time ? (
                     <span className="ml-2 text-label font-normal text-muted-foreground">
@@ -1327,7 +1330,7 @@ function HistoryVersionDialog({
                   return (
                     <div
                       key={ii}
-                      className="flex items-center justify-between gap-2.5 border-b border-[#F4F6FA] px-4 py-2.5 text-body-dense last:border-b-0 dark:border-border"
+                      className="flex items-center justify-between gap-2.5 border-b border-border-light px-4 py-2.5 text-body-dense last:border-b-0"
                     >
                       <span className="font-medium text-foreground">
                         {item.description}
@@ -1407,7 +1410,7 @@ function WorkoutTab() {
         <h1 className="font-heading text-headline font-semibold tracking-tight">
           Treino
         </h1>
-        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center ">
           <p className="mx-auto max-w-[42ch] text-body text-muted-foreground">
             Você ainda não tem um treino. Assim que seu coach publicar, ele
             aparece aqui.
@@ -1459,7 +1462,7 @@ function WorkoutTab() {
               <button
                 key={r.versionId}
                 onClick={() => setHistoryVersionId(r.versionId)}
-                className="flex items-center gap-3.5 rounded-xl bg-white p-3.5 text-left shadow-rest transition-colors hover:bg-muted/40 dark:bg-card"
+                className="flex items-center gap-3.5 rounded-xl bg-card p-3.5 text-left shadow-rest transition-colors hover:bg-muted/40"
               >
                 <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[9px] bg-surface-dark-mid font-heading text-label font-bold tabular-nums text-white">
                   v{r.version}

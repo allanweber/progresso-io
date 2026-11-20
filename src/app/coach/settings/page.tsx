@@ -66,6 +66,7 @@ import {
   type PlanUsageDto,
 } from "@/lib/plans";
 import { cn } from "@/lib/utils";
+import { tintStyle } from "@/lib/tint";
 
 /**
  * Clinic configuration ("Configurações"). Client page → GET/PUT
@@ -89,7 +90,7 @@ function SettingsCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-rest sm:p-6">
+    <section className="rounded-2xl bg-card p-5 shadow-rest sm:p-6">
       <div className="mb-4 flex items-center gap-2.5">
         <h2 className="font-heading text-subtitle font-semibold text-foreground">
           {title}
@@ -200,8 +201,8 @@ function Avatar({ id, initials }: { id: string; initials: string }) {
   const tint = avatarPalette(id);
   return (
     <span
-      className="flex size-11 shrink-0 items-center justify-center rounded-full text-body font-semibold"
-      style={{ backgroundColor: tint.bg, color: tint.fg }}
+      className="tint flex size-11 shrink-0 items-center justify-center rounded-full text-body font-semibold"
+      style={tintStyle(tint.fg, tint.bg)}
     >
       {initials}
     </span>
@@ -1251,7 +1252,7 @@ function ClinicSettingsForm({ initial }: { initial: ClinicSettingsDto }) {
       {(isDirty || mutation.isSuccess || mutation.isPending) && (
         <div
           role="status"
-          className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border bg-white px-4 py-3 shadow-overlay-up sm:-mx-6 sm:px-6 lg:hidden"
+          className="sticky bottom-0 z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 shadow-overlay-up sm:-mx-6 sm:px-6 lg:hidden"
         >
           {/* Terse on purpose: at 390px the two buttons leave ~90px, and
               "Alterações não salvas" wrapped to two lines and grew the bar. */}
@@ -1298,7 +1299,7 @@ export default function ClinicSettingsPage() {
         <h1 className="mb-5 font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="rounded-2xl bg-white p-6 text-center text-body text-muted-foreground shadow-rest">
+        <div className="rounded-2xl bg-card p-6 text-center text-body text-muted-foreground shadow-rest">
           Carregando…
         </div>
       </div>
@@ -1311,7 +1312,7 @@ export default function ClinicSettingsPage() {
         <h1 className="mb-5 font-heading text-headline font-bold text-foreground">
           Configurações
         </h1>
-        <div className="rounded-2xl bg-white p-6 text-center text-body text-destructive shadow-rest">
+        <div className="rounded-2xl bg-card p-6 text-center text-body text-destructive shadow-rest">
           {error instanceof Error
             ? error.message
             : "Não foi possível carregar as configurações."}

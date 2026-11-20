@@ -272,6 +272,28 @@ regression, not a variation.
   landing product mockup and the dark theme's card layer. Warm-black, so they
   belong to the same room as everything else.
 
+### Night Theme
+The app has a dark theme. The coach, the admin and the aluno select it with
+the theme control: Claro, Escuro or Automático. Automático follows the system
+setting and is the default. A script in the root layout sets the `.dark`
+class before the first paint, so the page does not flash.
+
+- **The neutrals stay warm.** Night uses warm-black values, not blue-black.
+- **The ramp keeps its order.** The Desk (`#0e0d0c`) is the darkest, then the
+  Inset (`#141312`), then the window (`#191716`), then a panel (`#22201e`),
+  then an overlay (`#2a2725`). A panel is lighter than the ground it sits on.
+- **Emerald gets lighter and its label gets dark.** On night, `--primary` and
+  `--primary-deep` are `#10b981`, and `--primary-foreground` is `#052e1c`.
+  Always put `text-primary-foreground` on an emerald fill, never `text-white`.
+- **A large emerald panel uses `bg-primary-panel`.** It is `#059669` in light
+  and `#0e3a29` on night, with white text in both themes.
+- **A categorical hue uses the `tint` class.** Set the pair with `tintStyle(fg,
+  bg)` from `@/lib/tint`. On night, the class mixes the ink into the panel
+  colour, so the avatars, techniques and calendar chips do not glow.
+- **Do not write `bg-white` for a surface.** Use `bg-card`, `bg-background`
+  or `bg-popover`. Keep `bg-white` only on a photo, on an emerald panel, or on a
+  switch knob. The e2e spec `e2e/theme.spec.ts` finds white surfaces on night.
+
 ### Tertiary
 
 Status pigments, used only inside chips and banners — never as a surface larger

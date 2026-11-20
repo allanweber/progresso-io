@@ -55,7 +55,7 @@ export function Features() {
                   index % 2 === 0 ? "lg:order-1" : "lg:order-2",
                 )}
               >
-                <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-raised">
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-raised">
                   <Image
                     src={item.image}
                     alt={item.alt}
@@ -108,7 +108,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
       className={cn(
         "flex flex-col p-7",
         featured &&
-          "border-2 border-primary bg-gradient-to-br from-primary-light to-white",
+          "border-2 border-primary bg-gradient-to-br from-primary-light to-card",
         accent && "border-2 border-primary",
       )}
     >
@@ -120,12 +120,12 @@ function FeatureCard({ feature }: { feature: Feature }) {
           )}
         >
           <Icon
-            className={cn("size-[22px]", featured ? "text-white" : "text-primary")}
+            className={cn("size-[22px]", featured ? "text-primary-foreground" : "text-primary")}
             strokeWidth={2}
           />
         </span>
         {featured && eyebrow && (
-          <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-eyebrow font-bold uppercase tracking-[0.08em] text-primary">
+          <span className="rounded-full bg-ok-bg px-2.5 py-1 text-eyebrow font-bold uppercase tracking-[0.08em] text-ok-fg">
             {eyebrow}
           </span>
         )}

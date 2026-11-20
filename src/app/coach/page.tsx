@@ -25,6 +25,7 @@ import type { CoachDashboardDto, PendingDraftDto } from "@/lib/coach-dashboard";
 import { isAtLimit, type PlanUsageDto } from "@/lib/plans";
 import { avatarPalette, studentInitials } from "@/lib/students";
 import { cn } from "@/lib/utils";
+import { tintStyle } from "@/lib/tint";
 
 /**
  * Built once at module scope. `Intl.DateTimeFormat` is one of the pricier
@@ -350,11 +351,8 @@ function PersonRow({
         className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-light focus-visible:bg-surface-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold uppercase"
-          style={{
-            background: avatarPalette(seed).bg,
-            color: avatarPalette(seed).fg,
-          }}
+          className="tint flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold uppercase"
+          style={tintStyle(avatarPalette(seed).fg, avatarPalette(seed).bg)}
           aria-hidden
         >
           {initials}

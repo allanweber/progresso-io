@@ -39,6 +39,7 @@ import {
   TechniqueIcon,
 } from "@/components/workouts/technique-icon";
 import { cn } from "@/lib/utils";
+import { tintStyle } from "@/lib/tint";
 
 /**
  * Grouping context for an exercise inside a super-set block: a run of exercises
@@ -108,7 +109,7 @@ function ExerciseRow({
         }}
       />
       <span
-        className="absolute flex size-4 items-center justify-center rounded-full bg-white"
+        className="absolute flex size-4 items-center justify-center rounded-full bg-card"
         style={{
           left: "1px",
           top: `calc(${NODE_TOP} - 0.5rem)`,
@@ -189,7 +190,7 @@ function ExerciseRow({
   );
 
   return (
-    <li className="border-b border-[#F4F6FA] px-4 py-3 last:border-b-0">
+    <li className="border-b border-border-light px-4 py-3 last:border-b-0">
       {onClick ? (
         <button
           type="button"
@@ -230,7 +231,7 @@ export function WorkoutSessionsView({
   posture?: "reading";
 }) {
   const cardioCard = cardio ? (
-    <div className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-rest">
+    <div className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-rest">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary-light text-primary">
         <HeartPulse className="size-4" />
       </span>
@@ -249,7 +250,7 @@ export function WorkoutSessionsView({
     return (
       <div className={cn("space-y-4", posture === "reading" && "posture-reading")}>
         {cardioCard}
-        <div className="rounded-2xl bg-white p-8 text-center text-body text-muted-foreground shadow-rest">
+        <div className="rounded-2xl bg-card p-8 text-center text-body text-muted-foreground shadow-rest">
           Este treino ainda não tem fichas.
         </div>
       </div>
@@ -263,7 +264,7 @@ export function WorkoutSessionsView({
         return (
           <div
             key={session.id}
-            className="overflow-hidden rounded-2xl bg-white shadow-rest"
+            className="overflow-hidden rounded-2xl bg-card shadow-rest"
           >
             <div className="flex items-center gap-2 border-b border-border bg-surface-light px-4 py-3">
               <span className="font-heading text-subtitle font-semibold text-foreground">
@@ -398,7 +399,7 @@ export function WorkoutExerciseDetail({
                   <div className="mb-1 text-eyebrow font-semibold uppercase text-warn-fg">
                     Observação do treinador
                   </div>
-                  <p className="text-body text-[#334155]">
+                  <p className="text-body text-foreground">
                     {exercise.note}
                   </p>
                 </div>
@@ -406,15 +407,14 @@ export function WorkoutExerciseDetail({
 
               {/* Technique explanation */}
               {tech && (
-                <div className="rounded-2xl p-4" style={{ backgroundColor: tech.bg }}>
+                <div className="tint rounded-2xl p-4" style={tintStyle(tech.color, tech.bg)}>
                   <div
                     className="mb-1.5 flex items-center gap-2 text-subtitle font-semibold"
-                    style={{ color: tech.color }}
                   >
                     <TechniqueIcon technique={techKey} className="size-4 shrink-0" />
                     Técnica: {tech.label}
                   </div>
-                  <p className="text-body text-[#334155]">
+                  <p className="text-body text-foreground">
                     {tech.description}
                   </p>
                 </div>
@@ -430,15 +430,15 @@ export function WorkoutExerciseDetail({
                     <TechniqueIcon technique="superset" className="size-4 shrink-0" />
                     {superset.label} · exercício {group.position} de {group.total}
                   </div>
-                  <p className="mt-1.5 text-body text-[#334155]">
+                  <p className="mt-1.5 text-body text-foreground">
                     {superset.description}
                   </p>
                   {group.nextName ? (
-                    <div className="mt-1.5 text-body text-[#334155]">
+                    <div className="mt-1.5 text-body text-foreground">
                       Sem descanso → <b>{group.nextName}</b>
                     </div>
                   ) : (
-                    <div className="mt-1.5 text-body text-[#334155]">
+                    <div className="mt-1.5 text-body text-foreground">
                       Último do bloco — descanse ao final antes de repetir.
                     </div>
                   )}
@@ -460,7 +460,7 @@ export function WorkoutExerciseDetail({
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-label font-semibold tabular-nums text-primary">
                           {i + 1}
                         </span>
-                        <span className="text-body text-[#334155]">
+                        <span className="text-body text-foreground">
                           {step}
                         </span>
                       </li>
@@ -481,7 +481,7 @@ export function WorkoutExerciseDetail({
                       return (
                         <li
                           key={`${s.source}-${s.exerciseId}`}
-                          className="border-b border-[#F4F6FA] last:border-b-0"
+                          className="border-b border-border-light last:border-b-0"
                         >
                           <button
                             type="button"
@@ -526,7 +526,7 @@ export function WorkoutExerciseDetail({
                   <h3 className="mb-2 font-heading text-subtitle font-semibold">
                     Músculos trabalhados
                   </h3>
-                  <p className="text-body text-[#334155]">
+                  <p className="text-body text-foreground">
                     {exercise.primaryMuscles
                       .map((m) => MUSCLE_LABELS[m])
                       .join(", ")}
@@ -594,7 +594,7 @@ function SubstituteDetail({
                   <div className="mb-1 text-eyebrow font-semibold uppercase text-warn-fg">
                     Por que substituir
                   </div>
-                  <p className="text-body text-[#334155]">
+                  <p className="text-body text-foreground">
                     {sub.note}
                   </p>
                 </div>
@@ -614,7 +614,7 @@ function SubstituteDetail({
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-label font-semibold tabular-nums text-primary">
                           {i + 1}
                         </span>
-                        <span className="text-body text-[#334155]">
+                        <span className="text-body text-foreground">
                           {step}
                         </span>
                       </li>
@@ -632,7 +632,7 @@ function SubstituteDetail({
                   <h3 className="mb-2 font-heading text-subtitle font-semibold">
                     Músculos trabalhados
                   </h3>
-                  <p className="text-body text-[#334155]">
+                  <p className="text-body text-foreground">
                     {sub.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
                   </p>
                 </div>

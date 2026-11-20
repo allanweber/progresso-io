@@ -18,7 +18,7 @@ export function Logo({ size = 32, className, markOnly, inverted }: LogoProps) {
         aria-hidden
         className={cn(
           "flex items-center justify-center rounded-lg font-heading font-bold",
-          inverted ? "bg-white text-primary" : "bg-primary text-primary-foreground",
+          inverted ? "bg-card text-primary" : "bg-primary text-primary-foreground",
         )}
         style={{ width: size, height: size, fontSize: size * 0.47 }}
       >
