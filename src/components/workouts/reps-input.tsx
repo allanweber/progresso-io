@@ -169,7 +169,7 @@ export function RepsInput({
             <button
               type="button"
               aria-label={`Tipo de repetições: ${kindLabel(value.kind)}. Alterar.`}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-surface-light px-3 text-label font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-surface-light px-3 text-label font-medium text-text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             >
               {kindLabel(value.kind)}
               <ChevronDown className="size-3.5 shrink-0" aria-hidden />

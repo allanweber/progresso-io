@@ -22,7 +22,7 @@ import {
 /** KPI tile for the overview header. */
 function Kpi({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-rest">
+    <div className="rounded-2xl bg-card p-4 shadow-rest">
       <div className="text-body-dense text-muted-foreground">{label}</div>
       <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
         {value}
@@ -70,7 +70,7 @@ export default function AdminWhatsappPage() {
             to platform admins. */}
         <Link
           href="/admin/whatsapp/simulator"
-          className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted/50"
+          className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted/50"
         >
           <MessageSquare className="size-4 text-primary" />
           Simulador de mensagens
@@ -90,7 +90,7 @@ export default function AdminWhatsappPage() {
         <Kpi label="Clínicas" value={isLoading ? "…" : data?.tenants.length ?? 0} />
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-rest">
+      <div className="mt-6 overflow-hidden rounded-2xl bg-card shadow-rest">
         <div className="border-b border-border px-4 py-3.5">
           <h2 className="font-heading text-subtitle font-semibold">
             Conexões WhatsApp por tenant

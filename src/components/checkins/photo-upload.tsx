@@ -202,7 +202,7 @@ export function PhotoUploadSlot({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
-          className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-white text-center transition-colors hover:border-primary/60 hover:bg-primary-light/40 disabled:opacity-50 dark:bg-card"
+          className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-input bg-card text-center transition-colors hover:border-primary/60 hover:bg-primary-light/40 disabled:opacity-50"
         >
           <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Camera className="size-4" />

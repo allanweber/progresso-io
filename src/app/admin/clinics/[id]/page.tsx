@@ -169,7 +169,7 @@ export default function AdminClinicDetailPage() {
       </div>
 
       {/* Plan control + history */}
-      <section className="rounded-2xl bg-white p-5 shadow-rest">
+      <section className="rounded-2xl bg-card p-5 shadow-rest">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Plano</h2>
@@ -233,7 +233,7 @@ export default function AdminClinicDetailPage() {
       </section>
 
       {/* Per-clinic limit overrides */}
-      <section className="rounded-2xl bg-white p-5 shadow-rest">
+      <section className="rounded-2xl bg-card p-5 shadow-rest">
         <h2 className="text-lg font-semibold text-foreground">
           Limites desta clínica
         </h2>
@@ -245,7 +245,7 @@ export default function AdminClinicDetailPage() {
       </section>
 
       {/* Invoices */}
-      <section className="rounded-2xl bg-white p-5 shadow-rest">
+      <section className="rounded-2xl bg-card p-5 shadow-rest">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Faturas</h2>
           <Button size="sm" onClick={() => setInvoiceDialog({ mode: "create" })}>
@@ -436,7 +436,7 @@ export default function AdminClinicDetailPage() {
               </Button>
             </DialogClose>
             <Button
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
               disabled={deleteMut.isPending}
             >

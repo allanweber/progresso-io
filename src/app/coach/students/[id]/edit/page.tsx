@@ -31,7 +31,7 @@ export default function EditStudentPage() {
         Editar aluno
       </h1>
 
-      <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
+      <div className="mt-6 rounded-2xl bg-card p-6 shadow-rest">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : isError ? (

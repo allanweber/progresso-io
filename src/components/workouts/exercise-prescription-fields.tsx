@@ -224,7 +224,7 @@ function TechniquePicker({
         <button
           type="button"
           aria-label={`Técnica avançada: ${current?.label ?? "nenhuma"}. Alterar.`}
-          className="flex h-11 w-full items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-input bg-white px-3.5 text-left text-body text-foreground transition-colors hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+          className="flex h-11 w-full items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-input bg-card px-3.5 text-left text-body text-foreground transition-colors hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
         >
           <span className="flex min-w-0 items-center gap-2">
             {current && (
@@ -520,7 +520,7 @@ export function ExercisePrescriptionFields({
             />
           )}
           <span className="min-w-0 flex-1">
-            <span className="block text-body-dense font-semibold text-[#334155]">
+            <span className="block text-body-dense font-semibold text-foreground">
               Mais detalhes
             </span>
             {!open && (

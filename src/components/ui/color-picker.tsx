@@ -41,10 +41,10 @@ export function ColorPicker({
         <button
           id={id}
           type="button"
-          className="inline-flex h-11 items-center gap-2.5 rounded-[10px] border-[1.5px] border-input bg-white px-3 text-body transition-colors sm:h-10 hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+          className="inline-flex h-11 items-center gap-2.5 rounded-[10px] border-[1.5px] border-input bg-card dark:bg-background px-3 text-body transition-colors sm:h-10 hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
         >
           <span
-            className="size-5 rounded-full ring-1 ring-black/10"
+            className="size-5 rounded-full ring-1 ring-black/10 dark:ring-white/15"
             style={{ backgroundColor: current }}
           />
           <span className={cn("font-mono", !hasCustom && "text-muted-foreground")}>
@@ -83,7 +83,7 @@ export function ColorPicker({
                   "size-6 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   selected === color
                     ? "ring-2 ring-offset-1 ring-foreground ring-offset-background"
-                    : "ring-1 ring-black/10",
+                    : "ring-1 ring-black/10 dark:ring-white/15",
                 )}
               />
             ))}

@@ -39,6 +39,7 @@ import {
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { AdminStudentDto, ClinicOption } from "@/lib/admin";
 import { avatarPalette, studentInitials } from "@/lib/students";
+import { tintStyle } from "@/lib/tint";
 
 const dateFmt = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -105,11 +106,8 @@ export default function AdminStudentsPage() {
           return (
             <div className="flex items-center gap-3">
               <div
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold"
-                style={{
-                  background: avatarPalette(s.id).bg,
-                  color: avatarPalette(s.id).fg,
-                }}
+                className="tint flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold"
+                style={tintStyle(avatarPalette(s.id).fg, avatarPalette(s.id).bg)}
               >
                 {studentInitials(s.firstName, s.lastName)}
               </div>
@@ -127,14 +125,14 @@ export default function AdminStudentsPage() {
         id: "clinic",
         header: "Clínica",
         cell: (ctx) => (
-          <span className="text-body-dense text-[#475569]">{ctx.getValue()}</span>
+          <span className="text-body-dense text-text-secondary">{ctx.getValue()}</span>
         ),
       }),
       columnHelper.display({
         id: "access",
         header: "Acesso",
         cell: (ctx) => (
-          <span className="text-body-dense text-[#475569]">
+          <span className="text-body-dense text-text-secondary">
             {ctx.row.original.hasAccount ? "Portal" : "Offline"}
           </span>
         ),
@@ -217,7 +215,7 @@ export default function AdminStudentsPage() {
         />
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl bg-white shadow-rest">
+      <div className="mt-4 overflow-x-auto rounded-2xl bg-card shadow-rest">
         {students.isLoading ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             Carregando alunos…

@@ -371,7 +371,7 @@ function SetupGuide({
         className="mb-8 justify-center"
       />
 
-      <div className="rounded-2xl bg-white px-6 py-7 shadow-rest sm:px-8">
+      <div className="rounded-2xl bg-card px-6 py-7 shadow-rest sm:px-8">
         {banner ? (
           <div className="mb-5 rounded-[10px] bg-destructive/10 px-4 py-3 text-body-dense font-medium text-destructive">
             {banner}
@@ -925,8 +925,8 @@ function StarterStep({
                 className={cn(
                   "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]",
                   checked
-                    ? "border-primary bg-primary text-white"
-                    : "border-input bg-white",
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-card",
                 )}
               >
                 {checked ? <Check className="size-3" strokeWidth={3.5} /> : null}

@@ -176,7 +176,7 @@ export default function CoachWhatsappPage() {
       <div className="flex flex-col gap-4">
         <div
           data-testid="wa-coming-soon-banner"
-          className="flex items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]"
+          className="flex items-start gap-2.5 rounded-xl border border-warn-fg/25 bg-warn-bg px-4 py-3 text-sm text-warn-fg"
         >
           <Construction className="mt-0.5 size-4 flex-shrink-0" />
           <p>
@@ -225,7 +225,7 @@ export default function CoachWhatsappPage() {
             <section
               data-testid="wa-queue"
               aria-labelledby="wa-queue-title"
-              className="rounded-2xl border border-border bg-white"
+              className="rounded-2xl border border-border bg-card"
             >
               <h2
                 id="wa-queue-title"
@@ -303,7 +303,7 @@ export default function CoachWhatsappPage() {
               <section
                 data-testid="wa-recent"
                 aria-labelledby="wa-recent-title"
-                className="rounded-2xl border border-border bg-white"
+                className="rounded-2xl border border-border bg-card"
               >
                 <h2
                   id="wa-recent-title"
@@ -343,7 +343,7 @@ export default function CoachWhatsappPage() {
 
           <section
             aria-labelledby="wa-new-title"
-            className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4"
+            className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4"
           >
             <h2 id="wa-new-title" className="text-sm font-semibold">
               Nova mensagem
@@ -366,7 +366,7 @@ export default function CoachWhatsappPage() {
                       setSelectedId(e.target.value || null);
                       setSendError(null);
                     }}
-                    className="h-10 rounded-lg border border-border bg-white px-3 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                    className="h-10 rounded-lg border border-border bg-card px-3 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                   >
                     <option value="">Escolha um aluno</option>
                     {conversations.map((c) => (
@@ -386,7 +386,7 @@ export default function CoachWhatsappPage() {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     rows={3}
-                    className="resize-y rounded-lg border border-border bg-white px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                    className="resize-y rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                   />
                 </div>
                 <Button
@@ -442,7 +442,7 @@ export default function CoachWhatsappPage() {
   return (
     <div className="flex h-[calc(100dvh-8rem)] min-h-[32rem] flex-col gap-3">
       {!inbox.data.deliveryEnabled ? (
-        <div className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
+        <div className="flex flex-shrink-0 items-start gap-2.5 rounded-xl border border-warn-fg/25 bg-warn-bg px-4 py-3 text-sm text-warn-fg">
           <Construction className="mt-0.5 size-4 flex-shrink-0" />
           <p>
             <strong>WhatsApp em desenvolvimento.</strong> Você pode enviar
@@ -453,7 +453,7 @@ export default function CoachWhatsappPage() {
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-white">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
       {/* Header */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-muted/40 px-6 py-3">
         <h1 className="font-heading text-xl font-semibold tracking-tight">
@@ -465,7 +465,7 @@ export default function CoachWhatsappPage() {
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         {/* Conversation list */}
         <aside
-          className={`w-full flex-shrink-0 overflow-y-auto border-b border-border bg-white md:w-72 md:border-b-0 md:border-r ${
+          className={`w-full flex-shrink-0 overflow-y-auto border-b border-border bg-card md:w-72 md:border-b-0 md:border-r ${
             selectedId ? "hidden md:block" : "block"
           }`}
         >
@@ -497,7 +497,7 @@ export default function CoachWhatsappPage() {
                             {c.name}
                           </span>
                           {c.unreadCount > 0 && (
-                            <span className="flex size-4 items-center justify-center rounded-full bg-primary text-eyebrow font-bold text-white">
+                            <span className="flex size-4 items-center justify-center rounded-full bg-primary text-eyebrow font-bold text-primary-foreground">
                               {c.unreadCount}
                             </span>
                           )}
@@ -528,7 +528,7 @@ export default function CoachWhatsappPage() {
 
         {/* Chat */}
         <section
-          className={`min-h-0 min-w-0 flex-1 flex-col bg-[#ECE6DD] ${
+          className={`min-h-0 min-w-0 flex-1 flex-col bg-chat-wall ${
             selectedId ? "flex" : "hidden md:flex"
           }`}
         >
@@ -592,7 +592,7 @@ export default function CoachWhatsappPage() {
                       }}
                       placeholder="Escreva uma mensagem…"
                       rows={1}
-                      className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-white px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+                      className="max-h-32 flex-1 resize-none rounded-3xl border border-border bg-card px-4 py-2.5 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
                     />
                     <Button
                       type="button"
@@ -636,7 +636,7 @@ export default function CoachWhatsappPage() {
                                 templateKey: t.key,
                               })
                             }
-                            className="flex items-center gap-3 rounded-xl bg-white px-3.5 py-2.5 text-left shadow-sm transition-colors hover:bg-primary-light/30 disabled:opacity-60"
+                            className="flex items-center gap-3 rounded-xl bg-card px-3.5 py-2.5 text-left shadow-sm transition-colors hover:bg-primary-light/30 disabled:opacity-60"
                           >
                             <div className="flex-1">
                               <div className="text-xs font-semibold">
@@ -685,7 +685,7 @@ function ConnectionDot({ connected }: { connected: boolean }) {
 
 function Avatar({ initials }: { initials: string }) {
   return (
-    <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold uppercase text-white">
+    <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold uppercase text-primary-foreground">
       {initials}
     </div>
   );
@@ -721,7 +721,7 @@ function MessageList({
         >
           <div
             className={`max-w-[75%] rounded-xl px-3 py-2 text-sm leading-snug shadow-sm ${
-              m.direction === "outbound" ? "bg-[#D9FDD3]" : "bg-white"
+              m.direction === "outbound" ? "bg-chat-out" : "bg-chat-in"
             }`}
           >
             {m.type === "template" && (
@@ -755,7 +755,7 @@ function MessageList({
 function WhatsappUpsell() {
   return (
     <div className="p-6">
-      <div className="mt-6 rounded-2xl bg-white px-6 py-16 text-center shadow-rest">
+      <div className="mt-6 rounded-2xl bg-card px-6 py-16 text-center shadow-rest">
         <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary-light">
           <MessageCircle className="size-7 text-primary" />
         </div>

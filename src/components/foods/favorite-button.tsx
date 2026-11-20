@@ -52,13 +52,13 @@ export function FavoriteButton({
       aria-pressed={fav}
       aria-label={fav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
       title={fav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-      className="inline-flex shrink-0 items-center justify-center rounded-full p-1 transition-colors hover:bg-[#FEF3C7]/60"
+      className="inline-flex shrink-0 items-center justify-center rounded-full p-1 transition-colors hover:bg-warn-bg"
     >
       <Star
         className={cn(
           icon,
           "transition-colors",
-          fav ? "fill-amber-400 text-amber-400" : "text-[#CBD5E1]",
+          fav ? "fill-amber-400 text-amber-400" : "text-meta/50",
         )}
       />
     </button>

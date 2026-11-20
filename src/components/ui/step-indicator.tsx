@@ -37,8 +37,8 @@ export function StepIndicator({
                 className={cn(
                   "flex size-7 items-center justify-center rounded-full text-xs font-bold",
                   active
-                    ? "bg-primary text-white"
-                    : "border-2 border-border bg-white text-meta",
+                    ? "bg-primary text-primary-foreground"
+                    : "border-2 border-border bg-card text-meta",
                 )}
               >
                 {done ? <Check className="size-3.5" strokeWidth={3} /> : index}

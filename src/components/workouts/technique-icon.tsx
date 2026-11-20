@@ -13,6 +13,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { techniqueInfo, type TechniqueMark } from "@/lib/workout-techniques";
+import { tintStyle } from "@/lib/tint";
 
 /**
  * The drawn mark for each técnica avançada.
@@ -68,10 +69,10 @@ export function TechniqueBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label font-semibold",
+        "tint inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label font-semibold",
         className,
       )}
-      style={{ color: info.color, backgroundColor: info.bg }}
+      style={tintStyle(info.color, info.bg)}
     >
       <Icon className="size-3 shrink-0" aria-hidden />
       {info.label}

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /*
  * Progresso IO design tokens — "A Ficha na Mesa" (The Chart on the Desk).
@@ -18,6 +18,7 @@
  * user aims at something (§ The Thicker Stroke Rule).
  */
 :root {
+  color-scheme: light;
   --radius: 0.75rem; /* 12px — buttons/inputs; cards use rounded-2xl (16px) */
   /*
    * The app window's own corner. The coach shell floats as a single sheet on
@@ -147,6 +148,15 @@
   --surface-dark: #221f1d;
   --surface-dark-mid: #322e2b;
 
+  --primary-panel: #059669;
+
+  --chat-wall: #ece6dd;
+  --chat-in: #ffffff;
+  --chat-out: #d9fdd3;
+
+  --selection-bg: #bbf7d0;
+  --selection-fg: #065f46;
+
   /*
    * Elevation. Structure is carried by shadow in this system, so the shadows
    * are real: every one has an offset AND a soft blur, and the pigment is
@@ -233,31 +243,30 @@
 }
 
 .dark {
-  /*
-   * Night is warm-black too. A greige light theme paired with a blue-black dark
-   * theme is two products; the neutrals keep their temperature through the
-   * switch and only their value inverts.
-   */
-  --background: #1a1817;
-  --foreground: #f5f3f1;
-  --card: #232120;
-  --card-foreground: #f5f3f1;
-  --popover: #232120;
-  --popover-foreground: #f5f3f1;
-  --primary: #059669;
-  --primary-foreground: #ffffff;
-  --secondary: #2b2826;
-  --secondary-foreground: #f5f3f1;
-  --muted: #2b2826;
-  --muted-foreground: #a9a39a;
-  /* Meta and Context diverge again on night: this reads 7.4:1 on --card. */
-  --meta: #a9a39a;
-  --accent: #2b2826;
-  --accent-foreground: #f5f3f1;
-  --destructive: #e2604c;
-  --destructive-foreground: #1a1817;
+  color-scheme: dark;
 
-  /* Washes darken and inks lighten so every chip stays legible on night. */
+  --background: #191716;
+  --foreground: #f3f0ec;
+  --card: #22201e;
+  --card-foreground: #f3f0ec;
+  --popover: #2a2725;
+  --popover-foreground: #f3f0ec;
+  --primary: #10b981;
+  --primary-foreground: #052e1c;
+  --primary-deep: #10b981;
+  --primary-press: #34d399;
+  --primary-light: #11291e;
+  --primary-light-border: #1d5038;
+  --secondary: #2a2725;
+  --secondary-foreground: #f3f0ec;
+  --muted: #2a2725;
+  --muted-foreground: #a39d94;
+  --meta: #a39d94;
+  --accent: #2a2725;
+  --accent-foreground: #f3f0ec;
+  --destructive: #ea6a56;
+  --destructive-foreground: #1a0805;
+
   --ok-bg: #14301f;
   --ok-fg: #86dfa6;
   --info-bg: #182541;
@@ -266,36 +275,53 @@
   --warn-fg: #edc177;
   --danger-bg: #37190f;
   --danger-fg: #f0a293;
-  --neutral-bg: #2b2826;
+  --neutral-bg: #2a2725;
   --neutral-fg: #c4bfb8;
   --base-bg: #201f3d;
   --base-fg: #b0abf5;
 
-  --border: #35322f;
-  --border-light: #2b2826;
-  --border-strong: #45413d;
-  --input: #45413d;
-  --ring: #059669;
+  --border: #34302d;
+  --border-light: #2a2724;
+  --border-strong: #4a4541;
+  --input: #4a4541;
+  --ring: #10b981;
 
-  --text-secondary: #c4bfb8;
-  --surface-light: #201e1c;
-  --surface-sunken: #171514;
-  /* On night, every ground collapses onto the page background. */
-  --ground: var(--background);
-  --ground-aluno: var(--background);
+  --text-secondary: #c9c3bb;
+  --surface-light: #141312;
+  --surface-sunken: #100f0e;
+  --ground: #0e0d0c;
+  --ground-aluno: #121010;
 
-  /*
-   * Shadows do not read on a dark ground — light does not fall that way. The
-   * resting tiers go to nothing and elevation is carried by the surface value
-   * (--card sits above --background) plus a border. Only the genuinely floating
-   * tiers keep a shadow, and it is deeper and tighter.
-   */
-  --elev-rest: 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --elev-raised: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --surface-dark: #100f0e;
+  --surface-dark-mid: #1f1d1b;
+
+  --primary-panel: #0e3a29;
+
+  --chat-wall: #141211;
+  --chat-in: #2a2725;
+  --chat-out: #163626;
+
+  --selection-bg: #065f46;
+  --selection-fg: #ecfdf5;
+
+  --elev-rest: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --elev-raised: 0 0 0 1px rgba(255, 255, 255, 0.07);
   --elev-window: 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --elev-overlay: 0 16px 48px -12px rgba(0, 0, 0, 0.7);
-  --elev-overlay-up: 0 -16px 48px -12px rgba(0, 0, 0, 0.7);
+  --elev-overlay:
+    0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 48px -12px rgba(0, 0, 0, 0.7);
+  --elev-overlay-up:
+    0 0 0 1px rgba(255, 255, 255, 0.06), 0 -16px 48px -12px rgba(0, 0, 0, 0.7);
   --elev-theatre: 0 40px 90px -30px rgba(0, 0, 0, 0.8);
+}
+
+.tint {
+  background-color: var(--tint-bg);
+  color: var(--tint-fg);
+}
+
+.dark .tint {
+  background-color: color-mix(in oklab, var(--tint-fg) 22%, var(--card));
+  color: color-mix(in oklab, var(--tint-fg) 50%, white);
 }
 
 /*
@@ -340,8 +366,8 @@
    * obviously foreign pixel on the page. Theme them from the palette.
    */
   ::selection {
-    background-color: #bbf7d0; /* Emerald Hairline */
-    color: #065f46;
+    background-color: var(--selection-bg);
+    color: var(--selection-fg);
   }
 
   html {
@@ -442,6 +468,10 @@
   --color-surface-dark-mid: var(--surface-dark-mid);
   --color-border-light: var(--border-light);
   --color-border-strong: var(--border-strong);
+  --color-primary-panel: var(--primary-panel);
+  --color-chat-wall: var(--chat-wall);
+  --color-chat-in: var(--chat-in);
+  --color-chat-out: var(--chat-out);
 
   /*
    * The elevation vocabulary as utilities: `shadow-rest`, `shadow-raised`,
@@ -501,6 +531,7 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    --tw-ring-offset-color: var(--background);
   }
   body {
     @apply bg-background text-foreground;

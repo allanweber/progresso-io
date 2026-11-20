@@ -21,7 +21,7 @@ export default function NewBaseExercisePage() {
       <p className="mt-1 text-sm text-muted-foreground">
         Cria um exercício no catálogo base, compartilhado com todas as clínicas.
       </p>
-      <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
+      <div className="mt-6 rounded-2xl bg-card p-6 shadow-rest">
         <ExerciseForm
           mode="create"
           apiBase="/api/admin/exercises"

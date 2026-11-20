@@ -227,7 +227,7 @@ export function FoodPicker({
 
   // Search step ------------------------------------------------------------
   return (
-    <div className="rounded-xl border border-border bg-white p-3 shadow-rest">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-rest">
       <div className="relative flex items-center">
         <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
         <input
@@ -240,7 +240,7 @@ export function FoodPicker({
           }}
           onKeyDown={onKeyDown}
           placeholder="Buscar alimento (ex: arroz, frango…)"
-          className="w-full rounded-lg border border-border bg-white py-2.5 pl-9 pr-9 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+          className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-9 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
         {onClose && (
           <button
@@ -266,7 +266,7 @@ export function FoodPicker({
                 type="button"
                 onClick={() => chooseSuggestion(s)}
                 disabled={loadingSuggestion !== null}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-light px-2.5 py-1 text-xs font-medium text-[#475569] hover:border-primary hover:text-primary disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-light px-2.5 py-1 text-xs font-medium text-text-secondary hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 {loadingSuggestion === s.foodId && (
                   <Loader2 className="size-3 animate-spin" />
@@ -290,7 +290,7 @@ export function FoodPicker({
               Nenhum alimento encontrado.
             </div>
           ) : (
-            <ul className="max-h-72 divide-y divide-[#F5F7FA] overflow-y-auto">
+            <ul className="max-h-72 divide-y divide-border-light overflow-y-auto">
               {results.map((f, i) => (
                 <li key={f.id}>
                   <button
@@ -298,7 +298,7 @@ export function FoodPicker({
                     onMouseEnter={() => setActive(i)}
                     onClick={() => choose(toPicked(f))}
                     className={`flex w-full items-center gap-3 px-2 py-2.5 text-left ${
-                      i === activeIndex ? "bg-primary/5" : "bg-white"
+                      i === activeIndex ? "bg-primary/5" : "bg-card"
                     }`}
                   >
                     <span className="min-w-0 flex-1">

@@ -222,7 +222,7 @@ export function DateInput({
                         !selected &&
                         "ring-1 ring-inset ring-primary/40",
                       selected &&
-                        "bg-primary font-semibold text-white hover:bg-primary",
+                        "bg-primary font-semibold text-primary-foreground hover:bg-primary",
                     )}
                   >
                     {dayNumber(day)}

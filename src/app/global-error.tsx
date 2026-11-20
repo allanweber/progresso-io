@@ -28,15 +28,16 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           fontFamily: "system-ui, sans-serif",
-          background: "#f8fafc",
-          color: "#0f172a",
+          colorScheme: "light dark",
+          background: "light-dark(#f7f6f4, #191716)",
+          color: "light-dark(#1c1a18, #f3f0ec)",
         }}
       >
         <div style={{ maxWidth: "28rem", padding: "2rem", textAlign: "center" }}>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>
             Algo deu errado
           </h1>
-          <p style={{ marginTop: "0.5rem", color: "#64748b" }}>
+          <p style={{ marginTop: "0.5rem", color: "light-dark(#57534d, #c9c3bb)" }}>
             Já fomos avisados e estamos verificando. Tente recarregar a página.
           </p>
         </div>

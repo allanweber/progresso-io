@@ -38,6 +38,7 @@ import {
   type StudentStateKey,
 } from "@/lib/students";
 import { cn } from "@/lib/utils";
+import { tintStyle } from "@/lib/tint";
 
 const FILTERS: { key: StudentStateKey | "all"; label: string }[] = [
   { key: "all", label: "Todos" },
@@ -64,11 +65,8 @@ const columns = [
       return (
         <div className="flex items-center gap-3">
           <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold"
-            style={{
-              background: avatarPalette(s.id).bg,
-              color: avatarPalette(s.id).fg,
-            }}
+            className="tint flex size-9 shrink-0 items-center justify-center rounded-full text-body-dense font-semibold"
+            style={tintStyle(avatarPalette(s.id).fg, avatarPalette(s.id).bg)}
           >
             {studentInitials(s.firstName, s.lastName)}
           </div>
@@ -102,7 +100,7 @@ const columns = [
     id: "access",
     header: "Acesso",
     cell: (ctx) => (
-      <span className="text-body-dense text-[#475569]">
+      <span className="text-body-dense text-text-secondary">
         {ACCESS_LABELS[deriveAccess(ctx.row.original)]}
       </span>
     ),
@@ -111,7 +109,7 @@ const columns = [
     id: "goal",
     header: "Objetivo",
     cell: (ctx) => (
-      <span className="text-body-dense text-[#475569]">{ctx.getValue()}</span>
+      <span className="text-body-dense text-text-secondary">{ctx.getValue()}</span>
     ),
   }),
   columnHelper.accessor("updatedAt", {
@@ -203,7 +201,7 @@ export default function StudentsPage() {
                 "inline-flex items-center rounded-full border px-3 py-1.5 text-body-dense font-medium",
                 isAtLimit(usage.students.used, usage.students.limit)
                   ? "border-destructive/30 bg-destructive/10 text-destructive"
-                  : "border-border bg-white text-muted-foreground",
+                  : "border-border bg-card text-muted-foreground",
               )}
               title={`Alunos ativos no plano ${usage.planName}`}
             >
@@ -237,7 +235,7 @@ export default function StudentsPage() {
             className={
               filter === f.key
                 ? "rounded-full bg-primary px-3.5 py-1.5 text-body-dense font-medium text-primary-foreground"
-                : "rounded-full border border-border bg-white px-3.5 py-1.5 text-body-dense font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
+                : "rounded-full border border-border bg-card px-3.5 py-1.5 text-body-dense font-medium text-text-secondary transition-colors hover:border-primary hover:text-primary"
             }
           >
             {f.label}
@@ -246,15 +244,15 @@ export default function StudentsPage() {
       </div>
 
       {isLoading ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando alunos…
         </div>
       ) : isError ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="mt-4 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-4 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           {students.length === 0
             ? "Nenhum aluno ainda. Adicione o primeiro para começar."
             : "Nenhum aluno neste filtro."}
@@ -271,15 +269,12 @@ export default function StudentsPage() {
                 <li key={s.id}>
                   <Link
                     href={`/coach/students/${s.id}`}
-                    className="block rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
+                    className="block rounded-2xl bg-card p-4 shadow-rest transition-colors hover:border-primary"
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex size-10 shrink-0 items-center justify-center rounded-full text-body font-semibold"
-                        style={{
-                          background: avatarPalette(s.id).bg,
-                          color: avatarPalette(s.id).fg,
-                        }}
+                        className="tint flex size-10 shrink-0 items-center justify-center rounded-full text-body font-semibold"
+                        style={tintStyle(avatarPalette(s.id).fg, avatarPalette(s.id).bg)}
                       >
                         {studentInitials(s.firstName, s.lastName)}
                       </div>
@@ -301,16 +296,16 @@ export default function StudentsPage() {
                       </div>
                     </div>
 
-                    <dl className="mt-3 flex items-start justify-between gap-3 border-t border-[#F1F5F9] pt-3 text-body-dense">
+                    <dl className="mt-3 flex items-start justify-between gap-3 border-t border-border-light pt-3 text-body-dense">
                       <div className="min-w-0">
                         <dt className="text-caption text-meta">Objetivo</dt>
-                        <dd className="truncate text-[#475569]">
+                        <dd className="truncate text-text-secondary">
                           {s.goal ?? "—"}
                         </dd>
                       </div>
                       <div className="shrink-0 text-right">
                         <dt className="text-caption text-meta">Acesso</dt>
-                        <dd className="text-[#475569]">
+                        <dd className="text-text-secondary">
                           {ACCESS_LABELS[deriveAccess(s)]}
                         </dd>
                       </div>
@@ -328,7 +323,7 @@ export default function StudentsPage() {
           </ul>
 
           {/* Desktop: the full TanStack table. */}
-          <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-white shadow-rest md:block">
+          <div className="mt-4 hidden overflow-x-auto rounded-2xl bg-card shadow-rest md:block">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((hg) => (

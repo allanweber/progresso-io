@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { CookieConsent } from "@/components/cookie-consent";
 import { Providers } from "@/components/providers";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 // Fonts are self-hosted (see src/app/fonts/README.md): next/font/google fetches
 // from fonts.gstatic.com at build time, which intermittently 404s in CI. These
@@ -37,7 +38,11 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${spaceGrotesk.variable} ${dmSans.variable} h-full scroll-smooth antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <Providers>{children}</Providers>
         <CookieConsent />

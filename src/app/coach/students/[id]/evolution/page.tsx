@@ -260,7 +260,7 @@ export default function StudentEvolutionPage() {
       ) : weightSeries.length === 0 &&
         assessments.length === 0 &&
         photoSets.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-border bg-white/60 p-10 text-center dark:bg-card/60">
+        <div className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center ">
           <p className="text-sm text-muted-foreground">
             Sem dados de evolução ainda. Assim que houver check-ins com peso,
             fotos ou medidas, a evolução aparece aqui.
@@ -270,7 +270,7 @@ export default function StudentEvolutionPage() {
         <div className="mt-6 flex flex-col gap-4">
           {/* Weight chart */}
           {weightSeries.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+            <div className="rounded-2xl bg-card p-4 shadow-rest">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-body-dense text-muted-foreground">
@@ -310,7 +310,7 @@ export default function StudentEvolutionPage() {
               (only the check-ins that carried an assessment or an accepted
               evaluation have one). */}
           {bodyFatSeries.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+            <div className="rounded-2xl bg-card p-4 shadow-rest">
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-heading text-subtitle font-semibold">
                   % de gordura
@@ -338,7 +338,7 @@ export default function StudentEvolutionPage() {
 
           {/* Comparable photos */}
           {hasComparablePhotos ? (
-            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+            <div className="rounded-2xl bg-card p-4 shadow-rest">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                 {/* The action belongs beside the title, not in the pill strip:
                     a 36px ghost button next to an 18px heading is the row's
@@ -568,7 +568,7 @@ export default function StudentEvolutionPage() {
 
           {/* Medidas Δ table */}
           {measureRows.length > 0 ? (
-            <div className="rounded-2xl bg-white p-4 shadow-rest dark:bg-card">
+            <div className="rounded-2xl bg-card p-4 shadow-rest">
               <div className="mb-3 font-heading text-subtitle font-semibold">
                 Medidas
               </div>

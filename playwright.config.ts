@@ -158,6 +158,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], launchOptions },
     },
     {
+      name: "theme",
+      testMatch: /theme\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], launchOptions },
+    },
+    {
       name: "admin",
       testMatch: /admin-(maintenance|admins|billing|whatsapp|ai)\.spec\.ts/,
       dependencies: ["setup"],

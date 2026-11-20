@@ -84,7 +84,7 @@ export function ExercisePicker({
 
   // Prescription step -----------------------------------------------------
   return (
-    <div className="rounded-xl border border-border bg-white p-4 shadow-rest">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-rest">
       <button
         type="button"
         onClick={() => setSelected(null)}
@@ -127,7 +127,7 @@ export function ExercisePicker({
           setSelected(null);
           setDraft(newPrescription(defaults));
         }}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-body font-semibold text-white transition-colors hover:bg-primary/90"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
       >
         <Plus className="size-4" />
         Adicionar ao treino

@@ -24,15 +24,15 @@ export default function EditWorkoutPage() {
       </h1>
 
       {isLoading ? (
-        <div className="mx-auto max-w-3xl rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando…
         </div>
       ) : isError ? (
-        <div className="mx-auto max-w-3xl rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-card p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : data && data.origin === "base" ? (
-        <div className="mx-auto max-w-3xl rounded-2xl bg-white p-6 text-sm text-muted-foreground shadow-rest">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-card p-6 text-sm text-muted-foreground shadow-rest">
           Este é um treino base e não pode ser editado.
         </div>
       ) : data ? (

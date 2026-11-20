@@ -206,7 +206,7 @@ export default function AdminAdminsPage() {
                 type="button"
                 onClick={() => resend.mutate(r.id)}
                 disabled={busyRow}
-                className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-body-dense font-medium text-[#334155] transition-colors hover:bg-secondary disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-input px-2.5 py-1.5 text-body-dense font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
               >
                 <Send className="size-4" />
                 Reenviar
@@ -267,7 +267,7 @@ export default function AdminAdminsPage() {
         pelo link. A remoção é permanente.
       </p>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl bg-white shadow-rest">
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-card shadow-rest">
         {list.isLoading ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             Carregando administradores…

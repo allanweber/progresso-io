@@ -445,7 +445,7 @@ export function AnamnesisBuilder({
       )}
 
       {/* Scalar shell */}
-      <div className="space-y-4 rounded-2xl bg-white p-5 shadow-rest">
+      <div className="space-y-4 rounded-2xl bg-card p-5 shadow-rest">
         <form.Field name="name">
           {(field) => (
             <Field
@@ -570,7 +570,7 @@ export function AnamnesisBuilder({
       <button
         type="button"
         onClick={addSection}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-border bg-white py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-border bg-card py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
       >
         <Plus className="size-4" />
         Adicionar seção
@@ -646,7 +646,7 @@ function SortableSection({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-2xl bg-white shadow-rest"
+      className="rounded-2xl bg-card shadow-rest"
     >
       <div className="flex items-start gap-2 border-b border-border p-4">
         <button

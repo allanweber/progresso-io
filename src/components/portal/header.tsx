@@ -33,7 +33,7 @@ export function PortalHeader({
       ) : (
         // No inline accent: the page root sets the clinic's colour as this
         // subtree's primary token, so `bg-primary` already IS the accent.
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-white">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
           {branding.name.trim().charAt(0).toUpperCase()}
         </div>
       )}

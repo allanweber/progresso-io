@@ -239,7 +239,7 @@ export default function LibraryFoodsPage() {
         id: "group",
         header: "Grupo",
         cell: (ctx) => (
-          <span className="text-body-dense text-[#475569]">{ctx.getValue()}</span>
+          <span className="text-body-dense text-text-secondary">{ctx.getValue()}</span>
         ),
       }),
       columnHelper.accessor("type", {
@@ -262,7 +262,7 @@ export default function LibraryFoodsPage() {
         id: "protein",
         header: () => numHeader("Prot.", "protein"),
         cell: (ctx) => (
-          <div className="text-right tabular-nums text-[#475569]">
+          <div className="text-right tabular-nums text-text-secondary">
             {fmt(ctx.getValue())}
           </div>
         ),
@@ -271,7 +271,7 @@ export default function LibraryFoodsPage() {
         id: "carbohydrate",
         header: () => numHeader("Carb.", "carbohydrate"),
         cell: (ctx) => (
-          <div className="text-right tabular-nums text-[#475569]">
+          <div className="text-right tabular-nums text-text-secondary">
             {fmt(ctx.getValue())}
           </div>
         ),
@@ -280,7 +280,7 @@ export default function LibraryFoodsPage() {
         id: "fat",
         header: () => numHeader("Gord.", "fat"),
         cell: (ctx) => (
-          <div className="text-right tabular-nums text-[#475569]">
+          <div className="text-right tabular-nums text-text-secondary">
             {fmt(ctx.getValue())}
           </div>
         ),
@@ -370,7 +370,7 @@ export default function LibraryFoodsPage() {
           className={
             favoritesOnly
               ? "flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-amber-300 bg-warn-bg px-3 text-sm font-medium text-warn-fg"
-              : "flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-border bg-white px-3 text-sm font-medium text-[#475569] transition-colors hover:border-primary hover:text-primary"
+              : "flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-3 text-sm font-medium text-text-secondary transition-colors hover:border-primary hover:text-primary"
           }
         >
           <Star
@@ -385,15 +385,15 @@ export default function LibraryFoodsPage() {
       </p>
 
       {isLoading ? (
-        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           Carregando alimentos…
         </div>
       ) : isError ? (
-        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-destructive shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-10 text-center text-sm text-destructive shadow-rest">
           {(error as Error).message}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-3 rounded-2xl bg-white p-10 text-center text-sm text-muted-foreground shadow-rest">
+        <div className="mt-3 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground shadow-rest">
           {favoritesOnly
             ? "Nenhum alimento favoritado ainda. Toque na estrela de um alimento para favoritá-lo."
             : "Nenhum alimento encontrado com esses filtros."}
@@ -406,7 +406,7 @@ export default function LibraryFoodsPage() {
               <li key={f.id}>
                 <Link
                   href={`/coach/library/foods/${f.id}`}
-                  className="block rounded-2xl bg-white p-4 shadow-rest transition-colors hover:border-primary"
+                  className="block rounded-2xl bg-card p-4 shadow-rest transition-colors hover:border-primary"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="min-w-0 break-words font-medium text-foreground">
@@ -431,7 +431,7 @@ export default function LibraryFoodsPage() {
                     </span>
                     <SubstituteBadge count={f.substituteCount} />
                   </div>
-                  <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-body-dense">
+                  <dl className="mt-3 grid grid-cols-4 gap-2 border-t border-border-light pt-3 text-center text-body-dense">
                     {[
                       ["kcal", f.energyKcal],
                       ["Prot.", f.protein],
@@ -440,7 +440,7 @@ export default function LibraryFoodsPage() {
                     ].map(([label, value]) => (
                       <div key={label as string}>
                         <dt className="text-caption text-meta">{label}</dt>
-                        <dd className="tabular-nums text-[#475569]">
+                        <dd className="tabular-nums text-text-secondary">
                           {fmt(value as number | null)}
                         </dd>
                       </div>
@@ -454,7 +454,7 @@ export default function LibraryFoodsPage() {
           {/* Desktop: the full TanStack table. table-fixed + a colgroup keep
               the numeric columns compact and let the description truncate, so
               the eight columns fit the container instead of overflowing. */}
-          <div className="mt-3 hidden overflow-x-auto rounded-2xl bg-white shadow-rest lg:block">
+          <div className="mt-3 hidden overflow-x-auto rounded-2xl bg-card shadow-rest lg:block">
             <Table className="table-fixed">
               <colgroup>
                 <col className="w-9" />
@@ -515,7 +515,7 @@ export default function LibraryFoodsPage() {
                 type="button"
                 onClick={() => goToPage(page - 1)}
                 disabled={page <= 1}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Anterior
               </button>
@@ -523,7 +523,7 @@ export default function LibraryFoodsPage() {
                 type="button"
                 onClick={() => goToPage(page + 1)}
                 disabled={page >= totalPages}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-[#475569] transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Próxima
               </button>

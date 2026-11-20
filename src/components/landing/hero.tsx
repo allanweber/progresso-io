@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
  */
 export function Hero() {
   return (
-    <section className="bg-gradient-to-b from-primary-light to-white px-6 pb-16 pt-20 lg:pb-32">
+    <section className="bg-gradient-to-b from-primary-light to-background px-6 pb-16 pt-20 lg:pb-32">
       <div className="mx-auto max-w-[760px] text-center">
         <Badge className="mb-6">
           <MessageCircle className="size-3.5" strokeWidth={2.5} />
@@ -67,7 +67,7 @@ export function Hero() {
       */}
       <div className="relative mx-auto mt-10 max-w-[1120px] lg:mt-16">
         {/* The coach's workspace: the product being bought. */}
-        <div className="hidden overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-theatre lg:block">
+        <div className="hidden overflow-hidden rounded-[20px] border border-black/5 bg-card shadow-theatre lg:block">
           <Image
             src="/landing/app-dashboard.png"
             alt="Painel do Progresso IO com a fila do dia: check-ins aguardando resposta, agenda e conversas de WhatsApp"

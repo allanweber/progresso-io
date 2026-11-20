@@ -72,8 +72,8 @@ export function ContactForm() {
 
   if (state?.ok) {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-rest">
-        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[#DCFCE7]">
+      <div className="rounded-2xl bg-card p-8 text-center shadow-rest">
+        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-ok-bg">
           <Check className="size-7 text-primary" strokeWidth={2.5} />
         </div>
         <h2 className="font-heading text-lg font-bold text-foreground">
@@ -89,7 +89,7 @@ export function ContactForm() {
   return (
     <form
       action={formAction}
-      className="rounded-2xl bg-white p-6 shadow-rest"
+      className="rounded-2xl bg-card p-6 shadow-rest"
     >
       {state?.formError && (
         <p

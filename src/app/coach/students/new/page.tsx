@@ -20,7 +20,7 @@ export default function NewStudentPage() {
         O aluno online recebe um link de acesso ao portal + a anamnese pelo
         WhatsApp. O aluno offline é registrado e você preenche a anamnese.
       </p>
-      <div className="mt-6 rounded-2xl bg-white p-6 shadow-rest">
+      <div className="mt-6 rounded-2xl bg-card p-6 shadow-rest">
         <StudentRegisterForm />
       </div>
     </div>

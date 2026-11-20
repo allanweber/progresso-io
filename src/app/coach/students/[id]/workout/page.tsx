@@ -335,7 +335,7 @@ export default function StudentWorkoutPage() {
           </div>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl bg-white p-10 text-center shadow-rest">
+        <div className="mt-6 rounded-2xl bg-card p-10 text-center shadow-rest">
           <p className="text-sm text-muted-foreground">
             Este aluno ainda não tem um treino.
           </p>
@@ -532,7 +532,7 @@ function CurrentView({
 
   return (
     <div className="mt-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl max-sm:[&>button]:flex-1 max-sm:[&>div]:flex-1 border border-dashed border-border bg-white px-4 py-3 shadow-rest">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl max-sm:[&>button]:flex-1 max-sm:[&>div]:flex-1 border border-dashed border-border bg-card px-4 py-3 shadow-rest">
         <span className="text-sm font-medium text-foreground max-sm:basis-full">Novo treino:</span>
         <Button variant="outline" size="sm" onClick={onNewBlank} disabled={busy || hasDraft}>
           <Plus className="size-4" />
@@ -615,7 +615,7 @@ function CurrentView({
       )}
 
       {current.notes && (
-        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-muted-foreground shadow-rest">
+        <p className="rounded-2xl bg-card px-4 py-3 text-sm text-muted-foreground shadow-rest">
           {current.notes}
         </p>
       )}
@@ -627,7 +627,7 @@ function CurrentView({
       />
 
       {(olderOfCurrent.length > 0 || pastWorkouts.length > 0) && (
-        <div className="rounded-2xl bg-white p-5 shadow-rest">
+        <div className="rounded-2xl bg-card p-5 shadow-rest">
           <h3 className="font-heading text-base font-semibold text-foreground">
             Histórico
           </h3>
@@ -690,7 +690,7 @@ function VersionChip({
 }) {
   const label = `${workoutName} v${version.version}`;
   return (
-    <span className="inline-flex items-center overflow-hidden rounded-full border border-border bg-surface-light text-xs font-medium text-[#475569]">
+    <span className="inline-flex items-center overflow-hidden rounded-full border border-border bg-surface-light text-xs font-medium text-text-secondary">
       <button
         type="button"
         onClick={() => onView(version.versionId)}

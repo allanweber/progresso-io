@@ -111,7 +111,7 @@ export function ExerciseSearch({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white p-3 shadow-rest">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-rest">
       <div className="relative flex items-center">
         <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
         <input
@@ -124,7 +124,7 @@ export function ExerciseSearch({
           }}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-border bg-white py-2.5 pl-9 pr-9 text-body text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+          className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-9 text-body text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
         {onClose && (
           <button
@@ -163,7 +163,7 @@ export function ExerciseSearch({
               Nenhum exercício encontrado.
             </div>
           ) : (
-            <ul className="max-h-72 divide-y divide-[#F5F7FA] overflow-y-auto">
+            <ul className="max-h-72 divide-y divide-border-light overflow-y-auto">
               {results.map((f, i) => (
                 // The thumbnail is its own control (it expands the images), so
                 // the row is a flex container, not one big button.
@@ -171,7 +171,7 @@ export function ExerciseSearch({
                   key={f.id}
                   onMouseEnter={() => setActive(i)}
                   className={`flex items-center gap-3 px-2 py-2.5 ${
-                    i === activeIndex ? "bg-primary/5" : "bg-white"
+                    i === activeIndex ? "bg-primary/5" : "bg-card"
                   }`}
                 >
                   <ExerciseImageButton

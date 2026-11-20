@@ -107,7 +107,7 @@ function Kpi({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-rest">
+    <div className="rounded-2xl bg-card p-4 shadow-rest">
       <div className="text-body-dense text-muted-foreground">{label}</div>
       <div className="mt-1.5 font-heading text-3xl font-bold text-foreground">
         {value}
@@ -260,7 +260,7 @@ function ModelSettingsForm({ settings }: { settings: AiSettingsDto }) {
 
   return (
     <form
-      className="overflow-hidden rounded-2xl bg-white shadow-rest"
+      className="overflow-hidden rounded-2xl bg-card shadow-rest"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -941,7 +941,7 @@ export default function AdminAiPage() {
             />
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-rest">
+          <div className="mt-6 overflow-hidden rounded-2xl bg-card shadow-rest">
             <div className="border-b border-border px-4 py-3.5">
               <h2 className="font-heading text-subtitle font-semibold">
                 Uso de IA por tenant
@@ -1004,14 +1004,14 @@ export default function AdminAiPage() {
           {overview.data ? (
             <ModelSettingsForm settings={overview.data.settings} />
           ) : (
-            <div className="rounded-2xl bg-white px-4 py-9 text-center text-sm text-muted-foreground shadow-rest">
+            <div className="rounded-2xl bg-card px-4 py-9 text-center text-sm text-muted-foreground shadow-rest">
               {overview.isError
                 ? (overview.error as Error).message
                 : "Carregando…"}
             </div>
           )}
 
-          <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-rest">
+          <div className="mt-6 overflow-hidden rounded-2xl bg-card shadow-rest">
             <div className="border-b border-border px-4 py-3.5">
               <h2 className="font-heading text-subtitle font-semibold">
                 Uso por modelo
@@ -1089,7 +1089,7 @@ export default function AdminAiPage() {
             </Button>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-2xl bg-white shadow-rest">
+          <div className="mt-4 overflow-hidden rounded-2xl bg-card shadow-rest">
             {prices.isError ? (
               <p className="px-4 py-9 text-center text-sm text-destructive">
                 {(prices.error as Error).message}

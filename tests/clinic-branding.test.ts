@@ -182,7 +182,13 @@ describe("accentThemeVars", () => {
     // tokens describe, derived by the browser rather than a colour library.
     expect(vars["--primary-hover"]).toBe("color-mix(in srgb, #7c3aed 86%, black)");
     expect(vars["--primary-press"]).toBe("color-mix(in srgb, #7c3aed 72%, black)");
-    expect(vars["--primary-light"]).toBe("color-mix(in srgb, #7c3aed 8%, white)");
+    expect(vars["--primary-light"]).toBe("color-mix(in srgb, #7c3aed 8%, var(--card))");
+  });
+
+  it("keeps white labels on the accent fill in both themes", () => {
+    const vars = accentThemeVars("#7c3aed")!;
+    expect(vars["--primary-foreground"]).toBe("#ffffff");
+    expect(vars["--primary-panel"]).toBe("#7c3aed");
   });
 
   it("returns nothing when the clinic set no accent", () => {

@@ -83,7 +83,7 @@ export default function NewAnamnesisPage() {
       </p>
 
       {templates.isLoading ? (
-        <div className="mt-5 rounded-2xl bg-white p-10 text-center text-body text-muted-foreground shadow-rest">
+        <div className="mt-5 rounded-2xl bg-card p-10 text-center text-body text-muted-foreground shadow-rest">
           Carregando modelos…
         </div>
       ) : (
@@ -91,7 +91,7 @@ export default function NewAnamnesisPage() {
           {items.map((a) => (
             <li
               key={a.id}
-              className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-rest sm:flex-row sm:items-center sm:gap-4"
+              className="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-rest sm:flex-row sm:items-center sm:gap-4"
             >
               <div className="min-w-0 flex-1">
                 <span className="block font-medium text-foreground">
@@ -133,7 +133,7 @@ export default function NewAnamnesisPage() {
       <button
         type="button"
         onClick={() => setFromScratch(true)}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-border bg-white py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-border bg-card py-4 text-body font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
       >
         <FilePlus2 className="size-4" />
         Montar uma anamnese do zero
