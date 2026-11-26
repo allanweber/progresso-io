@@ -36,6 +36,6 @@ _Avoid_: Private exercise
 The shareable plan file of the external openGym app; a workout exports to one, each session becoming one of its routines.
 _Avoid_: Plan (unqualified)
 
-**openGym id**:
-The permanent number that openGym gives to an exercise in its catalogue. It is the `code` of a base exercise, so a base exercise is the same exercise in the two apps.
+**Catalog id**:
+The permanent number of an exercise in the source catalogue. It is the `code` of a base exercise, so the openGym plan uses the same id for the same exercise.
 _Avoid_: ExerciseDB id

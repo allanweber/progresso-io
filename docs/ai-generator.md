@@ -95,7 +95,7 @@ helper alongside the six in `src/server/dal/plans.ts`.
 
 **No per-aluno subsetting.** The prompt carries the platform base catalog
 (`clinicId IS NULL`) — identical bytes for every clinic, every aluno, every
-generation. For exercises, the prompt has only the 1,324 classic openGym
+generation. For exercises, the prompt has only the 1,324 classic
 exercises and the base exercises without a code. The full catalog of 5,632
 exercises is too large (about 112,000 tokens). For foods, the prompt has 597 foods.
 

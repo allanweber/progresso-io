@@ -1,8 +1,8 @@
 # Exercise catalog
 
-The exercise catalog is the shared base library of the app. It comes from the
-[openGym catalogue](https://github.com/DuarteSantos8/openGym/tree/main/catalogue),
-pinned to one commit (`OPENGYM_COMMIT` in `src/lib/exercises.ts`). Each clinic
+The exercise catalog is the shared base library of the app. It comes from an
+external catalogue, pinned to one commit (the commit constant in
+`src/lib/exercises.ts`). Each clinic
 sees the base library and its own custom exercises. A clinic never sees the
 custom exercises of a different clinic.
 
@@ -10,7 +10,7 @@ custom exercises of a different clinic.
 
 The catalog has 5,632 exercises. Each exercise has these data:
 
-- The openGym id as `code`. The id never changes, so seed data and exports use it.
+- The catalog id as `code`. The id never changes, so seed data and exports use it.
 - The name, the description and the steps in pt-BR (the main language) and in English.
 - The body part, the type (`category`), the equipment and the main muscle (`target`).
 - The secondary muscles, and the muscles that the body map draws, with a weight for each muscle.
@@ -18,9 +18,9 @@ The catalog has 5,632 exercises. Each exercise has these data:
 - `needs` (a bench or a pull-up bar), `hold` (an exercise done for time) and `track` (an exercise done for distance).
 - A still (`still/<id>.webp`) and a looped clip (`clip/<id>.mp4`).
 - A second still and clip on a female figure for 935 exercises.
-- `classic`: true for the 1,324 exercises that openGym had before v1.4.0
-  (`drizzle/data/opengym/classic-ids.json`).
-- `popularity`: the openGym "everyday" score. The score adds points for the
+- `classic`: true for the 1,324 classic exercises of the catalogue
+  (`classic-ids.json` in `drizzle/data/`).
+- `popularity`: the "everyday" score of the catalogue. The score adds points for the
   44 gym staples, for a classic exercise, for common equipment and for a
   strength type. It removes points for stretching, mobility, yoga and rehab.
 
@@ -28,21 +28,21 @@ The library lists the exercises with the highest `popularity` first. A search
 sorts by the similarity of the name first, and then by `popularity`. The AI
 generator gets only the classic exercises (about 26,000 tokens).
 
-The vocabulary is the openGym vocabulary. The values are in `src/lib/exercises.ts`,
+The vocabulary is the vocabulary of the catalogue. The values are in `src/lib/exercises.ts`,
 together with their pt-BR labels. The database has a CHECK constraint for each list.
 
 ### Pipeline
 
-1. The pt-BR text is in `drizzle/data/opengym/exercises-ptbr.json`. openGym has
+1. The pt-BR text is in `exercises-ptbr.json` in `drizzle/data/`. The catalogue has
    pt-BR names for all exercises, but pt-BR steps for only part of them. We
    translated the other steps and all the descriptions.
-2. `node scripts/build-exercise-catalog.mjs <openGym catalogue/exercises directory>`
+2. `node scripts/build-exercise-catalog.mjs <catalogue/exercises directory>`
    writes `drizzle/data/exercises-catalog.ndjson.gz` and
    `drizzle/data/exercise-substitutions.json`.
 3. At deploy, `scripts/migrate.mjs` inserts the catalog and the substitutions.
    The insert uses the `code`, so a second run inserts nothing.
 
-To move to a new openGym commit, change `OPENGYM_COMMIT` in `src/lib/exercises.ts`
+To move to a new catalogue commit, change the commit constant in `src/lib/exercises.ts`
 and in `scripts/upload-exercise-images.mjs`. Then run the build script again.
 
 ### Size
@@ -54,7 +54,7 @@ database: the stills and the clips use about 200 MB in R2.
 ## Media
 
 The media is not in the repository. At deploy, `scripts/upload-exercise-images.mjs`
-copies each still and clip from the pinned openGym commit to the R2 bucket. A
+copies each still and clip from the pinned catalogue commit to the R2 bucket. A
 manifest object for the commit stops a second upload. The app loads the media
 only from `NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL`. When this variable is empty,
 the app shows no media.
@@ -75,7 +75,7 @@ secondary muscles.
 The build script makes up to four base substitutes for each exercise. A
 substitute has the same main muscle and a similar type. The score prefers:
 
-1. The reviewed openGym families (for example, the flat press family).
+1. The reviewed exercise families (for example, the flat press family).
 2. Movement words that the English names share.
 3. The same body part, and shared secondary muscles.
 
@@ -84,13 +84,13 @@ can add its own substitutes. The base substitutes stay read-only for a coach.
 
 ## openGym export
 
-A workout exports to an openGym plan file. A base exercise uses its openGym id.
+A workout exports to an openGym plan file. A base exercise uses its catalog id.
 A clinic exercise goes to `customEx`, with its body part, equipment, main muscle
 and body map.
 
 ## UI
 
-The catalog screens follow the openGym library:
+The catalog screens have these parts:
 
 - A search field with the number of results, and a switch between rows and cards.
 - A row of chips: "Filtros" (type and equipment, only the values that have

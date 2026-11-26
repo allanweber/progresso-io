@@ -144,7 +144,7 @@ What is real and citable:
 
 - The product itself — every shipped capability above, demonstrable live.
 - The catalogs: 5,632 exercises with PT-BR names, descriptions, steps and
-  animations (the openGym catalogue), and the TACO food composition data
+  animations, and the TACO food composition data
   (15 groups, 66 nutrients).
 - The unit-economics model in `docs/monetization.md` (internal; the external
   rates it cites are approximate and dated).
