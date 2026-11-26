@@ -35,6 +35,11 @@ const turnstileFrame = turnstileConfigured
   ? `frame-src 'self'${turnstileHost}`
   : "";
 
+const mediaBase = (process.env.NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL ?? "").trim();
+const mediaOrigin = mediaBase
+  ? ` ${new URL(/^https?:\/\//.test(mediaBase) ? mediaBase : `https://${mediaBase}`).origin}`
+  : "";
+
 /**
  * Content-Security-Policy.
  *
@@ -59,6 +64,7 @@ const csp = [
   // exercise/check-in images (R2/CDN) + data URIs + local `blob:` previews of
   // files picked in the exercise/check-in forms before they are uploaded.
   "img-src 'self' data: blob: https:",
+  `media-src 'self'${mediaOrigin}`,
   `script-src 'self' 'unsafe-inline'${devEval}${gaScript}${turnstileScript}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind inline styles
   `connect-src 'self'${gaConnect}${sentryConnect}${turnstileScript}`,

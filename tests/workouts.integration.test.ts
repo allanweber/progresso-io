@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
@@ -9,6 +8,7 @@ import { studentWorkouts, workouts } from "@/server/dal";
 import type { WorkoutWriteInput } from "@/server/dal/workouts";
 import type { WorkoutReps } from "@/lib/workouts";
 
+import { exerciseRow } from "./exercise-fixture";
 import { createTestDb, type TestDb } from "./pglite";
 
 /**
@@ -33,23 +33,20 @@ async function addExercise(e: {
   name: string;
   clinicId?: string | null;
   instructions?: string[];
-  images?: string[];
+  image?: string | null;
 }) {
   const [row] = await db
     .insert(schema.exercise)
-    .values({
-      name: e.name,
-      searchText: sql`unaccent(lower(${e.name}))`,
-      category: "strength",
-      level: "beginner",
-      primaryMuscles: [],
-      secondaryMuscles: [],
-      instructions: e.instructions ?? [],
-      images: e.images ?? [],
-      clinicId: e.clinicId ?? null,
-      source: e.clinicId ? "custom" : "free-exercise-db",
-      code: e.clinicId ? null : e.name.toLowerCase().replace(/\s+/g, "_"),
-    })
+    .values(
+      exerciseRow({
+        name: e.name,
+        instructions: e.instructions ?? [],
+        image: e.image ?? null,
+        clinicId: e.clinicId ?? null,
+        source: e.clinicId ? "custom" : "opengym",
+        code: e.clinicId ? null : e.name.toLowerCase().replace(/\s+/g, "_"),
+      }),
+    )
     .returning({ id: schema.exercise.id });
   return row.id;
 }
@@ -102,12 +99,12 @@ beforeAll(async () => {
   supino = await addExercise({
     name: "Supino reto",
     instructions: ["Deite no banco", "Empurre a barra"],
-    images: ["supino_reto/0.jpg"],
+    image: "still/0025.webp",
   });
   crucifixo = await addExercise({
     name: "Crucifixo",
     instructions: ["Abra os braços", "Contraia o peito"],
-    images: ["crucifixo/0.jpg", "crucifixo/1.jpg"],
+    image: "still/0308.webp",
   });
   triceps = await addExercise({ name: "Triceps corda" });
   ownB = await addExercise({ name: "Exercicio B", clinicId: clinicB.id });
@@ -133,7 +130,7 @@ describe("workout template DAL", () => {
     // Live catalog data.
     expect(ex.name).toBe("Supino reto");
     expect(ex.instructions).toEqual(["Deite no banco", "Empurre a barra"]);
-    expect(ex.images).toEqual(["supino_reto/0.jpg"]);
+    expect(ex.image).toBe("still/0025.webp");
     // Prescription.
     expect(ex.sets).toBe(4);
     expect(ex.reps).toEqual({ kind: "range", values: [8, 10] });
@@ -148,7 +145,7 @@ describe("workout template DAL", () => {
     // A substitute carries its own catalog detail (title, images, execution),
     // so its detail modal renders with no extra request.
     const libSub = ex.substitutes[1];
-    expect(libSub.images).toEqual(["crucifixo/0.jpg", "crucifixo/1.jpg"]);
+    expect(libSub.image).toBe("still/0308.webp");
     expect(libSub.instructions).toEqual(["Abra os braços", "Contraia o peito"]);
   });
 

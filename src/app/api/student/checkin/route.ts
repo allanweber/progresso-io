@@ -62,11 +62,14 @@ export const POST = withStudent(
       photos.push({ pose, file });
     }
 
+    const studentId = await studentCheckins.getMyStudentId(ctx);
+    if (!studentId) return notFound("Aluno não encontrado.");
+
     // Store each photo, then persist the check-in referencing the stored keys.
     const stored: CheckinPhotoInput[] = [];
     for (const { pose, file } of photos) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const storageKey = await putCheckinPhoto(buffer, file.type);
+      const storageKey = await putCheckinPhoto(studentId, buffer, file.type);
       stored.push({ pose, storageKey });
     }
 

@@ -15,11 +15,7 @@
     "test:e2e:shots": "E2E_SHOTS=1 node scripts/e2e.mjs --project=portfolio && pnpm landing:optimize",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx --conditions=react-server src/db/seed.ts",
-    "db:bootstrap": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate.mjs",
-    "db:transform-taco": "node scripts/transform-taco.mjs",
-    "db:build-substitutions": "node scripts/build-substitutions.mjs",
-    "db:maintain-exercises": "node --watch scripts/maintain-exercises.mjs",
+    "db:seed": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed.mjs",
     "landing:optimize": "node scripts/optimize-landing.mjs"
   },
   "dependencies": {

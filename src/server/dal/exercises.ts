@@ -1,211 +1,80 @@
-import { and, asc, count, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, isNull, or } from "drizzle-orm";
 
 import { schema } from "@/db";
+import type { Exercise } from "@/db/schema";
 import type {
-  Exercise,
-  ExerciseCategory,
-  ExerciseEquipment,
-  ExerciseForce,
-  ExerciseLevel,
-  ExerciseMechanic,
-  Muscle,
-} from "@/db/schema";
+  ExerciseDetailDto,
+  ExerciseFormValues,
+  ExerciseListResponse,
+  ExerciseOrigin,
+  ExerciseSubstituteDto,
+} from "@/lib/exercises";
 import {
-  exerciseSearchConditions,
-  exerciseSearchRank,
-  exerciseSearchText,
-} from "@/server/dal/exercise-search";
+  exerciseFacets,
+  exerciseFilterConditions,
+  exerciseListColumns,
+  exerciseOrderBy,
+  exerciseOriginCounts,
+  exerciseValues,
+  originOf,
+  substituteColumns,
+  type ExerciseFilters,
+} from "@/server/dal/exercise-query";
 import type { TenantContext } from "@/server/tenant";
 
-/**
- * Exercise-catalog DAL. Like the food catalog, the exercise catalog is
- * reference data: an `exercise` row with `clinicId = null` is the shared open
- * base (free-exercise-db + PT-BR translation), a row with `clinicId` set is a
- * clinic's own custom exercise (a later phase). Every read here is scoped to
- * `clinicId IS NULL OR clinicId = ctx.clinicId`, so a clinic sees the base plus
- * only its own — never another clinic's.
- */
-
-const DEFAULT_PAGE_SIZE = 24;
+const DEFAULT_PAGE_SIZE = 40;
 const MAX_PAGE_SIZE = 100;
 
-/** Whether an exercise is from the shared base catalog or the clinic's own. */
-export type ExerciseOrigin = "base" | "clinic";
-
-/** A row in the exercise listing (identity + the facets the cards show). */
-export type ExerciseListItem = {
-  id: string;
-  code: string | null;
-  name: string;
-  nameEn: string | null;
-  category: ExerciseCategory;
-  level: ExerciseLevel;
-  equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  origin: ExerciseOrigin;
-  /** First image key ("<code>/0.jpg"), for the card thumbnail. */
-  thumbnail: string | null;
-};
-
-export type ExerciseListParams = {
-  search?: string;
-  category?: ExerciseCategory;
-  level?: ExerciseLevel;
-  equipment?: ExerciseEquipment;
-  /** Restrict to exercises that target this muscle (primary or secondary). */
-  muscle?: Muscle;
-  openGymOnly?: boolean;
+export type ExerciseListParams = ExerciseFilters & {
   page?: number;
   pageSize?: number;
 };
 
-export type ExerciseListResult = {
-  items: ExerciseListItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-};
-
-/** Builds the shared WHERE for a listing: tenant scope + not archived + filters. */
-function listWhere(ctx: TenantContext, params: ExerciseListParams) {
-  const conds = [
-    or(
-      isNull(schema.exercise.clinicId),
-      eq(schema.exercise.clinicId, ctx.clinicId),
-    ),
-    eq(schema.exercise.archived, false),
-  ];
-  if (params.category) conds.push(eq(schema.exercise.category, params.category));
-  if (params.level) conds.push(eq(schema.exercise.level, params.level));
-  if (params.equipment) {
-    conds.push(eq(schema.exercise.equipment, params.equipment));
-  }
-  if (params.muscle) {
-    // The muscle may be primary or secondary — match either array.
-    conds.push(
-      sql`(${params.muscle} = any(${schema.exercise.primaryMuscles})
-        or ${params.muscle} = any(${schema.exercise.secondaryMuscles}))`,
-    );
-  }
-  if (params.openGymOnly) conds.push(isNotNull(schema.exercise.openGymId));
-  const term = params.search?.trim();
-  if (term) {
-    // Each whitespace token must appear in the (already unaccented) search_text,
-    // which holds both the PT-BR and the English name — so either language,
-    // accents and case don't matter; the GIN trigram index accelerates it.
-    conds.push(...exerciseSearchConditions(term));
-  }
-  return and(...conds);
+function visibleTo(ctx: TenantContext) {
+  return or(
+    isNull(schema.exercise.clinicId),
+    eq(schema.exercise.clinicId, ctx.clinicId),
+  )!;
 }
 
-/**
- * A page of the catalog visible to this clinic (base + own custom), excluding
- * archived exercises. When `search` is set, results are ranked by trigram
- * similarity; otherwise alphabetically by name.
- */
 export async function listExercises(
   ctx: TenantContext,
   params: ExerciseListParams = {},
-): Promise<ExerciseListResult> {
+): Promise<ExerciseListResponse> {
   const page = Math.max(1, Math.trunc(params.page ?? 1));
   const pageSize = Math.min(
     MAX_PAGE_SIZE,
     Math.max(1, Math.trunc(params.pageSize ?? DEFAULT_PAGE_SIZE)),
   );
-  const where = listWhere(ctx, params);
-  const term = params.search?.trim();
+  const scope = [visibleTo(ctx), eq(schema.exercise.archived, false)];
+  const where = and(...scope, ...exerciseFilterConditions(params));
 
-  const orderBy = term
-    ? [
-        desc(exerciseSearchRank(term)),
-        asc(schema.exercise.name),
-      ]
-    : [asc(schema.exercise.name), asc(schema.exercise.id)];
+  const [rows, [{ total }], facets, counts] = await Promise.all([
+    ctx.db
+      .select(exerciseListColumns)
+      .from(schema.exercise)
+      .where(where)
+      .orderBy(...exerciseOrderBy(params.search))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    ctx.db.select({ total: count() }).from(schema.exercise).where(where),
+    exerciseFacets(ctx.db, scope, params),
+    exerciseOriginCounts(ctx.db, scope),
+  ]);
 
-  const rows = await ctx.db
-    .select({
-      id: schema.exercise.id,
-      code: schema.exercise.code,
-      name: schema.exercise.name,
-      nameEn: schema.exercise.nameEn,
-      category: schema.exercise.category,
-      level: schema.exercise.level,
-      equipment: schema.exercise.equipment,
-      primaryMuscles: schema.exercise.primaryMuscles,
-      images: schema.exercise.images,
-      clinicId: schema.exercise.clinicId,
-    })
-    .from(schema.exercise)
-    .where(where)
-    .orderBy(...orderBy)
-    .limit(pageSize)
-    .offset((page - 1) * pageSize);
-
-  const [{ total }] = await ctx.db
-    .select({ total: count() })
-    .from(schema.exercise)
-    .where(where);
-
-  const items: ExerciseListItem[] = rows.map(({ clinicId, images, ...r }) => ({
-    ...r,
-    origin: clinicId === null ? "base" : "clinic",
-    thumbnail: images[0] ?? null,
-  }));
-
-  return { items, total, page, pageSize };
-}
-
-/**
- * The editable fields of a custom exercise — shared by the coach write path
- * (a clinic's own exercise) and the admin write path (a shared base exercise);
- * only the tenant discriminator (`clinicId`) differs. Free text is confined to
- * `name`, `description` and the `instructions` steps; everything else is an enum.
- * `images` holds already-uploaded R2 keys (max 2, enforced at the route).
- */
-export type ExerciseWriteInput = {
-  name: string;
-  nameEn: string | null;
-  description: string | null;
-  category: ExerciseCategory;
-  level: ExerciseLevel;
-  force: ExerciseForce | null;
-  mechanic: ExerciseMechanic | null;
-  equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  secondaryMuscles: Muscle[];
-  instructions: string[];
-  instructionsEn: string[];
-  images: string[];
-};
-
-/** Maps the write input to the row columns (minus tenant/searchText, set by callers). */
-function exerciseValues(input: ExerciseWriteInput) {
   return {
-    name: input.name,
-    nameEn: input.nameEn,
-    description: input.description,
-    searchText: exerciseSearchText(input.name, input.nameEn),
-    category: input.category,
-    level: input.level,
-    force: input.force,
-    mechanic: input.mechanic,
-    equipment: input.equipment,
-    primaryMuscles: input.primaryMuscles,
-    secondaryMuscles: input.secondaryMuscles,
-    instructions: input.instructions,
-    instructionsEn: input.instructionsEn,
-    images: input.images,
+    items: rows.map(({ clinicId, ...r }) => ({ ...r, origin: originOf(clinicId) })),
+    total,
+    page,
+    pageSize,
+    facets,
+    counts,
   };
 }
 
-/**
- * Creates a custom exercise for this clinic (`source = "custom"`, no `code`).
- * The DAL stamps `clinicId` from the session context, so the exercise is private
- * to the clinic and can never be a base row.
- */
 export async function createExercise(
   ctx: TenantContext,
-  input: ExerciseWriteInput,
+  input: ExerciseFormValues,
 ): Promise<Exercise> {
   const [row] = await ctx.db
     .insert(schema.exercise)
@@ -214,15 +83,10 @@ export async function createExercise(
   return row;
 }
 
-/**
- * Edits one of this clinic's own custom exercises. Scoped to `clinicId = ctx.
- * clinicId`, so a base exercise or another clinic's is never touched (returns
- * null — a 404 at the route).
- */
 export async function updateExercise(
   ctx: TenantContext,
   id: string,
-  input: ExerciseWriteInput,
+  input: ExerciseFormValues,
 ): Promise<Exercise | null> {
   const [row] = await ctx.db
     .update(schema.exercise)
@@ -237,7 +101,6 @@ export async function updateExercise(
   return row ?? null;
 }
 
-/** Archives one of this clinic's own custom exercises (its own rows only). */
 export async function archiveExercise(
   ctx: TenantContext,
   id: string,
@@ -255,39 +118,11 @@ export async function archiveExercise(
   return row ?? null;
 }
 
-/** A substitute offered for an exercise (the substitute exercise's identity). */
-export type ExerciseSubstituteRow = {
-  /** The substitution rule id. */
-  id: string;
-  /** The substitute *exercise* id (to link to its detail). */
-  exerciseId: string;
-  name: string;
-  code: string | null;
-  category: ExerciseCategory;
-  equipment: ExerciseEquipment | null;
-  /** First image key of the substitute, for a thumbnail. */
-  thumbnail: string | null;
-  /** Origin of the substitute *exercise* (base or the clinic's own). */
-  origin: ExerciseOrigin;
-  /**
-   * Whether the viewer may delete THIS rule. A clinic may remove only its own
-   * rules; the shared base rules are read-only for a coach. (For the admin, the
-   * base rules it manages are removable.)
-   */
-  removable: boolean;
-};
-
 export type ExerciseDetail = Exercise & {
   origin: ExerciseOrigin;
-  substitutes: ExerciseSubstituteRow[];
+  substitutes: ExerciseSubstituteDto[];
 };
 
-/**
- * A single exercise, visible to this clinic (a base exercise or one of its own),
- * with the substitutes visible to it (base rules + its own). Returns null when
- * the id is neither base nor the clinic's own — so another clinic's custom
- * exercise is never leaked.
- */
 export async function getExercise(
   ctx: TenantContext,
   id: string,
@@ -295,35 +130,19 @@ export async function getExercise(
   const [row] = await ctx.db
     .select()
     .from(schema.exercise)
-    .where(
-      and(
-        eq(schema.exercise.id, id),
-        or(
-          isNull(schema.exercise.clinicId),
-          eq(schema.exercise.clinicId, ctx.clinicId),
-        ),
-      ),
-    );
+    .where(and(eq(schema.exercise.id, id), visibleTo(ctx)));
   if (!row) return null;
 
-  const substitute = schema.exercise;
   const subs = await ctx.db
     .select({
       id: schema.exerciseSubstitution.id,
-      // The rule's own clinic: NULL = base rule (read-only for a clinic).
       ruleClinicId: schema.exerciseSubstitution.clinicId,
-      exerciseId: substitute.id,
-      name: substitute.name,
-      code: substitute.code,
-      category: substitute.category,
-      equipment: substitute.equipment,
-      images: substitute.images,
-      clinicId: substitute.clinicId,
+      ...substituteColumns,
     })
     .from(schema.exerciseSubstitution)
     .innerJoin(
-      substitute,
-      eq(schema.exerciseSubstitution.substituteExerciseId, substitute.id),
+      schema.exercise,
+      eq(schema.exerciseSubstitution.substituteExerciseId, schema.exercise.id),
     )
     .where(
       and(
@@ -332,26 +151,22 @@ export async function getExercise(
           isNull(schema.exerciseSubstitution.clinicId),
           eq(schema.exerciseSubstitution.clinicId, ctx.clinicId),
         ),
-        // Never offer an archived exercise as a substitute.
-        eq(substitute.archived, false),
+        eq(schema.exercise.archived, false),
       ),
     )
-    .orderBy(asc(substitute.name));
+    .orderBy(asc(schema.exercise.name));
 
   return {
     ...row,
-    origin: row.clinicId === null ? "base" : "clinic",
-    substitutes: subs.map(({ clinicId, ruleClinicId, images, ...s }) => ({
+    origin: originOf(row.clinicId),
+    substitutes: subs.map(({ clinicId, ruleClinicId, ...s }) => ({
       ...s,
-      thumbnail: images[0] ?? null,
-      origin: clinicId === null ? "base" : "clinic",
-      // A clinic may delete only its own rules; base rules are read-only.
+      origin: originOf(clinicId),
       removable: ruleClinicId === ctx.clinicId,
     })),
   };
 }
 
-/** Whether an exercise is visible to this clinic (a base exercise or its own). */
 async function exerciseVisibleToClinic(
   ctx: TenantContext,
   id: string,
@@ -359,20 +174,12 @@ async function exerciseVisibleToClinic(
   const [row] = await ctx.db
     .select({ id: schema.exercise.id })
     .from(schema.exercise)
-    .where(
-      and(
-        eq(schema.exercise.id, id),
-        or(
-          isNull(schema.exercise.clinicId),
-          eq(schema.exercise.clinicId, ctx.clinicId),
-        ),
-      ),
-    );
+    .where(and(eq(schema.exercise.id, id), visibleTo(ctx)));
   return Boolean(row);
 }
 
 export type AddExerciseSubstitutionResult =
-  | { ok: true; substitute: ExerciseSubstituteRow }
+  | { ok: true; substitute: ExerciseSubstituteDto }
   | {
       ok: false;
       reason:
@@ -382,12 +189,6 @@ export type AddExerciseSubstitutionResult =
         | "duplicate";
     };
 
-/**
- * Adds a clinic-owned substitution rule: `substituteExerciseId` may replace
- * `exerciseId`. Both exercises must be visible to the clinic (base or its own).
- * The rule is stamped with `ctx.clinicId`, so it never touches — and can never
- * modify — the shared base rules. Self-substitution and duplicates are rejected.
- */
 export async function addExerciseSubstitution(
   ctx: TenantContext,
   exerciseId: string,
@@ -403,8 +204,6 @@ export async function addExerciseSubstitution(
     return { ok: false, reason: "substitute_not_found" };
   }
 
-  // One rule per (clinic, exercise, substitute) — don't stack duplicates. A
-  // clinic-owned rule is also allowed to mirror a base one (a personal copy).
   const [dupe] = await ctx.db
     .select({ id: schema.exerciseSubstitution.id })
     .from(schema.exerciseSubstitution)
@@ -422,38 +221,17 @@ export async function addExerciseSubstitution(
     .values({ clinicId: ctx.clinicId, exerciseId, substituteExerciseId })
     .returning({ id: schema.exerciseSubstitution.id });
   const [sub] = await ctx.db
-    .select({
-      name: schema.exercise.name,
-      code: schema.exercise.code,
-      category: schema.exercise.category,
-      equipment: schema.exercise.equipment,
-      images: schema.exercise.images,
-      clinicId: schema.exercise.clinicId,
-    })
+    .select(substituteColumns)
     .from(schema.exercise)
     .where(eq(schema.exercise.id, substituteExerciseId));
+  const { clinicId, ...rest } = sub;
 
   return {
     ok: true,
-    substitute: {
-      id: ins.id,
-      exerciseId: substituteExerciseId,
-      name: sub.name,
-      code: sub.code,
-      category: sub.category,
-      equipment: sub.equipment,
-      thumbnail: sub.images[0] ?? null,
-      origin: sub.clinicId === null ? "base" : "clinic",
-      removable: true,
-    },
+    substitute: { id: ins.id, ...rest, origin: originOf(clinicId), removable: true },
   };
 }
 
-/**
- * Removes one of this clinic's own substitution rules. Scoped to the clinic and
- * the main exercise, so base rules and other clinics' rules are never deleted.
- * Returns true when a row was removed.
- */
 export async function removeExerciseSubstitution(
   ctx: TenantContext,
   exerciseId: string,
@@ -470,4 +248,38 @@ export async function removeExerciseSubstitution(
     )
     .returning({ id: schema.exerciseSubstitution.id });
   return deleted.length > 0;
+}
+
+export function exerciseDetailDto(
+  exercise: Exercise & { origin: ExerciseOrigin; substitutes: ExerciseSubstituteDto[] },
+): ExerciseDetailDto {
+  return {
+    id: exercise.id,
+    code: exercise.code,
+    name: exercise.name,
+    nameEn: exercise.nameEn,
+    description: exercise.description,
+    descriptionEn: exercise.descriptionEn,
+    bodyPart: exercise.bodyPart,
+    category: exercise.category,
+    equipment: exercise.equipment,
+    machineKind: exercise.machineKind,
+    target: exercise.target,
+    secondaryMuscles: exercise.secondaryMuscles,
+    mapPrimary: exercise.mapPrimary,
+    mapSecondary: exercise.mapSecondary,
+    muscleWeights: exercise.muscleWeights,
+    needs: exercise.needs,
+    hold: exercise.hold,
+    track: exercise.track,
+    instructions: exercise.instructions,
+    instructionsEn: exercise.instructionsEn,
+    image: exercise.image,
+    video: exercise.video,
+    femaleImage: exercise.femaleImage,
+    femaleVideo: exercise.femaleVideo,
+    origin: exercise.origin,
+    archived: exercise.archived,
+    substitutes: exercise.substitutes,
+  };
 }

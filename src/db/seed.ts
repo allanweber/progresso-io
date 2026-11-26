@@ -200,8 +200,7 @@ async function seedAlunoWorkout(
     );
   if (existing.length > 0) return;
 
-  /** First non-archived base exercise whose name matches (shortest wins). */
-  async function ex(like: string): Promise<string | null> {
+  async function ex(code: string): Promise<string | null> {
     const [row] = await db
       .select({ id: schema.exercise.id })
       .from(schema.exercise)
@@ -209,39 +208,23 @@ async function seedAlunoWorkout(
         and(
           isNull(schema.exercise.clinicId),
           eq(schema.exercise.archived, false),
-          sql`${schema.exercise.name} ILIKE ${like}`,
+          eq(schema.exercise.code, code),
         ),
-      )
-      .orderBy(sql`char_length(${schema.exercise.name})`)
-      .limit(1);
+      );
     return row?.id ?? null;
   }
 
-  const [
-    supino,
-    crucifixo,
-    triceps,
-    agacha,
-    legpress,
-    remada,
-    puxada,
-    rosca,
-    desenvolvimento,
-    abdominal,
-    cadeira,
-  ] = await Promise.all([
-    ex("%supino%"),
-    ex("%crucifixo%"),
-    ex("%tríceps%"),
-    ex("%agachamento%"),
-    ex("%leg press%"),
-    ex("%remada%"),
-    ex("%puxada%"),
-    ex("%rosca%"),
-    ex("%desenvolvimento%"),
-    ex("%abdominal%"),
-    ex("%cadeira%"),
-  ]);
+  const supino = await ex("0025");
+  const crucifixo = await ex("0308");
+  const triceps = await ex("0201");
+  const agacha = await ex("0043");
+  const legpress = await ex("0739");
+  const remada = await ex("0027");
+  const puxada = await ex("0198");
+  const rosca = await ex("0031");
+  const desenvolvimento = await ex("0405");
+  const abdominal = await ex("0274");
+  const cadeira = await ex("0585");
 
   /** Ensures a base exercise substitution exists, so the demo shows swaps live. */
   async function ensureSub(exerciseId: string | null, subId: string | null) {
@@ -511,7 +494,7 @@ async function seedAlunoCheckins(
         clinicId,
         checkinId,
         pose,
-        storageKey: `checkins/seed-${date}-${pose}.webp`,
+        storageKey: `checkins/${studentId}/seed-${date}-${pose}.webp`,
         sortOrder: i,
       })),
     );

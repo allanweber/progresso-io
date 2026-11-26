@@ -3,7 +3,6 @@ import {
   ANAMNESIS_OBJECTIVE_LABELS,
   countQuestions,
 } from "@/lib/anamneses";
-import { LEVEL_LABELS } from "@/lib/exercises";
 import type { StarterCatalogDto, StarterItemDto } from "@/lib/starters";
 import { STARTER_ANAMNESES } from "@/server/anamneses/starter-templates";
 import { STARTER_DIETS } from "@/server/diets/starter-templates";
@@ -22,7 +21,12 @@ import { STARTER_WORKOUTS } from "@/server/workouts/starter-templates";
  * meet "Emagrecimento" and "Full body iniciante" before the specialisations.
  */
 
-/** "Iniciante", "Intermediário", "Avançado" — reused from the exercise catalog. */
+const LEVEL_LABELS = {
+  beginner: "Iniciante",
+  intermediate: "Intermediário",
+  expert: "Avançado",
+} as const;
+
 function levelLabel(level: string): string {
   return LEVEL_LABELS[level as keyof typeof LEVEL_LABELS] ?? level;
 }

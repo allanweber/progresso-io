@@ -56,9 +56,9 @@ RUN corepack enable
 # Provide the Google Analytics id as a build arg (empty = analytics disabled).
 ARG NEXT_PUBLIC_GA_ID=""
 ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
-# Base URL the browser serves exercise images from (the R2 custom domain). Empty
-# falls back to the free-exercise-db CDN, which only has the seed images — set
-# this so custom (uploaded) images resolve too.
+# Base URL the browser serves exercise media from (the R2 custom domain). Empty
+# falls back to the pinned openGym commit on GitHub, which only has the catalog
+# media. Set this so custom (uploaded) images resolve too.
 ARG NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=""
 ENV NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL=$NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL
 # Sentry public DSN: inlined into the client bundle AND read by next.config to

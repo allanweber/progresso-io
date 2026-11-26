@@ -52,8 +52,8 @@ Two supporting mechanisms a neighbouring product could not truthfully copy
 without building them:
 
 - **Brazilian-native catalogs.** Foods from the TACO composition tables (15
-  groups, 66 nutrients, full per-100g profiles) and 873 exercises with PT-BR
-  names and instructions — both with **substitution graphs**, so a student sees
+  groups, 66 nutrients, full per-100g profiles) and 5,632 exercises with PT-BR
+  names, descriptions, steps and animations — both with **substitution graphs**, so a student sees
   legitimate alternatives without having to ask.
 - **AI drafting constrained to the platform's own catalog.** The generator drafts
   a workout or diet from the real exercise/food rows, saved as an **unpublished
@@ -143,9 +143,9 @@ fabricate any of them**, and must not imply social proof that does not exist.
 What is real and citable:
 
 - The product itself — every shipped capability above, demonstrable live.
-- The catalogs: 873 exercises with PT-BR names/instructions and images
-  (free-exercise-db, Unlicense + exercicios-bd-ptbr), and the TACO food
-  composition data (15 groups, 66 nutrients).
+- The catalogs: 5,632 exercises with PT-BR names, descriptions, steps and
+  animations (the openGym catalogue), and the TACO food composition data
+  (15 groups, 66 nutrients).
 - The unit-economics model in `docs/monetization.md` (internal; the external
   rates it cites are approximate and dated).
 - Twenty-four feature design records in `docs/` — the authoritative description of

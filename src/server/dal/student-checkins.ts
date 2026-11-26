@@ -73,7 +73,7 @@ async function ownStudent(
 }
 
 /** The id of the student row owned by the authenticated aluno. */
-async function ownStudentId(ctx: TenantContext): Promise<string | null> {
+export async function getMyStudentId(ctx: TenantContext): Promise<string | null> {
   return (await ownStudent(ctx))?.id ?? null;
 }
 
@@ -402,7 +402,7 @@ export async function createStudentCheckin(
 export async function listMyCheckins(
   ctx: TenantContext,
 ): Promise<CheckinListDto | null> {
-  const studentId = await ownStudentId(ctx);
+  const studentId = await getMyStudentId(ctx);
   if (!studentId) return null;
 
   const rows = await ctx.db
@@ -455,7 +455,7 @@ export async function getMyCheckin(
   ctx: TenantContext,
   checkinId: string,
 ): Promise<CheckinDetailDto | null> {
-  const studentId = await ownStudentId(ctx);
+  const studentId = await getMyStudentId(ctx);
   if (!studentId) return null;
 
   const [row] = await ctx.db
@@ -536,7 +536,7 @@ export async function getMyCheckinPhoto(
   checkinId: string,
   photoId: string,
 ): Promise<{ storageKey: string; pose: CheckinPose } | null> {
-  const studentId = await ownStudentId(ctx);
+  const studentId = await getMyStudentId(ctx);
   if (!studentId) return null;
 
   const [row] = await ctx.db

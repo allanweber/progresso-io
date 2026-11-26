@@ -1,8 +1,10 @@
 import { aliasedTable, and, eq } from "drizzle-orm";
 
 import { schema } from "@/db";
+import type { Sex } from "@/db/schema";
 import { canUseBrandedPortal } from "@/lib/clinic-settings";
 import { effectivePlanOf } from "@/lib/plans";
+import { workoutForSex } from "@/lib/workouts";
 import type {
   StudentDietHistoryDto,
   StudentDietPublishedDto,
@@ -37,6 +39,29 @@ import { hydrateStructure as hydrateWorkoutStructure } from "./student-workouts"
  * null when the user has no linked student (e.g. a coach/admin, or an aluno not
  * yet linked). Every other function funnels through this.
  */
+async function ownStudent(
+  ctx: TenantContext,
+): Promise<{ id: string; sex: Sex | null } | null> {
+  const [row] = await ctx.db
+    .select({ id: schema.student.id, sex: schema.student.sex })
+    .from(schema.student)
+    .where(
+      and(
+        eq(schema.student.userId, ctx.userId),
+        eq(schema.student.clinicId, ctx.clinicId),
+      ),
+    );
+  return row ?? null;
+}
+
+async function sessionsForStudent(
+  ctx: TenantContext,
+  tree: Parameters<typeof hydrateWorkoutStructure>[1],
+  sex: Sex | null,
+) {
+  return workoutForSex({ sessions: await hydrateWorkoutStructure(ctx, tree) }, sex).sessions;
+}
+
 async function ownStudentId(ctx: TenantContext): Promise<string | null> {
   const [row] = await ctx.db
     .select({ id: schema.student.id })
@@ -241,8 +266,9 @@ export async function getMyDietVersion(
 export async function getMyWorkoutState(
   ctx: TenantContext,
 ): Promise<MyWorkoutStateDto | null> {
-  const studentId = await ownStudentId(ctx);
-  if (!studentId) return null;
+  const student = await ownStudent(ctx);
+  if (!student) return null;
+  const studentId = student.id;
 
   const workouts = await ctx.db
     .select()
@@ -303,7 +329,7 @@ export async function getMyWorkoutState(
         publishedAt: latest.publishedAt!.toISOString(),
         notes: latest.notes,
         cardio: latest.cardio,
-        sessions: await hydrateWorkoutStructure(ctx, latest.tree),
+        sessions: await sessionsForStudent(ctx, latest.tree, student.sex),
       };
     }
   }
@@ -337,8 +363,9 @@ export async function getMyWorkoutVersion(
   ctx: TenantContext,
   versionId: string,
 ): Promise<StudentWorkoutVersionDto | null> {
-  const studentId = await ownStudentId(ctx);
-  if (!studentId) return null;
+  const student = await ownStudent(ctx);
+  if (!student) return null;
+  const studentId = student.id;
 
   const [row] = await ctx.db
     .select({
@@ -366,6 +393,6 @@ export async function getMyWorkoutVersion(
     publishedAt: row.version.publishedAt!.toISOString(),
     notes: row.version.notes,
     cardio: row.version.cardio,
-    sessions: await hydrateWorkoutStructure(ctx, row.version.tree),
+    sessions: await sessionsForStudent(ctx, row.version.tree, student.sex),
   };
 }

@@ -11,7 +11,7 @@ import {
 import type { NextResponse } from "next/server";
 
 import { z } from "@/lib/validation";
-import { apiError } from "@/server/api";
+import { apiError, isUuid } from "@/server/api";
 
 /**
  * Server-only Cloudflare R2 helper for custom exercise images. R2 is where the
@@ -241,17 +241,21 @@ export function validateCheckinPhoto(
 }
 
 /**
- * Stores one check-in photo and returns its key (`checkins/<uuid>.<ext>`,
+ * Stores one check-in photo and returns its key (`checkins/<studentId>/<uuid>.<ext>`,
  * without any bucket prefix). Uploads to R2 when configured; otherwise writes to
  * the gitignored `.uploads/` dir so dev + e2e work without cloud creds. The key
  * shape is identical either way.
  */
 export async function putCheckinPhoto(
+  studentId: string,
   body: Buffer,
   contentType: string,
 ): Promise<string> {
+  if (!isUuid(studentId)) {
+    throw new Error("Invalid student id for a check-in photo.");
+  }
   const ext = ALLOWED_TYPES[contentType] ?? "jpg";
-  const key = `checkins/${randomUUID()}.${ext}`;
+  const key = `checkins/${studentId}/${randomUUID()}.${ext}`;
 
   const env = r2Env();
   if (env) {

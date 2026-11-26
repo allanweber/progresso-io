@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Check, ChevronLeft, Plus } from "lucide-react";
 
 import { CATEGORY_LABELS } from "@/lib/exercises";
-import { ExerciseImageButton } from "@/components/workouts/exercise-images";
+import { formatReps, resolveSets } from "@/lib/workouts";
+import { ExerciseMediaButton } from "@/components/exercises/exercise-media";
 import {
   ExerciseSearch,
   type PickedExercise,
@@ -94,14 +95,13 @@ export function ExercisePicker({
         Voltar aos resultados
       </button>
       <div className="mb-4 flex items-center gap-3">
-        <ExerciseImageButton
+        <ExerciseMediaButton
           exerciseId={selected.id}
           name={selected.name}
-          thumbnail={selected.thumbnail}
-          primaryMuscles={selected.primaryMuscles}
+          image={selected.image}
           className="size-11 rounded-lg"
         />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-subtitle font-semibold text-foreground">
             {selected.name}
           </div>
@@ -109,6 +109,12 @@ export function ExercisePicker({
             {CATEGORY_LABELS[selected.category]}
           </div>
         </div>
+        <span
+          aria-label="Resumo da prescrição"
+          className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-body-dense font-semibold tabular-nums text-primary"
+        >
+          {resolveSets(draft.reps, draft.sets)} × {formatReps(draft.reps)}
+        </span>
       </div>
 
       <ExercisePrescriptionFields

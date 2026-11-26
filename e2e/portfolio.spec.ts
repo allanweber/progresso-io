@@ -331,8 +331,10 @@ test.describe("portfolio — coach", () => {
   });
 
   test("exercise catalog is filterable by muscle and equipment", async ({ page }) => {
-    await page.goto("/coach/library/exercises");
+    await page.goto("/coach/library/exercises?bodyPart=chest&equipment=leverage%20machine");
     await expect(page.getByPlaceholder(/Buscar/i).first()).toBeVisible();
+    await expect(page.getByTestId("exercise-row").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mostrar mais" })).toHaveCount(0);
     await shoot(page, "15-exercise-catalog");
   });
 

@@ -40,7 +40,26 @@ import {
   type CheckinSkinfolds,
 } from "@/lib/checkin-assessment";
 import type { AiEvaluationPayload } from "@/lib/ai-evaluation";
-import type { ExerciseImageCredit } from "@/lib/exercises";
+import {
+  BODY_MAP_MUSCLES,
+  EXERCISE_BODY_PARTS,
+  EXERCISE_CATEGORIES,
+  EXERCISE_EQUIPMENT,
+  EXERCISE_MACHINE_KINDS,
+  EXERCISE_NEEDS,
+  EXERCISE_SECONDARY_MUSCLES,
+  EXERCISE_TARGETS,
+  EXERCISE_TRACKS,
+  type BodyMapMuscle,
+  type ExerciseBodyPart,
+  type ExerciseCategory,
+  type ExerciseEquipment,
+  type ExerciseMachineKind,
+  type ExerciseNeed,
+  type ExerciseSecondaryMuscle,
+  type ExerciseTarget,
+  type ExerciseTrack,
+} from "@/lib/exercises";
 import {
   NOTIFICATION_TYPES,
   type NotificationData,
@@ -117,62 +136,17 @@ export const NUTRIENT_KINDS = [
 ] as const;
 export type NutrientKind = (typeof NUTRIENT_KINDS)[number];
 
-export const EXERCISE_CATEGORIES = [
-  "strength",
-  "stretching",
-  "plyometrics",
-  "strongman",
-  "powerlifting",
-  "cardio",
-  "olympic_weightlifting",
-] as const;
-export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
-
-export const EXERCISE_LEVELS = ["beginner", "intermediate", "expert"] as const;
-export type ExerciseLevel = (typeof EXERCISE_LEVELS)[number];
-
-export const EXERCISE_FORCES = ["pull", "push", "static"] as const;
-export type ExerciseForce = (typeof EXERCISE_FORCES)[number];
-
-export const EXERCISE_MECHANICS = ["compound", "isolation"] as const;
-export type ExerciseMechanic = (typeof EXERCISE_MECHANICS)[number];
-
-export const EXERCISE_EQUIPMENT = [
-  "body_only",
-  "machine",
-  "other",
-  "foam_roll",
-  "kettlebells",
-  "dumbbell",
-  "cable",
-  "barbell",
-  "bands",
-  "medicine_ball",
-  "exercise_ball",
-  "e_z_curl_bar",
-] as const;
-export type ExerciseEquipment = (typeof EXERCISE_EQUIPMENT)[number];
-
-export const MUSCLES = [
-  "abdominals",
-  "abductors",
-  "adductors",
-  "biceps",
-  "calves",
-  "chest",
-  "forearms",
-  "glutes",
-  "hamstrings",
-  "lats",
-  "lower_back",
-  "middle_back",
-  "neck",
-  "quadriceps",
-  "shoulders",
-  "traps",
-  "triceps",
-] as const;
-export type Muscle = (typeof MUSCLES)[number];
+export type {
+  BodyMapMuscle,
+  ExerciseBodyPart,
+  ExerciseCategory,
+  ExerciseEquipment,
+  ExerciseMachineKind,
+  ExerciseNeed,
+  ExerciseSecondaryMuscle,
+  ExerciseTarget,
+  ExerciseTrack,
+} from "@/lib/exercises";
 
 export const INVOICE_STATUSES = ["pending", "paid", "canceled"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
@@ -737,31 +711,44 @@ export const exercise = pgTable(
     name: text("name").notNull(),
     nameEn: text("name_en"),
     description: text("description"),
+    descriptionEn: text("description_en"),
     searchText: text("search_text").notNull(),
+    bodyPart: text("body_part").$type<ExerciseBodyPart>().notNull(),
     category: text("category").$type<ExerciseCategory>().notNull(),
-    level: text("level").$type<ExerciseLevel>().notNull(),
-    force: text("force").$type<ExerciseForce>(),
-    mechanic: text("mechanic").$type<ExerciseMechanic>(),
-    equipment: text("equipment").$type<ExerciseEquipment>(),
-    primaryMuscles: text("primary_muscles")
-      .array()
-      .$type<Muscle[]>()
-      .notNull()
-      .default([]),
+    equipment: text("equipment").$type<ExerciseEquipment>().notNull(),
+    machineKind: text("machine_kind").$type<ExerciseMachineKind>(),
+    target: text("target").$type<ExerciseTarget>().notNull(),
     secondaryMuscles: text("secondary_muscles")
       .array()
-      .$type<Muscle[]>()
+      .$type<ExerciseSecondaryMuscle[]>()
       .notNull()
       .default([]),
-    instructions: text("instructions").array().notNull().default([]),
-    instructionsEn: text("instructions_en").array().notNull().default([]),
-    images: text("images").array().notNull().default([]),
-    imageCredits: jsonb("image_credits")
-      .$type<Record<string, ExerciseImageCredit>>()
+    mapPrimary: text("map_primary")
+      .array()
+      .$type<BodyMapMuscle[]>()
+      .notNull()
+      .default([]),
+    mapSecondary: text("map_secondary")
+      .array()
+      .$type<BodyMapMuscle[]>()
+      .notNull()
+      .default([]),
+    muscleWeights: jsonb("muscle_weights")
+      .$type<Partial<Record<BodyMapMuscle, number>>>()
       .notNull()
       .default({}),
+    needs: text("needs").array().$type<ExerciseNeed[]>().notNull().default([]),
+    hold: boolean("hold").default(false).notNull(),
+    track: text("track").$type<ExerciseTrack>(),
+    instructions: text("instructions").array().notNull().default([]),
+    instructionsEn: text("instructions_en").array().notNull().default([]),
+    image: text("image"),
+    video: text("video"),
+    femaleImage: text("female_image"),
+    femaleVideo: text("female_video"),
+    classic: boolean("classic").default(false).notNull(),
+    popularity: integer("popularity").default(0).notNull(),
     source: text("source").notNull(),
-    openGymId: text("opengym_id").unique(),
     clinicId: uuid("clinic_id").references(() => clinic.id, {
       onDelete: "cascade",
     }),
@@ -769,35 +756,36 @@ export const exercise = pgTable(
     ...timestamps,
   },
   (t) => [
-    index("exercise_category_idx").on(t.category),
+    index("exercise_body_part_idx").on(t.bodyPart),
+    index("exercise_target_idx").on(t.target),
     index("exercise_clinic_idx").on(t.clinicId),
     index("exercise_search_trgm").using(
       "gin",
       sql`${t.searchText} gin_trgm_ops`,
     ),
+    check("exercise_body_part_check", oneOf(t.bodyPart, EXERCISE_BODY_PARTS)),
     check("exercise_category_check", oneOf(t.category, EXERCISE_CATEGORIES)),
-    check("exercise_level_check", oneOf(t.level, EXERCISE_LEVELS)),
+    check("exercise_equipment_check", oneOf(t.equipment, EXERCISE_EQUIPMENT)),
     check(
-      "exercise_force_check",
-      sql`${t.force} is null or ${oneOf(t.force, EXERCISE_FORCES)}`,
+      "exercise_machine_kind_check",
+      sql`${t.machineKind} is null or ${oneOf(t.machineKind, EXERCISE_MACHINE_KINDS)}`,
     ),
-    check(
-      "exercise_mechanic_check",
-      sql`${t.mechanic} is null or ${oneOf(t.mechanic, EXERCISE_MECHANICS)}`,
-    ),
-    check(
-      "exercise_equipment_check",
-      sql`${t.equipment} is null or ${oneOf(t.equipment, EXERCISE_EQUIPMENT)}`,
-    ),
-    check("exercise_primary_muscles_check", allOf(t.primaryMuscles, MUSCLES)),
+    check("exercise_target_check", oneOf(t.target, EXERCISE_TARGETS)),
     check(
       "exercise_secondary_muscles_check",
-      allOf(t.secondaryMuscles, MUSCLES),
+      allOf(t.secondaryMuscles, EXERCISE_SECONDARY_MUSCLES),
     ),
+    check("exercise_map_primary_check", allOf(t.mapPrimary, BODY_MAP_MUSCLES)),
     check(
-      "exercise_opengym_id_format",
-      sql`${t.openGymId} is null or ${t.openGymId} ~ '^[0-9]{4}$'`,
+      "exercise_map_secondary_check",
+      allOf(t.mapSecondary, BODY_MAP_MUSCLES),
     ),
+    check("exercise_needs_check", allOf(t.needs, EXERCISE_NEEDS)),
+    check(
+      "exercise_track_check",
+      sql`${t.track} is null or ${oneOf(t.track, EXERCISE_TRACKS)}`,
+    ),
+    check("exercise_source_check", oneOf(t.source, ["opengym", "custom"])),
   ],
 );
 

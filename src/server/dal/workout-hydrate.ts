@@ -3,10 +3,12 @@ import { alias } from "drizzle-orm/pg-core";
 
 import { schema } from "@/db";
 import type {
+  BodyMapMuscle,
   ExerciseCategory,
   ExerciseEquipment,
+  ExerciseMediaSet,
   ExerciseOrigin,
-  Muscle,
+  ExerciseTarget,
 } from "@/lib/exercises";
 import {
   normalizeReps,
@@ -25,50 +27,34 @@ import {
 } from "@/lib/opengym-plan";
 import type { TenantContext } from "@/server/tenant";
 
-/**
- * Shared workout hydration: turns exercise **references** (from the relational
- * template tables or a student version's JSON structure) into the hydrated
- * `WorkoutExerciseDto` the read views render — the exercise's live catalog data
- * (name, images, instructions, muscles) and its **library** substitutes, merged
- * with the item's **custom** substitutes.
- *
- * The catalog + library substitutes are fetched with **one joined SQL query**
- * (`loadExerciseCatalog`): `exercise LEFT JOIN exercise_substitution LEFT JOIN
- * exercise (as the substitute)`, scoped to the clinic. A caller gathers every
- * referenced exercise id (item exercises + custom-substitute exercises) once and
- * runs a single query, so a whole read stays at the minimum number of commands.
- */
+const NO_MEDIA: ExerciseMediaSet = {
+  image: null,
+  video: null,
+  femaleImage: null,
+  femaleVideo: null,
+};
 
-const NONE_MUSCLES: Muscle[] = [];
-
-/** An exercise's live catalog data plus its clinic-visible library substitutes. */
-export type ExerciseCatalog = {
+export type ExerciseCatalog = ExerciseMediaSet & {
   id: string;
   name: string;
   code: string | null;
   origin: ExerciseOrigin;
   category: ExerciseCategory;
-  equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  images: string[];
+  equipment: ExerciseEquipment;
+  target: ExerciseTarget;
+  mapPrimary: BodyMapMuscle[];
+  mapSecondary: BodyMapMuscle[];
   instructions: string[];
-  librarySubstitutes: {
+  librarySubstitutes: (ExerciseMediaSet & {
     exerciseId: string;
     name: string;
     code: string | null;
     origin: ExerciseOrigin;
-    thumbnail: string | null;
-    images: string[];
     instructions: string[];
-    primaryMuscles: Muscle[];
-  }[];
+    mapPrimary: BodyMapMuscle[];
+  })[];
 };
 
-/**
- * A single exercise prescription, independent of how it was stored (a relational
- * `workout_exercise` row or a JSON `StructExerciseRef`). `id` is the id the DTO
- * should carry (the row id, or a synthetic index for a JSON tree).
- */
 export type ExercisePrescription = {
   id: string;
   exerciseId: string;
@@ -82,12 +68,6 @@ export type ExercisePrescription = {
   customSubstitutes: { exerciseId: string; note: string | null }[];
 };
 
-/**
- * Loads the live catalog data + library substitutes for a set of exercises in a
- * **single** joined query, scoped to what the clinic can see (base + own). The
- * `ids` should include every referenced exercise AND every custom-substitute
- * exercise, so their names/thumbnails resolve from the same map.
- */
 export async function loadExerciseCatalog(
   ctx: TenantContext,
   ids: string[],
@@ -107,20 +87,28 @@ export async function loadExerciseCatalog(
       clinicId: e.clinicId,
       category: e.category,
       equipment: e.equipment,
-      primaryMuscles: e.primaryMuscles,
-      images: e.images,
+      target: e.target,
+      mapPrimary: e.mapPrimary,
+      mapSecondary: e.mapSecondary,
+      image: e.image,
+      video: e.video,
+      femaleImage: e.femaleImage,
+      femaleVideo: e.femaleVideo,
       instructions: e.instructions,
       subExId: subEx.id,
       subName: subEx.name,
       subCode: subEx.code,
-      subImages: subEx.images,
+      subMedia: {
+        image: subEx.image,
+        video: subEx.video,
+        femaleImage: subEx.femaleImage,
+        femaleVideo: subEx.femaleVideo,
+      },
       subInstructions: subEx.instructions,
-      subPrimaryMuscles: subEx.primaryMuscles,
+      subMapPrimary: subEx.mapPrimary,
       subClinicId: subEx.clinicId,
     })
     .from(e)
-    // Library substitution rules visible to the clinic (base + own), in the ON
-    // clause so an exercise with no visible rules still returns its own row.
     .leftJoin(
       sub,
       and(
@@ -128,7 +116,6 @@ export async function loadExerciseCatalog(
         or(isNull(sub.clinicId), eq(sub.clinicId, ctx.clinicId)),
       ),
     )
-    // The substitute exercise itself (never offer an archived one).
     .leftJoin(
       subEx,
       and(eq(sub.substituteExerciseId, subEx.id), eq(subEx.archived, false)),
@@ -147,15 +134,19 @@ export async function loadExerciseCatalog(
         origin: r.clinicId === null ? "base" : "clinic",
         category: r.category,
         equipment: r.equipment,
-        primaryMuscles: r.primaryMuscles ?? NONE_MUSCLES,
-        images: r.images ?? [],
+        target: r.target,
+        mapPrimary: r.mapPrimary ?? [],
+        mapSecondary: r.mapSecondary ?? [],
+        image: r.image,
+        video: r.video,
+        femaleImage: r.femaleImage,
+        femaleVideo: r.femaleVideo,
         instructions: r.instructions ?? [],
         librarySubstitutes: [],
       };
       map.set(r.id, cat);
       seenSub.set(r.id, new Set());
     }
-    // Dedupe substitutes (a base + a clinic rule may point at the same exercise).
     if (r.subExId) {
       const seen = seenSub.get(r.id)!;
       if (!seen.has(r.subExId)) {
@@ -165,10 +156,9 @@ export async function loadExerciseCatalog(
           name: r.subName!,
           code: r.subCode,
           origin: r.subClinicId === null ? "base" : "clinic",
-          thumbnail: r.subImages?.[0] ?? null,
-          images: r.subImages ?? [],
+          ...(r.subMedia ?? NO_MEDIA),
           instructions: r.subInstructions ?? [],
-          primaryMuscles: r.subPrimaryMuscles ?? NONE_MUSCLES,
+          mapPrimary: r.subMapPrimary ?? [],
         });
       }
     }
@@ -176,7 +166,6 @@ export async function loadExerciseCatalog(
   return map;
 }
 
-/** A placeholder DTO for a ref whose exercise is no longer visible (deleted). */
 function placeholder(p: ExercisePrescription): WorkoutExerciseDto {
   return {
     id: p.id,
@@ -186,8 +175,10 @@ function placeholder(p: ExercisePrescription): WorkoutExerciseDto {
     origin: "base",
     category: null,
     equipment: null,
-    primaryMuscles: [],
-    images: [],
+    target: null,
+    mapPrimary: [],
+    mapSecondary: [],
+    ...NO_MEDIA,
     instructions: [],
     available: false,
     sets: resolveSets(normalizeReps(p.reps), p.sets),
@@ -201,12 +192,6 @@ function placeholder(p: ExercisePrescription): WorkoutExerciseDto {
   };
 }
 
-/**
- * Builds a hydrated `WorkoutExerciseDto` from a prescription + the catalog map.
- * Custom substitutes (cadastrados no treino) come first, then the exercise's
- * live library substitutes (a library one is dropped if a custom already targets
- * the same exercise — the custom, with its note, wins).
- */
 export function buildExerciseDto(
   p: ExercisePrescription,
   catalog: Map<string, ExerciseCatalog>,
@@ -221,10 +206,12 @@ export function buildExerciseDto(
       name: sc?.name ?? "Exercício indisponível",
       code: sc?.code ?? null,
       origin: sc?.origin ?? "base",
-      thumbnail: sc?.images[0] ?? null,
-      images: sc?.images ?? [],
+      image: sc?.image ?? null,
+      video: sc?.video ?? null,
+      femaleImage: sc?.femaleImage ?? null,
+      femaleVideo: sc?.femaleVideo ?? null,
       instructions: sc?.instructions ?? [],
-      primaryMuscles: sc?.primaryMuscles ?? NONE_MUSCLES,
+      mapPrimary: sc?.mapPrimary ?? [],
       source: "custom" as const,
       note: cs.note,
     };
@@ -237,10 +224,12 @@ export function buildExerciseDto(
       name: s.name,
       code: s.code,
       origin: s.origin,
-      thumbnail: s.thumbnail,
-      images: s.images,
+      image: s.image,
+      video: s.video,
+      femaleImage: s.femaleImage,
+      femaleVideo: s.femaleVideo,
       instructions: s.instructions,
-      primaryMuscles: s.primaryMuscles,
+      mapPrimary: s.mapPrimary,
       source: "library" as const,
       note: null,
     }));
@@ -253,8 +242,13 @@ export function buildExerciseDto(
     origin: cat.origin,
     category: cat.category,
     equipment: cat.equipment,
-    primaryMuscles: cat.primaryMuscles,
-    images: cat.images,
+    target: cat.target,
+    mapPrimary: cat.mapPrimary,
+    mapSecondary: cat.mapSecondary,
+    image: cat.image,
+    video: cat.video,
+    femaleImage: cat.femaleImage,
+    femaleVideo: cat.femaleVideo,
     instructions: cat.instructions,
     available: true,
     sets: resolveSets(normalizeReps(p.reps), p.sets),
@@ -268,7 +262,6 @@ export function buildExerciseDto(
   };
 }
 
-/** Every distinct exercise id a set of prescriptions references (items + subs). */
 export function referencedExerciseIds(refs: ExercisePrescription[]): string[] {
   const ids = new Set<string>();
   for (const r of refs) {
@@ -296,13 +289,15 @@ export async function exportToOpenGym(
     ? await ctx.db
         .select({
           id: e.id,
-          openGymId: e.openGymId,
+          code: e.code,
+          clinicId: e.clinicId,
           name: e.name,
           description: e.description,
-          category: e.category,
+          bodyPart: e.bodyPart,
           equipment: e.equipment,
-          primaryMuscles: e.primaryMuscles,
-          secondaryMuscles: e.secondaryMuscles,
+          target: e.target,
+          mapPrimary: e.mapPrimary,
+          mapSecondary: e.mapSecondary,
           instructions: e.instructions,
         })
         .from(e)
@@ -314,7 +309,10 @@ export async function exportToOpenGym(
         )
     : [];
   const exercises = new Map<string, OpenGymExerciseInfo>(
-    rows.map(({ id, ...info }) => [id, info]),
+    rows.map(({ id, code, clinicId, ...info }) => [
+      id,
+      { ...info, openGymId: clinicId === null ? code : null },
+    ]),
   );
 
   return buildOpenGymPlan(workout, exercises, todayYmd(now));

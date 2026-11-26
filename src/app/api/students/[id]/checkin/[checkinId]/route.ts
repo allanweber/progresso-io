@@ -86,7 +86,7 @@ export const PATCH = withCoach<Params>(
       modality,
       weightKg,
       note,
-      photos: await storeCheckinPhotos(photoFiles),
+      photos: await storeCheckinPhotos(id, photoFiles),
       removePoses,
       assessment,
     };

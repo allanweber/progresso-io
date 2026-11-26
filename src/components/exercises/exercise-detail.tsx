@@ -8,14 +8,17 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
-  Expand,
+  Dumbbell,
+  Languages,
   Pencil,
+  PersonStanding,
   Plus,
   Search,
   Trash2,
   X,
 } from "lucide-react";
 
+import { ExerciseMedia, ExerciseThumb } from "@/components/exercises/exercise-media";
 import { ExerciseMuscleMap } from "@/components/exercises/exercise-muscle-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,60 +32,44 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ExerciseImageLightbox } from "@/components/workouts/exercise-images";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
+  BODY_PART_LABELS,
   CATEGORY_LABELS,
   EQUIPMENT_LABELS,
-  type ExerciseEquipment,
-  exerciseImageUrl,
-  FORCE_LABELS,
-  LEVEL_LABELS,
-  MECHANIC_LABELS,
-  MUSCLE_LABELS,
+  MACHINE_KIND_LABELS,
+  NEED_LABELS,
   ORIGIN_LABELS,
+  TARGET_LABELS,
+  muscleShares,
   type ExerciseDetailDto,
+  type ExerciseEquipment,
 } from "@/lib/exercises";
+import { cn } from "@/lib/utils";
 
-/** Detail DTO plus the admin-only clinic name (absent for the coach). */
+const TAG =
+  "inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm text-foreground";
+
 type Detail = ExerciseDetailDto & { clinicName?: string | null };
 
-/**
- * Who may manage this exercise's substitutions, and how:
- * - `"base"` — the admin edits the shared base rules (only on a base exercise).
- * - `"clinic"` — the coach adds/removes its OWN clinic rules on any visible
- *   exercise; the base rules stay read-only (a coach can't alter the base).
- */
 type ManageMode = "base" | "clinic";
 
-/**
- * The exercise detail view — image gallery, facets and step-by-step
- * instructions. Reused by the coach library and the admin catalog; they differ
- * only in the API endpoint, the back link, and whether substitutions are
- * editable (`manage`).
- */
 export function ExerciseDetail({
   apiBase,
   backHref,
   manage,
 }: {
-  /** API detail endpoint base, e.g. "/api/exercises". */
-  apiBase: string;
-  /** Where the "back" link points, e.g. "/coach/library/exercises". */
-  backHref: string;
-  /**
-   * Substitution editing mode (see {@link ManageMode}). Omit for a read-only
-   * view. Writes go to `${apiBase}/${id}/substitutions`.
-   */
-  manage?: ManageMode;
+    apiBase: string;
+    backHref: string;
+    manage?: ManageMode;
 }) {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const router = useRouter();
   const queryClient = useQueryClient();
   const [archiveOpen, setArchiveOpen] = useState(false);
-  /** Index into the resolved gallery images; null = the viewer is closed. */
-  const [zoomed, setZoomed] = useState<number | null>(null);
+  const [showOther, setShowOther] = useState(false);
+  const [english, setEnglish] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [apiBase, id],
@@ -108,35 +95,24 @@ export function ExerciseDetail({
     },
   });
 
-  // Editing follows ownership: a coach edits its clinic exercises, the admin
-  // edits the shared base ones.
   const canEdit =
     !!data &&
     !data.archived &&
     ((manage === "clinic" && data.origin === "clinic") ||
       (manage === "base" && data.origin === "base"));
-  // Archiving is broader for the admin: as a moderation action it may retire any
-  // exercise (base OR a clinic's own); a coach still archives only its own.
   const canArchive =
     !!data &&
     !data.archived &&
     (manage === "clinic" ? data.origin === "clinic" : manage === "base");
-  // The admin may also restore any archived exercise.
   const canUnarchive = !!data && data.archived && manage === "base";
 
-  // The gallery's images resolved to URLs, dropping any that don't resolve.
-  // The viewer walks this same array, so a tile's position IS its index there.
-  const gallery = (data?.images ?? [])
-    .map((key) => exerciseImageUrl(key))
-    .filter((url): url is string => Boolean(url));
-  const credits = [
-    ...new Map(
-      (data?.images ?? []).flatMap((key) => {
-        const credit = data?.imageCredits?.[key];
-        return credit ? [[`${credit.author}|${credit.license}|${credit.aiGenerated}`, credit]] : [];
-      }),
-    ).values(),
-  ];
+  const shares = data
+    ? muscleShares(data.mapPrimary, data.mapSecondary, data.muscleWeights)
+    : [];
+  const shownShares = shares.length > 3 ? shares.slice(0, 2) : shares;
+  const restShares = shares.slice(shownShares.length);
+  const restPercent = restShares.reduce((sum, m) => sum + m.percent, 0);
+  const steps = data ? (english && data.instructionsEn.length ? data.instructionsEn : data.instructions) : [];
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -196,7 +172,6 @@ export function ExerciseDetail({
             </div>
           )}
 
-          {/* Edit (owner only) / archive (admin may archive any exercise). */}
           {(canEdit || canArchive) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {canEdit && (
@@ -253,158 +228,130 @@ export function ExerciseDetail({
             </DialogContent>
           </Dialog>
 
-          {/* Facets */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Badge variant="neutral" className="font-medium">
-              {CATEGORY_LABELS[data.category]}
-            </Badge>
-            <Badge variant="base" className="font-medium">
-              {LEVEL_LABELS[data.level]}
-            </Badge>
-            {data.equipment && (
-              <Badge variant="neutral" className="font-medium">
-                {EQUIPMENT_LABELS[data.equipment]}
-              </Badge>
-            )}
-            {data.force && (
-              <Badge variant="neutral" className="font-medium">
-                {FORCE_LABELS[data.force]}
-              </Badge>
-            )}
-            {data.mechanic && (
-              <Badge variant="neutral" className="font-medium">
-                {MECHANIC_LABELS[data.mechanic]}
-              </Badge>
-            )}
-            <Badge variant={data.openGymId ? "ok" : "neutral"} className="font-medium">
-              {data.openGymId ? `openGym #${data.openGymId}` : "Sem vínculo com o openGym"}
-            </Badge>
-          </div>
-
-          {/* Description (free text) */}
-          {data.description && (
-            <p className="mt-4 text-sm leading-relaxed text-foreground">
-              {data.description}
-            </p>
-          )}
-
-          {/* Image gallery — a tile opens the full-size viewer at its position */}
-          {gallery.length > 0 && (
-            <>
-              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {gallery.map((src, i) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setZoomed(i)}
-                    aria-label={`Ampliar imagem ${i + 1} de ${data.name}`}
-                    title="Ampliar"
-                    className="group relative aspect-[4/3] cursor-zoom-in overflow-hidden rounded-2xl border border-border bg-surface-light"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src}
-                      alt={data.name}
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                    <span className="absolute inset-0 hidden items-center justify-center bg-black/45 text-white group-hover:flex group-focus-visible:flex">
-                      <Expand className="size-5" />
-                    </span>
-                  </button>
+          <div className="mt-5 grid gap-6 md:grid-cols-[minmax(0,360px)_1fr]">
+            <ExerciseMedia
+              key={data.id}
+              media={data}
+              name={data.name}
+              mapPrimary={data.mapPrimary}
+              mapSecondary={data.mapSecondary}
+              className="w-full max-w-[360px] justify-self-center md:justify-self-start"
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap gap-2" data-testid="exercise-tags">
+                <span className={TAG}>
+                  <Dumbbell className="size-3.5" aria-hidden />
+                  {EQUIPMENT_LABELS[data.equipment]}
+                </span>
+                <span className={cn(TAG, "bg-primary-light text-primary")}>
+                  {BODY_PART_LABELS[data.bodyPart]}
+                </span>
+                {shownShares.map((m) => (
+                  <span key={m.muscle} className={TAG}>
+                    {m.primary && <PersonStanding className="size-3.5" aria-hidden />}
+                    {m.label} {m.percent}%
+                  </span>
                 ))}
-              </div>
-              {credits.length > 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Imagens:{" "}
-                  {credits.map((c, i) => (
-                    <span key={i}>
-                      {i > 0 && "; "}
-                      {c.author}
-                      {c.aiGenerated && " (gerada por IA)"},{" "}
-                      <a
-                        href={c.licenseUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:text-foreground"
+                {restShares.length > 0 &&
+                  (showOther ? (
+                    <>
+                      {restShares.map((m) => (
+                        <span key={m.muscle} className={cn(TAG, "text-muted-foreground")}>
+                          {m.label} {m.percent}%
+                        </span>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setShowOther(false)}
+                        aria-label="Fechar"
+                        className={TAG}
                       >
-                        {c.license}
-                      </a>
-                      , via{" "}
-                      <a
-                        href={c.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:text-foreground"
-                      >
-                        wger.de
-                      </a>
-                    </span>
+                        <X className="size-3.5" aria-hidden />
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => setShowOther(true)} className={TAG}>
+                      Outros {restPercent}%
+                    </button>
                   ))}
+                {data.machineKind && data.machineKind !== "none" && (
+                  <span className={TAG}>{MACHINE_KIND_LABELS[data.machineKind]}</span>
+                )}
+                {data.needs.map((n) => (
+                  <span key={n} className={TAG}>
+                    Precisa de {NEED_LABELS[n].toLowerCase()}
+                  </span>
+                ))}
+                {data.hold && <span className={TAG}>Por tempo</span>}
+                {data.track === "distance" && <span className={TAG}>Por distância</span>}
+              </div>
+
+              <p className="mt-3 text-sm text-muted-foreground">
+                {CATEGORY_LABELS[data.category]} · Músculo principal:{" "}
+                <span className="text-foreground">{TARGET_LABELS[data.target]}</span>
+              </p>
+
+              {(english ? data.descriptionEn : data.description) && (
+                <p className="mt-4 rounded-2xl bg-surface-light p-4 text-sm leading-relaxed text-foreground">
+                  {english ? data.descriptionEn : data.description}
                 </p>
               )}
-              <ExerciseImageLightbox
-                images={gallery}
-                name={data.name}
-                index={zoomed}
-                onIndexChange={setZoomed}
-              />
-            </>
-          )}
 
-          {gallery.length === 0 && data.primaryMuscles.length > 0 && (
-            <div className="mt-6">
-              <ExerciseMuscleMap
-                primary={data.primaryMuscles}
-                secondary={data.secondaryMuscles}
-                both
-                className="aspect-[4/3] rounded-2xl sm:aspect-[2/1]"
-              />
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-full bg-primary" aria-hidden />
-                  Músculo principal
-                </span>
-                {data.secondaryMuscles.length > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2.5 rounded-full bg-primary/35" aria-hidden />
-                    Músculo secundário
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Muscles */}
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-card p-4 shadow-rest">
-              <h2 className="text-sm font-semibold text-foreground">
-                Músculos primários
-              </h2>
-              <p className="mt-1 text-body-dense text-text-secondary">
-                {data.primaryMuscles.length > 0
-                  ? data.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")
-                  : "—"}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-card p-4 shadow-rest">
-              <h2 className="text-sm font-semibold text-foreground">
-                Músculos secundários
-              </h2>
-              <p className="mt-1 text-body-dense text-text-secondary">
-                {data.secondaryMuscles.length > 0
-                  ? data.secondaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")
-                  : "—"}
-              </p>
+              {data.mapPrimary.length > 0 && (data.image || data.video) && (
+                <div className="mt-4 flex items-center gap-4">
+                  <ExerciseMuscleMap
+                    primary={data.mapPrimary}
+                    secondary={data.mapSecondary}
+                    both
+                    className="h-40 w-48 rounded-2xl"
+                  />
+                  <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="size-2.5 rounded-full bg-primary" aria-hidden />
+                      Músculo principal
+                    </span>
+                    {data.mapSecondary.length > 0 && (
+                      <span className="flex items-center gap-1.5">
+                        <span className="size-2.5 rounded-full bg-primary/35" aria-hidden />
+                        Músculo secundário
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Substitutions — swap this exercise for one that trains the same
-              muscle the same way (seeded to favor common gym equipment). The
-              admin manages the base rules; a coach manages its own clinic rules
-              (base stays read-only); everyone else sees them read-only. The
-              admin only manages base exercises — a clinic exercise is read-only
-              for it too. */}
+          {steps.length > 0 && (
+            <section className="mt-8">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-heading text-lg font-bold text-foreground">Como fazer</h2>
+                {data.instructionsEn.length > 0 && data.instructions.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-pressed={english}
+                    onClick={() => setEnglish((v) => !v)}
+                  >
+                    <Languages className="size-4" />
+                    {english ? "Ver em português" : "Ver em inglês"}
+                  </Button>
+                )}
+              </div>
+              <ol className="mt-3 space-y-3" lang={english ? "en" : "pt-BR"}>
+                {steps.map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
+                      {i + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed text-foreground">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
           {manage === "clinic" || (manage === "base" && data.origin === "base") ? (
             <SubstitutionsManager
               mode={manage}
@@ -424,33 +371,20 @@ export function ExerciseDetail({
                 </p>
                 <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {data.substitutes.map((s) => {
-                    const src = exerciseImageUrl(s.thumbnail);
                     return (
                       <li key={s.id}>
                         <Link
                           href={`${backHref}/${s.exerciseId}`}
                           className="group flex items-center gap-3 rounded-2xl bg-card p-3 shadow-rest transition-colors hover:border-primary"
                         >
-                          <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
-                            {src ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={src}
-                                alt={s.name}
-                                loading="lazy"
-                                className="size-full object-cover"
-                              />
-                            ) : null}
-                          </div>
+                          <ExerciseThumb image={s.image} className="size-14 rounded-xl" />
                           <div className="min-w-0">
                             <div className="break-words text-sm font-medium text-foreground">
                               {s.name}
                             </div>
-                            {s.equipment && (
-                              <div className="mt-0.5 text-xs text-meta">
-                                {EQUIPMENT_LABELS[s.equipment]}
-                              </div>
-                            )}
+                            <div className="mt-0.5 text-xs text-meta">
+                              {EQUIPMENT_LABELS[s.equipment]}
+                            </div>
                           </div>
                         </Link>
                       </li>
@@ -461,46 +395,16 @@ export function ExerciseDetail({
             )
           )}
 
-          {/* Instructions */}
-          {data.instructions.length > 0 && (
-            <div className="mt-6">
-              <h2 className="font-heading text-lg font-bold text-foreground">
-                Como executar
-              </h2>
-              <ol className="mt-3 space-y-3">
-                {data.instructions.map((step, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-body-dense font-semibold text-primary">
-                      {i + 1}
-                    </span>
-                    <p className="text-sm leading-relaxed text-foreground">
-                      {step}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
         </article>
       ) : null}
     </div>
   );
 }
 
-/** Minimal shape shared by the coach and admin listing responses (for the picker). */
 type PickerResponse = {
-  items: { id: string; name: string; equipment: ExerciseEquipment | null }[];
+  items: { id: string; name: string; equipment: ExerciseEquipment }[];
 };
 
-/**
- * The editable substitutions section. Inline — it's part of this reused
- * component, not a standalone one-off. Writes go through
- * `${apiBase}/${id}/substitutions`. Two modes (see {@link ManageMode}):
- * - `"base"` (admin): manages the shared base rules; the picker is restricted to
- *   base exercises so a base rule never points at a clinic's own exercise.
- * - `"clinic"` (coach): adds/removes the clinic's OWN rules; the picker spans
- *   every exercise the clinic can see. Base rules render read-only (no delete).
- */
 function SubstitutionsManager({
   mode,
   exercise,
@@ -551,14 +455,11 @@ function SubstitutionsManager({
     setSearch("");
   }
 
-  // Exclude the exercise itself and its current substitutes from the picker.
   const existingIds = useMemo(
     () => new Set([exercise.id, ...exercise.substitutes.map((s) => s.exerciseId)]),
     [exercise],
   );
 
-  // A base rule may only point at another base exercise (a clinic exercise would
-  // leak); a clinic rule may point at anything the clinic can see.
   const originFilter = mode === "base" ? "&origin=base" : "";
   const { data: results, isFetching } = useQuery({
     queryKey: [apiBase, "sub-search", mode, search],
@@ -648,11 +549,9 @@ function SubstitutionsManager({
                         <span className="min-w-0 break-words text-foreground">
                           {e.name}
                         </span>
-                        {e.equipment && (
-                          <span className="shrink-0 text-xs text-meta">
-                            {EQUIPMENT_LABELS[e.equipment]}
-                          </span>
-                        )}
+                        <span className="shrink-0 text-xs text-meta">
+                          {EQUIPMENT_LABELS[e.equipment]}
+                        </span>
                       </button>
                     </li>
                   ))
@@ -671,7 +570,6 @@ function SubstitutionsManager({
       ) : (
         <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {exercise.substitutes.map((s) => {
-            const src = exerciseImageUrl(s.thumbnail);
             return (
               <li
                 key={s.id}
@@ -681,30 +579,16 @@ function SubstitutionsManager({
                   href={`${backHref}/${s.exerciseId}`}
                   className="flex min-w-0 flex-1 items-center gap-3"
                 >
-                  <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface-light">
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={src}
-                        alt={s.name}
-                        loading="lazy"
-                        className="size-full object-cover"
-                      />
-                    ) : null}
-                  </div>
+                  <ExerciseThumb image={s.image} className="size-14 rounded-xl" />
                   <div className="min-w-0">
                     <div className="break-words text-sm font-medium text-foreground">
                       {s.name}
                     </div>
-                    {s.equipment && (
-                      <div className="mt-0.5 text-xs text-meta">
-                        {EQUIPMENT_LABELS[s.equipment]}
-                      </div>
-                    )}
+                    <div className="mt-0.5 text-xs text-meta">
+                      {EQUIPMENT_LABELS[s.equipment]}
+                    </div>
                   </div>
                 </Link>
-                {/* Only the viewer's own rules are removable; base rules that a
-                    coach merely inherits render without a delete control. */}
                 {s.removable && (
                   <button
                     type="button"

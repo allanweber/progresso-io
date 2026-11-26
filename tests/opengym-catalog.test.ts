@@ -6,29 +6,42 @@ import { gunzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
 import {
+  BODY_MAP_MUSCLES,
+  EXERCISE_BODY_PARTS,
   EXERCISE_CATEGORIES,
   EXERCISE_EQUIPMENT,
-  EXERCISE_FORCES,
-  EXERCISE_LEVELS,
-  EXERCISE_MECHANICS,
-  MUSCLES,
-} from "@/db/schema";
+  EXERCISE_MACHINE_KINDS,
+  EXERCISE_NEEDS,
+  EXERCISE_SECONDARY_MUSCLES,
+  EXERCISE_TARGETS,
+  isMachineEquipment,
+  type ExerciseEquipment,
+} from "@/lib/exercises";
 
 type CatalogRow = {
   code: string;
   name: string;
-  instructions: string[];
+  nameEn: string;
+  description: string | null;
+  descriptionEn: string | null;
+  bodyPart: string;
   category: string;
-  level: string;
-  force: string | null;
-  mechanic: string | null;
-  equipment: string | null;
-  primaryMuscles: string[];
+  equipment: string;
+  machineKind: string | null;
+  target: string;
   secondaryMuscles: string[];
-  images: string[];
-  imageCredits: Record<string, { author: string; license: string; licenseUrl: string; sourceUrl: string }>;
-  openGymId?: string | null;
-  source: string;
+  mapPrimary: string[];
+  mapSecondary: string[];
+  muscleWeights: Record<string, number>;
+  needs: string[];
+  hold: boolean;
+  track: string | null;
+  instructions: string[];
+  instructionsEn: string[];
+  image: string;
+  video: string;
+  femaleImage: string | null;
+  femaleVideo: string | null;
 };
 
 const data = (p: string) => join(process.cwd(), "drizzle", "data", p);
@@ -40,11 +53,6 @@ const catalog = gunzipSync(readFileSync(data("exercises-catalog.ndjson.gz")))
   .map((l) => JSON.parse(l) as CatalogRow);
 const byCode = new Map(catalog.map((e) => [e.code, e]));
 
-const incoming = JSON.parse(
-  readFileSync(data("exercisedb-src/exercisedb.json"), "utf8"),
-) as { id: string }[];
-const incomingIds = new Set(incoming.map((e) => e.id));
-
 const substitutions = (
   JSON.parse(readFileSync(data("exercise-substitutions.json"), "utf8")) as {
     substitutions: { exercise: string; substitutes: string[] }[];
@@ -52,42 +60,82 @@ const substitutions = (
 ).substitutions;
 
 describe("seed catalog", () => {
-  it("has unique codes", () => {
+  it("has the full openGym library with unique codes", () => {
+    expect(catalog.length).toBe(5632);
     expect(byCode.size).toBe(catalog.length);
+    expect(catalog.every((e) => /^\d{4,5}$/.test(e.code))).toBe(true);
   });
 
-  it("links every exercise to its own incoming openGym id", () => {
-    const ids = catalog.map((e) => e.openGymId);
-    expect(ids.every((id) => typeof id === "string" && /^\d{4}$/.test(id) && incomingIds.has(id))).toBe(true);
-    expect(new Set(ids).size).toBe(ids.length);
+  it("has pt-BR text for every exercise", () => {
+    for (const e of catalog) {
+      expect(e.name.trim(), e.code).not.toBe("");
+      expect(e.description?.trim(), e.code).toBeTruthy();
+      expect(e.instructions.length, e.code).toBeGreaterThan(0);
+      expect(e.instructions.join(" "), e.code).not.toContain("—");
+    }
   });
 
-  it.each(catalog.map((e) => [e.code, e] as const))("%s is a complete exercise", (_code, e) => {
-    expect(e.name.trim()).not.toBe("");
-    expect(EXERCISE_CATEGORIES).toContain(e.category);
-    expect(EXERCISE_LEVELS).toContain(e.level);
-    if (e.force !== null) expect(EXERCISE_FORCES).toContain(e.force);
-    if (e.mechanic !== null) expect(EXERCISE_MECHANICS).toContain(e.mechanic);
-    if (e.equipment !== null) expect(EXERCISE_EQUIPMENT).toContain(e.equipment);
-    expect(e.primaryMuscles.length).toBeGreaterThan(0);
-    for (const m of [...e.primaryMuscles, ...e.secondaryMuscles]) {
-      expect(MUSCLES).toContain(m);
+  it("uses only the openGym vocabulary", () => {
+    for (const e of catalog) {
+      expect(EXERCISE_BODY_PARTS, e.code).toContain(e.bodyPart);
+      expect(EXERCISE_CATEGORIES, e.code).toContain(e.category);
+      expect(EXERCISE_EQUIPMENT, e.code).toContain(e.equipment);
+      expect(EXERCISE_TARGETS, e.code).toContain(e.target);
+      for (const m of e.secondaryMuscles) expect(EXERCISE_SECONDARY_MUSCLES, e.code).toContain(m);
+      for (const m of [...e.mapPrimary, ...e.mapSecondary]) {
+        expect(BODY_MAP_MUSCLES, e.code).toContain(m);
+      }
+      for (const n of e.needs) expect(EXERCISE_NEEDS, e.code).toContain(n);
+      if (isMachineEquipment(e.equipment as ExerciseEquipment)) {
+        expect(EXERCISE_MACHINE_KINDS, e.code).toContain(e.machineKind);
+      } else {
+        expect(e.machineKind, e.code).toBeNull();
+      }
     }
-    for (const key of e.images) {
-      if (e.source === "free-exercise-db") expect(e.imageCredits[key]).toBeUndefined();
-      else expect(e.imageCredits[key]?.author.trim(), key).toBeTruthy();
+  });
+
+  it("gives a positive weight to every muscle on the body map", () => {
+    for (const e of catalog) {
+      for (const m of [...e.mapPrimary, ...e.mapSecondary]) {
+        expect(e.muscleWeights[m], `${e.code} ${m}`).toBeGreaterThan(0);
+      }
     }
+  });
+
+  it("points every exercise at its own still and clip", () => {
+    for (const e of catalog) {
+      expect(e.image).toBe(`still/${e.code}.webp`);
+      expect(e.video).toBe(`clip/${e.code}.mp4`);
+      if (e.femaleImage) expect(e.femaleImage).toMatch(/^still\/\d{4,5}\.webp$/);
+      expect(Boolean(e.femaleImage)).toBe(Boolean(e.femaleVideo));
+    }
+    expect(catalog.filter((e) => e.femaleImage).length).toBeGreaterThan(900);
   });
 });
 
 describe("exercise substitutions", () => {
-  it("only link known codes, never to themselves", () => {
+  it("only link known codes, never to themselves, at most four each", () => {
     for (const rule of substitutions) {
       expect(byCode.has(rule.exercise), rule.exercise).toBe(true);
+      expect(rule.substitutes.length).toBeLessThanOrEqual(4);
+      expect(new Set(rule.substitutes).size).toBe(rule.substitutes.length);
       for (const sub of rule.substitutes) {
         expect(byCode.has(sub), sub).toBe(true);
         expect(sub).not.toBe(rule.exercise);
       }
     }
+  });
+
+  it("swaps an exercise for others that train the same target muscle", () => {
+    for (const rule of substitutions) {
+      const target = byCode.get(rule.exercise)!.target;
+      for (const sub of rule.substitutes) expect(byCode.get(sub)!.target).toBe(target);
+    }
+  });
+
+  it("keeps the reviewed bench press family together", () => {
+    const bench = substitutions.find((r) => r.exercise === "0025")!;
+    const names = bench.substitutes.map((c) => byCode.get(c)!.nameEn.toLowerCase());
+    expect(names.every((n) => n.includes("press"))).toBe(true);
   });
 });

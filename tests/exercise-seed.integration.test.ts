@@ -34,8 +34,8 @@ beforeAll(async () => {
     .values({ name: "Clinic A", ownerUserId: "user-a" })
     .returning();
   await query(
-    `insert into exercise (name, search_text, category, level, source, clinic_id)
-     values ('Exercício da clínica', 'exercicio da clinica', 'strength', 'beginner', 'custom', $1)`,
+    `insert into exercise (name, search_text, body_part, category, equipment, target, source, clinic_id)
+     values ('Exercício da clínica', 'exercicio da clinica', 'waist', 'strength', 'body weight', 'abs', 'custom', $1)`,
     [clinic.id],
   );
 }, 120_000);
@@ -49,12 +49,11 @@ describe("exercise seed from the catalog artifact", () => {
     expect(count).toBe(catalog.length);
   });
 
-  it("carries every openGym link from the artifact", async () => {
-    const linked = catalog.filter((e) => e.openGymId).length;
+  it("stores every exercise as an openGym row with its media", async () => {
     const [{ count }] = await query(
-      "select count(*)::int as count from exercise where opengym_id is not null",
+      "select count(*)::int as count from exercise where source = 'opengym' and image is not null and video is not null",
     );
-    expect(count).toBe(linked);
+    expect(count).toBe(catalog.length);
   });
 
   it("stores the English name and instructions, searchable in both languages", async () => {
@@ -72,12 +71,20 @@ describe("exercise seed from the catalog artifact", () => {
     expect(row.search_text).toBe(expected);
   });
 
-  it("stores the images of an illustrated exercise with their credits", async () => {
-    const illustrated = catalog.find((e) => (e.images as string[]).length > 0) as Row;
-    const [row] = await query("select images, image_credits from exercise where code = $1", [
-      illustrated.code,
-    ]);
-    expect(row).toEqual({ images: illustrated.images, image_credits: illustrated.imageCredits });
+  it("stores the female media, the body map and the muscle weights", async () => {
+    const female = catalog.find((e) => e.femaleImage) as Row;
+    const [row] = await query(
+      "select female_image, female_video, map_primary, map_secondary, muscle_weights, secondary_muscles from exercise where code = $1",
+      [female.code],
+    );
+    expect(row).toEqual({
+      female_image: female.femaleImage,
+      female_video: female.femaleVideo,
+      map_primary: female.mapPrimary,
+      map_secondary: female.mapSecondary,
+      muscle_weights: female.muscleWeights,
+      secondary_muscles: female.secondaryMuscles,
+    });
   });
 
   it("inserts every base substitution edge", async () => {
@@ -92,8 +99,8 @@ describe("exercise seed from the catalog artifact", () => {
 
   it("leaves clinic custom exercises untouched", async () => {
     const rows = await query(
-      "select name, code, opengym_id from exercise where clinic_id is not null",
+      "select name, code, source from exercise where clinic_id is not null",
     );
-    expect(rows).toEqual([{ name: "Exercício da clínica", code: null, opengym_id: null }]);
+    expect(rows).toEqual([{ name: "Exercício da clínica", code: null, source: "custom" }]);
   });
 });

@@ -57,7 +57,7 @@ export async function loadStarterResolver(db: Database): Promise<StarterResolver
       .from(schema.food)
       .where(and(isNull(schema.food.clinicId), eq(schema.food.archived, false))),
     db
-      .select({ id: schema.exercise.id, text: schema.exercise.name })
+      .select({ id: schema.exercise.id, code: schema.exercise.code })
       .from(schema.exercise)
       .where(
         and(isNull(schema.exercise.clinicId), eq(schema.exercise.archived, false)),
@@ -65,7 +65,7 @@ export async function loadStarterResolver(db: Database): Promise<StarterResolver
   ]);
 
   const foodCache = new Map<string, string | null>();
-  const exCache = new Map<string, string | null>();
+  const exerciseByCode = new Map(exercises.map((e) => [e.code, e.id]));
 
   return {
     food(slug) {
@@ -73,9 +73,7 @@ export async function loadStarterResolver(db: Database): Promise<StarterResolver
       return foodCache.get(slug) ?? null;
     },
     exercise(slug) {
-      if (!exCache.has(slug))
-        exCache.set(slug, pick(exercises, EXERCISE_VOCAB[slug]));
-      return exCache.get(slug) ?? null;
+      return exerciseByCode.get(EXERCISE_VOCAB[slug]) ?? null;
     },
   };
 }

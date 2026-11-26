@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import { schema } from "@/db";
-import { EQUIPMENT_LABELS, MUSCLE_LABELS } from "@/lib/exercises";
+import { EQUIPMENT_LABELS, TARGET_LABELS } from "@/lib/exercises";
 import type { TenantContext } from "@/server/tenant";
 
 /**
@@ -99,12 +99,6 @@ function finish(lines: string[], ids: string[]): CatalogBlock {
 const stableOrder = <T extends { code: unknown; id: unknown }>(t: T) =>
   [sql`${t.code} asc nulls last`, asc(t.id as never)] as const;
 
-/**
- * Every base exercise, as `index: name (muscles, equipment)`.
- *
- * No filtering beyond archived: the model sees the whole platform catalog and
- * the coach edits the draft afterwards.
- */
 export async function buildExerciseCatalog(
   ctx: TenantContext,
 ): Promise<CatalogBlock> {
@@ -113,7 +107,7 @@ export async function buildExerciseCatalog(
       id: schema.exercise.id,
       code: schema.exercise.code,
       name: schema.exercise.name,
-      primaryMuscles: schema.exercise.primaryMuscles,
+      target: schema.exercise.target,
       equipment: schema.exercise.equipment,
     })
     .from(schema.exercise)
@@ -121,16 +115,13 @@ export async function buildExerciseCatalog(
       and(
         isNull(schema.exercise.clinicId),
         eq(schema.exercise.archived, false),
+        or(eq(schema.exercise.classic, true), isNull(schema.exercise.code)),
       ),
     )
     .orderBy(...stableOrder(schema.exercise));
 
   const lines = rows.map((r, i) => {
-    const muscles = r.primaryMuscles
-      .map((m) => MUSCLE_LABELS[m] ?? m)
-      .join("/");
-    const equip = r.equipment ? EQUIPMENT_LABELS[r.equipment] : "livre";
-    return `${i + 1}: ${r.name} (${muscles || "geral"}, ${equip})`;
+    return `${i + 1}: ${r.name} (${TARGET_LABELS[r.target]}, ${EQUIPMENT_LABELS[r.equipment]})`;
   });
   return finish(lines, rows.map((r) => r.id));
 }

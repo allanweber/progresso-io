@@ -37,9 +37,5 @@ The shareable plan file of the external openGym app; a workout exports to one, e
 _Avoid_: Plan (unqualified)
 
 **openGym id**:
-The permanent number openGym gives an exercise in its catalogue; a base exercise that has one is the same exercise in both apps.
+The permanent number that openGym gives to an exercise in its catalogue. It is the `code` of a base exercise, so a base exercise is the same exercise in the two apps.
 _Avoid_: ExerciseDB id
-
-**Exercise merge**:
-Folding a base exercise imported from openGym into one of ours that is the same exercise: ours takes its openGym id and its uses in workouts, and the imported one is archived for good.
-_Avoid_: Link (when a duplicate is absorbed), dedupe

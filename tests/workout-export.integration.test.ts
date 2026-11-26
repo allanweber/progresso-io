@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
@@ -9,6 +8,7 @@ import type { TenantContext } from "@/server/tenant";
 import { studentWorkouts, workouts } from "@/server/dal";
 import { detailToWriteInput, type WorkoutExerciseInput } from "@/server/dal/workouts";
 
+import { exerciseRow, type ExerciseSeed } from "./exercise-fixture";
 import { createTestDb, type TestDb } from "./pglite";
 
 let db: TestDb;
@@ -26,36 +26,10 @@ function ctxFor(clinicId: string, userId: string): TenantContext {
   return { db: db as unknown as DB, clinicId, userId, role: "coach" };
 }
 
-async function addExercise(
-  key: string,
-  e: {
-    name: string;
-    openGymId?: string;
-    clinicId?: string;
-    description?: string;
-    primaryMuscles?: schema.Muscle[];
-    secondaryMuscles?: schema.Muscle[];
-    equipment?: schema.ExerciseEquipment;
-    instructions?: string[];
-  },
-) {
+async function addExercise(key: string, e: ExerciseSeed) {
   const [row] = await db
     .insert(schema.exercise)
-    .values({
-      name: e.name,
-      searchText: sql`unaccent(lower(${e.name}))`,
-      category: "strength",
-      level: "beginner",
-      equipment: e.equipment ?? null,
-      primaryMuscles: e.primaryMuscles ?? ["chest"],
-      secondaryMuscles: e.secondaryMuscles ?? [],
-      instructions: e.instructions ?? [],
-      description: e.description ?? null,
-      clinicId: e.clinicId ?? null,
-      openGymId: e.openGymId ?? null,
-      code: e.clinicId ? null : key,
-      source: e.clinicId ? "custom" : "free-exercise-db",
-    })
+    .values(exerciseRow({ source: e.clinicId ? "custom" : "opengym", ...e }))
     .returning({ id: schema.exercise.id });
   ids[key] = row.id;
 }
@@ -101,24 +75,28 @@ beforeAll(async () => {
   ctxA = ctxFor(clinicA.id, "user-a");
   ctxB = ctxFor(clinicB.id, "user-b");
 
-  await addExercise("supino", { name: "Supino reto", openGymId: "0025" });
-  await addExercise("crucifixo", { name: "Crucifixo", openGymId: "0308" });
+  await addExercise("supino", { name: "Supino reto", code: "0025" });
+  await addExercise("crucifixo", { name: "Crucifixo", code: "0308" });
   await addExercise("agachamento", {
     name: "Agachamento",
-    openGymId: "0043",
-    primaryMuscles: ["quadriceps"],
+    code: "0043",
+    mapPrimary: ["quadriceps"],
   });
-  await addExercise("legpress", { name: "Leg press", openGymId: "0739" });
-  await addExercise("remada", { name: "Remada", openGymId: "0027" });
-  await addExercise("puxada", { name: "Puxada", openGymId: "0150" });
-  await addExercise("rosca", { name: "Rosca", openGymId: "0031" });
-  await addExercise("prancha", { name: "Prancha", openGymId: "0464" });
-  await addExercise("triceps", { name: "Tríceps", openGymId: "0200" });
-  await addExercise("elevacao", { name: "Elevação lateral", openGymId: "0334" });
+  await addExercise("legpress", { name: "Leg press", code: "0739" });
+  await addExercise("remada", { name: "Remada", code: "0027" });
+  await addExercise("puxada", { name: "Puxada", code: "0150" });
+  await addExercise("rosca", { name: "Rosca", code: "0031" });
+  await addExercise("prancha", { name: "Prancha", code: "0464" });
+  await addExercise("triceps", { name: "Tríceps", code: "0200" });
+  await addExercise("elevacao", { name: "Elevação lateral", code: "0334" });
   await addExercise("semId", {
     name: "Remada cavalinho",
-    primaryMuscles: ["middle_back"],
+    clinicId: clinicA.id,
+    bodyPart: "back",
+    target: "upper back",
     secondaryMuscles: ["biceps", "lats"],
+    mapPrimary: ["upper-back"],
+    mapSecondary: ["biceps", "lats"],
     equipment: "barbell",
     instructions: ["Incline o tronco.", "Puxe a barra."],
   });
@@ -126,10 +104,13 @@ beforeAll(async () => {
     name: "Exercício da clínica",
     clinicId: clinicA.id,
     description: "Movimento próprio do coach.",
-    primaryMuscles: ["glutes"],
-    equipment: "machine",
+    bodyPart: "upper legs",
+    target: "glutes",
+    mapPrimary: ["gluteal"],
+    equipment: "leverage machine",
+    machineKind: "glute-machine",
   });
-  await addExercise("subSemId", { name: "Pullover na máquina" });
+  await addExercise("subSemId", { name: "Pullover na máquina", clinicId: clinicA.id });
 
   await db.insert(schema.exerciseSubstitution).values([
     { clinicId: null, exerciseId: ids.supino, substituteExerciseId: ids.crucifixo },
@@ -300,17 +281,17 @@ describe("openGym plan export", () => {
     });
   });
 
-  it("exports exercises without an openGym id as openGym custom exercises", () => {
+  it("exports clinic exercises as openGym custom exercises", () => {
     expect(exported.plan.customEx).toEqual([
       {
         id: `progresso-${ids.semId}`,
         n: "Remada cavalinho",
         bp: "back",
         eq: "barbell",
-        tg: "upper-back",
+        tg: "upper back",
         primaries: ["upper-back"],
-        secondaries: ["biceps"],
-        muscleGroups: ["upper-back", "biceps"],
+        secondaries: ["biceps", "lats"],
+        muscleGroups: ["upper-back", "biceps", "lats"],
         desc: "Incline o tronco.\nPuxe a barra.",
       },
       {
@@ -318,7 +299,7 @@ describe("openGym plan export", () => {
         n: "Exercício da clínica",
         bp: "upper legs",
         eq: "leverage machine",
-        tg: "gluteal",
+        tg: "glutes",
         primaries: ["gluteal"],
         muscleGroups: ["gluteal"],
         desc: "Movimento próprio do coach.",

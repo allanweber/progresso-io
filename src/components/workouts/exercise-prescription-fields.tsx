@@ -2,7 +2,15 @@
 
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, ChevronRight, Plus, Repeat, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Repeat,
+  X,
+} from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +20,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { ExerciseThumb } from "@/components/exercises/exercise-media";
+import { SubstituteDetail } from "@/components/workouts/workout-detail-view";
 import {
   NumberField,
   numberFieldClass,
@@ -84,7 +94,7 @@ export function newPrescription(
 ): PrescriptionDraft {
   return {
     sets: defaults?.sets ?? 3,
-    reps: { kind: "range", values: [8, 12] },
+    reps: { kind: "range", values: [10, 12] },
     load: "",
     rest: defaults?.rest ?? 90,
     technique: null,
@@ -158,9 +168,9 @@ function EssentialFields({
   // starved the side that needed the room, so Séries takes a fixed narrow
   // column and Repetições takes everything left — they stay on one line.
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[10rem_1fr] sm:gap-x-6">
-      <div className="space-y-1.5">
-        <div className="flex h-8 items-center">
+    <div className="grid grid-cols-1 gap-4 rounded-xl border border-border-light bg-surface-light/40 p-3 sm:grid-cols-[auto_1fr] sm:gap-x-8 sm:p-4">
+      <div className="space-y-1.5 sm:w-40">
+        <div className="flex h-7 items-center">
           <Label>Séries</Label>
         </div>
         {pyramid ? (
@@ -313,8 +323,10 @@ function DetailFields({
   onPatch: (patch: Partial<PrescriptionDraft>) => void;
 }) {
   const [addingSub, setAddingSub] = useState(false);
+  const [viewing, setViewing] = useState<{ id: string; note: string | null } | null>(
+    null,
+  );
 
-  // The exercise's library substitutes (base + clinic), just to show the count.
   const { data } = useQuery({
     queryKey: ["exercise", exerciseId],
     queryFn: () => apiFetch<ExerciseDetailDto>(`/api/exercises/${exerciseId}`),
@@ -322,8 +334,35 @@ function DetailFields({
   });
   const librarySubs = data?.substitutes ?? [];
   const customIds = new Set(value.customSubstitutes.map((c) => c.exerciseId));
-  const libraryCount = librarySubs.filter((s) => !customIds.has(s.exerciseId)).length;
-  const total = libraryCount + value.customSubstitutes.length;
+  const shownLibrarySubs = librarySubs.filter((s) => !customIds.has(s.exerciseId));
+  const total = shownLibrarySubs.length + value.customSubstitutes.length;
+
+  const { data: viewed, isFetching: viewLoading } = useQuery({
+    queryKey: ["exercise", viewing?.id],
+    queryFn: () => apiFetch<ExerciseDetailDto>(`/api/exercises/${viewing?.id}`),
+    staleTime: 5 * 60_000,
+    enabled: Boolean(viewing),
+  });
+  const viewedSub =
+    viewing && viewed && viewed.id === viewing.id
+      ? { ...viewed, exerciseId: viewed.id, note: viewing.note }
+      : null;
+
+  function subNameButton(id: string, name: string, note: string | null) {
+    return (
+      <button
+        type="button"
+        onClick={() => setViewing({ id, note })}
+        title={`Ver ${name}`}
+        className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-left text-body font-medium text-foreground underline-offset-2 hover:text-primary hover:underline"
+      >
+        <span className="truncate">{name}</span>
+        {viewing?.id === id && viewLoading && (
+          <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+        )}
+      </button>
+    );
+  }
 
   function addCustom(ex: PickedExercise) {
     onPatch({
@@ -334,7 +373,7 @@ function DetailFields({
           exerciseId: ex.id,
           name: ex.name,
           code: ex.code,
-          thumbnail: ex.thumbnail,
+          thumbnail: ex.image,
           note: "",
         },
       ],
@@ -393,16 +432,28 @@ function DetailFields({
       </div>
 
       <div>
-        <Label>
-          Substituições · {total}
-          {librarySubs.length > 0 ? ` (${librarySubs.length} da biblioteca)` : ""}
-        </Label>
-        {value.customSubstitutes.length > 0 && (
-          <ul className="mt-1 space-y-1.5">
+        <Label>Substituições · {total}</Label>
+        {total > 0 && (
+          <ul className="mt-1.5 divide-y divide-border-light overflow-hidden rounded-[10px] border border-border">
+            {shownLibrarySubs.map((s) => (
+              <li key={s.id} className="flex items-center gap-2.5 px-3 py-2">
+                <ExerciseThumb image={s.image} className="size-8 rounded-md" />
+                {subNameButton(s.exerciseId, s.name, null)}
+                <span className="shrink-0 rounded-full bg-surface-light px-2 py-0.5 text-label text-muted-foreground">
+                  Biblioteca
+                </span>
+              </li>
+            ))}
             {value.customSubstitutes.map((cs) => (
-              <li key={cs.key} className="flex items-center gap-2">
-                <Repeat className="size-3.5 shrink-0 text-amber-600" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-body">{cs.name}</span>
+              <li key={cs.key} className="flex items-center gap-2.5 px-3 py-2">
+                {cs.thumbnail ? (
+                  <ExerciseThumb image={cs.thumbnail} className="size-8 rounded-md" />
+                ) : (
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-light">
+                    <Repeat className="size-3.5 text-amber-600" aria-hidden />
+                  </span>
+                )}
+                {subNameButton(cs.exerciseId, cs.name, cs.note.trim() || null)}
                 <Input
                   value={cs.note}
                   onChange={(e) =>
@@ -413,7 +464,7 @@ function DetailFields({
                     })
                   }
                   placeholder="Motivo (opcional)"
-                  className="h-8 w-40 text-label"
+                  className="h-8 w-32 shrink-0 text-label sm:w-40"
                 />
                 <button
                   type="button"
@@ -457,6 +508,8 @@ function DetailFields({
           )}
         </div>
       </div>
+
+      <SubstituteDetail sub={viewedSub} onClose={() => setViewing(null)} />
     </div>
   );
 }

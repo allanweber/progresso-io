@@ -1,5 +1,5 @@
 {
-  "id": "caccc5c5-df21-4f1f-a993-55084bd7abc9",
+  "id": "c70bc23e-5c09-4cf2-86db-dc548229441f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -2294,8 +2294,20 @@
           "primaryKey": false,
           "notNull": false
         },
+        "description_en": {
+          "name": "description_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "search_text": {
           "name": "search_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body_part": {
+          "name": "body_part",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2306,36 +2318,23 @@
           "primaryKey": false,
           "notNull": true
         },
-        "level": {
-          "name": "level",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "force": {
-          "name": "force",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mechanic": {
-          "name": "mechanic",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "equipment": {
           "name": "equipment",
           "type": "text",
           "primaryKey": false,
+          "notNull": true
+        },
+        "machine_kind": {
+          "name": "machine_kind",
+          "type": "text",
+          "primaryKey": false,
           "notNull": false
         },
-        "primary_muscles": {
-          "name": "primary_muscles",
-          "type": "text[]",
+        "target": {
+          "name": "target",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
+          "notNull": true
         },
         "secondary_muscles": {
           "name": "secondary_muscles",
@@ -2343,6 +2342,47 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
+        },
+        "map_primary": {
+          "name": "map_primary",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "map_secondary": {
+          "name": "map_secondary",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "muscle_weights": {
+          "name": "muscle_weights",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "needs": {
+          "name": "needs",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "hold": {
+          "name": "hold",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "track": {
+          "name": "track",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "instructions": {
           "name": "instructions",
@@ -2358,31 +2398,49 @@
           "notNull": true,
           "default": "'{}'"
         },
-        "images": {
-          "name": "images",
-          "type": "text[]",
+        "image": {
+          "name": "image",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
+          "notNull": false
         },
-        "image_credits": {
-          "name": "image_credits",
-          "type": "jsonb",
+        "video": {
+          "name": "video",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "female_image": {
+          "name": "female_image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "female_video": {
+          "name": "female_video",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classic": {
+          "name": "classic",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{}'::jsonb"
+          "default": false
+        },
+        "popularity": {
+          "name": "popularity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "source": {
           "name": "source",
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "opengym_id": {
-          "name": "opengym_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "clinic_id": {
           "name": "clinic_id",
@@ -2413,11 +2471,26 @@
         }
       },
       "indexes": {
-        "exercise_category_idx": {
-          "name": "exercise_category_idx",
+        "exercise_body_part_idx": {
+          "name": "exercise_body_part_idx",
           "columns": [
             {
-              "expression": "category",
+              "expression": "body_part",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "exercise_target_idx": {
+          "name": "exercise_target_idx",
+          "columns": [
+            {
+              "expression": "target",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2482,48 +2555,53 @@
           "columns": [
             "code"
           ]
-        },
-        "exercise_opengym_id_unique": {
-          "name": "exercise_opengym_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "opengym_id"
-          ]
         }
       },
       "policies": {},
       "checkConstraints": {
+        "exercise_body_part_check": {
+          "name": "exercise_body_part_check",
+          "value": "\"exercise\".\"body_part\" in ('back', 'cardio', 'chest', 'lower arms', 'lower legs', 'neck', 'shoulders', 'upper arms', 'upper legs', 'waist', 'full body')"
+        },
         "exercise_category_check": {
           "name": "exercise_category_check",
-          "value": "\"exercise\".\"category\" in ('strength', 'stretching', 'plyometrics', 'strongman', 'powerlifting', 'cardio', 'olympic_weightlifting')"
-        },
-        "exercise_level_check": {
-          "name": "exercise_level_check",
-          "value": "\"exercise\".\"level\" in ('beginner', 'intermediate', 'expert')"
-        },
-        "exercise_force_check": {
-          "name": "exercise_force_check",
-          "value": "\"exercise\".\"force\" is null or \"exercise\".\"force\" in ('pull', 'push', 'static')"
-        },
-        "exercise_mechanic_check": {
-          "name": "exercise_mechanic_check",
-          "value": "\"exercise\".\"mechanic\" is null or \"exercise\".\"mechanic\" in ('compound', 'isolation')"
+          "value": "\"exercise\".\"category\" in ('strength', 'stretching', 'mobility', 'plyometrics', 'cardio', 'olympic', 'calisthenics', 'pilates', 'yoga', 'combat', 'isometric', 'rehab')"
         },
         "exercise_equipment_check": {
           "name": "exercise_equipment_check",
-          "value": "\"exercise\".\"equipment\" is null or \"exercise\".\"equipment\" in ('body_only', 'machine', 'other', 'foam_roll', 'kettlebells', 'dumbbell', 'cable', 'barbell', 'bands', 'medicine_ball', 'exercise_ball', 'e_z_curl_bar')"
+          "value": "\"exercise\".\"equipment\" in ('body weight', 'dumbbell', 'cable', 'barbell', 'leverage machine', 'band', 'smith machine', 'kettlebell', 'weighted', 'stability ball', 'ez barbell', 'assisted', 'sled machine', 'medicine ball', 'rope', 'roller', 'massage ball', 'resistance band', 'bosu ball', 'olympic barbell', 'wheel roller', 'upper body ergometer', 'skierg machine', 'hammer', 'stationary bike', 'tire', 'trap bar', 'elliptical machine', 'stepmill machine', 'suspension trainer', 'sandbag', 'landmine', 'weight plate', 'clubbell', 'macebell')"
         },
-        "exercise_primary_muscles_check": {
-          "name": "exercise_primary_muscles_check",
-          "value": "\"exercise\".\"primary_muscles\" <@ array['abdominals', 'abductors', 'adductors', 'biceps', 'calves', 'chest', 'forearms', 'glutes', 'hamstrings', 'lats', 'lower_back', 'middle_back', 'neck', 'quadriceps', 'shoulders', 'traps', 'triceps']::text[]"
+        "exercise_machine_kind_check": {
+          "name": "exercise_machine_kind_check",
+          "value": "\"exercise\".\"machine_kind\" is null or \"exercise\".\"machine_kind\" in ('leg-press', 'hack-squat', 'squat-machine', 'belt-squat', 'leg-extension', 'leg-curl', 'calf-raise', 'hip-thrust', 'hip-abduction', 'glute-machine', 'chest-press', 'pec-deck', 'shoulder-press', 'lateral-raise', 'triceps-machine', 'lat-pulldown', 'seated-row', 't-bar-row', 'biceps-curl', 'back-extension', 'smith', 'assisted-pullup', 'ab-machine', 'push-sled', 'cardio', 'pilates', 'other', 'none')"
+        },
+        "exercise_target_check": {
+          "name": "exercise_target_check",
+          "value": "\"exercise\".\"target\" in ('abs', 'pectorals', 'biceps', 'glutes', 'front delts', 'side delts', 'rear delts', 'delts', 'triceps', 'upper back', 'lats', 'calves', 'quads', 'forearms', 'cardiovascular system', 'hamstrings', 'spine', 'traps', 'adductors', 'serratus anterior', 'abductors', 'levator scapulae', 'obliques', 'hip flexors', 'shins')"
         },
         "exercise_secondary_muscles_check": {
           "name": "exercise_secondary_muscles_check",
-          "value": "\"exercise\".\"secondary_muscles\" <@ array['abdominals', 'abductors', 'adductors', 'biceps', 'calves', 'chest', 'forearms', 'glutes', 'hamstrings', 'lats', 'lower_back', 'middle_back', 'neck', 'quadriceps', 'shoulders', 'traps', 'triceps']::text[]"
+          "value": "\"exercise\".\"secondary_muscles\" <@ array['front delts', 'side delts', 'rear delts', 'shoulders', 'deltoids', 'rear deltoids', 'rotator cuff', 'chest', 'upper chest', 'triceps', 'biceps', 'brachialis', 'forearms', 'wrists', 'wrist flexors', 'wrist extensors', 'grip muscles', 'back', 'upper back', 'lats', 'latissimus dorsi', 'rhomboids', 'trapezius', 'traps', 'lower back', 'core', 'abdominals', 'obliques', 'lower abs', 'hip flexors', 'glutes', 'quadriceps', 'hamstrings', 'adductors', 'inner thighs', 'groin', 'calves', 'soleus', 'shins', 'ankles', 'ankle stabilizers', 'feet', 'hands', 'sternocleidomastoid']::text[]"
         },
-        "exercise_opengym_id_format": {
-          "name": "exercise_opengym_id_format",
-          "value": "\"exercise\".\"opengym_id\" is null or \"exercise\".\"opengym_id\" ~ '^[0-9]{4}$'"
+        "exercise_map_primary_check": {
+          "name": "exercise_map_primary_check",
+          "value": "\"exercise\".\"map_primary\" <@ array['trapezius', 'front-delts', 'side-delts', 'rear-delts', 'chest', 'lats', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm', 'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors', 'calves', 'tibialis']::text[]"
+        },
+        "exercise_map_secondary_check": {
+          "name": "exercise_map_secondary_check",
+          "value": "\"exercise\".\"map_secondary\" <@ array['trapezius', 'front-delts', 'side-delts', 'rear-delts', 'chest', 'lats', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm', 'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors', 'calves', 'tibialis']::text[]"
+        },
+        "exercise_needs_check": {
+          "name": "exercise_needs_check",
+          "value": "\"exercise\".\"needs\" <@ array['bench', 'pull-up bar']::text[]"
+        },
+        "exercise_track_check": {
+          "name": "exercise_track_check",
+          "value": "\"exercise\".\"track\" is null or \"exercise\".\"track\" in ('distance')"
+        },
+        "exercise_source_check": {
+          "name": "exercise_source_check",
+          "value": "\"exercise\".\"source\" in ('opengym', 'custom')"
         }
       },
       "isRLSEnabled": false

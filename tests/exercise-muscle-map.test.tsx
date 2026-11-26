@@ -20,7 +20,7 @@ describe("ExerciseMuscleMap", () => {
   });
 
   it("shows the side of the body where the primary muscles are", () => {
-    const back = render(<ExerciseMuscleMap primary={["hamstrings", "glutes"]} />).container;
+    const back = render(<ExerciseMuscleMap primary={["hamstring", "gluteal"]} />).container;
     expect(fills(back).filter((s) => s.includes("fill: var(--primary)")).length).toBeGreaterThan(0);
 
     const front = render(<ExerciseMuscleMap primary={["quadriceps"]} />).container;
