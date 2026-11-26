@@ -29,26 +29,30 @@ beforeEach(() => {
   listExercises.mockClear();
 });
 
-describe("GET /api/exercises openGym filter", () => {
-  it("asks the DAL for openGym exercises only when openGym=1", async () => {
-    const res = await list("?openGym=1&search=sup");
+describe("GET /api/exercises filters", () => {
+  it("passes the openGym filters to the DAL", async () => {
+    const res = await list(
+      "?search=sup&bodyPart=upper+legs&category=strength&equipment=body+weight&target=quads&page=2",
+    );
     expect(res.status).toBe(200);
-    expect(listExercises).toHaveBeenCalledWith(
-      COACH,
-      expect.objectContaining({ openGymOnly: true, search: "sup" }),
-    );
+    expect(listExercises).toHaveBeenCalledWith(COACH, {
+      search: "sup",
+      bodyPart: "upper legs",
+      category: "strength",
+      equipment: "body weight",
+      target: "quads",
+      page: 2,
+    });
   });
 
-  it("lists every exercise when the flag is absent", async () => {
-    await list("?search=sup");
-    expect(listExercises).toHaveBeenCalledWith(
-      COACH,
-      expect.objectContaining({ openGymOnly: false }),
-    );
-  });
-
-  it.each(["0", "true", "yes"])("rejects openGym=%s", async (value) => {
-    const res = await list(`?openGym=${value}`);
+  it.each([
+    "?bodyPart=legs",
+    "?category=powerlifting",
+    "?equipment=machine",
+    "?target=quadriceps",
+    "?pageSize=500",
+  ])("rejects %s", async (qs) => {
+    const res = await list(qs);
     expect(res.status).toBe(422);
     expect(listExercises).not.toHaveBeenCalled();
   });

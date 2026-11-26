@@ -141,12 +141,13 @@ export async function parseCoachCheckinForm(
 
 /** Uploads the validated pose files, returning what the DAL persists. */
 export async function storeCheckinPhotos(
+  studentId: string,
   files: { pose: CheckinPose; file: File }[],
 ): Promise<CheckinPhotoInput[]> {
   const stored: CheckinPhotoInput[] = [];
   for (const { pose, file } of files) {
     const buffer = Buffer.from(await file.arrayBuffer());
-    stored.push({ pose, storageKey: await putCheckinPhoto(buffer, file.type) });
+    stored.push({ pose, storageKey: await putCheckinPhoto(studentId, buffer, file.type) });
   }
   return stored;
 }

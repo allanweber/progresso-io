@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 
+import { ExerciseThumb } from "@/components/exercises/exercise-media";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
@@ -20,43 +21,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
 import {
+  BODY_PART_OPTIONS,
   CATEGORY_OPTIONS,
   EQUIPMENT_OPTIONS,
+  MACHINE_KIND_OPTIONS,
+  NEED_OPTIONS,
+  SECONDARY_MUSCLE_OPTIONS,
+  TARGET_OPTIONS,
   exerciseFormSchema,
+  isMachineEquipment,
+  type ExerciseBodyPart,
   type ExerciseCategory,
+  type ExerciseDetailDto,
   type ExerciseEquipment,
-  type ExerciseForce,
-  type ExerciseLevel,
-  type ExerciseMechanic,
+  type ExerciseMachineKind,
   type ExerciseMutationResponse,
-  exerciseImageUrl,
-  FORCE_LABELS,
-  LEVEL_OPTIONS,
-  MECHANIC_LABELS,
-  MUSCLE_OPTIONS,
-  type Muscle,
+  type ExerciseNeed,
+  type ExerciseSecondaryMuscle,
+  type ExerciseTarget,
 } from "@/lib/exercises";
+import { cn } from "@/lib/utils";
 
-/**
- * The one form used to create and edit a custom exercise, shared by the coach
- * library and the admin base catalog (they differ only in the endpoints, cache
- * keys and redirect path). It POSTs to the collection or PUTs to the item, both
- * via TanStack Query, validating with the exact zod schema the API uses. Free
- * text is limited to the names, description and the instruction steps; every other
- * field is a fixed enum (per the project rule). Images are uploaded to R2 first
- * (each returns a stored key), then saved with the exercise.
- */
-
-const FORCE_OPTIONS = (Object.keys(FORCE_LABELS) as ExerciseForce[]).map((v) => ({
-  value: v,
-  label: FORCE_LABELS[v],
-}));
-const MECHANIC_OPTIONS = (Object.keys(MECHANIC_LABELS) as ExerciseMechanic[]).map(
-  (v) => ({ value: v, label: MECHANIC_LABELS[v] }),
-);
-const MAX_IMAGES = 2;
-
-/** Uploads one file to the R2 image endpoint and returns its stored key. */
 async function uploadImage(endpoint: string, file: File): Promise<string> {
   const body = new FormData();
   body.append("file", file);
@@ -68,54 +53,60 @@ async function uploadImage(endpoint: string, file: File): Promise<string> {
   return data.key as string;
 }
 
-/** The subset of an exercise the form seeds its fields from (edit mode). */
-export type ExerciseFormSource = {
-  id: string;
-  name: string;
-  nameEn: string | null;
-  description: string | null;
-  category: ExerciseCategory;
-  level: ExerciseLevel;
-  force: ExerciseForce | null;
-  mechanic: ExerciseMechanic | null;
-  equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  secondaryMuscles: Muscle[];
-  instructions: string[];
-  instructionsEn: string[];
-  images: string[];
-};
+export type ExerciseFormSource = Pick<
+  ExerciseDetailDto,
+  | "id"
+  | "name"
+  | "nameEn"
+  | "description"
+  | "descriptionEn"
+  | "bodyPart"
+  | "category"
+  | "equipment"
+  | "machineKind"
+  | "target"
+  | "secondaryMuscles"
+  | "needs"
+  | "hold"
+  | "instructions"
+  | "instructionsEn"
+  | "image"
+>;
 
 type Values = {
   name: string;
   nameEn: string;
   description: string;
+  descriptionEn: string;
+  bodyPart: ExerciseBodyPart | "";
   category: ExerciseCategory | "";
-  level: ExerciseLevel | "";
-  force: ExerciseForce | "";
-  mechanic: ExerciseMechanic | "";
   equipment: ExerciseEquipment | "";
-  primaryMuscles: Muscle[];
-  secondaryMuscles: Muscle[];
+  machineKind: ExerciseMachineKind | "";
+  target: ExerciseTarget | "";
+  secondaryMuscles: ExerciseSecondaryMuscle[];
+  needs: ExerciseNeed[];
+  hold: boolean;
   instructions: string[];
   instructionsEn: string[];
-  images: string[];
+  image: string;
 };
 
 const EMPTY: Values = {
   name: "",
   nameEn: "",
   description: "",
-  category: "",
-  level: "",
-  force: "",
-  mechanic: "",
-  equipment: "",
-  primaryMuscles: [],
+  descriptionEn: "",
+  bodyPart: "",
+  category: "strength",
+  equipment: "body weight",
+  machineKind: "",
+  target: "",
   secondaryMuscles: [],
+  needs: [],
+  hold: false,
   instructions: [],
   instructionsEn: [],
-  images: [],
+  image: "",
 };
 
 function toValues(e: ExerciseFormSource): Values {
@@ -123,18 +114,113 @@ function toValues(e: ExerciseFormSource): Values {
     name: e.name,
     nameEn: e.nameEn ?? "",
     description: e.description ?? "",
+    descriptionEn: e.descriptionEn ?? "",
+    bodyPart: e.bodyPart,
     category: e.category,
-    level: e.level,
-    force: e.force ?? "",
-    mechanic: e.mechanic ?? "",
-    equipment: e.equipment ?? "",
-    primaryMuscles: e.primaryMuscles,
+    equipment: e.equipment,
+    machineKind: e.machineKind ?? "",
+    target: e.target,
     secondaryMuscles: e.secondaryMuscles,
+    needs: e.needs,
+    hold: e.hold,
     instructions: e.instructions,
     instructionsEn: e.instructionsEn,
-    images: e.images,
+    image: e.image ?? "",
   };
 }
+
+const CHIP_ON =
+  "rounded-full border border-primary bg-primary-light px-3 py-1.5 text-body-dense font-medium text-primary";
+const CHIP_OFF =
+  "rounded-full border border-border bg-card px-3 py-1.5 text-body-dense text-text-secondary transition-colors hover:border-primary";
+
+function toggle<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
+}
+
+const ChipGroup = memo(function ChipGroup<T extends string>({
+  label,
+  options,
+  value,
+  error,
+  onChange,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T | T[] | "";
+  error?: string;
+  onChange: (value: never) => void;
+}) {
+  const change = onChange as (value: T | T[]) => void;
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
+        {options.map((o) => {
+          const active = Array.isArray(value) ? value.includes(o.value) : value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => change(Array.isArray(value) ? toggle(value, o.value) : o.value)}
+              className={active ? CHIP_ON : CHIP_OFF}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="text-body-dense text-destructive">{error}</p>}
+    </div>
+  );
+});
+
+const SelectField = memo(function SelectField<T extends string>({
+  id,
+  label,
+  value,
+  options,
+  error,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: T | "";
+  options: { value: T; label: string }[];
+  error?: string;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value} onValueChange={(v) => onChange(v as T)}>
+        <SelectTrigger
+          id={id}
+          aria-invalid={error ? true : undefined}
+          className={error ? "border-destructive" : undefined}
+        >
+          <SelectValue placeholder="Selecione…" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-body-dense text-destructive">{error}</p>}
+    </div>
+  );
+}) as <T extends string>(props: {
+  id: string;
+  label: string;
+  value: T | "";
+  options: { value: T; label: string }[];
+  error?: string;
+  onChange: (v: T) => void;
+}) => React.ReactElement;
 
 export function ExerciseForm({
   mode,
@@ -147,25 +233,24 @@ export function ExerciseForm({
 }: {
   mode: "create" | "edit";
   exercise?: ExerciseFormSource;
-  /** API collection this form writes to, e.g. "/api/exercises". */
   apiBase: string;
-  /** Multipart image-upload endpoint, e.g. "/api/exercises/images". */
   imageEndpoint: string;
-  /** TanStack Query list/detail keys to invalidate on success. */
   listKey: string;
   detailKey: string;
-  /** Route the form navigates to after saving (`${detailPath}/${id}`). */
   detailPath: string;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  // Selected-but-not-yet-uploaded images: we keep the File objects in memory and
-  // only upload them to R2 when the exercise is actually saved — so abandoning
-  // the form, a failed validation, or removing an image before saving never
-  // leaves an orphan object in the bucket.
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const preview = useMemo(
+    () => (pendingFile ? URL.createObjectURL(pendingFile) : null),
+    [pendingFile],
+  );
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
 
   const mutation = useMutation({
     mutationFn: (values: Values) =>
@@ -188,32 +273,23 @@ export function ExerciseForm({
     defaultValues: exercise ? toValues(exercise) : EMPTY,
     validators: { onChange: exerciseFormSchema },
     onSubmit: async ({ value }) => {
-      // Only reached once the form is valid. Upload the in-memory files now,
-      // then save the exercise with the resulting keys plus any already-saved
-      // ones — so nothing is written to R2 until the exercise itself is saved.
-      let images = value.images;
-      if (pendingFiles.length > 0) {
+      let image = value.image;
+      if (pendingFile) {
         setImageError(null);
-        setUploadingImages(true);
+        setUploading(true);
         try {
-          const keys: string[] = [];
-          for (const file of pendingFiles) {
-            keys.push(await uploadImage(imageEndpoint, file));
-          }
-          images = [...value.images, ...keys].slice(0, MAX_IMAGES);
+          image = await uploadImage(imageEndpoint, pendingFile);
         } catch (e) {
-          setImageError(
-            e instanceof Error ? e.message : "Falha ao enviar a imagem.",
-          );
+          setImageError(e instanceof Error ? e.message : "Falha ao enviar a imagem.");
           return;
         } finally {
-          setUploadingImages(false);
+          setUploading(false);
         }
       }
       try {
-        await mutation.mutateAsync({ ...value, images });
+        await mutation.mutateAsync({ ...value, image });
       } catch {
-        /* surfaced via mutation.error */
+        return;
       }
     },
   });
@@ -239,225 +315,224 @@ export function ExerciseForm({
         </div>
       )}
 
-      {/* Images (up to two) — kept in memory, uploaded on save. */}
-      <form.Field name="images">
-        {(field) => {
-          const total = field.state.value.length + pendingFiles.length;
-          return (
-            <ImageUploader
-              existingKeys={field.state.value}
-              pendingFiles={pendingFiles}
-              canAdd={total < MAX_IMAGES}
-              busy={uploadingImages}
-              error={imageError}
-              onAddFiles={(files) => {
-                setImageError(null);
-                const room = MAX_IMAGES - total;
-                if (room <= 0) return;
-                setPendingFiles((prev) => [...prev, ...files.slice(0, room)]);
-              }}
-              onRemoveExisting={(key) =>
-                field.handleChange(
-                  field.state.value.filter((k) => k !== key),
-                )
-              }
-              onRemovePending={(idx) =>
-                setPendingFiles((prev) => prev.filter((_, i) => i !== idx))
-              }
-            />
-          );
-        }}
-      </form.Field>
-
-      <form.Field name="name">
+      <form.Field name="image">
         {(field) => (
-          <Field
-            id="name"
-            label="Nome do exercício"
-            placeholder="Ex.: Agachamento com halteres"
-            value={field.state.value}
-            onBlur={field.handleBlur}
-            onChange={(e) => field.handleChange(e.target.value)}
-            error={fieldError(field, serverErrors?.name)}
-          />
-        )}
-      </form.Field>
-
-      <form.Field name="nameEn">
-        {(field) => (
-          <Field
-            id="nameEn"
-            label="Nome em inglês (opcional)"
-            placeholder="Ex.: Dumbbell Squat"
-            lang="en"
-            value={field.state.value}
-            onBlur={field.handleBlur}
-            onChange={(e) => field.handleChange(e.target.value)}
-            error={fieldError(field, serverErrors?.nameEn)}
-          />
-        )}
-      </form.Field>
-
-      <form.Field name="description">
-        {(field) => (
-          <div className="space-y-1.5">
-            <Label htmlFor="description">Descrição (opcional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Um resumo curto do exercício."
-              value={field.state.value}
-              onBlur={field.handleBlur}
-              onChange={(e) => field.handleChange(e.target.value)}
-            />
-            {fieldError(field, serverErrors?.description) && (
-              <p className="text-body-dense text-destructive">
-                {fieldError(field, serverErrors?.description)}
-              </p>
-            )}
+          <div className="space-y-2">
+            <Label>Foto (opcional)</Label>
+            <p className="text-xs text-muted-foreground">A foto é enviada ao salvar o exercício.</p>
+            <div className="flex flex-wrap gap-3">
+              {(preview || field.state.value) && (
+                <div className="relative size-28 overflow-hidden rounded-2xl border border-border">
+                  {preview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={preview} alt="Foto do exercício" className="size-full object-cover" />
+                  ) : (
+                    <ExerciseThumb image={field.state.value} className="size-full" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingFile(null);
+                      field.handleChange("");
+                    }}
+                    aria-label="Remover foto"
+                    className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-text-secondary shadow transition-colors hover:text-destructive"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              )}
+              {!preview && !field.state.value && (
+                <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-card text-label text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                  <Upload className="size-5" />
+                  {uploading ? "Enviando…" : "Adicionar"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      setImageError(null);
+                      setPendingFile(e.target.files?.[0] ?? null);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+            {imageError && <p className="text-body-dense text-destructive">{imageError}</p>}
           </div>
         )}
       </form.Field>
 
-      {/* Enum facets */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <form.Field name="category">
-          {(field) => {
-            const err = fieldError(field, serverErrors?.category);
-            return (
-              <div className="space-y-1.5">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={field.state.value || undefined}
-                  onValueChange={(v) =>
-                    field.handleChange(v as ExerciseCategory)
-                  }
-                >
-                  <SelectTrigger
-                    id="category"
-                    aria-invalid={err ? true : undefined}
-                    className={err ? "border-destructive" : undefined}
-                  >
-                    <SelectValue placeholder="Selecione…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORY_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {err && <p className="text-body-dense text-destructive">{err}</p>}
-              </div>
-            );
-          }}
+        <form.Field name="name">
+          {(field) => (
+            <Field
+              id="name"
+              label="Nome do exercício"
+              placeholder="Ex.: Agachamento com halteres"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+              error={fieldError(field, serverErrors?.name)}
+            />
+          )}
         </form.Field>
-
-        <form.Field name="level">
-          {(field) => {
-            const err = fieldError(field, serverErrors?.level);
-            return (
-              <div className="space-y-1.5">
-                <Label htmlFor="level">Nível</Label>
-                <Select
-                  value={field.state.value || undefined}
-                  onValueChange={(v) => field.handleChange(v as ExerciseLevel)}
-                >
-                  <SelectTrigger
-                    id="level"
-                    aria-invalid={err ? true : undefined}
-                    className={err ? "border-destructive" : undefined}
-                  >
-                    <SelectValue placeholder="Selecione…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEVEL_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {err && <p className="text-body-dense text-destructive">{err}</p>}
-              </div>
-            );
-          }}
+        <form.Field name="nameEn">
+          {(field) => (
+            <Field
+              id="nameEn"
+              label="Nome em inglês (opcional)"
+              placeholder="Ex.: Dumbbell squat"
+              lang="en"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+              error={fieldError(field, serverErrors?.nameEn)}
+            />
+          )}
         </form.Field>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <form.Field name="bodyPart">
+        {(field) => (
+          <ChipGroup
+            label="Região do corpo"
+            options={BODY_PART_OPTIONS}
+            value={field.state.value}
+            error={fieldError(field, serverErrors?.bodyPart)}
+            onChange={field.handleChange}
+          />
+        )}
+      </form.Field>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <form.Field name="target">
+          {(field) => (
+            <SelectField
+              id="target"
+              label="Músculo principal"
+              value={field.state.value}
+              options={TARGET_OPTIONS}
+              error={fieldError(field, serverErrors?.target)}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.Field>
+        <form.Field name="category">
+          {(field) => (
+            <SelectField
+              id="category"
+              label="Tipo de exercício"
+              value={field.state.value}
+              options={CATEGORY_OPTIONS}
+              error={fieldError(field, serverErrors?.category)}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.Field>
         <form.Field name="equipment">
           {(field) => (
-            <OptionalSelect
+            <SelectField
               id="equipment"
               label="Equipamento"
               value={field.state.value}
               options={EQUIPMENT_OPTIONS}
-              onChange={(v) => field.handleChange(v as ExerciseEquipment | "")}
+              error={fieldError(field, serverErrors?.equipment)}
+              onChange={field.handleChange}
             />
           )}
         </form.Field>
-        <form.Field name="force">
+        <form.Subscribe selector={(s) => s.values.equipment}>
+          {(equipment) =>
+            equipment && isMachineEquipment(equipment) ? (
+              <form.Field name="machineKind">
+                {(field) => (
+                  <SelectField
+                    id="machineKind"
+                    label="Máquina"
+                    value={field.state.value}
+                    options={MACHINE_KIND_OPTIONS}
+                    error={fieldError(field, serverErrors?.machineKind)}
+                    onChange={field.handleChange}
+                  />
+                )}
+              </form.Field>
+            ) : null
+          }
+        </form.Subscribe>
+      </div>
+
+      <form.Field name="secondaryMuscles">
+        {(field) => (
+          <ChipGroup
+            label="Músculos secundários"
+            options={SECONDARY_MUSCLE_OPTIONS}
+            value={field.state.value}
+            onChange={field.handleChange}
+          />
+        )}
+      </form.Field>
+
+      <div className="flex flex-wrap gap-6">
+        <form.Field name="needs">
           {(field) => (
-            <OptionalSelect
-              id="force"
-              label="Força"
+            <ChipGroup
+              label="Precisa também de"
+              options={NEED_OPTIONS}
               value={field.state.value}
-              options={FORCE_OPTIONS}
-              onChange={(v) => field.handleChange(v as ExerciseForce | "")}
+              onChange={field.handleChange}
             />
           )}
         </form.Field>
-        <form.Field name="mechanic">
+        <form.Field name="hold">
           {(field) => (
-            <OptionalSelect
-              id="mechanic"
-              label="Mecânica"
-              value={field.state.value}
-              options={MECHANIC_OPTIONS}
-              onChange={(v) => field.handleChange(v as ExerciseMechanic | "")}
-            />
+            <label className="flex h-11 cursor-pointer items-center gap-2 self-end text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={field.state.value}
+                onChange={(e) => field.handleChange(e.target.checked)}
+                className="size-4 accent-primary"
+              />
+              Exercício mantido por tempo (isometria)
+            </label>
           )}
         </form.Field>
       </div>
 
-      {/* Muscles */}
-      <form.Field name="primaryMuscles">
-        {(field) => (
-          <MusclePicker
-            label="Músculos primários"
-            selected={field.state.value}
-            onToggle={(m) =>
-              field.handleChange(
-                field.state.value.includes(m)
-                  ? field.state.value.filter((x) => x !== m)
-                  : [...field.state.value, m],
-              )
-            }
-          />
-        )}
-      </form.Field>
-      <form.Field name="secondaryMuscles">
-        {(field) => (
-          <MusclePicker
-            label="Músculos secundários"
-            selected={field.state.value}
-            onToggle={(m) =>
-              field.handleChange(
-                field.state.value.includes(m)
-                  ? field.state.value.filter((x) => x !== m)
-                  : [...field.state.value, m],
-              )
-            }
-          />
-        )}
-      </form.Field>
-
-      {/* Instructions (steps), in PT-BR and in English */}
       {(
         [
-          ["instructions", "Como executar (passos)", "pt-BR", "Passo"],
-          ["instructionsEn", "Como executar em inglês (opcional)", "en", "Step"],
+          ["description", "Descrição (opcional)", "pt-BR", "Um resumo curto do exercício."],
+          ["descriptionEn", "Descrição em inglês (opcional)", "en", "A short summary of the exercise."],
+        ] as const
+      ).map(([name, label, lang, placeholder]) => (
+        <form.Field key={name} name={name}>
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label htmlFor={name}>{label}</Label>
+              <Textarea
+                id={name}
+                lang={lang}
+                placeholder={placeholder}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              {fieldError(field, serverErrors?.[name]) && (
+                <p className="text-body-dense text-destructive">
+                  {fieldError(field, serverErrors?.[name])}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
+      ))}
+
+      {(
+        [
+          ["instructions", "Como fazer (passos)", "pt-BR", "Passo"],
+          ["instructionsEn", "Como fazer em inglês (opcional)", "en", "Step"],
         ] as const
       ).map(([list, title, lang, step]) => (
         <form.Field key={list} name={list} mode="array">
@@ -465,12 +540,7 @@ export function ExerciseForm({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label>{title}</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => field.pushValue("")}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={() => field.pushValue("")}>
                   <Plus className="size-4" />
                   Adicionar passo
                 </Button>
@@ -502,7 +572,9 @@ export function ExerciseForm({
                         type="button"
                         onClick={() => field.removeValue(i)}
                         aria-label={`Remover passo ${i + 1}${list === "instructionsEn" ? " em inglês" : ""}`}
-                        className="mt-2 shrink-0 rounded-full p-1.5 text-meta transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        className={cn(
+                          "mt-2 shrink-0 rounded-full p-1.5 text-meta transition-colors hover:bg-destructive/10 hover:text-destructive",
+                        )}
                       >
                         <Trash2 className="size-4" />
                       </button>
@@ -516,9 +588,9 @@ export function ExerciseForm({
       ))}
 
       <div className="flex items-center gap-3 pt-1">
-        <Button type="submit" disabled={mutation.isPending || uploadingImages}>
-          {uploadingImages
-            ? "Enviando imagens…"
+        <Button type="submit" disabled={mutation.isPending || uploading}>
+          {uploading
+            ? "Enviando foto…"
             : mutation.isPending
               ? "Salvando…"
               : mode === "create"
@@ -529,198 +601,11 @@ export function ExerciseForm({
           type="button"
           variant="outline"
           onClick={() => router.back()}
-          disabled={mutation.isPending || uploadingImages}
+          disabled={mutation.isPending || uploading}
         >
           Cancelar
         </Button>
       </div>
     </form>
-  );
-}
-
-/** An optional enum select (adds a "Nenhum" choice that maps to ""). Inline — used only here. */
-function OptionalSelect({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Select
-        value={value || "none"}
-        onValueChange={(v) => onChange(v === "none" ? "" : v)}
-      >
-        <SelectTrigger id={id}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">Nenhum</SelectItem>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-/** A grid of toggle chips for a set of muscles. Inline — used only in this form. */
-function MusclePicker({
-  label,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  selected: Muscle[];
-  onToggle: (m: Muscle) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap gap-2">
-        {MUSCLE_OPTIONS.map((o) => {
-          const active = selected.includes(o.value);
-          return (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => onToggle(o.value)}
-              aria-pressed={active}
-              className={
-                active
-                  ? "rounded-full border border-primary bg-primary-light px-3 py-1.5 text-body-dense font-medium text-primary"
-                  : "rounded-full border border-border bg-card px-3 py-1.5 text-body-dense text-text-secondary transition-colors hover:border-primary"
-              }
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Up to two image slots. Already-saved images are shown by their R2 key; newly
- * picked files are held in memory (with a local object-URL preview) and only
- * uploaded to R2 when the exercise is saved. Inline — used only here.
- */
-function ImageUploader({
-  existingKeys,
-  pendingFiles,
-  canAdd,
-  busy,
-  error,
-  onAddFiles,
-  onRemoveExisting,
-  onRemovePending,
-}: {
-  existingKeys: string[];
-  pendingFiles: File[];
-  canAdd: boolean;
-  busy: boolean;
-  error: string | null;
-  onAddFiles: (files: File[]) => void;
-  onRemoveExisting: (key: string) => void;
-  onRemovePending: (index: number) => void;
-}) {
-  // Local previews for the in-memory files; revoke them when they change / unmount.
-  const previews = useMemo(
-    () => pendingFiles.map((f) => URL.createObjectURL(f)),
-    [pendingFiles],
-  );
-  useEffect(
-    () => () => previews.forEach((url) => URL.revokeObjectURL(url)),
-    [previews],
-  );
-
-  return (
-    <div className="space-y-2">
-      <Label>Imagens (até {MAX_IMAGES})</Label>
-      <p className="text-xs text-muted-foreground">
-        As imagens são enviadas ao salvar o exercício.
-      </p>
-      <div className="flex flex-wrap gap-3">
-        {existingKeys.map((key) => {
-          const src = exerciseImageUrl(key);
-          return (
-            <div
-              key={key}
-              className="relative size-28 overflow-hidden rounded-2xl border border-border bg-surface-light"
-            >
-              {src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={src}
-                  alt="Imagem do exercício"
-                  className="size-full object-cover"
-                />
-              ) : null}
-              <button
-                type="button"
-                onClick={() => onRemoveExisting(key)}
-                aria-label="Remover imagem"
-                className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-text-secondary shadow transition-colors hover:text-destructive"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          );
-        })}
-
-        {pendingFiles.map((file, idx) => (
-          <div
-            key={`${file.name}-${idx}`}
-            className="relative size-28 overflow-hidden rounded-2xl border border-border bg-surface-light"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previews[idx]}
-              alt={file.name}
-              className="size-full object-cover"
-            />
-            <button
-              type="button"
-              onClick={() => onRemovePending(idx)}
-              aria-label="Remover imagem"
-              className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-text-secondary shadow transition-colors hover:text-destructive"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        ))}
-
-        {canAdd && (
-          <label className="flex size-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-card text-label text-muted-foreground transition-colors hover:border-primary hover:text-primary">
-            <Upload className="size-5" />
-            {busy ? "Enviando…" : "Adicionar"}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="sr-only"
-              disabled={busy}
-              onChange={(e) => {
-                onAddFiles(Array.from(e.target.files ?? []));
-                e.target.value = "";
-              }}
-            />
-          </label>
-        )}
-      </div>
-      {error && <p className="text-body-dense text-destructive">{error}</p>}
-    </div>
   );
 }

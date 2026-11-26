@@ -171,16 +171,10 @@ try {
     // offline in `tests/turnstile.test.ts`.
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: "",
     TURNSTILE_SECRET_KEY: "",
+    NEXT_PUBLIC_EXERCISE_IMAGE_BASE_URL: "https://media.e2e.test",
   };
 
-  console.info("→ Applying migrations…");
-  run("node", ["scripts/migrate.mjs"], { env });
-
-  console.info("→ Seeding a verified coach…");
-  // Through the package script, not `tsx src/db/seed.ts` directly: the seed
-  // reaches `@/server/observability`, which imports `server-only`. That package
-  // throws unless the `react-server` export condition is set, so `db:seed`
-  // carries `--conditions=react-server` and this must not bypass it.
+  console.info("→ Applying migrations and seeding…");
   run("pnpm", ["run", "db:seed"], { env });
 
   // Playwright serves a PRODUCTION build, not `next dev` — a dev server

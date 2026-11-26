@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { DB } from "@/db";
@@ -9,6 +8,7 @@ import { studentPortal, studentWorkouts } from "@/server/dal";
 import type { WorkoutWriteInput } from "@/server/dal/workouts";
 import type { WorkoutReps } from "@/lib/workouts";
 
+import { exerciseRow } from "./exercise-fixture";
 import { createTestDb, type TestDb } from "./pglite";
 
 /**
@@ -36,19 +36,14 @@ const range = (...values: number[]): WorkoutReps => ({ kind: "range", values });
 async function addExercise(name: string, clinicId?: string | null) {
   const [row] = await db
     .insert(schema.exercise)
-    .values({
-      name,
-      searchText: sql`unaccent(lower(${name}))`,
-      category: "strength",
-      level: "beginner",
-      primaryMuscles: [],
-      secondaryMuscles: [],
-      instructions: [],
-      images: [],
-      clinicId: clinicId ?? null,
-      source: clinicId ? "custom" : "free-exercise-db",
-      code: clinicId ? null : name.toLowerCase().replace(/\s+/g, "_"),
-    })
+    .values(
+      exerciseRow({
+        name,
+        clinicId: clinicId ?? null,
+        source: clinicId ? "custom" : "opengym",
+        code: clinicId ? null : name.toLowerCase().replace(/\s+/g, "_"),
+      }),
+    )
     .returning({ id: schema.exercise.id });
   return row.id;
 }

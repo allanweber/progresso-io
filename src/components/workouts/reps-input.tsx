@@ -30,7 +30,7 @@ const REPS_KINDS: { kind: RepsKind; label: string; hint: string }[] = [
   {
     kind: "range",
     label: "Intervalo",
-    hint: "Uma faixa como 8-12, ou uma sequência maior.",
+    hint: "Uma faixa como 10-12, ou uma sequência maior.",
   },
   { kind: "fixed", label: "Número", hint: "Sempre a mesma contagem." },
   {
@@ -54,7 +54,7 @@ function freshReps(kind: RepsKind): WorkoutReps {
     case "fixed":
       return { kind: "fixed", value: 10 };
     case "range":
-      return { kind: "range", values: [8, 12] };
+      return { kind: "range", values: [10, 12] };
     case "pyramid":
       return { kind: "pyramid", values: [12, 10, 8, 6] };
     case "duration":
@@ -85,8 +85,8 @@ function SequenceEditor({
         {values.map((v, i) => (
           <div key={i} className="flex items-center gap-1">
             {i > 0 && (
-              <span aria-hidden className="text-muted-foreground">
-                –
+              <span aria-hidden className="px-0.5 text-label text-muted-foreground">
+                {kind === "range" && values.length === 2 ? "a" : "–"}
               </span>
             )}
             <NumberField
@@ -99,17 +99,17 @@ function SequenceEditor({
               min={1}
               max={1000}
               ariaLabel={`Posição ${i + 1}`}
-              inputClassName={`${numberFieldClass} w-12 px-1.5 font-semibold`}
+              inputClassName={`${numberFieldClass} w-14 px-1.5 font-semibold`}
             />
           </div>
         ))}
-        <div className="ml-0.5 flex shrink-0 items-center gap-1">
+        <div className="ml-1 flex shrink-0 items-center gap-1">
           <button
             type="button"
             aria-label="Adicionar posição"
             title="Adicionar posição"
             onClick={() => onChange([...values, values[values.length - 1] ?? 8])}
-            className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-input text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-input text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus className="size-4" />
           </button>
@@ -119,7 +119,7 @@ function SequenceEditor({
               aria-label="Remover posição"
               title="Remover posição"
               onClick={() => onChange(values.slice(0, -1))}
-              className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-input text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+              className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-input text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
             >
               <Minus className="size-4" />
             </button>
@@ -161,21 +161,21 @@ export function RepsInput({
   return (
     <div className="space-y-1.5">
       {/* The header carries the kind chip, so choosing a kind costs no row of
-          its own. h-8 keeps this baseline aligned with the Séries label. */}
-      <div className="flex h-8 items-center justify-between gap-2">
+          its own. h-7 keeps this baseline aligned with the Séries label. */}
+      <div className="flex h-7 items-center gap-2">
         <Label>{value.kind === "duration" ? "Tempo" : "Repetições"}</Label>
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
               aria-label={`Tipo de repetições: ${kindLabel(value.kind)}. Alterar.`}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-surface-light px-3 text-label font-medium text-text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 text-label font-medium text-primary transition-colors hover:border-primary focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
             >
               {kindLabel(value.kind)}
               <ChevronDown className="size-3.5 shrink-0" aria-hidden />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-72 p-1.5">
+          <PopoverContent align="start" className="w-72 p-1.5">
             <ul>
               {REPS_KINDS.map((k) => {
                 const current = k.kind === value.kind;
@@ -232,7 +232,11 @@ export function RepsInput({
           kind="range"
           values={value.values}
           onChange={(values) => onChange({ kind: "range", values })}
-          hint="Ex.: 8-12, ou uma sequência 10-8-6-4."
+          hint={
+            value.values.length === 2
+              ? `De ${value.values[0]} a ${value.values[1]} repetições por série. Use + para uma sequência como 10-8-6-4.`
+              : `Sequência de ${value.values.length} posições.`
+          }
         />
       )}
 

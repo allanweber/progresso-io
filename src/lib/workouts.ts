@@ -1,8 +1,12 @@
+import type { Sex } from "@/db/schema";
 import {
+  mediaForSex,
+  type BodyMapMuscle,
   type ExerciseCategory,
   type ExerciseEquipment,
+  type ExerciseMediaSet,
   type ExerciseOrigin,
-  type Muscle,
+  type ExerciseTarget,
 } from "@/lib/exercises";
 import { z } from "@/lib/validation";
 import {
@@ -184,19 +188,13 @@ export function formatRest(seconds: number | null): string {
  * - `library` — from the exercise catalog's `exercise_substitution` rules (live);
  * - `custom`  — cadastrado neste treino (stored on the item, with an optional note).
  */
-export type WorkoutExerciseSubstituteDto = {
+export type WorkoutExerciseSubstituteDto = ExerciseMediaSet & {
   exerciseId: string;
   name: string;
   code: string | null;
   origin: WorkoutOrigin;
-  /** First image key; resolve with `exerciseImageUrl`. */
-  thumbnail: string | null;
-  /** All image keys, for the substitute's own detail view. */
-  images: string[];
-  /** Ordered execution steps (PT-BR), for the substitute's detail view. */
   instructions: string[];
-  /** Primary muscles worked. */
-  primaryMuscles: Muscle[];
+  mapPrimary: BodyMapMuscle[];
   source: "library" | "custom";
   /** The coach's reason, for a custom substitute; null for library ones. */
   note: string | null;
@@ -207,7 +205,7 @@ export type WorkoutExerciseSubstituteDto = {
  * instructions, muscles, substitutes) are derived live on read; a ref whose
  * exercise is no longer visible becomes an `available: false` placeholder.
  */
-export type WorkoutExerciseDto = {
+export type WorkoutExerciseDto = ExerciseMediaSet & {
   /** Row id (template) or a synthetic index id (student tree). */
   id: string;
   exerciseId: string;
@@ -216,10 +214,9 @@ export type WorkoutExerciseDto = {
   origin: WorkoutOrigin;
   category: ExerciseCategory | null;
   equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  /** Image keys ("<code>/0.jpg"); resolve with `exerciseImageUrl`. */
-  images: string[];
-  /** Ordered execution steps (PT-BR). */
+  target: ExerciseTarget | null;
+  mapPrimary: BodyMapMuscle[];
+  mapSecondary: BodyMapMuscle[];
   instructions: string[];
   /** false when the referenced exercise is unavailable (hard-deleted). */
   available: boolean;
@@ -436,3 +433,23 @@ export const workoutFormSchema = z.object({
 
 export type WorkoutFormInput = z.input<typeof workoutFormSchema>;
 export type WorkoutFormValues = z.output<typeof workoutFormSchema>;
+
+function withMedia<T extends ExerciseMediaSet>(item: T, sex: Sex | null | undefined): T {
+  const media = mediaForSex(item, sex);
+  return { ...item, image: media.image, video: media.video, femaleImage: null, femaleVideo: null };
+}
+
+export function workoutForSex<
+  W extends { sessions: { exercises: WorkoutExerciseDto[] }[] },
+>(workout: W, sex: Sex | null | undefined): W {
+  return {
+    ...workout,
+    sessions: workout.sessions.map((session) => ({
+      ...session,
+      exercises: session.exercises.map((e) => ({
+        ...withMedia(e, sex),
+        substitutes: e.substitutes.map((sub) => withMedia(sub, sex)),
+      })),
+    })),
+  };
+}

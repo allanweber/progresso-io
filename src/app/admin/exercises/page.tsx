@@ -12,6 +12,7 @@ export default function AdminExercisesPage() {
       apiBase="/api/admin/exercises"
       basePath="/admin/exercises"
       admin
+      createHref="/admin/exercises/new"
       title="Exercícios"
       subtitle="Catálogo de exercícios da plataforma (base compartilhada e de cada clínica)."
       action={

@@ -252,34 +252,45 @@ CREATE TABLE "exercise" (
 	"name" text NOT NULL,
 	"name_en" text,
 	"description" text,
+	"description_en" text,
 	"search_text" text NOT NULL,
+	"body_part" text NOT NULL,
 	"category" text NOT NULL,
-	"level" text NOT NULL,
-	"force" text,
-	"mechanic" text,
-	"equipment" text,
-	"primary_muscles" text[] DEFAULT '{}' NOT NULL,
+	"equipment" text NOT NULL,
+	"machine_kind" text,
+	"target" text NOT NULL,
 	"secondary_muscles" text[] DEFAULT '{}' NOT NULL,
+	"map_primary" text[] DEFAULT '{}' NOT NULL,
+	"map_secondary" text[] DEFAULT '{}' NOT NULL,
+	"muscle_weights" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"needs" text[] DEFAULT '{}' NOT NULL,
+	"hold" boolean DEFAULT false NOT NULL,
+	"track" text,
 	"instructions" text[] DEFAULT '{}' NOT NULL,
 	"instructions_en" text[] DEFAULT '{}' NOT NULL,
-	"images" text[] DEFAULT '{}' NOT NULL,
-	"image_credits" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"image" text,
+	"video" text,
+	"female_image" text,
+	"female_video" text,
+	"classic" boolean DEFAULT false NOT NULL,
+	"popularity" integer DEFAULT 0 NOT NULL,
 	"source" text NOT NULL,
-	"opengym_id" text,
 	"clinic_id" uuid,
 	"archived" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "exercise_code_unique" UNIQUE("code"),
-	CONSTRAINT "exercise_opengym_id_unique" UNIQUE("opengym_id"),
-	CONSTRAINT "exercise_category_check" CHECK ("exercise"."category" in ('strength', 'stretching', 'plyometrics', 'strongman', 'powerlifting', 'cardio', 'olympic_weightlifting')),
-	CONSTRAINT "exercise_level_check" CHECK ("exercise"."level" in ('beginner', 'intermediate', 'expert')),
-	CONSTRAINT "exercise_force_check" CHECK ("exercise"."force" is null or "exercise"."force" in ('pull', 'push', 'static')),
-	CONSTRAINT "exercise_mechanic_check" CHECK ("exercise"."mechanic" is null or "exercise"."mechanic" in ('compound', 'isolation')),
-	CONSTRAINT "exercise_equipment_check" CHECK ("exercise"."equipment" is null or "exercise"."equipment" in ('body_only', 'machine', 'other', 'foam_roll', 'kettlebells', 'dumbbell', 'cable', 'barbell', 'bands', 'medicine_ball', 'exercise_ball', 'e_z_curl_bar')),
-	CONSTRAINT "exercise_primary_muscles_check" CHECK ("exercise"."primary_muscles" <@ array['abdominals', 'abductors', 'adductors', 'biceps', 'calves', 'chest', 'forearms', 'glutes', 'hamstrings', 'lats', 'lower_back', 'middle_back', 'neck', 'quadriceps', 'shoulders', 'traps', 'triceps']::text[]),
-	CONSTRAINT "exercise_secondary_muscles_check" CHECK ("exercise"."secondary_muscles" <@ array['abdominals', 'abductors', 'adductors', 'biceps', 'calves', 'chest', 'forearms', 'glutes', 'hamstrings', 'lats', 'lower_back', 'middle_back', 'neck', 'quadriceps', 'shoulders', 'traps', 'triceps']::text[]),
-	CONSTRAINT "exercise_opengym_id_format" CHECK ("exercise"."opengym_id" is null or "exercise"."opengym_id" ~ '^[0-9]{4}$')
+	CONSTRAINT "exercise_body_part_check" CHECK ("exercise"."body_part" in ('back', 'cardio', 'chest', 'lower arms', 'lower legs', 'neck', 'shoulders', 'upper arms', 'upper legs', 'waist', 'full body')),
+	CONSTRAINT "exercise_category_check" CHECK ("exercise"."category" in ('strength', 'stretching', 'mobility', 'plyometrics', 'cardio', 'olympic', 'calisthenics', 'pilates', 'yoga', 'combat', 'isometric', 'rehab')),
+	CONSTRAINT "exercise_equipment_check" CHECK ("exercise"."equipment" in ('body weight', 'dumbbell', 'cable', 'barbell', 'leverage machine', 'band', 'smith machine', 'kettlebell', 'weighted', 'stability ball', 'ez barbell', 'assisted', 'sled machine', 'medicine ball', 'rope', 'roller', 'massage ball', 'resistance band', 'bosu ball', 'olympic barbell', 'wheel roller', 'upper body ergometer', 'skierg machine', 'hammer', 'stationary bike', 'tire', 'trap bar', 'elliptical machine', 'stepmill machine', 'suspension trainer', 'sandbag', 'landmine', 'weight plate', 'clubbell', 'macebell')),
+	CONSTRAINT "exercise_machine_kind_check" CHECK ("exercise"."machine_kind" is null or "exercise"."machine_kind" in ('leg-press', 'hack-squat', 'squat-machine', 'belt-squat', 'leg-extension', 'leg-curl', 'calf-raise', 'hip-thrust', 'hip-abduction', 'glute-machine', 'chest-press', 'pec-deck', 'shoulder-press', 'lateral-raise', 'triceps-machine', 'lat-pulldown', 'seated-row', 't-bar-row', 'biceps-curl', 'back-extension', 'smith', 'assisted-pullup', 'ab-machine', 'push-sled', 'cardio', 'pilates', 'other', 'none')),
+	CONSTRAINT "exercise_target_check" CHECK ("exercise"."target" in ('abs', 'pectorals', 'biceps', 'glutes', 'front delts', 'side delts', 'rear delts', 'delts', 'triceps', 'upper back', 'lats', 'calves', 'quads', 'forearms', 'cardiovascular system', 'hamstrings', 'spine', 'traps', 'adductors', 'serratus anterior', 'abductors', 'levator scapulae', 'obliques', 'hip flexors', 'shins')),
+	CONSTRAINT "exercise_secondary_muscles_check" CHECK ("exercise"."secondary_muscles" <@ array['front delts', 'side delts', 'rear delts', 'shoulders', 'deltoids', 'rear deltoids', 'rotator cuff', 'chest', 'upper chest', 'triceps', 'biceps', 'brachialis', 'forearms', 'wrists', 'wrist flexors', 'wrist extensors', 'grip muscles', 'back', 'upper back', 'lats', 'latissimus dorsi', 'rhomboids', 'trapezius', 'traps', 'lower back', 'core', 'abdominals', 'obliques', 'lower abs', 'hip flexors', 'glutes', 'quadriceps', 'hamstrings', 'adductors', 'inner thighs', 'groin', 'calves', 'soleus', 'shins', 'ankles', 'ankle stabilizers', 'feet', 'hands', 'sternocleidomastoid']::text[]),
+	CONSTRAINT "exercise_map_primary_check" CHECK ("exercise"."map_primary" <@ array['trapezius', 'front-delts', 'side-delts', 'rear-delts', 'chest', 'lats', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm', 'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors', 'calves', 'tibialis']::text[]),
+	CONSTRAINT "exercise_map_secondary_check" CHECK ("exercise"."map_secondary" <@ array['trapezius', 'front-delts', 'side-delts', 'rear-delts', 'chest', 'lats', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm', 'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors', 'calves', 'tibialis']::text[]),
+	CONSTRAINT "exercise_needs_check" CHECK ("exercise"."needs" <@ array['bench', 'pull-up bar']::text[]),
+	CONSTRAINT "exercise_track_check" CHECK ("exercise"."track" is null or "exercise"."track" in ('distance')),
+	CONSTRAINT "exercise_source_check" CHECK ("exercise"."source" in ('opengym', 'custom'))
 );
 --> statement-breakpoint
 CREATE TABLE "exercise_substitution" (
@@ -885,7 +896,8 @@ CREATE INDEX "diet_meal_item_meal_idx" ON "diet_meal_item" USING btree ("diet_me
 CREATE INDEX "diet_meal_item_food_idx" ON "diet_meal_item" USING btree ("food_id");--> statement-breakpoint
 CREATE INDEX "diet_item_sub_item_idx" ON "diet_meal_item_substitute" USING btree ("diet_meal_item_id");--> statement-breakpoint
 CREATE INDEX "diet_item_sub_food_idx" ON "diet_meal_item_substitute" USING btree ("food_id");--> statement-breakpoint
-CREATE INDEX "exercise_category_idx" ON "exercise" USING btree ("category");--> statement-breakpoint
+CREATE INDEX "exercise_body_part_idx" ON "exercise" USING btree ("body_part");--> statement-breakpoint
+CREATE INDEX "exercise_target_idx" ON "exercise" USING btree ("target");--> statement-breakpoint
 CREATE INDEX "exercise_clinic_idx" ON "exercise" USING btree ("clinic_id");--> statement-breakpoint
 CREATE INDEX "exercise_search_trgm" ON "exercise" USING gin ("search_text" gin_trgm_ops);--> statement-breakpoint
 CREATE INDEX "exercise_sub_lookup_idx" ON "exercise_substitution" USING btree ("clinic_id","exercise_id");--> statement-breakpoint

@@ -7,11 +7,6 @@ import { sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { TestDb } from "./pglite";
 
-/**
- * Loads the real base catalog (all TACO foods + all free-exercise-db exercises)
- * from the seed artifacts into a test database, so the starter resolver runs
- * against the same data production does. Used by the starter integration tests.
- */
 
 function readNdjsonGz(relPath: string): Record<string, unknown>[] {
   const buf = gunzipSync(readFileSync(join(process.cwd(), relPath)));
@@ -97,19 +92,9 @@ export async function loadBaseCatalog(db: TestDb): Promise<void> {
 
   const exRows = readNdjsonGz("drizzle/data/exercises-catalog.ndjson.gz").map(
     (r) => ({
-      code: (r.code as string) ?? null,
-      name: r.name as string,
+      ...r,
       searchText: sql`unaccent(lower(${r.name as string}))`,
-      source: "free-exercise-db",
-      category: r.category as string,
-      level: r.level as string,
-      force: (r.force as string | null) ?? null,
-      mechanic: (r.mechanic as string | null) ?? null,
-      equipment: (r.equipment as string | null) ?? null,
-      primaryMuscles: (r.primaryMuscles as string[]) ?? [],
-      secondaryMuscles: (r.secondaryMuscles as string[]) ?? [],
-      instructions: (r.instructions as string[]) ?? [],
-      images: (r.images as string[]) ?? [],
+      source: "opengym",
       clinicId: null,
     }),
   );

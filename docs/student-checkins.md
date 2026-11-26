@@ -54,7 +54,7 @@ never public.
   The original the student picks can be any size — **only the small blob is
   uploaded**.
 - **Storage** (`src/server/r2.ts` → `putCheckinPhoto`): key shape
-  `checkins/<uuid>.<ext>`. Uploads to **R2** when configured; otherwise writes to
+  `checkins/<studentId>/<uuid>.<ext>`. Uploads to **R2** when configured; otherwise writes to
   a gitignored **`.uploads/`** dir, so local dev + e2e/CI work without cloud
   creds. `validateCheckinPhoto` is a server backstop (type + ≤ 3 MB).
 - **Delivery** (`readCheckinPhoto`): the owner reads their photos back through

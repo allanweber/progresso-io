@@ -1,4 +1,9 @@
-import type { ExerciseCategory, ExerciseEquipment, Muscle } from "@/lib/exercises";
+import type {
+  BodyMapMuscle,
+  ExerciseBodyPart,
+  ExerciseEquipment,
+  ExerciseTarget,
+} from "@/lib/exercises";
 import {
   formatReps,
   normalizeReps,
@@ -69,10 +74,11 @@ export type OpenGymExerciseInfo = {
   openGymId: string | null;
   name: string;
   description: string | null;
-  category: ExerciseCategory;
-  equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  secondaryMuscles: Muscle[];
+  bodyPart: ExerciseBodyPart;
+  equipment: ExerciseEquipment;
+  target: ExerciseTarget;
+  mapPrimary: BodyMapMuscle[];
+  mapSecondary: BodyMapMuscle[];
   instructions: string[];
 };
 
@@ -80,61 +86,6 @@ const LB_IN_KG = 0.45359237;
 const DROP_PCT = 20;
 const REST_PAUSE_REST_SEC = 15;
 const NOTE_SEPARATOR = " · ";
-
-const OPENGYM_MUSCLE: Record<Muscle, string | null> = {
-  abdominals: "abs",
-  abductors: "gluteal",
-  adductors: "adductors",
-  biceps: "biceps",
-  calves: "calves",
-  chest: "chest",
-  forearms: "forearm",
-  glutes: "gluteal",
-  hamstrings: "hamstring",
-  lats: "upper-back",
-  lower_back: "lower-back",
-  middle_back: "upper-back",
-  neck: null,
-  quadriceps: "quadriceps",
-  shoulders: "deltoids",
-  traps: "trapezius",
-  triceps: "triceps",
-};
-
-const OPENGYM_BODY_PART: Record<Muscle, string> = {
-  abdominals: "waist",
-  abductors: "upper legs",
-  adductors: "upper legs",
-  biceps: "upper arms",
-  calves: "lower legs",
-  chest: "chest",
-  forearms: "lower arms",
-  glutes: "upper legs",
-  hamstrings: "upper legs",
-  lats: "back",
-  lower_back: "back",
-  middle_back: "back",
-  neck: "neck",
-  quadriceps: "upper legs",
-  shoulders: "shoulders",
-  traps: "back",
-  triceps: "upper arms",
-};
-
-const OPENGYM_EQUIPMENT: Record<ExerciseEquipment, string | null> = {
-  body_only: "body weight",
-  machine: "leverage machine",
-  other: null,
-  foam_roll: "roller",
-  kettlebells: "kettlebell",
-  dumbbell: "dumbbell",
-  cable: "cable",
-  barbell: "barbell",
-  bands: "band",
-  medicine_ball: "medicine ball",
-  exercise_ball: "stability ball",
-  e_z_curl_bar: "ez barbell",
-};
 
 const LOAD_RE = /^\s*(\d+(?:[.,]\d+)?)\s*(kg|kgs|quilos?|lb|lbs)\.?\s*$/i;
 
@@ -162,30 +113,16 @@ function planUnit(workout: Pick<WorkoutDetailDto, "sessions">): OpenGymUnit {
   return "kg";
 }
 
-function openGymMuscles(list: Muscle[]): string[] {
-  const out: string[] = [];
-  for (const m of list) {
-    const mapped = OPENGYM_MUSCLE[m];
-    if (mapped && !out.includes(mapped)) out.push(mapped);
-  }
-  return out;
-}
-
 function customExercise(id: string, info: OpenGymExerciseInfo): OpenGymCustomExercise {
-  const primaries = openGymMuscles(info.primaryMuscles);
-  const secondaries = openGymMuscles(info.secondaryMuscles).filter(
-    (m) => !primaries.includes(m),
-  );
-  const first = info.primaryMuscles[0];
-  const bp = info.category === "cardio" ? "cardio" : first ? OPENGYM_BODY_PART[first] : "full body";
-  const eq = info.equipment ? OPENGYM_EQUIPMENT[info.equipment] : null;
+  const primaries = [...info.mapPrimary];
+  const secondaries = info.mapSecondary.filter((m) => !primaries.includes(m));
   const desc = info.description?.trim() || info.instructions.join("\n");
   return {
     id,
     n: info.name,
-    bp,
-    ...(eq ? { eq } : {}),
-    ...(primaries[0] ? { tg: primaries[0] } : {}),
+    bp: info.bodyPart,
+    eq: info.equipment,
+    tg: info.target,
     ...(primaries.length ? { primaries } : {}),
     ...(secondaries.length ? { secondaries } : {}),
     ...(primaries.length || secondaries.length

@@ -11,4 +11,4 @@ Normalized CSVs of the **Tabela Brasileira de Composição de Alimentos (TACO),
 Convention: an empty cell is an unmeasured value (→ NULL); `1e-05` is a measured
 trace ("Tr", below the quantification limit) → NULL + `is_trace = true`.
 
-Run `pnpm db:transform-taco` to regenerate `drizzle/data/taco-catalog.ndjson.gz`.
+Run `node scripts/transform-taco.mjs` to regenerate `drizzle/data/taco-catalog.ndjson.gz`.

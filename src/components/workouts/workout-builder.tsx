@@ -28,7 +28,6 @@ import {
   HeartPulse,
   Link2,
   MessageSquareText,
-  Pencil,
   Plus,
   Repeat,
   Save,
@@ -58,7 +57,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { ExerciseImageButton } from "@/components/workouts/exercise-images";
+import { ExerciseMediaButton } from "@/components/exercises/exercise-media";
 import {
   ExercisePicker,
   type PickedExercise,
@@ -76,7 +75,7 @@ import {
 } from "@/components/workouts/number-field";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { fieldError } from "@/lib/form";
-import { CATEGORY_LABELS, type Muscle } from "@/lib/exercises";
+import { CATEGORY_LABELS } from "@/lib/exercises";
 import {
   SESSION_FOCUS_SUGGESTIONS,
   SESSION_POSITION_SUGGESTIONS,
@@ -112,7 +111,6 @@ type ExerciseDraft = {
   code: string | null;
   category: string;
   thumbnail: string | null;
-  primaryMuscles: Muscle[];
   sets: number;
   reps: WorkoutReps;
   load: string;
@@ -219,8 +217,7 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
         name: x.name,
         code: x.code,
         category: x.category ? CATEGORY_LABELS[x.category] : "",
-        thumbnail: x.images[0] ?? null,
-        primaryMuscles: x.primaryMuscles,
+        thumbnail: x.image,
         sets: x.sets,
         reps: x.reps,
         load: x.load ?? "",
@@ -235,7 +232,7 @@ function initialDraft(workout?: WorkoutDetailDto): Draft {
             exerciseId: sub.exerciseId,
             name: sub.name,
             code: sub.code,
-            thumbnail: sub.thumbnail,
+            thumbnail: sub.image,
             note: sub.note ?? "",
           })),
       })),
@@ -1071,8 +1068,7 @@ const SortableSession = memo(function SortableSession({
         name: picked.name,
         code: picked.code,
         category: CATEGORY_LABELS[picked.category],
-        thumbnail: picked.thumbnail,
-        primaryMuscles: picked.primaryMuscles,
+        thumbnail: picked.image,
         sets: prescription.sets,
         reps: prescription.reps,
         load: prescription.load,
@@ -1479,22 +1475,21 @@ const SortableExercise = memo(function SortableExercise({
         >
           <GripVertical className="size-4" />
         </button>
-        <ExerciseImageButton
+        <ExerciseMediaButton
           exerciseId={exercise.exerciseId}
           name={exercise.name}
-          thumbnail={exercise.thumbnail}
-          primaryMuscles={exercise.primaryMuscles}
+          image={exercise.thumbnail}
           className="size-9 rounded-md"
         />
         {/* One control opens the editor, not two. A separate pencil button did
             the same thing as this summary and neither announced that the row
             expands, so a screen reader met two identical unlabelled toggles.
-            The pencil stays as the affordance, inside the one button. */}
+            The whole summary is the affordance. */}
         <button
           type="button"
           onClick={() => setEditing((v) => !v)}
           aria-expanded={editing}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] px-1 py-1.5 text-left"
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[10px] px-1.5 py-1.5 text-left transition-colors hover:bg-surface-light focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
         >
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-1.5">
@@ -1551,10 +1546,6 @@ const SortableExercise = memo(function SortableExercise({
               </span>
             )}
           </span>
-          <Pencil
-            className="size-4 shrink-0 text-muted-foreground"
-            aria-hidden
-          />
         </button>
         {above !== null && (
           <button

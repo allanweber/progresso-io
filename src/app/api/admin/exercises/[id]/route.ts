@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import type { AdminExerciseDetailDto } from "@/lib/admin";
 import { exerciseFormSchema } from "@/lib/exercises";
-import { admin } from "@/server/dal";
+import { admin, exercises } from "@/server/dal";
 import {
   isUuid,
   notFound,
@@ -13,10 +13,6 @@ import {
 import { logger } from "@/server/observability";
 import { withAdmin } from "@/server/guard";
 
-/**
- * Any single exercise (base or any clinic's), for the super admin. Admin-only;
- * cross-tenant and read-only.
- */
 type Params = { params: Promise<{ id: string }> };
 
 export const GET = withAdmin<Params>(
@@ -29,46 +25,13 @@ export const GET = withAdmin<Params>(
     if (!exercise) return notFound("Exercício não encontrado.");
 
     const dto: AdminExerciseDetailDto = {
-      id: exercise.id,
-      code: exercise.code,
-      name: exercise.name,
-      nameEn: exercise.nameEn,
-      description: exercise.description,
-      category: exercise.category,
-      level: exercise.level,
-      force: exercise.force,
-      mechanic: exercise.mechanic,
-      equipment: exercise.equipment,
-      primaryMuscles: exercise.primaryMuscles,
-      secondaryMuscles: exercise.secondaryMuscles,
-      instructions: exercise.instructions,
-      instructionsEn: exercise.instructionsEn,
-      images: exercise.images,
-      imageCredits: exercise.imageCredits,
-      origin: exercise.origin,
+      ...exercises.exerciseDetailDto(exercise),
       clinicName: exercise.clinicName,
-      archived: exercise.archived,
-      openGymId: exercise.openGymId,
-      substitutes: exercise.substitutes.map((s) => ({
-        id: s.id,
-        exerciseId: s.exerciseId,
-        name: s.name,
-        code: s.code,
-        category: s.category,
-        equipment: s.equipment,
-        thumbnail: s.thumbnail,
-        origin: s.origin,
-        removable: s.removable,
-      })),
     };
     return NextResponse.json(dto);
   },
 );
 
-/**
- * Edits a shared **base** exercise. Admin-only; the DAL scopes the write to
- * `clinic_id IS NULL`, so a clinic's own exercise is read-only here (a 404).
- */
 export const PUT = withAdmin<Params>(
   "admin.exercises.update",
   async (request, _session, { params }) => {
@@ -90,10 +53,6 @@ export const PUT = withAdmin<Params>(
   },
 );
 
-/**
- * Archives any exercise — base or a clinic's own. Admin-only; as a moderation
- * action the admin may retire any exercise (unlike edit, which stays base-only).
- */
 export const DELETE = withAdmin<Params>(
   "admin.exercises.archive",
   async (_request, _session, { params }) => {
@@ -107,10 +66,6 @@ export const DELETE = withAdmin<Params>(
   },
 );
 
-/**
- * Restores (unarchives) any exercise — base or a clinic's own. Admin-only; the
- * moderation counterpart of the archive above.
- */
 export const PATCH = withAdmin<Params>(
   "admin.exercises.unarchive",
   async (_request, _session, { params }) => {

@@ -1,46 +1,32 @@
-// Uploads the exercise images to the Cloudflare R2 bucket the app serves them
-// from. R2 is S3-compatible, so this uses the AWS SDK's S3 client.
-//
-// This runs AUTOMATICALLY on deploy — scripts/migrate.mjs calls
-// uploadExerciseImages() right after seeding — so no manual step is needed.
-//
-// Image source: the images are NOT committed to the repo. The keys come from
-// the seed catalog; an `added/` image is read from
-// drizzle/data/exercise-images-added/, every other one is streamed from the
-// free-exercise-db CDN.
-//
-// Required env (see .env.example): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
-// R2_SECRET_ACCESS_KEY, R2_BUCKET. Optional: R2_PREFIX. When any is missing the
-// upload is skipped (not an error), so envs without R2 deploy fine.
-//
-// Idempotent: after a full upload it writes a small manifest object; subsequent
-// runs see the manifest (a single HEAD) and skip. Delete it to force a re-upload.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-import { imageContentType, imageSourceUrl } from "./lib/exercise-image-sources.mjs";
+const OPENGYM_COMMIT = "e4a68a94c42a3c17cbd560d66ce2e46a7048ab99";
+const MEDIA_SOURCE = `https://raw.githubusercontent.com/DuarteSantos8/openGym/${OPENGYM_COMMIT}/catalogue/media`;
+const CONTENT_TYPES = { webp: "image/webp", mp4: "video/mp4" };
 
 const CATALOG = join(process.cwd(), "drizzle", "data", "exercises-catalog.ndjson.gz");
-const ADDED_IMAGES_DIR = join(process.cwd(), "drizzle", "data", "exercise-images-added");
-const MANIFEST_KEY = ".exercises-manifest.json";
+const MANIFEST_KEY = `.exercises-manifest-${OPENGYM_COMMIT}.json`;
 const CONCURRENCY = 16;
 
-/** Every image key ("<code>/<n>.jpg") referenced by the seed catalog. */
 function imageKeys() {
   const text = gunzipSync(readFileSync(CATALOG)).toString("utf8");
-  return text
+  const keys = text
     .split("\n")
     .filter(Boolean)
-    .flatMap((l) => JSON.parse(l).images ?? []);
+    .flatMap((l) => {
+      const e = JSON.parse(l);
+      return [e.image, e.video, e.femaleImage, e.femaleVideo];
+    })
+    .filter(Boolean);
+  return [...new Set(keys)];
 }
 
-/** Loads one image as a Buffer — an added image from disk, else the CDN. */
 async function loadImage(key) {
-  if (key.startsWith("added/")) return readFileSync(join(ADDED_IMAGES_DIR, key.slice("added/".length)));
-  const res = await fetch(imageSourceUrl(key));
+  const res = await fetch(`${MEDIA_SOURCE}/${key}`);
   if (!res.ok) throw new Error(`source ${res.status} for ${key}`);
   return Buffer.from(await res.arrayBuffer());
 }
@@ -62,11 +48,6 @@ function r2Client() {
   };
 }
 
-/**
- * Uploads every exercise image to R2. Returns a small result describing what
- * happened. Never throws for a missing configuration — it just skips — so the
- * deploy seed can call it unconditionally.
- */
 export async function uploadExerciseImages({ log = console.log } = {}) {
   const {
     R2_ACCOUNT_ID,
@@ -91,8 +72,6 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
 
   const { s3, prefix } = r2Client();
 
-  // A prior full upload leaves a manifest — skip when it already covers these
-  // images, so re-deploys don't re-push thousands of unchanged objects.
   const manifestKey = `${prefix}${MANIFEST_KEY}`;
   try {
     const head = await s3.send(
@@ -104,7 +83,6 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
       return { skipped: true, reason: "manifest", uploaded };
     }
   } catch {
-    // No manifest (or not readable) — do a full upload below.
   }
 
   log(`Uploading ${keys.length} exercise images to R2 "${R2_BUCKET}"…`);
@@ -119,7 +97,7 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
           Bucket: R2_BUCKET,
           Key: prefix + key,
           Body: body,
-          ContentType: imageContentType(key),
+          ContentType: CONTENT_TYPES[key.split(".").pop()] ?? "application/octet-stream",
           CacheControl: "public, max-age=31536000, immutable",
         }),
       );
@@ -129,7 +107,6 @@ export async function uploadExerciseImages({ log = console.log } = {}) {
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-  // Write the manifest LAST, so a skip only ever happens after a full upload.
   await s3.send(
     new PutObjectCommand({
       Bucket: R2_BUCKET,

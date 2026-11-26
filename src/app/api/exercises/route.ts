@@ -9,46 +9,24 @@ import {
 import { logger } from "@/server/observability";
 import { withCoach } from "@/server/guard";
 
-/**
- * Exercise catalog listing for the coach's library. Read via TanStack Query with
- * server-side search / filter / pagination. Tenant-scoped through the DAL (open
- * base catalog + this clinic's own exercises); coach-only. Query validated with
- * zod.
- */
 export const GET = withCoach("exercises.list", async (request, ctx) => {
   const p = new URL(request.url).searchParams;
   const parsed = exerciseListQuerySchema.safeParse({
     search: p.get("search") || undefined,
+    bodyPart: p.get("bodyPart") || undefined,
     category: p.get("category") || undefined,
-    level: p.get("level") || undefined,
     equipment: p.get("equipment") || undefined,
-    muscle: p.get("muscle") || undefined,
-    openGym: p.get("openGym") || undefined,
+    target: p.get("target") || undefined,
     page: p.get("page") || undefined,
     pageSize: p.get("pageSize") || undefined,
   });
   if (!parsed.success) return validationError(parsed.error);
   const q = parsed.data;
 
-  const result = await exercises.listExercises(ctx, {
-    search: q.search,
-    category: q.category,
-    level: q.level,
-    equipment: q.equipment,
-    muscle: q.muscle,
-    openGymOnly: q.openGym === "1",
-    page: q.page,
-    pageSize: q.pageSize,
-  });
+  const result = await exercises.listExercises(ctx, q);
   return NextResponse.json(result);
 });
 
-/**
- * Creates a custom exercise for this clinic. Coach-only; the DAL stamps
- * `clinicId` from the session, so the exercise is private to the clinic (never a
- * base row). Every field is validated with zod; images are R2 keys uploaded
- * beforehand via `POST /api/exercises/images`.
- */
 export const POST = withCoach("exercises.create", async (request, ctx) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;

@@ -39,9 +39,8 @@ const foodTexts = [
     .map((r) => (r.description ?? r.name) as string)
     .filter((t): t is string => typeof t === "string"),
 ];
-const exerciseTexts = readGzTexts(
-  "drizzle/data/exercises-catalog.ndjson.gz",
-  "name",
+const exerciseCodes = new Set(
+  readGzTexts("drizzle/data/exercises-catalog.ndjson.gz", "code"),
 );
 
 function resolves(pool: string[], pattern: string): boolean {
@@ -59,8 +58,8 @@ describe("starter vocabulary resolves against the base catalog", () => {
 
   it.each(Object.entries(EXERCISE_VOCAB))(
     "exercise slug %s resolves",
-    (_slug, pattern) => {
-      expect(resolves(exerciseTexts, pattern)).toBe(true);
+    (_slug, code) => {
+      expect(exerciseCodes.has(code)).toBe(true);
     },
   );
 });

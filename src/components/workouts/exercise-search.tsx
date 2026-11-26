@@ -2,16 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Loader2, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
 
-import { ExerciseImageButton } from "@/components/workouts/exercise-images";
+import { ExerciseMediaButton } from "@/components/exercises/exercise-media";
 import { apiFetch } from "@/lib/api-client";
 import {
-  CATEGORY_LABELS,
+  BODY_PART_LABELS,
+  EQUIPMENT_LABELS,
+  EXERCISE_BODY_PARTS,
+  TARGET_LABELS,
+  type ExerciseBodyPart,
   type ExerciseCategory,
   type ExerciseEquipment,
   type ExerciseListResponse,
-  type Muscle,
+  type ExerciseTarget,
 } from "@/lib/exercises";
 
 /** An exercise chosen through the search (identity + facets for the row). */
@@ -20,9 +24,9 @@ export type PickedExercise = {
   name: string;
   code: string | null;
   category: ExerciseCategory;
-  equipment: ExerciseEquipment | null;
-  primaryMuscles: Muscle[];
-  thumbnail: string | null;
+  equipment: ExerciseEquipment;
+  target: ExerciseTarget;
+  image: string | null;
 };
 
 function toPicked(item: ExerciseListResponse["items"][number]): PickedExercise {
@@ -32,8 +36,8 @@ function toPicked(item: ExerciseListResponse["items"][number]): PickedExercise {
     code: item.code,
     category: item.category,
     equipment: item.equipment,
-    primaryMuscles: item.primaryMuscles,
-    thumbnail: item.thumbnail,
+    target: item.target,
+    image: item.image,
   };
 }
 
@@ -58,28 +62,55 @@ export function ExerciseSearch({
 }) {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
-  const [openGymOnly, setOpenGymOnly] = useState(false);
+  const [bodyPart, setBodyPart] = useState<ExerciseBodyPart | "">("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const [canScroll, setCanScroll] = useState({ left: false, right: false });
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
+
+  function updateScroll() {
+    const el = chipsRef.current;
+    if (!el) return;
+    setCanScroll({
+      left: el.scrollLeft > 1,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    });
+  }
+
+  useEffect(() => {
+    const el = chipsRef.current;
+    if (!el) return;
+    updateScroll();
+    const observer = new ResizeObserver(updateScroll);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  function scrollChips(direction: 1 | -1) {
+    const el = chipsRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * el.clientWidth * 0.7, behavior: "smooth" });
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(query.trim()), 300);
     return () => clearTimeout(t);
   }, [query]);
 
-  const enabled = search.length >= 2;
+  const enabled = search.length >= 2 || Boolean(bodyPart);
   const { data, isFetching } = useQuery({
-    queryKey: ["exercise-picker", search, openGymOnly],
-    queryFn: () =>
-      apiFetch<ExerciseListResponse>(
-        `/api/exercises?search=${encodeURIComponent(search)}&pageSize=8${
-          openGymOnly ? "&openGym=1" : ""
-        }`,
-      ),
+    queryKey: ["exercise-picker", search, bodyPart],
+    queryFn: () => {
+      const p = new URLSearchParams();
+      if (search) p.set("search", search);
+      if (bodyPart) p.set("bodyPart", bodyPart);
+      p.set("pageSize", "20");
+      return apiFetch<ExerciseListResponse>(`/api/exercises?${p.toString()}`);
+    },
     enabled,
     placeholderData: keepPreviousData,
   });
@@ -138,18 +169,60 @@ export function ExerciseSearch({
         )}
       </div>
 
-      <label className="mt-2 flex cursor-pointer items-center gap-2 px-1 text-label text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={openGymOnly}
-          onChange={(e) => {
-            setOpenGymOnly(e.target.checked);
-            setActive(0);
-          }}
-          className="size-4 shrink-0 accent-primary"
-        />
-        Somente exercícios com equivalente no openGym
-      </label>
+      <div className="relative mt-2">
+        <div
+          ref={chipsRef}
+          onScroll={updateScroll}
+          className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
+          aria-label="Região do corpo"
+        >
+          {EXERCISE_BODY_PARTS.map((b) => (
+            <button
+              key={b}
+              type="button"
+              aria-pressed={bodyPart === b}
+              onClick={() => {
+                setBodyPart(bodyPart === b ? "" : b);
+                setActive(0);
+                inputRef.current?.focus();
+              }}
+              className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-label font-medium transition-colors ${
+                bodyPart === b
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card text-foreground hover:border-primary"
+              }`}
+            >
+              {BODY_PART_LABELS[b]}
+              {bodyPart === b && <X className="size-3" aria-hidden />}
+            </button>
+          ))}
+        </div>
+        {canScroll.left && (
+          <button
+            type="button"
+            onClick={() => scrollChips(-1)}
+            aria-label="Ver regiões anteriores"
+            className="absolute inset-y-0 left-0 mb-1 flex items-center bg-gradient-to-r from-card via-card to-transparent pr-4"
+          >
+            <span className="flex size-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground">
+              <ChevronLeft className="size-4" aria-hidden />
+            </span>
+          </button>
+        )}
+        {canScroll.right && (
+          <button
+            type="button"
+            onClick={() => scrollChips(1)}
+            aria-label="Ver mais regiões"
+            className="absolute inset-y-0 right-0 mb-1 flex items-center bg-gradient-to-l from-card via-card to-transparent pl-4"
+          >
+            <span className="flex size-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground">
+              <ChevronRight className="size-4" aria-hidden />
+            </span>
+          </button>
+        )}
+      </div>
 
       {enabled && (
         <div className="mt-2 overflow-hidden">
@@ -174,12 +247,11 @@ export function ExerciseSearch({
                     i === activeIndex ? "bg-primary/5" : "bg-card"
                   }`}
                 >
-                  <ExerciseImageButton
+                  <ExerciseMediaButton
                     exerciseId={f.id}
                     name={f.name}
-                    thumbnail={f.thumbnail}
-                    primaryMuscles={f.primaryMuscles}
-                    className="size-9 rounded-md"
+                    image={f.image}
+                    className="size-10 rounded-md"
                   />
                   <button
                     type="button"
@@ -190,9 +262,7 @@ export function ExerciseSearch({
                       {f.name}
                     </span>
                     <span className="block truncate text-label text-muted-foreground">
-                      {f.nameEn
-                        ? `${CATEGORY_LABELS[f.category]} · ${f.nameEn}`
-                        : CATEGORY_LABELS[f.category]}
+                      {TARGET_LABELS[f.target]} · {EQUIPMENT_LABELS[f.equipment]}
                     </span>
                   </button>
                 </li>
@@ -208,7 +278,7 @@ export function ExerciseSearch({
 
       {!enabled && (
         <div className="mt-2 px-2 py-3 text-label text-muted-foreground">
-          Digite ao menos 2 letras para buscar.
+          Digite ao menos 2 letras ou escolha uma região do corpo.
         </div>
       )}
     </div>

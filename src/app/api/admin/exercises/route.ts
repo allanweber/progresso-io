@@ -8,52 +8,32 @@ import { readJson, validationError } from "@/server/api";
 import { logger } from "@/server/observability";
 import { withAdmin } from "@/server/guard";
 
-/**
- * Platform-wide exercise catalog for the super admin. Lists EVERY exercise
- * (shared base + all clinics' custom), filterable by search / category / level /
- * equipment / muscle / origin / clinic. Admin-only (gated by
- * {@link getAdminSession}); the DAL is cross-tenant and read-only here. Input
- * validated with zod.
- */
 export const GET = withAdmin("admin.exercises.list", async (request) => {
   const p = new URL(request.url).searchParams;
   const parsed = adminExerciseListQuerySchema.safeParse({
     search: p.get("search") || undefined,
+    bodyPart: p.get("bodyPart") || undefined,
     category: p.get("category") || undefined,
-    level: p.get("level") || undefined,
     equipment: p.get("equipment") || undefined,
-    muscle: p.get("muscle") || undefined,
+    target: p.get("target") || undefined,
     origin: p.get("origin") || undefined,
     clinic: p.get("clinic") || undefined,
     archived: p.get("archived") === "true" ? true : undefined,
-    openGym: p.get("openGym") || undefined,
     page: p.get("page") || undefined,
     pageSize: p.get("pageSize") || undefined,
   });
   if (!parsed.success) return validationError(parsed.error);
   const q = parsed.data;
 
+  const { clinic, archived, ...rest } = q;
   const result = await admin.listAllExercises(db, {
-    search: q.search,
-    category: q.category,
-    level: q.level,
-    equipment: q.equipment,
-    muscle: q.muscle,
-    origin: q.origin,
-    clinicId: q.clinic,
-    includeArchived: q.archived,
-    openGym: q.openGym,
-    page: q.page,
-    pageSize: q.pageSize,
+    ...rest,
+    clinicId: clinic,
+    includeArchived: archived,
   });
   return NextResponse.json(result);
 });
 
-/**
- * Creates a shared **base** exercise (`clinic_id NULL`), visible to every
- * clinic. Admin-only (gated by {@link getAdminSession}); the DAL writes the base
- * row. Same zod validation as the coach create route.
- */
 export const POST = withAdmin("admin.exercises.create", async (request) => {
   const body = await readJson(request);
   if (!body.ok) return body.response;

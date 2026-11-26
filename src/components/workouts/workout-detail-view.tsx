@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   ChevronRight,
   CornerDownRight,
-  Dumbbell,
   HeartPulse,
   Repeat,
   TrendingUp,
@@ -17,9 +16,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  BODY_MAP_MUSCLE_LABELS,
   CATEGORY_LABELS,
-  MUSCLE_LABELS,
-  exerciseImageUrl,
+  type ExerciseMediaSet,
 } from "@/lib/exercises";
 import {
   formatRest,
@@ -33,7 +32,7 @@ import {
   WORKOUT_TECHNIQUE_CATALOG,
   techniqueInfo,
 } from "@/lib/workout-techniques";
-import { ExerciseImages } from "@/components/workouts/exercise-images";
+import { ExerciseMedia, ExerciseThumb } from "@/components/exercises/exercise-media";
 import {
   TechniqueBadge,
   TechniqueIcon,
@@ -122,27 +121,10 @@ function ExerciseRow({
     </div>
   ) : null;
 
-  // The exercise's first image, so a ficha reads visually — the same thumbnail
-  // the builder and the search show. Tapping the row still opens the carousel.
-  const thumb = exerciseImageUrl(exercise.images[0]);
-
   const body = (
     <div className="flex gap-2.5">
       {rail}
-      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-light text-muted-foreground">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumb}
-            alt=""
-            loading="lazy"
-            data-testid="exercise-thumb"
-            className="size-full object-cover"
-          />
-        ) : (
-          <Dumbbell className="size-5" aria-hidden />
-        )}
-      </div>
+      <ExerciseThumb image={exercise.image} className="size-12 rounded-lg" />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -324,10 +306,6 @@ export function WorkoutExerciseDetail({
   const techKey = exercise?.technique ?? null;
   const tech = techniqueInfo(techKey);
   const superset = WORKOUT_TECHNIQUE_CATALOG.superset;
-  const images = (exercise?.images ?? [])
-    .map((k) => exerciseImageUrl(k))
-    .filter((u): u is string => Boolean(u));
-
   // A substitute the athlete tapped, shown in its own detail dialog on top.
   const [sub, setSub] = useState<WorkoutExerciseSubstituteDto | null>(null);
 
@@ -351,12 +329,13 @@ export function WorkoutExerciseDetail({
             </DialogHeader>
 
             <div className="space-y-5 pt-1">
-              {/* Media — the exercise's images (main + thumbnails) */}
-              <ExerciseImages
+              <ExerciseMedia
                 key={exercise.id}
-                images={images}
+                media={exercise}
                 name={exercise.name}
-                primaryMuscles={exercise.primaryMuscles}
+                mapPrimary={exercise.mapPrimary}
+                mapSecondary={exercise.mapSecondary}
+                className="mx-auto w-full max-w-[320px]"
               />
 
               {/* Prescription stat cards */}
@@ -477,7 +456,6 @@ export function WorkoutExerciseDetail({
                   </h3>
                   <ul className="overflow-hidden rounded-xl border border-border">
                     {exercise.substitutes.map((s) => {
-                      const thumb = exerciseImageUrl(s.thumbnail);
                       return (
                         <li
                           key={`${s.source}-${s.exerciseId}`}
@@ -488,14 +466,8 @@ export function WorkoutExerciseDetail({
                             onClick={() => setSub(s)}
                             className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-surface-light"
                           >
-                            {thumb ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                loading="lazy"
-                                src={thumb}
-                                alt=""
-                                className="size-9 shrink-0 rounded-md object-cover"
-                              />
+                            {s.image ? (
+                              <ExerciseThumb image={s.image} className="size-9 rounded-md" />
                             ) : (
                               <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-light text-warn-fg">
                                 <Repeat className="size-4" aria-hidden />
@@ -521,14 +493,14 @@ export function WorkoutExerciseDetail({
               )}
 
               {/* Muscles */}
-              {exercise.primaryMuscles.length > 0 && (
+              {exercise.mapPrimary.length > 0 && (
                 <div>
                   <h3 className="mb-2 font-heading text-subtitle font-semibold">
                     Músculos trabalhados
                   </h3>
                   <p className="text-body text-foreground">
-                    {exercise.primaryMuscles
-                      .map((m) => MUSCLE_LABELS[m])
+                    {exercise.mapPrimary
+                      .map((m) => BODY_MAP_MUSCLE_LABELS[m])
                       .join(", ")}
                   </p>
                 </div>
@@ -551,19 +523,23 @@ export function WorkoutExerciseDetail({
  * data already hydrated onto the substitute (no extra request), so it works the
  * same in the coach and aluno views.
  */
-function SubstituteDetail({
+export function SubstituteDetail({
   sub,
   onClose,
   posture,
 }: {
-  sub: WorkoutExerciseSubstituteDto | null;
+  sub: Pick<
+    WorkoutExerciseSubstituteDto,
+    | keyof ExerciseMediaSet
+    | "exerciseId"
+    | "name"
+    | "instructions"
+    | "mapPrimary"
+    | "note"
+  > | null;
   onClose: () => void;
   posture?: "reading";
 }) {
-  const images = (sub?.images ?? [])
-    .map((k) => exerciseImageUrl(k))
-    .filter((u): u is string => Boolean(u));
-
   return (
     <Dialog open={Boolean(sub)} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -582,11 +558,12 @@ function SubstituteDetail({
             </DialogHeader>
 
             <div className="space-y-5 pt-1">
-              <ExerciseImages
+              <ExerciseMedia
                 key={sub.exerciseId}
-                images={images}
+                media={sub}
                 name={sub.name}
-                primaryMuscles={sub.primaryMuscles}
+                mapPrimary={sub.mapPrimary}
+                className="mx-auto w-full max-w-[320px]"
               />
 
               {sub.note && (
@@ -627,13 +604,13 @@ function SubstituteDetail({
                 </p>
               )}
 
-              {sub.primaryMuscles.length > 0 && (
+              {sub.mapPrimary.length > 0 && (
                 <div>
                   <h3 className="mb-2 font-heading text-subtitle font-semibold">
                     Músculos trabalhados
                   </h3>
                   <p className="text-body text-foreground">
-                    {sub.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(", ")}
+                    {sub.mapPrimary.map((m) => BODY_MAP_MUSCLE_LABELS[m]).join(", ")}
                   </p>
                 </div>
               )}

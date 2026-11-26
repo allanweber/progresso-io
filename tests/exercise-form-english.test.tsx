@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { ExerciseFormSource } from "@/components/exercises/exercise-form";
+
 const apiFetch = vi.fn();
 vi.mock("@/lib/api-client", () => ({
   apiFetch: (...args: unknown[]) => apiFetch(...args),
@@ -15,21 +17,23 @@ vi.mock("next/navigation", () => ({
 
 const { ExerciseForm } = await import("@/components/exercises/exercise-form");
 
-const SQUAT = {
+const SQUAT: ExerciseFormSource = {
   id: "ex-1",
   name: "Agachamento com halteres",
   nameEn: null,
   description: null,
-  category: "strength" as const,
-  level: "beginner" as const,
-  force: null,
-  mechanic: null,
-  equipment: "dumbbell" as const,
-  primaryMuscles: ["quadriceps" as const],
+  descriptionEn: null,
+  bodyPart: "upper legs",
+  category: "strength",
+  equipment: "dumbbell",
+  machineKind: null,
+  target: "quads",
   secondaryMuscles: [],
+  needs: [],
+  hold: false,
   instructions: ["Segure os halteres."],
   instructionsEn: [],
-  images: [],
+  image: null,
 };
 
 function renderForm() {
@@ -74,7 +78,32 @@ describe("ExerciseForm English fields", () => {
       nameEn: "Dumbbell Squat",
       instructions: ["Segure os halteres."],
       instructionsEn: ["Hold the dumbbells."],
+      bodyPart: "upper legs",
+      target: "quads",
+      machineKind: "",
     });
+  });
+
+  it("asks which machine when the equipment is a machine", async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ExerciseForm
+          mode="edit"
+          exercise={{ ...SQUAT, equipment: "leverage machine" }}
+          apiBase="/api/exercises"
+          imageEndpoint="/api/exercises/images"
+          listKey="exercises"
+          detailKey="exercise"
+          detailPath="/coach/library/exercises"
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByLabelText("Máquina")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByText("Selecione a máquina.")).toBeInTheDocument();
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("prefills the English fields when editing", () => {

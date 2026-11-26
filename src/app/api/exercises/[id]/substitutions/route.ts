@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import type { ExerciseSubstituteDto } from "@/lib/exercises";
 import { exerciseSubstitutionFormSchema } from "@/lib/exercises";
 import { exercises } from "@/server/dal";
 import {
@@ -60,17 +59,6 @@ export const POST = withCoach<Params>(
       exerciseId: id,
       substituteExerciseId: parsed.data.substituteExerciseId,
     });
-    const substitute: ExerciseSubstituteDto = {
-      id: result.substitute.id,
-      exerciseId: result.substitute.exerciseId,
-      name: result.substitute.name,
-      code: result.substitute.code,
-      category: result.substitute.category,
-      equipment: result.substitute.equipment,
-      thumbnail: result.substitute.thumbnail,
-      origin: result.substitute.origin,
-      removable: result.substitute.removable,
-    };
-    return NextResponse.json({ substitute }, { status: 201 });
+    return NextResponse.json({ substitute: result.substitute }, { status: 201 });
   },
 );

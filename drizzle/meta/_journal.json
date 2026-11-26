@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1794905872641,
+      "when": 1795676914891,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1794922105408,
-      "tag": "0001_clear-unsafe-site-urls",
       "breakpoints": true
     }
   ]

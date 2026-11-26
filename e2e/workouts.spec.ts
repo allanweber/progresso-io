@@ -486,7 +486,7 @@ test.describe("workout builder", () => {
 
     // The ficha row carries what the drawer hid: carga and descanso in the
     // summary, técnica as a badge, observação as its own mark.
-    await expect(page.getByText(/3× 8-12 · 40 kg · 1:30/)).toBeVisible();
+    await expect(page.getByText(/3× 10-12 · 40 kg · 1:30/)).toBeVisible();
     await expect(page.getByText("Drop set").first()).toBeVisible();
     await expect(page.getByRole("img", { name: "Tem observação" })).toBeVisible();
 
@@ -502,7 +502,7 @@ test.describe("workout builder", () => {
       .first()
       .click();
     await page.getByRole("button", { name: "Adicionar ao treino" }).click();
-    await expect(page.getByText(/3× 8-12 · 1:30/)).toBeVisible();
+    await expect(page.getByText(/3× 10-12 · 1:30/)).toBeVisible();
 
     // --- Adjusting the padrão is the batch edit ---------------------------
     await page.getByRole("button", { name: "Ajustar" }).click();
@@ -517,8 +517,8 @@ test.describe("workout builder", () => {
 
     // Both exercises moved, and the row states the new padrão.
     await expect(page.getByText("3 séries · 1min")).toBeVisible();
-    await expect(page.getByText(/3× 8-12 · 40 kg · 1min/)).toBeVisible();
-    await expect(page.getByText(/3× 8-12 · 1min/)).toBeVisible();
+    await expect(page.getByText(/3× 10-12 · 40 kg · 1min/)).toBeVisible();
+    await expect(page.getByText(/3× 10-12 · 1min/)).toBeVisible();
 
     await page.screenshot({
       path: "test-results/screens/coach-ficha-padrao-desktop.png",

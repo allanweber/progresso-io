@@ -31,19 +31,18 @@ Open [http://localhost:3000](http://localhost:3000).
 | `pnpm start`       | Serve the production build           |
 | `pnpm lint`        | Run ESLint                           |
 | `pnpm db:generate` | Generate Drizzle migrations          |
-| `pnpm db:bootstrap` | Apply migrations **and** seed the base food/exercise catalog |
-| `pnpm db:seed`     | Seed the demo clinic (coach/aluno/admin accounts + data) |
+| `pnpm db:seed`     | Apply migrations, seed the base catalogs and the demo clinic |
 | `pnpm db:studio`   | Open Drizzle Studio                  |
 
 ### First-time database setup
 
 ```bash
-pnpm db:bootstrap   # migrations + base catalog (597 foods, 587 exercises)
-pnpm db:seed        # demo clinic and accounts
+pnpm db:seed   # migrations, base catalogs (597 foods, 5,632 exercises) and demo clinic
 ```
 
-`db:bootstrap` runs the same `scripts/migrate.mjs` the Docker `migrator` service
-runs in production, so local matches deploy.
+`db:seed` first runs the same `scripts/migrate.mjs` that the Docker `migrator`
+service runs in production, so local matches deploy. Then it seeds the demo
+clinic and its accounts.
 
 ## Project structure
 

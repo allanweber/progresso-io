@@ -2,44 +2,47 @@
 
 import Model, {
   type IExerciseData,
-  type Muscle as BodyMuscle,
+  type Muscle as HighlighterMuscle,
 } from "react-body-highlighter";
 
-import { MUSCLE_LABELS, type Muscle } from "@/lib/exercises";
+import { BODY_MAP_MUSCLE_LABELS, type BodyMapMuscle } from "@/lib/exercises";
 import { cn } from "@/lib/utils";
 
-const BODY_MUSCLES: Record<Muscle, BodyMuscle[]> = {
-  abdominals: ["abs", "obliques"],
-  abductors: ["gluteal"],
-  adductors: ["abductors", "adductor"],
-  biceps: ["biceps"],
-  calves: ["calves", "left-soleus", "right-soleus"],
+const HIGHLIGHT: Record<BodyMapMuscle, HighlighterMuscle[]> = {
+  trapezius: ["trapezius"],
+  "front-delts": ["front-deltoids"],
+  "side-delts": ["front-deltoids", "back-deltoids"],
+  "rear-delts": ["back-deltoids"],
   chest: ["chest"],
-  forearms: ["forearm"],
-  glutes: ["gluteal"],
-  hamstrings: ["hamstring"],
   lats: ["upper-back"],
-  lower_back: ["lower-back"],
-  middle_back: ["upper-back"],
-  neck: ["neck", "trapezius"],
-  quadriceps: ["quadriceps"],
-  shoulders: ["front-deltoids", "back-deltoids"],
-  traps: ["trapezius"],
+  "upper-back": ["upper-back"],
+  serratus: ["obliques"],
+  biceps: ["biceps"],
   triceps: ["triceps"],
+  forearm: ["forearm"],
+  abs: ["abs"],
+  obliques: ["obliques"],
+  "lower-back": ["lower-back"],
+  gluteal: ["gluteal"],
+  quadriceps: ["quadriceps"],
+  hamstring: ["hamstring"],
+  adductors: ["adductor", "abductors"],
+  "hip-flexors": ["abductors"],
+  calves: ["calves", "left-soleus", "right-soleus"],
+  tibialis: ["calves"],
 };
 
-const FRONT = new Set<BodyMuscle>([
+const FRONT = new Set<HighlighterMuscle>([
   "chest",
   "obliques",
   "abs",
   "biceps",
-  "neck",
   "front-deltoids",
   "abductors",
   "quadriceps",
   "forearm",
 ]);
-const BACK = new Set<BodyMuscle>([
+const BACK = new Set<HighlighterMuscle>([
   "trapezius",
   "back-deltoids",
   "upper-back",
@@ -56,8 +59,8 @@ const PRIMARY = "var(--primary)";
 const SECONDARY = "color-mix(in oklab, var(--primary) 35%, white)";
 const BODY = "var(--border)";
 
-function toBody(muscles: Muscle[]) {
-  return [...new Set(muscles.flatMap((m) => BODY_MUSCLES[m] ?? []))];
+function toHighlighter(muscles: readonly BodyMapMuscle[]) {
+  return [...new Set(muscles.flatMap((m) => HIGHLIGHT[m] ?? []))];
 }
 
 export function ExerciseMuscleMap({
@@ -66,15 +69,15 @@ export function ExerciseMuscleMap({
   both = false,
   className,
 }: {
-  primary: Muscle[];
-  secondary?: Muscle[];
+  primary: readonly BodyMapMuscle[];
+  secondary?: readonly BodyMapMuscle[];
   both?: boolean;
   className?: string;
 }) {
-  const main = toBody(primary);
+  const main = toHighlighter(primary);
   const data: IExerciseData[] = [
     { name: "primary", muscles: main, frequency: 2 },
-    { name: "secondary", muscles: toBody(secondary), frequency: 1 },
+    { name: "secondary", muscles: toHighlighter(secondary), frequency: 1 },
   ];
   const front = main.filter((m) => FRONT.has(m)).length;
   const back = main.filter((m) => BACK.has(m)).length;
@@ -82,7 +85,7 @@ export function ExerciseMuscleMap({
     ? (["anterior", "posterior"] as const)
     : ([back > front ? "posterior" : "anterior"] as const);
   const label = primary.length
-    ? `Músculos trabalhados: ${primary.map((m) => MUSCLE_LABELS[m]).join(", ")}`
+    ? `Músculos trabalhados: ${primary.map((m) => BODY_MAP_MUSCLE_LABELS[m]).join(", ")}`
     : "Exercício sem imagem";
 
   return (

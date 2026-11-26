@@ -93,9 +93,11 @@ helper alongside the six in `src/server/dal/plans.ts`.
 
 ## The catalog: whole, base-only, cached
 
-**No per-aluno subsetting.** The prompt carries the **entire platform base
-catalog** (`clinicId IS NULL`) — 873 exercises or 597 foods — identical bytes for
-every clinic, every aluno, every generation.
+**No per-aluno subsetting.** The prompt carries the platform base catalog
+(`clinicId IS NULL`) — identical bytes for every clinic, every aluno, every
+generation. For exercises, the prompt has only the 1,324 classic openGym
+exercises and the base exercises without a code. The full catalog of 5,632
+exercises is too large (about 112,000 tokens). For foods, the prompt has 597 foods.
 
 Why this beats a filtered subset:
 

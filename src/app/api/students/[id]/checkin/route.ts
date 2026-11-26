@@ -67,7 +67,7 @@ export const POST = withCoach<Params>(
       modality,
       weightKg,
       note,
-      photos: await storeCheckinPhotos(photoFiles),
+      photos: await storeCheckinPhotos(id, photoFiles),
       assessment,
     };
     const created = await coachCheckins.createCoachCheckin(ctx, id, input);

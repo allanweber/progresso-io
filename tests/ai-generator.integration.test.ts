@@ -25,6 +25,7 @@ import { generateDiet, generateWorkout } from "@/server/ai/generate";
 import type { TenantContext } from "@/server/tenant";
 
 import { clearTrial, createTestDb, type TestDb } from "./pglite";
+import { exerciseRow } from "./exercise-fixture";
 
 /**
  * Integration tests for the parts that only fail against a real database: the
@@ -456,32 +457,26 @@ describe("catalog block", () => {
     // Two base exercises whose alphabetical name order differs from code order,
     // so an accidental ORDER BY name would be visible.
     await db.insert(schema.exercise).values([
-      {
+      exerciseRow({
         code: "b_squat",
         name: "Agachamento",
-        searchText: "agachamento",
-        source: "free-exercise-db",
-        category: "strength",
-        level: "beginner",
+        classic: true,
         equipment: "barbell",
-        primaryMuscles: ["quadriceps"],
-        secondaryMuscles: [],
-        instructions: [],
-        images: [],
-      },
-      {
+        target: "quads",
+      }),
+      exerciseRow({
         code: "a_bench",
         name: "Supino",
-        searchText: "supino",
-        source: "free-exercise-db",
-        category: "strength",
-        level: "beginner",
+        classic: true,
+        bodyPart: "chest",
         equipment: "barbell",
-        primaryMuscles: ["chest"],
-        secondaryMuscles: [],
-        instructions: [],
-        images: [],
-      },
+        target: "pectorals",
+      }),
+      exerciseRow({
+        code: "0_rare",
+        name: "Alongamento raro",
+        category: "stretching",
+      }),
     ]);
     const [group] = await db
       .insert(schema.foodGroup)
@@ -538,6 +533,11 @@ describe("catalog block", () => {
     expect(block.text.split("\n")[1]).toContain("Agachamento");
   });
 
+  it("sends only the classic exercises", async () => {
+    const block = await buildExerciseCatalog(ctxA);
+    expect(block.text).not.toContain("Alongamento raro");
+  });
+
   it("is byte-identical across calls — the cache depends on it", async () => {
     const a = await buildExerciseCatalog(ctxA);
     const b = await buildExerciseCatalog(ctxA);
@@ -573,19 +573,14 @@ describe("catalog block", () => {
 
   it("excludes a clinic's own custom rows from the shared prefix", async () => {
     const before = await buildExerciseCatalog(ctxA);
-    await db.insert(schema.exercise).values({
-      clinicId: ctxA.clinicId,
-      code: null,
-      name: "Exercício da clínica",
-      searchText: "exercicio da clinica",
-      source: "free-exercise-db",
-      category: "strength",
-      level: "beginner",
-      primaryMuscles: ["chest"],
-      secondaryMuscles: [],
-      instructions: [],
-      images: [],
-    });
+    await db.insert(schema.exercise).values(
+      exerciseRow({
+        clinicId: ctxA.clinicId,
+        name: "Exercício da clínica",
+        source: "custom",
+        target: "pectorals",
+      }),
+    );
     const after = await buildExerciseCatalog(ctxA);
     // A clinic-custom exercise must never enter the global prefix — it would
     // both break the shared cache and leak across tenants.
