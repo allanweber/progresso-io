@@ -31,7 +31,7 @@ export const GET = withStudent<Params>(
       headers: {
         "content-type": contentType,
         // Private: this is the aluno's own progress photo, never shared.
-        "cache-control": "private, max-age=3600",
+        "cache-control": found ? "private, max-age=3600" : "private, no-store",
       },
     });
   },
