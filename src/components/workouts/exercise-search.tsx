@@ -261,6 +261,14 @@ export function ExerciseSearch({
                     <span className="block truncate text-body font-medium text-foreground">
                       {f.name}
                     </span>
+                    {f.nameEn && f.nameEn !== f.name && (
+                      <span
+                        lang="en"
+                        className="block truncate text-label italic text-muted-foreground"
+                      >
+                        {f.nameEn}
+                      </span>
+                    )}
                     <span className="block truncate text-label text-muted-foreground">
                       {TARGET_LABELS[f.target]} · {EQUIPMENT_LABELS[f.equipment]}
                     </span>
