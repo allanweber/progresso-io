@@ -27,7 +27,6 @@ import {
   Copy,
   GripVertical,
   Loader2,
-  Pencil,
   Plus,
   Save,
   Trash2,
@@ -1244,26 +1243,20 @@ function SortableItem({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="min-w-0 flex-1 text-left"
+            aria-expanded={editing}
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[10px] px-1.5 py-1.5 text-left transition-colors hover:bg-surface-light focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/15"
           >
-            <span className="block truncate text-sm font-medium text-foreground">
-              {item.description}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-foreground">
+                {item.description}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {quantityLabel(item.grams, item.measureLabel, item.measureGrams)}
+              </span>
             </span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {quantityLabel(item.grams, item.measureLabel, item.measureGrams)}
+            <span className="shrink-0 text-right text-xs text-muted-foreground">
+              {formatKcal(kcal)} kcal
             </span>
-          </button>
-          <span className="shrink-0 text-right text-xs text-muted-foreground">
-            {formatKcal(kcal)} kcal
-          </span>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Editar quantidade"
-            title="Editar"
-            className="text-muted-foreground hover:text-primary"
-          >
-            <Pencil className="size-4" />
           </button>
           <button
             type="button"

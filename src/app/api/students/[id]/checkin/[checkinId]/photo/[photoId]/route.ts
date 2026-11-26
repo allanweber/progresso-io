@@ -48,7 +48,7 @@ export const GET = withCoach<Params>(
       status: 200,
       headers: {
         "content-type": contentType,
-        "cache-control": "private, max-age=3600",
+        "cache-control": found ? "private, max-age=3600" : "private, no-store",
       },
     });
   },
