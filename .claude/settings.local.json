@@ -1,4 +1,7 @@
 {
+  "skillOverrides": {
+    "anthropic-skills:grilling": "off"
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -26,8 +29,5 @@
       }
     ]
   },
-  "description": "Impeccable design detector: immediate-tier checks after Edit/Write/MultiEdit on UI files, full-rule deep pass on Stop.",
-  "skillOverrides": {
-    "anthropic-skills:grilling": "off"
-  }
+  "description": "Impeccable design detector: immediate-tier checks after Edit/Write/MultiEdit on UI files, full-rule deep pass on Stop."
 }
